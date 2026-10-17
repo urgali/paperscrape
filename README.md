@@ -41,13 +41,16 @@ moving on its own.
   the bar and a shop — and the public buildings — the school, a fire station and a police station.
   Each of the twelve themes has all six buildings among the houses: as the scenery scrolls they take
   turns in five places every two screens, about three on a screen, in an order of their own, never two
-  alike on the screen, and each time you come back to the home screen they are dealt again. Small houses
-  far away on the mountains can be
-  turned on, in the houses' colours. (The umbrellas people carry follow the rain and have no switch
+  alike on the screen, and they change only as the scenery scrolls: coming back to the home screen finds the
+  same ones. Small houses far away on the mountains can be
+  turned on, in the houses' colours, on both sides of the mountains. (The umbrellas people carry follow the rain and have no switch
   of their own.)
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
-  roofs and trees.
+  roofs and trees. With Christmas lights on — as the Christmas theme starts — one tree in three is a
+  Christmas fir in tiers with lights and presents, and every building has a string of lights along its
+  roof and its windowsills, a wreath on its front door and, on a tower, a star; the gallery cards show
+  them too.
 - **Halloween**, and a **horror sky**, as two independent switches. The first carves the
   moon into a jack-o'-lantern and strips the trees to bare branches; the second turns the
   sky near-black with a hard orange horizon. The Halloween theme starts with both on;
@@ -59,8 +62,8 @@ moving on its own.
   each carrying an occupant; people walking the ground between the buildings and the
   road, dressed for the season. Behind the windows there are people too — and behind the
   school's, children; behind the fire and the police station's, grown-ups — and now and then one of
-  them walks out of a window and into another (a tower's stay at theirs); when a building with opening
-  hours closes, its people walk out one at a time, and walk in when it opens. Nobody at a window
+  them walks out of a window and into another (a tower's stay at theirs); in the minute before a building
+  with opening hours closes, its people walk out one at a time, and at the minute it opens they walk in. Nobody at a window
   appears or vanishes: they walk.
 - **Houses, day and night.** A house lights half its windows at night, every one with somebody at it among
   them, and leaves the rest dark; now and then, one at a time, a light goes out as another
@@ -76,9 +79,9 @@ moving on its own.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   its lowest a single sporadic car — with a night amount of its own that the road fades to at
   dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
-  the shop) and the school can each be given opening hours of their own: outside them nobody stands
-  at the glass, and the windows and the lamp by the door stay unlit — dark glass at night, like a
-  house's unlit windows. The fire station and the police station never close, and houses are homes
+  the shop) and the school can each be given opening hours of their own, kept to the minute: outside
+  them the blinds are down (on a tower, in its entrance hall), a shutter is down over the front door, nobody stands at the glass, and the
+  windows and the lamp by the door stay unlit — dark glass at night, like a house's unlit windows. The fire station and the police station never close, and houses are homes
   and are unaffected. All three switches are off by default. By day every lamp by a door is off.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
   is the theme's own — and shows the switch off and locked while that theme is showing, without

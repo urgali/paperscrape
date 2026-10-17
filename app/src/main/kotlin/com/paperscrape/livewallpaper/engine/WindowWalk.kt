@@ -47,10 +47,9 @@ package com.paperscrape.livewallpaper.engine
  * house whose walker takes the light along lights the window they go to first -- over the two seconds
  * every light takes ([WindowRoster.FADE_SECONDS]), finished before they come into it -- and puts out
  * the one they left only once they are out of it ([litAmount]). A business's glass is lit all together
- * while it is open, and at closing its people set off before it is half lit ([WindowRoster.presentCount]);
- * with an opening span of half an hour or more the last of them is out of sight before it is, and with
- * the shortest the sliders give, a quarter of an hour, a doorway that waited for the roster's own walker
- * can leave them in sight down to 40 % (measured over every business of the twelve streets, v5.12C).
+ * while it is open: at the opening minute it lights over the same two seconds and its people walk in once
+ * it is lit; in the minute before the closing they walk out, and at the closing minute it goes dark -- once
+ * the last of them is out, should a walk still be going on ([Doorway], [BusinessHours], v5.14).
  *
  * ### What it costs
  *
@@ -402,9 +401,16 @@ internal object WindowWalk {
     // ------------------------------------------------------------------------------- the hours
 
     /**
-     * Who of a business is in at its hours, and who is walking out or in: the one part of the windows
-     * that remembers (see [WindowWalk]). Kept with the building, made fresh with it, and handed on when
-     * the list of objects is rebuilt ([copyFrom]).
+     * Who of a business is in at its hours, who is walking out or in, and how lit its glass is: the one part
+     * of the windows that remembers (see [WindowWalk]). Kept with the building, made fresh with it, and handed
+     * on when the list of objects is rebuilt ([copyFrom]).
+     *
+     * **The glass** (v5.14): at the opening minute it lights over the [WindowRoster.FADE_SECONDS] every light
+     * of the scene takes, at the closing minute it goes dark over as long ([BusinessHours]); and it goes dark
+     * only once nobody is in, so nobody is ever seen behind it unlit -- the people walk out in the minute
+     * before ([BusinessHours.peopleAt]), and at every closing measured on the twelve streets -- 4 154 of them,
+     * 28.5 s at the slowest -- they are out before the minute is (`WindowWalkTest`). The blind and the shutter of a shut building come down with it
+     * (`SceneObjectRenderer.drawShut`).
      */
     class Doorway {
         /** How many people are in: the first [shown] by their order ([WindowRoster.Plan.seat]); -1 not yet seen. */
@@ -436,6 +442,20 @@ internal object WindowWalk {
         /** Not before this time does the next walk begin. */
         private var calm = 0.0
 
+        /** Where the glass is going, 1 lit or 0 dark, where it started from, and when, on the scene's clock. */
+        private var glassTarget = 1f
+        private var glassFrom = 1f
+        private var glassStart = Double.NEGATIVE_INFINITY
+
+        /**
+         * How lit the glass is at [t] seconds of the scene's clock, 0 (shut) .. 1 (open), eased over
+         * [WindowRoster.FADE_SECONDS] from where it was when its target last changed ([advance]).
+         */
+        fun glassAt(t: Double): Float {
+            val k = WindowRoster.eased(t - glassStart)
+            return if (k >= 1f) glassTarget else glassFrom + (glassTarget - glassFrom) * k
+        }
+
         fun copyFrom(other: Doorway) {
             shown = other.shown
             walker = other.walker
@@ -445,37 +465,61 @@ internal object WindowWalk {
             start = other.start
             duration = other.duration
             calm = other.calm
+            glassTarget = other.glassTarget
+            glassFrom = other.glassFrom
+            glassStart = other.glassStart
         }
 
         /**
-         * The doorway at [elapsed], the building [openness] open: a walk that has ended is counted, and
-         * when fewer or more people should be in than are, the next one walks -- out, the last in the
-         * order first, or in, the first missing -- unless the roster is walking them, or will move them
-         * before they would be in.
+         * The doorway at [elapsed], with [present] of the building's people due at its windows and the
+         * building [open] or not ([BusinessHours]): a walk that has ended is counted; the glass goes to lit
+         * while the building is open, and to dark once it is shut **and** nobody is in; and when fewer or more
+         * people should be in than are, the next one walks -- out, the last in the order first, or in, the
+         * first missing, once the glass is lit -- unless the roster is walking them, or will move them before
+         * they would be in.
          *
-         * **Seen for the first time, or with [settle], it takes the number it should have without
-         * anybody walking**: a scene that starts is not a change, and nor is a cut -- the hour jumping
-         * (the screen off for an hour, a fixed hour moved, the phone's clock set: the sky and the lights
-         * jump with it) or the opening hours changed (a group's switch or its hours: its glass changes at
-         * once). People walk out and in when the hours close and open the building in front of you, a
-         * minute at a time; walked out after a cut, they would walk behind glass already gone dark. Any
-         * other change of the settings is no cut: whoever is walking goes on.
+         * **Seen for the first time, or with [settle], it takes its numbers without anybody walking and the
+         * glass at once**: a scene that starts is not a change, and nor is a cut -- the hour jumping (the
+         * screen off for an hour, a fixed hour moved, the phone's clock set: the sky and the lights jump with
+         * it) or the opening hours changed (a group's switch or its hours: its glass changes at once). People
+         * walk out and in when the hours close and open the building in front of you; walked out after a cut,
+         * they would walk behind glass already gone dark. Any other change of the settings is no cut: whoever
+         * is walking goes on.
          */
-        fun advance(plan: WindowRoster.Plan, layout: Layout, elapsed: SceneTime, openness: Float, settle: Boolean = false) {
-            val target = WindowRoster.presentCount(plan.people, openness)
+        fun advance(
+            plan: WindowRoster.Plan,
+            layout: Layout,
+            elapsed: SceneTime,
+            present: Int,
+            open: Boolean,
+            settle: Boolean = false,
+        ) {
             val t = elapsed.seconds
             if (shown < 0 || settle) {
-                shown = target
+                shown = present
                 walker = -1
                 calm = 0.0
+                val lit = if (open || present > 0) 1f else 0f
+                glassTarget = lit
+                glassFrom = lit
+                glassStart = Double.NEGATIVE_INFINITY
                 return
             }
-            if (walker >= 0) {
-                if (t < start + duration) return
+            if (walker >= 0 && t >= start + duration) {
                 shown += if (leaving) -1 else 1
                 walker = -1
                 calm = t + DOORWAY_GAP_SECONDS
             }
+            // The glass: lit while open, and while anybody is still in or on the way.
+            val lit = if (open || shown > 0 || walker >= 0) 1f else 0f
+            if (lit != glassTarget) {
+                glassFrom = glassAt(t)
+                glassTarget = lit
+                glassStart = t
+            }
+            if (walker >= 0) return
+            // Nobody walks in before the glass is lit.
+            val target = if (present > shown && glassAt(t) < 1f) shown else present
             if (shown == target || t < calm) return
             val out = target < shown
             val person = if (out) shown - 1 else shown

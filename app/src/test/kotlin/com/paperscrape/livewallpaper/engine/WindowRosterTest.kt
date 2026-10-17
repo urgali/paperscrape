@@ -217,20 +217,19 @@ class WindowRosterTest {
     }
 
     /**
-     * Who is in at an openness, before anybody has moved: the first [WindowRoster.presentCount] people,
-     * at the windows they stand at in the first state -- exactly the windows the rule of before fills
-     * at that openness ([WindowOccupants.isOccupied]). How they walk out and in is `WindowWalkTest`'s.
+     * Who is in, before anybody has moved: open, every person, at the windows they stand at in the first state --
+     * exactly the windows the rule of before fills ([WindowOccupants.isOccupied]); shut, nobody (v5.14: the hours
+     * at the minute, [BusinessHours]). How they walk out and in, one at a time in the order of before, is
+     * `WindowWalkTest`'s.
      */
     @Test
-    fun `at closing the people leave one at a time, in the order they always did`() {
+    fun `open, the people stand where the rule of before puts them, and shut nobody does`() {
         for (b in shops().filter { it.plan.people >= 2 }) {
             val p = b.plan
             val theme = b.theme.hashCode()
             val seed = SceneObjectRenderer.buildingSeedOf(b.spec)
-            var previous = p.people
-            for (step in 100 downTo 0) {
-                val openness = step / 100f
-                val n = WindowRoster.presentCount(p.people, openness)
+            for (openness in floatArrayOf(1f, 0f)) {
+                val n = if (openness >= 1f) p.people else 0
                 var set = 0
                 for (person in 0 until n) set = set or (1 shl p.seat(0, person))
                 for (w in 0 until p.windows) {
@@ -240,8 +239,6 @@ class WindowRosterTest {
                         set and (1 shl w) != 0,
                     )
                 }
-                assertTrue("one at a time", previous - n in 0..1)
-                previous = n
             }
             // Person p is the one whose window ranked p: the order they leave in.
             for (person in 0 until p.people) assertEquals(person, p.ranks[p.origin(person)])

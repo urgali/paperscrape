@@ -92,6 +92,26 @@ class LampsAndCardHousesTest {
         assertTrue("dark windows on the night cards", 2 in tints)
     }
 
+    /**
+     * **On both sides** (v5.14, alternating as the wallpaper's do): below 50 % the card's one house a
+     * mountain stands on the right of one mountain and on the left of the next -- until v5.14 it stood on the right of
+     * every one -- and from 50 % its two stand one on each side.
+     */
+    @Test
+    fun `the card's distant houses stand on both sides`() {
+        for (t in ThemeCatalog.ALL) {
+            val base = defaultCustomizationFor(t.id)
+            val low = ThemePreviewScenes.forTheme(t, base.copy(distantHouses = DistantHousesConfig(true, 0.25f))).peaks
+            if (low.isEmpty()) continue
+            val sides = low.map { peak -> assertEquals(1, peak.houses.size); peak.houses[0].x > peak.x }
+            for (i in 1 until sides.size) assertTrue("${t.id}: two mountains in a row with their house on one side: $sides", sides[i] != sides[i - 1])
+            for (peak in ThemePreviewScenes.forTheme(t, base.copy(distantHouses = DistantHousesConfig(true, 0.5f))).peaks) {
+                assertEquals(2, peak.houses.size)
+                assertTrue("${t.id}: two houses on one side", peak.houses.any { it.x < peak.x } && peak.houses.any { it.x > peak.x })
+            }
+        }
+    }
+
     private fun repoRoot(): File {
         var dir: File? = File(".").absoluteFile
         while (dir != null) {

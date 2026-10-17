@@ -114,6 +114,9 @@ class ThemePreviewTruthTest {
         "ground_flowers" to "FLOWERS",
         "santa_sleigh" to "SANTA",
         "star_sparkle" to "LIGHTS",
+        // The wreath on a front door (v5.14C2): the one sprite of a building's Christmas decorations, its bulbs and star
+        // being flat parts.
+        "deco_wreath" to "DECORATIONS",
         "restaurant_" to "RESTAURANT",
         // v5.13: the shop and the two stations, before `police_` -- the police car's livery -- which
         // would otherwise claim the police station's layers for the traffic.
@@ -169,7 +172,7 @@ class ThemePreviewTruthTest {
             if (n > 0) out[family] = (out[family] ?: 0) + n
         }
         // A place among the houses draws, in each copy of the tile, the building the street deals it
-        // (v5.13): in copy 0 of the first round -- the stretch the card draws -- the building at the place's
+        // (v5.13): in copy 0 -- the stretch the card draws, where a fresh engine starts -- the building at the place's
         // rank across the tile. Since v5.13B2 a built-in street has five places and
         // the card three, the middle one by depth of each row of the size table (`StorefrontStreet.cardPlaceOf`):
         // the other two are left out on purpose (`DESIGN_NOTES.md` §9, "What the card leaves out").
@@ -214,6 +217,12 @@ class ThemePreviewTruthTest {
         // All three `drawChristmasLights` call sites are inside a tree: the fir's, the leafy
         // tree's and the palm's. No trees, no lights -- which is why this reads both flags.
         if (c.christmasDecorationsEnabled && c.trees.visible) add("LIGHTS", 1)
+        // Every building has a front door, and with the Christmas decorations on each carries its wreath (v5.14, decision
+        // 67): the scene's buildings, the towers, the houses and the six among them, as counted above.
+        if (c.christmasDecorationsEnabled) {
+            val buildings = out.filterKeys { k -> k == "TOWER" || k.startsWith("HOUSE_") || Storefront.ALL.any { it.name == k } }.values.sum()
+            add("DECORATIONS", buildings)
+        }
         if (theme.hasFireworks) add("FIREWORKS", 1)
         if (c.santaEnabled) add("SANTA", 1)
         if (c.sun.visible) add("SUN", 1)
@@ -258,10 +267,11 @@ class ThemePreviewTruthTest {
         var bottom = -Float.MAX_VALUE
         for (part in item.parts) {
             val ink = inkOf(part.resId) ?: continue
-            left = minOf(left, item.x + item.scale * (part.ox + ink.left))
-            top = minOf(top, item.y + item.scale * (part.oy + ink.top))
-            right = maxOf(right, item.x + item.scale * (part.ox + ink.right))
-            bottom = maxOf(bottom, item.y + item.scale * (part.oy + ink.bottom))
+            // A part drawn [PreviewSprite.scale] times its size from its origin: a wreath (v5.14C2).
+            left = minOf(left, item.x + item.scale * (part.ox + part.scale * ink.left))
+            top = minOf(top, item.y + item.scale * (part.oy + part.scale * ink.top))
+            right = maxOf(right, item.x + item.scale * (part.ox + part.scale * ink.right))
+            bottom = maxOf(bottom, item.y + item.scale * (part.oy + part.scale * ink.bottom))
         }
         return if (left > right) null else Box(left, top, right, bottom)
     }
@@ -342,6 +352,14 @@ class ThemePreviewTruthTest {
                 (spring to defaultCustomizationFor("spring").let {
                     it.copy(fallColorsEnabled = true, pumpkins = it.pumpkins.copy(visible = true))
                 }),
+            // v5.14: every building that keeps hours shut at the card's hour, its blinds and its shutter -- flat cards, the shutter's of the
+            // door's own outline -- on the card.
+            "autumn with the three groups' hours 13:00-20:00, every building that keeps hours shut" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(
+                    shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 20f,
+                    publicHoursEnabled = true, publicOpenHour = 13f, publicCloseHour = 20f,
+                    towerHoursEnabled = true, towerOpenHour = 13f, towerCloseHour = 20f,
+                )),
         )
     }
 
@@ -465,8 +483,9 @@ class ThemePreviewTruthTest {
             for (forceNight in listOf(null, true)) {
                 for (item in drawOrder(ThemePreviewScenes.forTheme(theme, c, forceNight))) {
                     for (part in item.parts) {
-                        // A house's lit window at night is a flat card of the house, no sprite (v5.12).
-                        if (part.rectWidth > 0f) continue
+                        // A house's lit window at night is a flat card of the house, no sprite (v5.12); so are a shut
+                        // building's blinds and shutter (v5.14).
+                        if (part.isFlat) continue
                         val name = nameOf(part.resId)
                         if (familyOf(name) == null) unknown += name
                     }
@@ -780,10 +799,42 @@ class ThemePreviewTruthTest {
                 }
                 seen?.let { val k = if (house) "HOUSE_GLASS" else if (openness < 1f && d < 1f) "CLOSED_BUSINESS_GLASS" else "BUSINESS_GLASS"; it[k] = (it[k] ?: 0) + 1 }
             }
-            for (part in item.parts.filter { it.rectWidth > 0f }) {
+            for (part in item.parts.filter { it.decoration }) {
+                // The Christmas decorations (v5.14C2): only on a card whose wallpaper hangs them (where, and which colour each,
+                // `CardDecorationsTest`), in its own colours -- the lights' four, the star's gold -- which no hour dims, the
+                // wreath its own drawing untinted.
+                val allowed = SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS.toSet() + SceneObjectRenderer.STAR_GOLD
+                if (!c.christmasDecorationsEnabled) {
+                    out += "$label: R7 a Christmas decoration at x=%.0f on a card whose wallpaper hangs none".format(item.x)
+                } else if (part.resId == R.drawable.deco_wreath) {
+                    if (part.tint != null || part.shade != SpriteBlitter.UNTINTED) out += "$label: R7 a wreath at x=%.0f is tinted ${hex(part.tint)} / shaded ${hex(part.shade)}".format(item.x)
+                } else if (part.tint !in allowed || part.alpha != 255) {
+                    out += "$label: R7 a Christmas decoration at x=%.0f is ${hex(part.tint)} at alpha ${part.alpha}, none of the wallpaper's lit colours".format(item.x)
+                }
+                seen?.let { it["DECORATION"] = (it["DECORATION"] ?: 0) + 1 }
+            }
+            for (part in item.parts.filter { it.isFlat && !it.decoration }) {
+                if (!house) {
+                    // A shut business's blinds and shutter (v5.14, `SceneObjectRenderer.drawShut`): the wallpaper's
+                    // own colours at the card's hour, and only on a building the card shows shut.
+                    val n = 1f - d
+                    val shutColours = setOf(
+                        SceneColour.blendArgb(SceneObjectRenderer.BLIND_DAY, SceneObjectRenderer.BLIND_NIGHT, n),
+                        SceneColour.blendArgb(SceneObjectRenderer.BLIND_RAIL_DAY, SceneObjectRenderer.BLIND_RAIL_NIGHT, n),
+                        SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_DAY, SceneObjectRenderer.SHUTTER_NIGHT, n),
+                        SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_SLAT_DAY, SceneObjectRenderer.SHUTTER_SLAT_NIGHT, n),
+                        SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_UNDER_DAY, SceneObjectRenderer.SHUTTER_UNDER_NIGHT, n),
+                    )
+                    if (openness >= 1f || part.tint !in shutColours) {
+                        out += "$label: R7 a flat card at x=%.0f is ${hex(part.tint)} on a building that is not a house, open %.3f: the wallpaper draws blinds and a shutter only on a shut one"
+                            .format(item.x, openness)
+                    }
+                    seen?.let { it["SHUT_SIGN"] = (it["SHUT_SIGN"] ?: 0) + 1 }
+                    continue
+                }
                 val expected = SceneObjectRenderer.windowGlassColor(1f - d)
-                if (!house || part.tint != expected) {
-                    out += "$label: R7 a lit window at x=%.0f is ${hex(part.tint)} on ${if (house) "a house" else "a building that is not a house"}, the wallpaper lights it ${hex(expected)} at dayBlend %.3f"
+                if (part.tint != expected) {
+                    out += "$label: R7 a lit window at x=%.0f is ${hex(part.tint)} on a house, the wallpaper lights it ${hex(expected)} at dayBlend %.3f"
                         .format(item.x, d)
                 }
                 seen?.let { it["HOUSE_LIT_WINDOW"] = (it["HOUSE_LIT_WINDOW"] ?: 0) + 1 }
@@ -889,7 +940,7 @@ class ThemePreviewTruthTest {
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
-        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS")) {
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
     }

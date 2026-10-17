@@ -23,7 +23,9 @@ import org.junit.runner.RunWith
  * [COUNTED_FRAMES] frames while ART counts what this thread allocates. Since v5.11 also the distant
  * houses on the mountains, by day, at night and under snow, and a scene with everything on at once:
  * the houses at 100 %, opening hours (the lamps and the glass of the shut shops), the lake at its
- * busiest, the decorations and the weather.
+ * busiest, the decorations and the weather. Since v5.14 the Christmas decorations of the buildings
+ * and the fir A, by day and at night, the distant houses' bulbs, and a shut building's blinds and
+ * shutter by day.
  *
  * The frames are drawn by the real [PaperRenderer] into a [SceneCanvas] that does nothing, so the
  * count is the scene's own: the two backends allocate nothing per frame of their own (the GL one
@@ -31,9 +33,10 @@ import org.junit.runner.RunWith
  * shows no site in either). The scene scrolls, as the wallpaper does.
  *
  * **Events are not frames.** A firework burst, a gift thrown from the sleigh and a sleigh setting
- * off are an object each when they happen -- every few seconds, not every frame -- so the three
- * scenes that have them (Christmas and New Year's Eve at night, and everything on at once at
- * Christmas) are held to "fewer objects than a tenth of the frames" and log their exact
+ * off are an object each when they happen -- every few seconds, not every frame -- so the five
+ * scenes that have them (Christmas and New Year's Eve at night, Christmas at noon and at 23:00 with
+ * the distant houses -- the sleigh flies by day too -- and everything on at once at Christmas) are
+ * held to "fewer objects than a tenth of the frames" and log their exact
  * count; every other scene is held to zero.
  *
  * `Debug.startAllocCounting` is deprecated (its counts are coarse and global), and on API 29 it
@@ -59,6 +62,8 @@ class FrameAllocationTest {
      */
     private object NothingCanvas : SceneCanvas {
         var clipped = 0
+        /** The shapes drawn: a shut building's shutter is drawn in shapes ([DoorShutter]'s bands, v5.14). */
+        var shapes = 0
         override fun drawSpriteClipped(
             resId: Int,
             source: SpriteSource,
@@ -82,9 +87,10 @@ class FrameAllocationTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: Paint) = Unit
-        override fun drawShape(shape: SceneShape, paint: Paint) = Unit
+        override fun drawShape(shape: SceneShape, paint: Paint) { shapes++ }
         override fun drawVerticalGradientShape(
             shape: SceneShape,
             gradientTopY: Float,
@@ -126,6 +132,15 @@ class FrameAllocationTest {
         it.copy(distantHouses = DistantHousesConfig(visible = true, density = 1f))
     }
 
+    /** The three groups' hours 13:00-20:00 (v5.14): at noon every building that keeps hours is shut (the fire and the police station never close), its blinds and shutter down. */
+    private val shutAtNoon: (SceneCustomization) -> SceneCustomization = {
+        it.copy(
+            shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 20f,
+            publicHoursEnabled = true, publicOpenHour = 13f, publicCloseHour = 20f,
+            towerHoursEnabled = true, towerOpenHour = 13f, towerCloseHour = 20f,
+        )
+    }
+
     /** Everything on at once (v5.11): the distant houses, opening hours, the lake, decorations, rain. */
     private val everything: (SceneCustomization) -> SceneCustomization = { c ->
         val full = { o: ObjectVariantConfig -> o.copy(visible = true, density = 1f) }
@@ -156,6 +171,12 @@ class FrameAllocationTest {
         Scene("distant-houses-noon", "autumn", 12f, customise = distantHouses),
         Scene("distant-houses-midnight", "autumn", 0f, customise = distantHouses),
         Scene("distant-houses-snow-night", "winter", 23f, customise = { distantHouses(snow(it)) }),
+        // v5.14: the Christmas decorations -- the fir A, the roofs' strings, the wreaths, the towers' stars -- by day and
+        // on Autumn with the switch on at night; the distant houses' bulbs; a shut building's blinds and shutter by day.
+        Scene("christmas-noon-decorations", "christmas", 12f, events = true),
+        Scene("autumn-christmas-lights-night", "autumn", 1f, customise = { it.copy(christmasDecorationsEnabled = true) }),
+        Scene("christmas-distant-houses-night", "christmas", 23f, events = true, customise = distantHouses),
+        Scene("shut-by-day", "autumn", 12f, customise = shutAtNoon),
         Scene("everything-on-evening", "city", 21f, customise = everything),
         Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
         Scene(
@@ -231,7 +252,8 @@ class FrameAllocationTest {
      *    found by drawing frames a second apart until one has a cut blit;
      *  - **the hours'**: the shops' and the towers' hours on, and the hour moved on a minute at a time
      *    across a closing -- as the real clock moves it, if faster -- so the doorways walk their people out;
-     *    swept once uncounted first, for the first uses of the code the minutes reach (see there).
+     *    then on past it until the glass is dark and the blinds and the shutters are down (v5.14C); swept once
+     *    uncounted first, for the first uses of the code the minutes reach (see there).
      */
     @Test
     fun aFrameWithPeopleWalkingAllocatesNothing() {
@@ -287,6 +309,7 @@ class FrameAllocationTest {
                 val phase = minutes[minute]
                 repeat(10) { firstClock += FRAME; firstUses.draw(NothingCanvas, phase, firstClock, FRAME) }
             }
+            repeat(SHUT_FRAMES) { firstClock += FRAME; firstUses.draw(NothingCanvas, minutes.last(), firstClock, FRAME) }
         }
         val closing = renderer(hoursOn)
         var clock = SceneTime(0.0)
@@ -301,20 +324,55 @@ class FrameAllocationTest {
         val hoursCut = NothingCanvas.clipped
         Log.i(TAG, "walking out at closing: $hoursObjects objects over ${minutes.size * 10} frames, $hoursCut cut blits (the uncounted first sweep: $firstSweepObjects)")
 
+        // And on past the closing (v5.14C): at 20:10, as long as the slowest walk out takes and the glass's two seconds
+        // after it, so the glass goes dark and the blinds and the shutters come down while counting -- the sweep above,
+        // ten frames a minute, ends a few seconds into the walking out. Counted on the same renderer, in step.
+        NothingCanvas.shapes = 0
+        closing.draw(NothingCanvas, minutes.last(), clock, 0f)
+        val shapesStillOpen = NothingCanvas.shapes
+        val shutObjects = allocationsDuring {
+            repeat(SHUT_FRAMES) { clock += FRAME; closing.draw(NothingCanvas, minutes.last(), clock, FRAME) }
+        }
+        NothingCanvas.shapes = 0
+        closing.draw(NothingCanvas, minutes.last(), clock, 0f)
+        val shapesShut = NothingCanvas.shapes
+        Log.i(TAG, "after the closing: $shutObjects objects over $SHUT_FRAMES frames; shapes in a frame $shapesStillOpen -> $shapesShut")
+
+        // And the opening (v5.14): 08:50 to 09:30, the glass lighting at 09:00 over its two seconds and the shutters
+        // and blinds going up with it, then the people walking in -- ten frames a minute, so the walks of the opening
+        // minute run on into the next ones. Swept once uncounted first, on a renderer of its own, as above.
+        val mornings = (0..40).map { SunPositionCalculator.compute(hour24 = 8f + (50 + it) / 60f) }
+        val firstMorning = renderer(hoursOn)
+        var morningClock = SceneTime(0.0)
+        repeat(WARM_UP_FRAMES) { morningClock += FRAME; firstMorning.draw(NothingCanvas, mornings[0], morningClock, FRAME) }
+        for (minute in mornings.indices) repeat(10) { morningClock += FRAME; firstMorning.draw(NothingCanvas, mornings[minute], morningClock, FRAME) }
+        val opening = renderer(hoursOn)
+        var openClock = SceneTime(0.0)
+        repeat(WARM_UP_FRAMES) { openClock += FRAME; opening.draw(NothingCanvas, mornings[0], openClock, FRAME) }
+        NothingCanvas.clipped = 0
+        val openingObjects = allocationsDuring {
+            for (minute in mornings.indices) repeat(10) { openClock += FRAME; opening.draw(NothingCanvas, mornings[minute], openClock, FRAME) }
+        }
+        val openingCut = NothingCanvas.clipped
+        Log.i(TAG, "walking in at opening: $openingObjects objects over ${mornings.size * 10} frames, $openingCut cut blits")
+
         assertTrue("the roster's walk was not drawn while counting ($rosterCut cut blits)", rosterCut > 0)
         assertTrue("nobody walked out at closing while counting ($hoursCut cut blits)", hoursCut > 0)
+        assertTrue("nobody walked in at opening while counting ($openingCut cut blits)", openingCut > 0)
         assertEquals("a frame with somebody walking from window to window allocated", 0, rosterObjects)
         assertEquals("a frame with somebody walking out at closing allocated", 0, hoursObjects)
+        assertTrue("no shutter came down after the closing (shapes $shapesStillOpen -> $shapesShut)", shapesShut > shapesStillOpen)
+        assertEquals("a frame with the glass going dark and the shutters coming down allocated", 0, shutObjects)
+        assertEquals("a frame with the glass lighting and somebody walking in at opening allocated", 0, openingObjects)
     }
 
     /**
      * **And while the places among the houses come and go** (v5.13B2): a place that leaves the screen comes
-     * back as another copy of the street, with the building the street deals that copy ([StorefrontStreet]),
-     * and a new round deals them all again. Autumn by day with the people at 100 %, swept by the swipe offset
-     * across three tiles of the street -- six screens, so each of the five places leaves the screen and comes
-     * back as another copy three times -- one frame of a fiftieth of a tile each, with a round dealt halfway.
-     * The sweep is drawn once uncounted over the three tiles before, for the first uses; the counted one meets
-     * copies the scene has not drawn yet.
+     * back as another copy of the street, with the building the street deals that copy ([StorefrontStreet]).
+     * Autumn by day with the people at 100 %, swept by the swipe offset across three tiles of the street -- six
+     * screens, so each of the five places leaves the screen and comes back as another copy three times -- one
+     * frame of a fiftieth of a tile each. The sweep is drawn once uncounted over the three tiles before, for the
+     * first uses; the counted one meets copies the scene has not drawn yet.
      */
     @Test
     fun aFrameAsThePlacesComeBackAllocatesNothing() {
@@ -332,7 +390,6 @@ class FrameAllocationTest {
         var time = SceneTime(120.0)
         fun sweep(fromTile: Int) {
             for (i in 0 until SWEEP_FRAMES) {
-                if (i == SWEEP_FRAMES / 2) renderer.nextStreetRound()
                 renderer.homeScreenOffset = (fromTile + 3f * i / SWEEP_FRAMES) * tile
                 time += FRAME
                 renderer.draw(NothingCanvas, noon, time, FRAME)
@@ -341,7 +398,7 @@ class FrameAllocationTest {
         repeat(WARM_UP_FRAMES) { time += FRAME; renderer.draw(NothingCanvas, noon, time, FRAME) }
         sweep(0)
         val objects = allocationsDuring { sweep(3) }
-        Log.i(TAG, "places coming back: $objects objects over $SWEEP_FRAMES frames, three tiles of the street and a round")
+        Log.i(TAG, "places coming back: $objects objects over $SWEEP_FRAMES frames, three tiles of the street")
         assertEquals("a frame as a place came back as another copy allocated", 0, objects)
     }
 
@@ -354,6 +411,9 @@ class FrameAllocationTest {
         /** Past the traffic's arrival (`SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES`, 390) and every lazy first use. */
         const val WARM_UP_FRAMES = 420
         const val COUNTED_FRAMES = 150
+
+        /** Forty seconds: the slowest walk out at a closing (28.5 s) and the glass's two seconds after it, with room. */
+        const val SHUT_FRAMES = 1200
 
         /** Three tiles of the street at a fiftieth of a tile a frame. */
         const val SWEEP_FRAMES = 150

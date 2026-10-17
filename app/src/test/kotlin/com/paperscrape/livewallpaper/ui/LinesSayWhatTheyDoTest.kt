@@ -178,7 +178,12 @@ class LinesSayWhatTheyDoTest {
         val lit = c.copy(christmasDecorationsEnabled = true)
         assertTrue("with the lights on, some trees stand as firs", trees.any { SceneObjectRenderer.standsAsFir(it, lit) })
         assertTrue("and none without", trees.none { SceneObjectRenderer.standsAsFir(it, c.copy(christmasDecorationsEnabled = false)) })
-        for (word in listOf("lights on the trees", "windowsills", "one tree in three becomes a Christmas fir")) {
+        // v5.14: the roofs, the wreaths and the stars, which the drawing hangs on every building
+        // (`ChristmasDecorationsTest` holds the table to them).
+        for (word in listOf(
+            "lights on the trees", "windowsills", "one tree in three becomes a Christmas fir",
+            "along the roofs", "a wreath on every front door", "a star on every tower",
+        )) {
             assertTrue("the line does not say '$word'", CHRISTMAS_LIGHTS_LINE.contains(word))
         }
         assertTrue(source("ui/SeasonsScreen.kt").contains("supporting = CHRISTMAS_LIGHTS_LINE,"))

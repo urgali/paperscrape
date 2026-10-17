@@ -15,13 +15,23 @@ import com.paperscrape.livewallpaper.R
  * `SpriteBlitter.drawTintedAdded` exists to prevent in the scene.
  *
  * [shade] is how lit a piece of fixed art is, the neutral grey `SpriteBlitter.draw` multiplies it
- * by, and only for a part with no [tint]: the palm, which the wallpaper shades rather than tints
- * (`SceneObjectRenderer.drawPalmTree`, [nightShadeFor]). Full daylight, the default, draws the art
- * as authored.
+ * by, and only for a part with no [tint]: the palm and, since v5.14, the fir, which the wallpaper shades
+ * rather than tints (`SceneObjectRenderer.drawPalmTree`, `drawFir`, [nightShadeFor]). Full daylight, the
+ * default, draws the art as authored.
  *
  * A part with a [rectWidth] is no sprite: a flat card [rectWidth] x [rectHeight] at ([ox], [oy]) in
  * [tint] -- a house's lit window over its dark glass at night (v5.12), as the wallpaper lays it
- * (`SceneObjectRenderer.drawLitPanes`). [resId] is 0 then.
+ * (`SceneObjectRenderer.drawLitPanes`), or a shut building's blinds (v5.14, `SceneObjectRenderer.drawShut`).
+ * A part with an [outline] is no sprite either: a flat card of that shape in [tint], its points `x0, y0, x1, y1,
+ * ...` in the item's units -- a band of a shut building's shutter, cut from its door's outline as the wallpaper
+ * cuts it ([DoorShutter.band]), or a tower's star. A part with a [discRadius] is a disc centred on
+ * ([ox], [oy]) in [tint] at [alpha] -- a Christmas bulb, drawn as the wallpaper's preview draws one
+ * (`SpriteBlitter.drawDisc`, a circle on a Canvas). [resId] is 0 for the three ([isFlat]).
+ *
+ * [scale] draws a sprite that many times its size from ([ox], [oy]): a tower's wreath, half as large again as a
+ * house's (`SceneObjectRenderer.drawWreath`), and the card's decorations a little larger again (`decorations`).
+ * [decoration] marks the parts of the Christmas decorations (v5.14C2): the bulbs, the stars and the wreaths -- not the
+ * building's own paper, nor its shut sign.
  */
 data class PreviewSprite(
     val resId: Int,
@@ -33,7 +43,14 @@ data class PreviewSprite(
     val shade: Int = SpriteBlitter.UNTINTED,
     val rectWidth: Float = 0f,
     val rectHeight: Float = 0f,
-)
+    val outline: List<Float>? = null,
+    val discRadius: Float = 0f,
+    val scale: Float = 1f,
+    val decoration: Boolean = false,
+) {
+    /** A flat card -- a rectangle, an outline or a disc -- and not a sprite. */
+    val isFlat: Boolean get() = rectWidth > 0f || outline != null || discRadius > 0f
+}
 
 /** An object standing at [x] on the ground line [y], drawn at [scale]. */
 data class PreviewItem(val x: Float, val y: Float, val scale: Float, val parts: List<PreviewSprite>)
@@ -460,8 +477,8 @@ object ThemePreviewScenes {
             x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
             PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, hour, seed,
         )
-        // The three buildings among the houses (v5.13): three of the five places of the street's first copy, in
-        // its first round, one in each row of the size table ([StorefrontStreet.firstStretch], [StorefrontStreet.cardPlaceOf]).
+        // The three buildings among the houses (v5.13): three of the five places of the street's first copy, one in
+        // each row of the size table ([StorefrontStreet.firstStretch], [StorefrontStreet.cardPlaceOf]).
         // A street holds six, and the other three come by as the wallpaper scrolls: what the card leaves
         // out (DESIGN_NOTES.md §9).
         val storefronts = StorefrontStreet.firstStretch(seed, StorefrontStreet.places(layout))
@@ -525,7 +542,7 @@ object ThemePreviewScenes {
                 val leaf = if (c.fallColorsEnabled) FALL_LEAF_COLOURS[index % FALL_LEAF_COLOURS.size] else c.trees.colorAt(0, dayBlend)
                 val palm = kind == CardTree.PALM
                 val parts = when (kind) {
-                    CardTree.FIR -> fir(snow = winter)
+                    CardTree.FIR -> fir(snow = winter, shade = c.trees.nightShadeAt(0, dayBlend))
                     CardTree.PALM -> palmTree(
                         dead = halloween, frost = winter, shade = c.trees.nightShadeAt(0, dayBlend),
                         lights = c.christmasDecorationsEnabled,
@@ -831,9 +848,11 @@ object ThemePreviewScenes {
      * everything it draws does -- none while *Distant houses* is off or at 0 %, which is every theme
      * as it ships, and on, the wallpaper's three drawings, snow with the winter palette, and the
      * wallpaper's own coins for each house's colour (one of the houses' two) and window (lit in four
-     * houses of five) from a seed per mountain of the card. One house a mountain, two from 50 %, at the
-     * wallpaper's own places across the slope ([DistantHouses.SLOTS]); the drawings take turns from
-     * mountain to mountain, so a card shows all three.
+     * houses of five) from a seed per mountain of the card. One house a mountain, on one side and on the
+     * other from one mountain to the next, as the wallpaper's alternate (v5.14; the card's first mountain has it on
+     * the right, its second on the left -- the card's own count, not [DistantHouses.startsLeft]'s), and from
+     * 50 % two, one on each side, at the wallpaper's own places across the slope ([DistantHouses.SLOTS]);
+     * the drawings take turns from mountain to mountain, so a card shows all three.
      */
     private fun distantHouses(
         c: SceneCustomization,
@@ -848,7 +867,11 @@ object ThemePreviewScenes {
         // The painter's own base line for a mountain (`ui/ThemePreview.kt`): the horizon, two units down.
         val base = ThemePreviewScene.HORIZON_UNITS + 2f
         val height = base - peakY
-        val places = if (c.distantHouses.density >= 0.5f) CARD_HOUSE_PLACES_TWO else CARD_HOUSE_PLACES_ONE
+        val places = when {
+            c.distantHouses.density >= 0.5f -> CARD_HOUSE_PLACES_TWO
+            mountain % 2 == 1 -> CARD_HOUSE_PLACES_ONE_LEFT
+            else -> CARD_HOUSE_PLACES_ONE
+        }
         val seed = DistantHouses.seedFor(CARD_HOUSE_SEED, mountain)
         val out = mutableListOf<PreviewItem>()
         for ((n, slot) in places.withIndex()) {
@@ -868,6 +891,17 @@ object ThemePreviewScenes {
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
+            // Its three bulbs (v5.14C2), as the wallpaper hangs them ([ChristmasDecorations.forEachDistantHouseBulb]) -- the
+            // share of the house they are on the BV6600's wallpaper ([CARD_DISTANT_BULB_SHARE]), still and lit as the wallpaper's
+            // -- and, as the buildings' decorations ([decorations]), drawn large enough to be 2 px on the gallery card: 1.46 times.
+            if (c.christmasDecorationsEnabled) {
+                val radius = CARD_DISTANT_BULB_SHARE * piece.height / 2f
+                val px = 2f * radius * (CARD_HOUSE_UNITS_TALL / piece.height) * GALLERY_PX_PER_UNIT
+                val drawn = radius * maxOf(1f, CARD_DECORATION_MIN_PX / px)
+                ChristmasDecorations.forEachDistantHouseBulb(piece, radius, slot) { bx, by, colour ->
+                    parts += PreviewSprite(0, bx, by, SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS[colour], discRadius = drawn, decoration = true)
+                }
+            }
             out += PreviewItem(x + along * halfWidth, foot, CARD_HOUSE_UNITS_TALL / piece.height, parts)
         }
         return out
@@ -879,8 +913,23 @@ object ThemePreviewScenes {
     /** How tall a distant house stands on the card, in card units: a fifth of the card's large house. */
     private const val CARD_HOUSE_UNITS_TALL = 9f
 
-    /** Which of [DistantHouses.SLOTS] the card's houses take on a mountain, below 50 % and from it. */
+    /**
+     * How large a distant house's bulb is on the card, as a share of the house's height: the share the wallpaper's is
+     * on the BV6600 -- [PaperRenderer.DISTANT_BULB_PX] across on a house 14 px tall ([SceneSpace.distantHousePixelsTall]
+     * on its 1440-px screen), so 0.157, and on the card's 9-unit house a bulb 1.41 units across.
+     */
+    internal val CARD_DISTANT_BULB_SHARE =
+        PaperRenderer.DISTANT_BULB_PX / SceneSpace.distantHousePixelsTall(SceneSpace.DISTANT_HOUSE_FLOOR_Y_FRACTION, BV6600_HEIGHT_PX)
+
+    /** The BV6600's screen height, the reference [CARD_DISTANT_BULB_SHARE] is taken on. */
+    private const val BV6600_HEIGHT_PX = 1440f
+
+    /**
+     * Which of [DistantHouses.SLOTS] the card's houses take on a mountain: below 50 % one, on the right and
+     * on the left from one mountain to the next; from 50 % two, one on each side.
+     */
     private val CARD_HOUSE_PLACES_ONE = intArrayOf(3)
+    private val CARD_HOUSE_PLACES_ONE_LEFT = intArrayOf(1)
     private val CARD_HOUSE_PLACES_TWO = intArrayOf(1, 3)
 
     private val BACK_PEAKS = listOf(
@@ -1019,6 +1068,7 @@ object ThemePreviewScenes {
         snow: Boolean,
         hour: Float,
         seed: Int,
+        itemScale: Float,
         storefront: Storefront? = null,
     ): List<PreviewSprite> {
         // A row among the houses draws the building the street's first stretch stands in it (v5.13),
@@ -1087,7 +1137,134 @@ object ThemePreviewScenes {
                 }
             }
         }
+        if (family.kind != WindowBuildingKind.HOUSE && openness < 1f) shut(parts, deal, family.kind, night)
+        if (c.christmasDecorationsEnabled) decorations(parts, deal, family.kind, SceneObjectRenderer.idleSeedOf(spec), itemScale)
         return parts
+    }
+
+    /**
+     * The building's Christmas decorations, as the wallpaper hangs them (v5.14C2, ROADMAP A186; the maintainer's
+     * *«Aggiungili nella scheda»* of 2026-10-16): the same points of the same sequence ([ChristmasDecorations]) -- a bulb on
+     * every point of the roofline, a tower's star, a wreath on every front door, the bulbs of the strings under every sill
+     * of a building with four or fewer and three in four of a larger one's (the wallpaper's rule, under the card building's
+     * own [idleSeed]) -- in the same order after the shut sign.
+     * **Still and lit**: the card does not move, so its bulbs do not blink -- each at its full light, where the wallpaper's
+     * blink between about a quarter of their light and all of it (alpha 70 to 255, `drawDecorations`, `drawWindowLights`).
+     * Lit open or shut, by day and by night, as the wallpaper's.
+     *
+     * **A little larger than the wallpaper's, so they read** (the maintainer's *«A: un po' più grandi (consigliata)»*,
+     * 2026-10-16): a card is a
+     * miniature, and at the wallpaper's proportions on the gallery card -- 316 px across on the BV6600, its smallest -- a
+     * bulb or a wreath came to 1.0 to 1.9 px. So every decoration of a building is drawn [cardDecorationFactor] times its
+     * size, about the same point, which brings the smallest of them to 2 px there, 2.04 (`CardDecorationsTest`); the strings'
+     * cords are left out: 1.1 units is 0.4 to 0.7 px on the gallery card, a line no factor makes read without making it
+     * as thick as the bulbs it carries. Their bulbs are drawn, under the sill, as the wallpaper hangs them.
+     */
+    private fun decorations(
+        parts: MutableList<PreviewSprite>,
+        deal: NeighbourhoodComposer.Deal,
+        kind: WindowBuildingKind,
+        idleSeed: Float,
+        itemScale: Float,
+    ) {
+        val colours = SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS
+        var strings = false
+        ChristmasDecorations.forEachSillString(deal, idleSeed) { _, _, _ -> strings = true }
+        val f = cardDecorationFactor(kind, strings, itemScale)
+        ChristmasDecorations.forEachRoofBulb(deal, kind) { i, x, y, radius ->
+            parts += PreviewSprite(0, x, y, colours[i % colours.size], discRadius = radius * f, decoration = true)
+        }
+        ChristmasDecorations.star(deal, kind) { cx, cy, outer, inner ->
+            val points = List(20) { n ->
+                val i = n / 2
+                val radius = (if (i % 2 == 0) outer else inner) * f
+                if (n % 2 == 0) cx + radius * SceneObjectRenderer.STAR_COS[i] else cy + radius * SceneObjectRenderer.STAR_SIN[i]
+            }
+            parts += PreviewSprite(0, 0f, 0f, SceneObjectRenderer.STAR_GOLD, outline = points, decoration = true)
+        }
+        ChristmasDecorations.forEachWreath(deal, kind) { cx, cy, k ->
+            val s = k * f
+            parts += PreviewSprite(
+                R.drawable.deco_wreath, cx - SceneObjectRenderer.WREATH_HALF * s, cy - SceneObjectRenderer.WREATH_HALF * s,
+                scale = s, decoration = true,
+            )
+        }
+        ChristmasDecorations.forEachSillString(deal, idleSeed) { x, sillY, width ->
+            ChristmasDecorations.forEachStringBulb(x, sillY, width) { bulb, bx, by ->
+                parts += PreviewSprite(
+                    0, bx, by, colours[bulb % colours.size],
+                    discRadius = SceneObjectRenderer.CHRISTMAS_LIGHT_BULB_RADIUS_UNITS * f, decoration = true,
+                )
+            }
+        }
+    }
+
+    /**
+     * How many times its size the card draws a decoration of a building of [kind] drawn at [itemScale] card units a unit:
+     * enough for its smallest decoration -- the wreath's bow, 2.8 units across (a tower's half as large again), or a string's
+     * bulb, 3 units, where it has [strings] -- to be [CARD_DECORATION_MIN_PX] on the BV6600's gallery card, and never less
+     * than its size: on the cards as they are, 1.13 on the houses, 1.57 to 2.03 on the towers and 1.72 to 1.94 on the buildings
+     * among the houses (`CardDecorationsTest` prints them, `CARD_DECORATION_PX`).
+     */
+    internal fun cardDecorationFactor(kind: WindowBuildingKind, strings: Boolean, itemScale: Float): Float {
+        val bow = 2f * SceneObjectRenderer.WREATH_BOW_RADIUS * ChristmasDecorations.scaleFor(kind)
+        val smallest = if (strings) minOf(bow, 2f * SceneObjectRenderer.CHRISTMAS_LIGHT_BULB_RADIUS_UNITS) else bow
+        return maxOf(1f, CARD_DECORATION_MIN_PX / (smallest * itemScale * GALLERY_PX_PER_UNIT))
+    }
+
+    /** The two pixels every drawn detail is held to. */
+    internal const val CARD_DECORATION_MIN_PX = 2f
+
+    /**
+     * Pixels a card unit on the BV6600's gallery card, the smallest place the card is shown, taken on the 310 px its road shows
+     * (v5.14C2): the card is 316 px across, its rounded corners and border covering the road's ends, so this is 2 % under.
+     */
+    internal const val GALLERY_PX_PER_UNIT = 310f / ThemePreviewScene.WIDTH_UNITS
+
+    /**
+     * A building the card shows shut, as the wallpaper draws one (`SceneObjectRenderer.drawShut`, v5.14): the
+     * blinds down in the windows a person may stand at and the shutter down over the front door, in the
+     * wallpaper's colours at the card's hour -- flat cards. **The shutter is the wallpaper's**: the same bands
+     * ([DoorShutter.forEachBand], fully down) cut from the door's own outline ([DoorShutter.band]) -- its card and
+     * the shadow paper under it -- so it stands where the door the card's sprite draws stands, and not on the door's
+     * box, from which the scissors' wobble moves the paper up to 0.8 units.
+     */
+    private fun shut(parts: MutableList<PreviewSprite>, deal: NeighbourhoodComposer.Deal, kind: WindowBuildingKind, night: Float) {
+        val k = if (kind == WindowBuildingKind.SKYSCRAPER) SceneObjectRenderer.TOWER_DECORATION_SCALE else 1f
+        val inset = SceneObjectRenderer.LIT_PANE_INSET
+        val blind = SceneColour.blendArgb(SceneObjectRenderer.BLIND_DAY, SceneObjectRenderer.BLIND_NIGHT, night)
+        val rail = SceneColour.blendArgb(SceneObjectRenderer.BLIND_RAIL_DAY, SceneObjectRenderer.BLIND_RAIL_NIGHT, night)
+        for (index in 0 until deal.size) {
+            val placed = deal[index]
+            for (w in placed.piece.windows) {
+                val h = w.h * SceneObjectRenderer.BLIND_SHARE
+                val top = placed.baseY + w.y + inset
+                parts += PreviewSprite(0, w.x + inset, top, blind, rectWidth = w.w - 2f * inset, rectHeight = h)
+                val railH = minOf(SceneObjectRenderer.BLIND_RAIL * k, h)
+                parts += PreviewSprite(0, w.x + inset, top + h - railH, rail, rectWidth = w.w - 2f * inset, rectHeight = railH)
+            }
+        }
+        val ground = deal[0]
+        val door = ground.piece.door ?: return
+        val under = SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_UNDER_DAY, SceneObjectRenderer.SHUTTER_UNDER_NIGHT, night)
+        val face = SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_DAY, SceneObjectRenderer.SHUTTER_NIGHT, night)
+        val slat = SceneColour.blendArgb(SceneObjectRenderer.SHUTTER_SLAT_DAY, SceneObjectRenderer.SHUTTER_SLAT_NIGHT, night)
+        val size = 2 * door.outlineX.size + 4
+        val xs = FloatArray(size)
+        val ys = FloatArray(size)
+        val scratchX = FloatArray(size)
+        val scratchY = FloatArray(size)
+        DoorShutter.forEachBand(door, ground.baseY, 1f, k) { paper, bandTop, bandBottom, dx, dy ->
+            val n = DoorShutter.band(door, ground.baseY, bandTop, bandBottom, dx, dy, xs, ys, scratchX, scratchY)
+            if (n > 0) {
+                val colour = when (paper) {
+                    DoorShutter.Paper.UNDER -> under
+                    DoorShutter.Paper.FACE -> face
+                    DoorShutter.Paper.SLAT -> slat
+                }
+                parts += PreviewSprite(0, 0f, 0f, colour, outline = List(2 * n) { if (it % 2 == 0) xs[it / 2] else ys[it / 2] })
+            }
+        }
     }
 
     /**
@@ -1118,10 +1295,10 @@ object ThemePreviewScenes {
         hour: Float,
         seed: Int,
         storefront: Storefront? = null,
-    ): PreviewItem = PreviewItem(
-        x, y, neighbourhoodScale(variant, fit),
-        neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, hour, seed, storefront),
-    )
+    ): PreviewItem {
+        val scale = neighbourhoodScale(variant, fit)
+        return PreviewItem(x, y, scale, neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, hour, seed, scale, storefront))
+    }
 
     /**
      * Read from [TreeSpriteLayout] rather than copied, which is the v3.7 Filone C fix.
@@ -1207,30 +1384,36 @@ object ThemePreviewScenes {
     }
 
     /**
-     * v4.21 moved both of these, and they are the reason this function is worth a comment.
+     * The fir the wallpaper draws (v5.14, `SceneObjectRenderer.drawFir`): the same three pieces at the same
+     * origins, all from [FirTable] -- so a redraw moves the card and the wallpaper together -- the fir under
+     * the trees' night shade at the card's hour as the wallpaper's is ([shade]), the snow and the star not.
      *
-     * The fir's own origin went from (-39,-122) to (-40,-122) because the new sprite is 80 units
-     * wide rather than 78. The snow's went from the fir's origin to (-28,-112) of its own, because
-     * `tree_fir_snow` is no longer a full-canvas copy of the fir: it is trimmed to its content and
-     * carries the offset of the cut. **The two are one derivation** — the same pair of numbers
-     * appears in `SceneObjectRenderer.drawFir`, and a redraw that moves one and not the other
-     * slides the snow off the shoulders it was cut for.
-     *
-     * The baubles below stay where they are: `star_sparkle` blits placed by eye on a flat 320x240
-     * card, not the wallpaper's `drawChristmasLights` ellipse, whose six lights would be under
-     * 2 px here. At 46 px of tree they read as baubles, and the maintainer decided on 2026-09-28
-     * to leave them (inventory I-80).
+     * The baubles are not the wallpaper's ten lights, which would be under 2 px on a flat 320x240 card:
+     * `star_sparkle` blits, at 46 px of tree they read as baubles (the maintainer left them on 2026-09-28,
+     * inventory I-80), one over the hem of each of the upper three tiers ([FirTable.BAUBLE_X]). The sparkle's
+     * ink is centred about (30, 29) of its 60-unit canvas.
      */
-    private fun fir(snow: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, -40f, -122f))
-        if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, -28f, -112f)
+    private fun fir(snow: Boolean, shade: Int): List<PreviewSprite> {
+        val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, FirTable.FIR_X, FirTable.FIR_Y, shade = shade))
+        if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
+        parts += PreviewSprite(R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
         // Always lit: a card fir exists only where the wallpaper's does, which is under the
         // Christmas decorations (v5.8E -- the unlit sparse-wood fir was the one without them).
-        parts += PreviewSprite(R.drawable.star_sparkle, -26f, -110f, 0xFFF2C14E.toInt(), alpha = 220)
-        parts += PreviewSprite(R.drawable.star_sparkle, 2f, -84f, 0xFFE8483C.toInt(), alpha = 220)
-        parts += PreviewSprite(R.drawable.star_sparkle, -22f, -58f, 0xFF5BC0EB.toInt(), alpha = 220)
+        for (i in FirTable.BAUBLE_X.indices) {
+            parts += PreviewSprite(
+                R.drawable.star_sparkle, FirTable.BAUBLE_X[i] - SPARKLE_INK_X, FirTable.BAUBLE_Y[i] - SPARKLE_INK_Y,
+                BAUBLE_COLOURS[i % BAUBLE_COLOURS.size], alpha = 220,
+            )
+        }
         return parts
     }
+
+    /** Where the ink of `star_sparkle`'s 60-unit canvas is centred, for the fir's baubles. */
+    private const val SPARKLE_INK_X = 30f
+    private const val SPARKLE_INK_Y = 29f
+
+    /** The fir's three baubles: gold, red, blue. */
+    private val BAUBLE_COLOURS = intArrayOf(0xFFF2C14E.toInt(), 0xFFE8483C.toInt(), 0xFF5BC0EB.toInt())
 
     /**
      * The same two blits [SceneObjectRenderer.drawPalmTree] makes, at the same two origins.
@@ -1254,7 +1437,8 @@ object ThemePreviewScenes {
      * baubles ([fir]), not its three: the `star_sparkle` canvas is 60 units with its ink centred about
      * (30, 29), as big as the whole 56x48 crown, and three of them hid the palm on the card
      * (photographed on the BV6600, v5.10C). It sits on the crown's top edge, over the centre the
-     * wallpaper hangs its string on, mostly in the sky -- placed by eye, like the fir's.
+     * wallpaper hangs its string on, mostly in the sky -- placed by eye, as the fir's were until v5.14 (they are
+     * [FirTable.BAUBLE_X] since, written by the fir's generator).
      */
     private fun palmTree(dead: Boolean, frost: Boolean, shade: Int, lights: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(

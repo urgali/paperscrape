@@ -11,8 +11,8 @@ import org.junit.Test
 /**
  * **A new forecast may not redraw the sky between two frames** (v5.5B).
  *
- * The report: *"quando riaccendo il cellulare da deep sleep, con live weather vedo un 'reset' delle
- * nuvole: c'e' un piccolo scatto e scompaiono o appaiono dal nulla nuvole, poi e' tutto fluido"*.
+ * The report, translated: waking the phone from deep sleep with Live Weather on, the clouds
+ * "reset" -- a small jump, clouds vanishing or appearing from nothing, then everything smooth.
  * Measured on the BV6600: the Live Weather loop parks while the engine is invisible and re-enters
  * its body on `onVisibilityChanged(true)`, so an hourly refresh that fell due behind a dark screen
  * lands **on the frame the screen comes back**; the candidate pool then admits or drops every cloud

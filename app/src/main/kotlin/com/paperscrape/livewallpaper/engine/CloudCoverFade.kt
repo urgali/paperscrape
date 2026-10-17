@@ -5,9 +5,9 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### The report this exists for
  *
- * > *"quando riaccendo il cellulare da deep sleep, con live weather vedo un 'reset' delle nuvole:
- * > c'e' un piccolo scatto e scompaiono o appaiono dal nulla nuvole, poi e' tutto fluido finche'
- * > non rispengo lo schermo e riaccendo dopo vari minuti"*
+ * > Waking the phone from deep sleep with Live Weather on, the clouds "reset": a small jump, clouds
+ * > vanish or appear from nothing, then everything is smooth until the screen goes off and comes
+ * > back several minutes later. (The report, translated.)
  *
  * The scene time was not the cause and the clouds do not move: measured on a BV6600, scene time is
  * identical to the last bit across 62.8 s and 302.8 s of screen-off, because it is a per-frame

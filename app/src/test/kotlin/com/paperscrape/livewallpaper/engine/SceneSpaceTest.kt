@@ -275,8 +275,8 @@ class SceneSpaceTest {
             // **A fir is taller than a leafy tree, and always has been drawn that way.** This
             // list had FIR below TREE because the size table declared 9.3 m against 9.8 -- but
             // FIR is unreachable (`variantFor` never returns it; a fir is a state of a TREE
-            // candidate), so a fir is drawn at TREE's scale over a 122-unit sprite where the tree
-            // occupies 118, and reads 9.8 m against 9.479. v2.8 introduced the pair saying "FIR
+            // candidate), so a fir is drawn at TREE's scale over a 126-unit drawing where the tree
+            // occupies 118, and reads 10.12 m against 9.479. v2.8 introduced the pair saying "FIR
             // shares TREE's 122 units so one metre governs both", which is what the renderer does
             // and what makes the fir the taller of the two. The order below is the drawn one.
             SceneSpace.SceneVariant.TREE,

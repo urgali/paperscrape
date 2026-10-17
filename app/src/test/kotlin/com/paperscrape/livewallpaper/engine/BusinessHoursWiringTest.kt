@@ -62,21 +62,25 @@ class BusinessHoursWiringTest {
                 body.contains("customization.opennessFor(variant, frameHour)"),
         )
         // The occupants (v5.12): walked out and in at the hours by the building's doorway, which is
-        // moved on once a frame with the same group's openness at the same hour, by the same rule --
-        // what it is drawn as -- and handed to the figures the building is drawn with.
+        // moved on once a frame with the same group's hours at the same hour, by the same rule --
+        // what it is drawn as -- and handed to the figures the building is drawn with; and since v5.14 the
+        // doorway eases the glass the building is drawn with.
         val doorways = drawSource("advanceDoorways")
-        assertTrue(
-            "the doorways must be given the same openness",
-            doorways.contains(
-                "doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)",
-            ) && doorways.contains(
-                "doorway.advance(roster, layout, elapsed, customization.opennessFor(Storefront.ALL[index], frameHour), settle)",
-            ),
-        )
+        for (call in listOf(
+            "present = customization.peopleFor(variant, roster.people, frameHour)",
+            "open = customization.opennessFor(variant, frameHour) >= 1f",
+            "present = customization.peopleFor(storefront, roster.people, frameHour)",
+            "open = customization.opennessFor(storefront, frameHour) >= 1f",
+            "val variant = variantFor(r.spec)",
+            "val storefront = Storefront.ALL[index]",
+        )) {
+            assertTrue("the doorways must be given the same hours: $call", doorways.contains(call))
+        }
         assertTrue(
             "and the building drawn with its doorway",
             body.contains("WindowWalk.figuresAt(roster, layout, elapsed, r.doorway, windowFigures)"),
         )
+        assertTrue("and its glass the doorway's", body.contains("doorway.glassAt(elapsed.seconds)"))
         assertTrue("the frame's hour is the hour draw() was given", renderer().contains("frameHour = hour24"))
         assertTrue(
             "the doorways are moved on after the hour is set",

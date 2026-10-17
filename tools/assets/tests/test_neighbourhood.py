@@ -240,5 +240,110 @@ def _is_vocabulary(fill, w, h):
     return max(w, h) >= 10.0 and fill in (core.CREAM, core.STONE)
 
 
+
+class ChristmasPlacesTest(unittest.TestCase):
+    """Where the Christmas decorations hang and the shutter comes down (v5.14), as the generator declares them.
+
+    `build_neighbourhood.py` writes into `NeighbourhoodTable.kt`, beside the sills it always wrote, each top piece's
+    roofline and highest point and each piece's front door -- the door's box, the outline its card was cut to and
+    its shadow paper's offset -- off the drawing itself (`core.roofline_and_top`, `vocab.door`, `vocab.glass_door`).
+    These hold that what the table says is what the generator draws today, and that it is on the drawing."""
+
+    @classmethod
+    def setUpClass(cls):
+        from build_neighbourhood import families, extras, kotlin_table
+        from core import build_concept
+        out = TOOL_ROOT / "buildings" / "out"
+        cls.table, cls.pieces, _files = build_concept("mix", families(), out, extras())
+        distant = [piece.name for piece, _ in extras()]
+        cls.kotlin = kotlin_table(cls.table, cls.pieces, distant)
+        cls.distant = distant
+        cls.tops = {o for t in cls.table.values() for o in t["slots"][-1]["options"] + t["slots"][-1]["heights"]} | set(distant)
+        cls.grounds = {o for t in cls.table.values() for o in t["slots"][0]["options"] + t["slots"][0]["heights"]}
+
+    def test_the_committed_table_is_what_the_generator_writes(self):
+        committed = (REPO_ROOT / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/NeighbourhoodTable.kt").read_text()
+        self.assertEqual(committed, self.kotlin, "NeighbourhoodTable.kt is not the generator's output: run "
+                                                 "`python3 -m buildings.build_neighbourhood --res`")
+
+    def test_every_building_has_one_front_door_on_its_ground_piece(self):
+        # One: no piece but a ground piece has a door, where the engine would hang a second wreath (v5.14C) -- the
+        # generator already refuses two doors in one piece.
+        for name in sorted(set(self.pieces) - self.grounds):
+            with self.subTest(piece=name):
+                self.assertIsNone(self.pieces[name]["door"], f"{name} is not a ground piece and has a front door")
+        for name in sorted(self.grounds):
+            with self.subTest(piece=name):
+                door = self.pieces[name]["door"]
+                self.assertIsNotNone(door, f"{name} has no front door")
+                x, y, w, h = door["box"]
+                xs = [p[0] for p in door["outline"]]
+                ys = [p[1] for p in door["outline"]]
+                # The outline is the card as cut: within the scissors' wobble of its box.
+                self.assertLess(max(abs(min(xs) - x), abs(max(xs) - (x + w)), abs(min(ys) - y), abs(max(ys) - (y + h))), 1.2)
+
+    def test_a_tower_door_is_the_opening_of_its_frame_and_casts_no_shadow(self):
+        for name in sorted(self.grounds):
+            if not name.startswith("k2_t_"):
+                continue
+            with self.subTest(piece=name):
+                self.assertEqual((0.0, 0.0), tuple(self.pieces[name]["door"]["relief"]))
+
+    def test_every_top_piece_has_a_roofline_of_bulbs_about_six_units_apart(self):
+        """The outline's length shared out evenly, a bulb every 6 units or a little more; across a step of the
+        outline -- a turret's wall, a cornice -- two bulbs stand closer than their distance along it; and where the
+        outline crossed open sky past an overhang its bulbs were left out (`core.ROOF_BULB_REACH`), so two bulbs
+        further apart than two steps have sky between them."""
+        import math
+        for name in sorted(self.tops):
+            with self.subTest(piece=name):
+                roof = self.pieces[name]["roof"]
+                self.assertGreaterEqual(len(roof), 4, f"{name}: {roof}")
+                steps = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(roof, roof[1:])]
+                gaps = [(a, b) for a, b in zip(roof, roof[1:]) if math.hypot(b[0] - a[0], b[1] - a[1]) > 2 * core.ROOF_BULB_SPACING]
+                self.assertLessEqual(len(gaps), 1, f"{name}: {gaps}")
+                self.assertIn(name, ("fire_station", "k1_roof_turret_b") if gaps else (name,), f"{name}: a gap {gaps}")
+                # About six units apart (v5.14C: until then any step between 1 and 12 units passed): every step but the
+                # one across the sky between half the spacing -- two bulbs either side of a step of the outline -- and
+                # half as much again as the spacing, the length shared out evenly (7.7 on the tall distant house).
+                for step in steps:
+                    if step > 2 * core.ROOF_BULB_SPACING:
+                        continue
+                    self.assertGreaterEqual(step, core.ROOF_BULB_SPACING / 2, f"{name}: two bulbs {step:.2f} units apart")
+                    self.assertLessEqual(step, 1.5 * core.ROOF_BULB_SPACING, f"{name}: two bulbs {step:.2f} units apart")
+
+    def test_every_bulb_of_a_roofline_sits_on_the_roof_edge(self):
+        """Independent of how the line was found, off the shipped PNGs: within half a bulb of a bulb's centre there is
+        paper of the piece -- no bulb hangs in the air -- and within half the narrowest part kept (`ROOF_NARROW`)
+        there is sky: a bulb is on the roof's edge, or a few units under a tip too narrow to carry a string. Looked
+        for in every direction: the roofline climbs a turret's or a tower's wall as well as a roof's slope."""
+        import numpy as np
+        from PIL import Image
+        for name in sorted(self.tops):
+            piece = self.pieces[name]
+            layers = []
+            for role, png, x, y in piece["parts"]:
+                if role in ("FIXED", "ADD_WALL", "ADD_GLASS"):
+                    a = np.array(Image.open(RUNTIME_DIR / f"{production(png)}.png").convert("RGBA"))[:, :, 3]
+                    layers.append((a, x, y))
+
+            def opaque(ux, uy):
+                for a, x, y in layers:
+                    px, py = int(round((ux - x) * 3)), int(round((uy - y) * 3))
+                    if 0 <= py < a.shape[0] and 0 <= px < a.shape[1] and a[py, px] > 128:
+                        return True
+                return False
+
+            def disc(r):
+                n = int(r * 4)
+                return [(dx * 0.25, dy * 0.25) for dx in range(-n, n + 1) for dy in range(-n, n + 1) if dx * dx + dy * dy <= n * n]
+
+            near, wide = disc(core.ROOF_BULB_REACH), disc(core.ROOF_NARROW / 2)
+            for bx, by in piece["roof"]:
+                with self.subTest(piece=name, bulb=(round(bx, 2), round(by, 2))):
+                    self.assertTrue(any(opaque(bx + dx, by + dy) for dx, dy in near), "no paper within half a bulb: floating")
+                    self.assertFalse(all(opaque(bx + dx, by + dy) for dx, dy in wide), "buried deeper than a narrow tip")
+
+
 if __name__ == "__main__":
     unittest.main()

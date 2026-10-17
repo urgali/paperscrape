@@ -184,7 +184,39 @@ class SpriteDrawScaleTest {
         put(
             staticPath("tree", SceneSpace.SceneVariant.TREE),
             "tree_trunk", "tree_canopy", "tree_canopy_snowcap", "tree_dead_branches",
-            "tree_fir", "tree_fir_snow",
+            "tree_fir", "tree_fir_snow", "tree_fir_star",
+        )
+        // v5.14: the white disc of `SpriteBlitter.drawDisc`, drawn wherever a dot is -- the fir's ten lights and every
+        // tree's and palm's at the tree lights' radius (inside the TREE's or the PALM_TREE's scale), the roof strings at a
+        // building's piece metre (half as large again on a tower), the sill strings at it, every falling snowflake at
+        // `SNOW_DIAMETER_MAX_METRES` of the viewport's metre, and every point star at most `STAR_POINT_RADIUS_SCALE` of
+        // the largest star -- so its largest draw is the largest of those diameters. The distant houses' are 2.2 px,
+        // smaller than any. A disc is drawn by its diameter, not by a canvas scale: the "scale" here is the diameter over
+        // the disc's own units, which makes the headroom the disc's texels over the diameter's pixels.
+        put(
+            DrawPath("disc: bulbs, snow, stars", SpriteScale.SCENE_UNITS) { v ->
+                val trees = listOf(SceneSpace.SceneVariant.TREE, SceneSpace.SceneVariant.PALM_TREE)
+                    .map { 2f * SceneObjectRenderer.CHRISTMAS_LIGHT_RADIUS_UNITS * staticPath("", it).maxCanvasScale(v) }
+                val roofs = NeighbourhoodTable.FAMILIES.map { (variant, family) ->
+                    val k = if (variant == SceneSpace.SceneVariant.TOWER) SceneObjectRenderer.TOWER_DECORATION_SCALE else 1f
+                    2f * SceneObjectRenderer.CHRISTMAS_LIGHT_BULB_RADIUS_UNITS * k *
+                        staticPath("", variant, inner = variant.spriteUnitsTall / family.unitsTall).maxCanvasScale(v)
+                }
+                val snow = PaperRenderer.SNOW_DIAMETER_MAX_METRES * SceneSpace.pixelsPerMetre(v.heightPx)
+                val star = 2f * MAX_STAR_RADIUS_PX * PaperRenderer.STAR_POINT_RADIUS_SCALE
+                maxOf(trees.max(), roofs.max(), snow, star) / discUnits
+            },
+            "deco_bulb",
+        )
+        // v5.14: the wreath, on a front door at a building's piece metre, half as large again on a tower.
+        put(
+            DrawPath("Christmas wreath", SpriteScale.SCENE_UNITS) { v ->
+                NeighbourhoodTable.FAMILIES.maxOf { (variant, family) ->
+                    val k = if (variant == SceneSpace.SceneVariant.TOWER) SceneObjectRenderer.TOWER_DECORATION_SCALE else 1f
+                    staticPath("", variant, inner = variant.spriteUnitsTall / family.unitsTall * k).maxCanvasScale(v)
+                }
+            },
+            "deco_wreath",
         )
         put(
             staticPath("palm", SceneSpace.SceneVariant.PALM_TREE),
@@ -966,6 +998,12 @@ class SpriteDrawScaleTest {
      * *The decision, the maintainer's*: *«il resto accetto i consigliati»*, 2026-10-11, to the row that
      * said this ceiling would go from 18 to 20 MB and the decoded one from 45 to 47, at the same
      * consumption, with the proposal round's measurements.
+     *
+     * ### v5.14 moves neither ceiling
+     *
+     * With the fir A, its snow and its star, the wreath and the bulb the set uploads **20 273 432 B**, 30 688 more than
+     * the 5.13's, and leaves **698 088 B** under 20 MiB (the v5.14A table's row that said no limit would rise, *«si a
+     * tutte»*, 2026-10-15).
      */
     private val uploadedTexelBudget = 20L * 1024L * 1024L
 
@@ -1030,6 +1068,11 @@ class SpriteDrawScaleTest {
             .orEmpty()
             .map { it.name.removeSuffix(".png") }
             .sorted()
+
+    /** The disc's own width in units: its PNG's pixels over the oversample (`deco_bulb`, 24 px, 8 units). */
+    private val discUnits: Float by lazy {
+        ImageIO.read(File(drawableDir, "deco_bulb.png")).width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+    }
 
     private val drawableDir: File by lazy {
         var dir: File? = File(".").absoluteFile

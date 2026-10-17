@@ -133,7 +133,8 @@ class NothingAtZeroTest {
                 for (mountain in 0 until PaperRenderer.MOUNTAIN_POOL_SIZE) {
                     val seed = DistantHouses.seedFor(layerSeed, mountain)
                     for (slot in DistantHouses.SLOTS.indices) {
-                        assertFalse("${theme.id}: a distant house at 0 %", DistantHouses.stands(seed, slot, 0f))
+                        assertFalse("${theme.id}: a distant house at 0 %", DistantHouses.stands(seed, slot, 0f, leftFirst = true))
+                        assertFalse("${theme.id}: a distant house at 0 %", DistantHouses.stands(seed, slot, 0f, leftFirst = false))
                     }
                 }
             }

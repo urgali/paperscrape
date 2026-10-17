@@ -89,6 +89,8 @@ class SpriteTintClassTest {
         "shop_mg", "shop_mw", "fire_station_mg", "fire_station_mw",
         "fire_station_tower_mg", "fire_station_tower_mw", "police_station_mg", "police_station_mw",
         "tree_canopy", "snowman_body", "gift_box",
+        // v5.14: one Christmas bulb, a white disc each light tints its own colour.
+        "deco_bulb",
         "penguin_body", "penguin_belly", "easteregg_shell", "bunny_body",
         "pumpkin_body", "car_body_compact", "car_body_saloon", "car_body_estate",
         "cloud_body", "bird_body",
@@ -174,8 +176,10 @@ class SpriteTintClassTest {
         // v5.13: the shop's and the two stations' fixed layers -- the awning's stripes, the bag, the red
         // doors and the engine, the chequered band, the light bar, the shield -- in their own colours.
         "shop_fx", "fire_station_fx", "fire_station_tower_fx", "police_station_fx",
-        // v2.8: a fir is a species.
-        "tree_fir", "tree_fir_snow",
+        // v2.8: a fir is a species. v5.14: its star a piece of its own, out of the trees' night shade.
+        "tree_fir", "tree_fir_snow", "tree_fir_star",
+        // v5.14: the wreath on a front door, its green and its red bow drawn in.
+        "deco_wreath",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
 
         "penguin_beak", "penguin_feet", "easteregg_pattern", "bunny_innerear", "bunny_tail",

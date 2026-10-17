@@ -456,7 +456,9 @@ data class SceneCustomization(
     val fallColorsEnabled: Boolean = false,
     val winterColorsEnabled: Boolean = false,
     /**
-     * The Christmas decoration layer: lights on the trees, and whatever is added to it later.
+     * The Christmas decoration layer: lights on the trees and along the windowsills, a fir for one tree in three and,
+     * since v5.14, the bulbs along every roof, a wreath on every front door, a star on every tower and three bulbs
+     * on every distant house (`SceneObjectRenderer.drawDecorations`).
      *
      * **Separate from [winterColorsEnabled], and deliberately so.** Christmas lights used to hang
      * off the winter flag, which made the two words synonyms: a plain snowy January scene could
@@ -858,7 +860,8 @@ const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 const val DEFAULT_CARS_NIGHT_DENSITY = 1f
 
 /**
- * Where the opening-hours editors start, the shops' and the towers', inert until their group's switch is on.
+ * Where the opening-hours editors start, the three groups' -- the towers', the shops' and the public buildings' --,
+ * inert until their group's switch is on.
  *
  * Not derived, and not derivable: a default shop day is a seed for each group's two sliders nobody has moved,
  * behind switches that default to off. 09:00–20:00 is stated as "an ordinary shop day" and
@@ -1215,11 +1218,12 @@ fun SceneCustomization.sameOpeningHours(other: SceneCustomization): Boolean =
         publicCloseHour == other.publicCloseHour
 
 /**
- * How open a house or a tower drawn as [variant] is at [hour24], 0 (closed) .. 1 (open): the towers by
+ * Whether a house or a tower drawn as [variant] is open at [hour24], 1 (open) or 0 (shut): the towers by
  * the towers' hours, a house always 1 -- houses keep no hours ([BusinessHours]). The buildings among
  * the houses keep their group's, [opennessFor] of a [Storefront]. The same rule as their colours, by
  * what the building is, so a building's hours and its colours are always the same group's, on the
- * wallpaper and on the gallery card.
+ * wallpaper and on the gallery card. What the glass is going to: the doorway eases it over two seconds
+ * (`WindowWalk.Doorway.glassAt`).
  */
 fun SceneCustomization.opennessFor(variant: SceneSpace.SceneVariant, hour24: Float): Float = when (variant) {
     SceneSpace.SceneVariant.TOWER -> BusinessHours.opennessAt(towerHoursEnabled, towerOpenHour, towerCloseHour, hour24)
@@ -1227,7 +1231,7 @@ fun SceneCustomization.opennessFor(variant: SceneSpace.SceneVariant, hour24: Flo
 }
 
 /**
- * How open a building among the houses is at [hour24] (v5.13): the restaurant, the bar and the shop by
+ * Whether a building among the houses is open at [hour24] (v5.13): the restaurant, the bar and the shop by
  * the shops' hours, the school by the public buildings'; **the fire station and the police station are
  * always open** ([Storefront.keepsHours], the maintainer's decision of 2026-10-12), whatever the public
  * buildings' hours say.
@@ -1236,6 +1240,22 @@ fun SceneCustomization.opennessFor(storefront: Storefront, hour24: Float): Float
     !storefront.keepsHours -> 1f
     storefront.group == StorefrontGroup.SHOPS -> BusinessHours.opennessAt(shopHoursEnabled, shopOpenHour, shopCloseHour, hour24)
     else -> BusinessHours.opennessAt(publicHoursEnabled, publicOpenHour, publicCloseHour, hour24)
+}
+
+/**
+ * How many of the [people] of a house or a tower drawn as [variant] are at its windows at [hour24]
+ * ([BusinessHours.peopleAt]): a tower's none from the minute before its closing, a house's always all.
+ */
+fun SceneCustomization.peopleFor(variant: SceneSpace.SceneVariant, people: Int, hour24: Float): Int = when (variant) {
+    SceneSpace.SceneVariant.TOWER -> BusinessHours.peopleAt(people, towerHoursEnabled, towerOpenHour, towerCloseHour, hour24)
+    else -> people
+}
+
+/** How many of the [people] of a building among the houses are at its windows at [hour24], by [opennessFor]'s rule. */
+fun SceneCustomization.peopleFor(storefront: Storefront, people: Int, hour24: Float): Int = when {
+    !storefront.keepsHours -> people
+    storefront.group == StorefrontGroup.SHOPS -> BusinessHours.peopleAt(people, shopHoursEnabled, shopOpenHour, shopCloseHour, hour24)
+    else -> BusinessHours.peopleAt(people, publicHoursEnabled, publicOpenHour, publicCloseHour, hour24)
 }
 
 /**
@@ -1303,8 +1323,8 @@ fun SceneCustomization.nightShadeFor(spec: StaticSceneObject, dayBlend: Float): 
 
 /**
  * The shade of variant [variant] of this category at [dayBlend]: exactly what [nightShadeFor]
- * gives an instance whose coin picked that variant. The gallery card's palm reads it for the
- * reason [colorAt] gives.
+ * gives an instance whose coin picked that variant. The gallery card's palm and, since v5.14, its fir
+ * read it for the reason [colorAt] gives.
  */
 internal fun ObjectVariantConfig.nightShadeAt(variant: Int, dayBlend: Float): Int {
     val day = if (variant == 0) colorDay1 else colorDay2

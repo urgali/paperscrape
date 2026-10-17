@@ -40,6 +40,9 @@ class CanvasSceneTarget : SceneCanvas {
      */
     internal val gradientCache = GradientShaderCache()
     private val spritePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+
+    /** [drawDisc]'s fill: built once, its colour and alpha rewritten for each disc. */
+    private val discPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val wedgePath = Path()
     private val scratchRect = RectF()
 
@@ -141,6 +144,25 @@ class CanvasSceneTarget : SceneCanvas {
         gradientPaint.shader = gradientCache.radial(cx, cy, radius, color, centerAlpha)
         require().drawCircle(cx, cy, radius, gradientPaint)
         gradientPaint.shader = null
+    }
+
+    /**
+     * The circle itself, with an antialiased fill in [colour] at [alpha]: the pixels a `drawCircle` with such a paint
+     * draws, which is what the snow, the point stars and the bulbs were before [SceneCanvas.drawDisc] existed. The
+     * GPU backend's quad is the lighter way for a batch; a Canvas has none, and keeps the exact circle.
+     */
+    override fun drawDisc(
+        resId: Int,
+        source: SpriteSource,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        colour: Int,
+        alpha: Int,
+    ) {
+        discPaint.color = colour
+        discPaint.setAlphaWithoutAllocating(alpha)
+        require().drawCircle(cx, cy, radius, discPaint)
     }
 
     override fun drawSprite(

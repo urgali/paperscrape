@@ -212,18 +212,6 @@ class PaperRenderer(
     /** The falling-leaf palette blended to this frame's light, one per entry; see [drawFallingLeaves]. */
     private val fallingLeafBlended = IntArray(FALLING_LEAF_PALETTE.size)
 
-    /**
-     * The paint the point stars are drawn with.
-     *
-     * Its own field rather than a shared one, and hoisted rather than built per star: [drawStars]
-     * touches it once per point star -- 56 of the 70 in a full field, per tile copy drawn -- and
-     * building a `Paint` on a draw path is the allocation `AI_PROJECT_RULES.md` 5.1 forbids.
-     */
-    private val starPointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = STAR_POINT_COLOR
-    }
-
     // Lightning flash state -- a tiny, self-contained timer/fade in the same spirit as
     // [continuousScrollAccum] above, not a whole separate Effect class like [FireworkEffect]
     // (that one manages a *pool* of independent bursts with their own particle geometry; this is
@@ -325,15 +313,6 @@ class PaperRenderer(
     private val santaSleighEffect = SantaSleighEffect()
 
     /**
-     * The wallpaper has come back into view (v5.13): the street's places take other buildings, a new round
-     * of [StorefrontStreet] -- the maintainer's decision of 2026-10-12, whether the scene scrolls or not.
-     * Called by the engine on the render thread when it becomes visible, before the frame that shows it.
-     */
-    fun nextStreetRound() {
-        objectRenderer.streetRound++
-    }
-
-    /**
      * Keeps [objectRenderer] in step with the active theme and configuration.
      *
      * Runs every frame, so it is written to do as little as possible:
@@ -368,7 +347,7 @@ class PaperRenderer(
                 sceneCustomization,
                 context,
                 theme.id,
-            ).also { it.streetRound = existing.streetRound }
+            )
             objectRendererThemeId = theme.id
             objectRendererGeneration = currentGeneration
         } else {
@@ -1013,6 +992,9 @@ class PaperRenderer(
             0xFFE0A93A.toInt(), // gold/yellow
             0xFF8F3B1B.toInt(), // deep brown-red
         )
+
+        /** How wide a distant house's Christmas bulb is on screen, in pixels: 2 px and a little over (v5.14). */
+        const val DISTANT_BULB_PX = 2.2f
 
         /** How much each hill layer is darkened towards black; one layer, not darkened. */
         private val HILL_LAYER_DARKEN = floatArrayOf(0f)
@@ -1754,7 +1736,7 @@ class PaperRenderer(
 
     /**
      * Sprite-blit conversion (batch 4 part 3), later split: a star is either a plain point (a
-     * filled circle, four in five of them) or, for one in [STAR_SPARKLE_EVERY], a blitted
+     * filled disc, four in five of them) or, for one in [STAR_SPARKLE_EVERY], a blitted
      * 4-pointed sparkle. Bumped the radius range too (was 1-2.8px, a barely-visible dot at any
      * size -- too small for the sparkle shape to read as anything but a blur) so the new shape
      * actually shows.
@@ -1766,7 +1748,9 @@ class PaperRenderer(
         // **Most stars are points; a few are sparkles.** Every star used to be the sparkle
         // sprite under its own save/translate/rotate/scale/blit/restore -- six canvas operations
         // each, seventy times a frame, for a field where sixty-odd of them are a couple of pixels
-        // across and their rotation is invisible at that size. A point costs one drawCircle.
+        // across and their rotation is invisible at that size. A point is one disc
+        // ([SpriteBlitter.drawDisc], v5.14): a quad of the atlas on the GL path, 6 vertices where the
+        // circle's fan was 24, and the circle itself on a Canvas.
         //
         // The look is better for it, not merely cheaper: a real night sky is mostly points with a
         // few brighter stars in it, and seventy identical rotating sparkles read as a pattern.
@@ -1778,8 +1762,7 @@ class PaperRenderer(
             val alpha = (255 * visibility * twinkle).toInt().coerceIn(0, 255)
             if (alpha <= 0) continue
             if (!star.sparkle) {
-                starPointPaint.setAlphaWithoutAllocating(alpha)
-                canvas.drawCircle(star.x, star.y, star.radius * STAR_POINT_RADIUS_SCALE, starPointPaint)
+                sprites.drawDisc(canvas, star.x, star.y, star.radius * STAR_POINT_RADIUS_SCALE, STAR_POINT_COLOR, alpha)
                 continue
             }
             canvas.save()
@@ -2446,14 +2429,15 @@ class PaperRenderer(
         // Paint state that does not vary between drops, set once instead of once per drop.
         // `isRain` is fixed for the whole call, so the style, stroke width and cap were being
         // rewritten identically up to PRECIPITATION_POOL_SIZE times a frame. Only the alpha and
-        // the geometry actually change per drop, and those stay in the loop.
+        // the geometry actually change per drop, and those stay in the loop. A flake is a disc
+        // ([SpriteBlitter.drawDisc], v5.14) in this colour made opaque, its alpha its own -- what the
+        // paint's alpha byte, rewritten per drop, made of it when it was a circle.
         if (isRain) {
             precipPaint.style = Paint.Style.STROKE
             precipPaint.strokeWidth = RAIN_STROKE_WIDTH_METRES * metrePx
             precipPaint.strokeCap = Paint.Cap.ROUND
-        } else {
-            precipPaint.style = Paint.Style.FILL
         }
+        val snowColour = precipPaint.color or 0xFF000000.toInt()
         for (i in 0 until PRECIPITATION_POOL_SIZE) {
             val xFraction = CandidateNoise.value(seed, i, CandidateNoise.CH_X)
 
@@ -2494,9 +2478,11 @@ class PaperRenderer(
                 val len = CandidateNoise.range(seed, i, CandidateNoise.CH_LENGTH, rainLengthMin, rainLengthMax)
                 canvas.drawLine(x, y, x - len * 0.25f, y + len, precipPaint)
             } else {
-                precipPaint.setAlphaWithoutAllocating((SNOW_ALPHA * fadeAlpha).toInt())
+                // A disc: one quad of the atlas on the GL path, where the circle's fan was 24 vertices --
+                // the theme's snow was 2 592 of a frame of Christmas at night, past the batch's end with
+                // everything on (v5.14, inventory I-730).
                 val r = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, snowRadiusMin, snowRadiusMax)
-                canvas.drawCircle(x, y, r, precipPaint)
+                sprites.drawDisc(canvas, x, y, r, snowColour, (SNOW_ALPHA * fadeAlpha).toInt())
             }
         }
     }
@@ -2770,30 +2756,96 @@ class PaperRenderer(
         val peakHeight = screenHeight * peakHeightFraction
         val baseWidth = screenHeight * widthOfHeightFraction
 
+        // The layer's mountains across the tile, once a frame: where each stands, how wide and tall it is, the seed of its
+        // houses -- read by the cover rule and by the drawing below. Width and height are jittered independently per
+        // candidate, on two noise channels over the same range: jittering the height alone, which is all this used to do,
+        // gave every mountain of a given layer an identical width.
+        var perTile = 0
         for (i in 0 until MOUNTAIN_POOL_SIZE) {
-            if (!CandidateThreshold.isPresent(i, config.density, effectOffset, fallbackIndex)) continue
-
+            val present = CandidateThreshold.isPresent(i, config.density, effectOffset, fallbackIndex)
+            mountainPresent[i] = present
+            if (!present) continue
+            perTile++
             val tileFractionX = (i + 0.5f) / MOUNTAIN_POOL_SIZE +
                 (CandidateNoise.value(seed, i, CandidateNoise.CH_X) - 0.5f) * (1f / MOUNTAIN_POOL_SIZE) * 0.5f
-            val heightJitter = CandidateNoise.range(seed, i, CandidateNoise.CH_HEIGHT, 0.75f, 1.25f)
-            // Width and height are jittered independently per candidate, on two noise channels
-            // over the same range: jittering the height alone, which is all this used to do,
-            // gave every mountain of a given layer an identical width.
-            val widthJitter = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, 0.75f, 1.25f)
-            val baseX = tileFractionX * tileWidth + wrappedShift
-            val width = baseWidth * widthJitter
+            mountainTileX[i] = tileFractionX * tileWidth
+            mountainHeight[i] = peakHeight * CandidateNoise.range(seed, i, CandidateNoise.CH_HEIGHT, 0.75f, 1.25f)
+            mountainWidth[i] = baseWidth * CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, 0.75f, 1.25f)
+            mountainSeed[i] = DistantHouses.seedFor(seed, i)
+        }
+        // Where a distant house would not be wholly seen, a later mountain of the layer over it ([DistantHouses.hiddenPlaces],
+        // v5.14C2): worked out when the layer, the screen or its base line change, not per frame.
+        val frontLayer = seedSalt == EffectId.MOUNTAINS_FRONT
+        val hidden = if (frontLayer) frontHiddenPlaces else backHiddenPlaces
+        if (sceneCustomization.distantHouses.drawsAny) hidden.refresh(seed, config.density, baseY, tileWidth)
+
+        // Which of the layer's drawn mountains this is along the whole strip -- its place across the tile and the
+        // copy of the tile it is drawn on: its distant houses start from the left side or the right by it, every
+        // other one ([DistantHouses.startsLeft], v5.14). The copy is counted as the street counts its own: the
+        // unwrapped shift against the wrapped one, in Double, so a copy keeps its number while it is on screen.
+        val tileBias = Math.round((-scrollProgress * screenWidth * parallax - wrappedShift) / tileWidth).toInt()
+        var shown = 0
+        for (i in 0 until MOUNTAIN_POOL_SIZE) {
+            if (!mountainPresent[i]) continue
+            val place = shown++
+            val baseX = mountainTileX[i] + wrappedShift
+            val width = mountainWidth[i]
 
             // Draw at the tile position and its immediate wrap-neighbors so shapes near a tile
             // seam are never abruptly cut off mid-scroll.
             for (tileOffset in -1..1) {
                 val x = baseX + tileOffset * tileWidth
                 if (x < -width || x > screenWidth + width) continue
-                drawSoftMountain(canvas, x, baseY, width, peakHeight * heightJitter)
-                // Its distant houses, before the next mountain is drawn over them (v5.11).
-                drawDistantHouses(canvas, x, baseY, width, peakHeight * heightJitter, DistantHouses.seedFor(seed, i), dayPhase.dayBlend)
+                drawSoftMountain(canvas, x, baseY, width, mountainHeight[i])
+                // Its distant houses, before the next mountain is drawn over them (v5.11), none where a later one would
+                // cover it (v5.14C2).
+                val leftFirst = DistantHouses.startsLeft(tileOffset - tileBias, place, perTile, frontLayer)
+                drawDistantHouses(canvas, x, baseY, width, mountainHeight[i], mountainSeed[i], leftFirst, hidden.masks[i], dayPhase.dayBlend)
             }
         }
     }
+
+    /** The layer being drawn's mountains across its tile ([drawMountainLayer]): filled once a frame, nothing allocated. */
+    private val mountainPresent = BooleanArray(MOUNTAIN_POOL_SIZE)
+    private val mountainTileX = FloatArray(MOUNTAIN_POOL_SIZE)
+    private val mountainWidth = FloatArray(MOUNTAIN_POOL_SIZE)
+    private val mountainHeight = FloatArray(MOUNTAIN_POOL_SIZE)
+    private val mountainSeed = IntArray(MOUNTAIN_POOL_SIZE)
+
+    /**
+     * The places of each of a layer's mountains where a distant house would not be wholly seen (v5.14C2, ROADMAP A188):
+     * [DistantHouses.hiddenPlaces] of the mountains [drawMountainLayer] has just laid out, kept until the layer's seed, its
+     * amount, its base line or the screen change -- compared field by field (`AI_PROJECT_RULES.md` 5.9).
+     */
+    private inner class HiddenPlaces {
+        val masks = IntArray(MOUNTAIN_POOL_SIZE)
+        private var seed = 0
+        private var density = Float.NaN
+        private var baseY = Float.NaN
+        private var width = -1
+        private var height = -1
+
+        fun refresh(seed: Int, density: Float, baseY: Float, tileWidth: Float) {
+            if (seed == this.seed && density == this.density && baseY == this.baseY && screenWidth == width && screenHeight == height) return
+            for (i in 0 until MOUNTAIN_POOL_SIZE) {
+                masks[i] = if (mountainPresent[i]) {
+                    DistantHouses.hiddenPlaces(
+                        i, mountainTileX, mountainWidth, mountainHeight, mountainSeed, mountainPresent, baseY, tileWidth, screenHeight.toFloat(),
+                    )
+                } else {
+                    0
+                }
+            }
+            this.seed = seed
+            this.density = density
+            this.baseY = baseY
+            width = screenWidth
+            height = screenHeight
+        }
+    }
+
+    private val backHiddenPlaces = HiddenPlaces()
+    private val frontHiddenPlaces = HiddenPlaces()
 
     /**
      * A rounded, parabolic-arch mountain silhouette: its width follows `width ∝ √(fraction from
@@ -2840,6 +2892,21 @@ class PaperRenderer(
     }
 
     /**
+     * A distant house's Christmas lights (v5.14): three bulbs on its roofline -- at the eaves, the ridge and the
+     * other eaves ([BuildingPiece.roofX] of the drawing, its first, middle and last) -- each [DISTANT_BULB_PX]
+     * across on screen whatever the house's [scale], under the house's own transform, in the Christmas lights'
+     * colours and still: at 14 px a house, a blink would be a flicker. Discs ([SpriteBlitter.drawDisc]), a quad
+     * each on the GL path; where they hang is [ChristmasDecorations.forEachDistantHouseBulb], the gallery card's too.
+     */
+    private fun drawDistantHouseLights(canvas: SceneCanvas, piece: BuildingPiece, scale: Float, slot: Int) {
+        val radius = DISTANT_BULB_PX / 2f / scale
+        val colours = SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS
+        ChristmasDecorations.forEachDistantHouseBulb(piece, radius, slot) { x, y, colour ->
+            sprites.drawDisc(canvas, x, y, radius, colours[colour])
+        }
+    }
+
+    /**
      * The distant houses on one mountain (v5.11, inventory I-407): see [DistantHouses] for where, how
      * many and how large. Drawn from the same pieces the village's houses are, in the same paper: the
      * wall a weight mask summed in one of the houses' two colours, the glass in the scene's glass --
@@ -2854,6 +2921,8 @@ class PaperRenderer(
         width: Float,
         height: Float,
         seed: Int,
+        leftFirst: Boolean,
+        hidden: Int,
         dayBlend: Float,
     ) {
         val config = sceneCustomization.distantHouses
@@ -2862,8 +2931,10 @@ class PaperRenderer(
         val halfWidth = width / 2f
         val night = (1f - dayBlend).coerceIn(0f, 1f)
         val winter = sceneCustomization.winterColorsEnabled
+        val christmas = sceneCustomization.christmasDecorationsEnabled
+        val standing = DistantHouses.standingMask(seed, config.density, leftFirst, hidden)
         for (slot in DistantHouses.SLOTS.indices) {
-            if (!DistantHouses.stands(seed, slot, config.density)) continue
+            if (standing and (1 shl slot) == 0) continue
             val along = DistantHouses.along(seed, slot)
             val surface = DistantHouses.surfaceY(baseY, height, along)
             val pixelsTall = SceneSpace.distantHousePixelsTall(surface / screenHeight, screenHeight.toFloat())
@@ -2886,6 +2957,7 @@ class PaperRenderer(
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
+            if (christmas) drawDistantHouseLights(canvas, piece, s, slot)
             canvas.restore()
         }
     }

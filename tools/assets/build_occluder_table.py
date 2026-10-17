@@ -92,7 +92,8 @@ FAMILIES = {
 #: 180 degrees, which is a filled half-disc with no PNG and no transparent pixel inside it. It is
 #: measured the same way all the same -- rasterised from its own declared geometry and put through
 #: the identical profile code -- so the table holds one rule and not two, and the number it lands
-#: on is the exact pi/4 the shape's area gives. See `PARASOL_FAN_CHECK` below.
+#: on is the exact pi/4 the shape's area gives. The check is in `main`, below: the run stops unless
+#: the fan rasterises to pi/4 within 5e-4.
 PARASOL = {
     "radius": 34.0,
     "top": -84.0,

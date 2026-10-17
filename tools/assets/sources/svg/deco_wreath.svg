@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="-5 -5 10 10">
+  <!-- The wreath on a front door (v5.14, the maintainer's «C ma con aggiunta di ghirlanda», 2026-10-14): a ring of
+       greenery 3 units wide round a radius of 3, and a red bow under it, centred on (0,0), the centre of the ring.
+       One blit of the shared atlas (6 vertices on the GL path), where the same ring and bow drawn as shapes were 36:
+       twenty-odd doors on a screen at night in Christmas took the scene past the batch's 12 288 vertices. -->
+  <circle cx="0" cy="0" r="3" fill="none" stroke="#2F6B3D" stroke-width="3"/>
+  <circle cx="0" cy="3.4" r="1.4" fill="#D8473C"/>
+</svg>

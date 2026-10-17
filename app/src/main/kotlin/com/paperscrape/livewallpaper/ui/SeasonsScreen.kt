@@ -271,9 +271,10 @@ private fun SeasonDetailScreen(
                 Season.CHRISTMAS -> {
                     SettingsSwitchRow(
                         title = "Christmas lights",
-                        // What the switch does, all of it (v5.10E, inventory I-224): the lights on the
-                        // trees *and* the strings along the buildings' windowsills, and one tree in three
-                        // standing as a Christmas fir with presents at its foot
+                        // What the switch does, all of it (v5.10E, inventory I-224; v5.14): the lights on the
+                        // trees, the strings along the windowsills, the bulbs along the roofs, a wreath on every
+                        // front door, a star on every tower, three bulbs on every distant house, and one tree in
+                        // three standing as a Christmas fir with presents at its foot
                         // (`SceneObjectRenderer.standsAsFir`), on any theme. Until v5.10E it said only
                         // "Blinking lights on the trees".
                         supporting = CHRISTMAS_LIGHTS_LINE,
@@ -341,14 +342,15 @@ private fun SeasonDetailScreen(
 }
 
 /**
- * The line under *Christmas lights* (v5.10E, inventory I-224): everything the switch does --
- * `SceneObjectRenderer`'s tree, palm and fir lights, the strings on the buildings' sills
- * (`drawNeighbourhoodBuilding`), and the firs.
+ * The line under *Christmas lights* (v5.10E, inventory I-224; v5.14): everything the switch does --
+ * `SceneObjectRenderer`'s tree, palm and fir lights, the strings on the buildings' sills, the bulbs along
+ * their roofs, the wreath on every front door and the star on every tower (`drawDecorations`), and the firs;
+ * the three bulbs on a distant house too, which the line leaves to the roofs.
  */
 internal const val CHRISTMAS_LIGHTS_LINE =
-    "Blinking lights on the trees and along the windowsills, and one tree in three becomes a " +
-        "Christmas fir with presents at its foot. Independent of the seasonal palette - you can have " +
-        "one without the other."
+    "Blinking lights on the trees, along the windowsills and along the roofs, a wreath on every " +
+        "front door and a star on every tower, and one tree in three becomes a Christmas fir with " +
+        "presents at its foot. Independent of the seasonal palette - you can have one without the other."
 
 /** A decoration that has density and colours: its switch, then a way into those. */
 @Composable

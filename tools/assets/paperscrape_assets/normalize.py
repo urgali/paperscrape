@@ -185,9 +185,10 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "tree_fir_snow",
-        "Shares tree_fir's 78x122 canvas so the two blit at one origin. The snow only touches the "
-        "tiers' shoulders, so its own ink is a fraction of the tree; cropping to it would separate "
-        "the layer from the tree it lies on.",
+        "The fir A's snow (v5.14): fir/build_fir.py trims it to its content on the 3x grid and writes "
+        "its own blit origin (FirTable.SNOW_X/SNOW_Y, beside the fir's FIR_X/FIR_Y) in the same run, so "
+        "rounded outward there is nothing to crop here, and the generator owns its canvas: "
+        "tests/test_fir.py fails on any of its files that is not the generator's output.",
     ),
     *(
         Exclusion(

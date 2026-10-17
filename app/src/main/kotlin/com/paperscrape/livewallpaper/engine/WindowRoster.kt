@@ -309,21 +309,4 @@ internal object WindowRoster {
         val x = (t / FADE_SECONDS).toFloat().coerceIn(0f, 1f)
         return x * x * (3f - 2f * x)
     }
-
-    /**
-     * How many of [people] are at the windows of a building [openness] open (1 for a house): all of
-     * them open, none shut, and across a closing one fewer at each step of the first half of the fade
-     * -- `round(people x (2 x openness - 1))` -- so the last of them sets off while the glass is still
-     * at least half lit (and is out of sight before it is, but for the shortest span: see [WindowWalk],
-     * "The lights"), and nobody is ever seen behind glass gone dark for the night (v5.12; the
-     * maintainer's *«va fatto anche per la chiusura, non solo per finestre accese/spente»*,
-     * 2026-10-09). At an opening the same steps run the other way, the first of them walking in once
-     * the glass is half lit. Until v5.12 they left across the whole fade (`round(people x openness)`),
-     * the last one behind glass a quarter lit in a building of two, a sixth lit in one of three.
-     */
-    fun presentCount(people: Int, openness: Float): Int {
-        if (openness >= 1f) return people
-        val share = (2f * openness - 1f).coerceIn(0f, 1f)
-        return Math.round(people * share)
-    }
 }

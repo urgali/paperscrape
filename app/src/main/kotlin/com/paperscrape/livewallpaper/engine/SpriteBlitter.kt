@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 import android.content.Context
+import com.paperscrape.livewallpaper.R
 
 /**
  * Which scale a sprite's pixels were authored at, and therefore how [SpriteBlitter] has to map the
@@ -40,7 +41,8 @@ enum class SpriteScale {
 /**
  * The single sprite-blitting path: every sprite in the app is drawn through [draw], [drawTinted] or
  * [drawTintedAdded], and all three reach the canvas through one private `blit`; a sprite of which only
- * a part is drawn -- a person walking out of a window, cut to its pane -- goes through [drawClipped].
+ * a part is drawn -- a person walking out of a window, cut to its pane -- goes through [drawClipped], and the
+ * small round dots -- snowflakes, point stars, Christmas bulbs -- through [drawDisc].
  *
  * Both renderers used to carry their own copies of this, one pair of functions per scale
  * convention, which meant the same four-line blit existed six times over and the paint flags, the
@@ -114,9 +116,10 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      *
      * **Pass a neutral grey.** Nothing enforces it here, because there is no cheap way to, but a
      * coloured value through this argument is a tint wearing a shade's name and belongs in
-     * [drawTinted] where the registry and `SpriteTintClassTest` can both see it. The one caller
-     * is [SceneObjectRenderer.drawPalmTree], whose grey is derived from the scene's own
-     * day/night pair rather than chosen.
+     * [drawTinted] where the registry and `SpriteTintClassTest` can both see it. The callers are
+     * [SceneObjectRenderer.drawPalmTree] and, since v5.14, [SceneObjectRenderer.drawFir] (both
+     * through `drawShadedSprite`), whose grey is derived from the scene's own day/night pair rather
+     * than chosen; the gallery card's palm and fir pass the same grey.
      */
     fun draw(
         canvas: SceneCanvas,
@@ -212,6 +215,18 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
             SpriteScale.CANVAS_PIXELS ->
                 canvas.drawSpriteClipped(resId, this, originX, originY, tintColor, 255, additive, clipLeft, clipTop, clipRight, clipBottom)
         }
+    }
+
+    /**
+     * A disc of [colour] at [alpha], [radius] either side of ([cx], [cy]) in the caller's own coordinates: every
+     * falling snowflake, every point star and every Christmas bulb (v5.14). [SceneCanvas.drawDisc] is the operation --
+     * a quad of the atlas on the GPU, the circle itself on a Canvas -- and this names its drawing: `deco_bulb`, a white
+     * disc 8 units (24 px) across that fills its box, the one disc both backends agree on (`DiscAgreementTest`). It is
+     * authored larger than any disc is drawn -- a flake 0.30 m across is 18 px on a 3200-pixel screen, a tower's bulb
+     * 21 -- so the GPU only ever reduces it ([SpriteDetailLevel]), and an edge is never a magnified texel.
+     */
+    fun drawDisc(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int = 255) {
+        canvas.drawDisc(R.drawable.deco_bulb, this, cx, cy, radius, colour, alpha)
     }
 
     /**

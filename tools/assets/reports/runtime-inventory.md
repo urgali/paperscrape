@@ -5,10 +5,10 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 460 |
-| Unique contents | 460 |
-| Bytes on disk | 1387.4 KB |
-| Decoded `ARGB_8888` | 48.00 MB |
+| Files | 463 |
+| Unique contents | 463 |
+| Bytes on disk | 1397.1 KB |
+| Decoded `ARGB_8888` | 48.03 MB |
 | Of which transparent padding | 18.85 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
@@ -22,10 +22,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
 | `tower_tier1_tall_fx` | 210x444 | 0.37 MB | 2 % |
 | `tower_tier1_tall_mw` | 210x444 | 0.37 MB | 2 % |
-| `tree_fir` | 240x366 | 0.35 MB | 0 % |
 | `tower_tier1_fx` | 210x378 | 0.32 MB | 1 % |
 | `tower_tier1_mw` | 210x378 | 0.32 MB | 1 % |
 | `school_fx` | 330x231 | 0.30 MB | 1 % |
+| `tree_fir` | 210x360 | 0.30 MB | 0 % |
 | `school_mw` | 330x228 | 0.30 MB | 1 % |
 
 ## Every sprite
@@ -55,6 +55,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `car_window_estate` | 267x81 | RGBA | 1,1,266,80 | 3 % | 3 | yes |
 | `car_window_saloon` | 183x81 | RGBA | 1,1,181,80 | 4 % | 3 | yes |
 | `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
+| `deco_bulb` | 24x24 | RGBA | 0,0,24,24 | 0 % | 1 | yes |
+| `deco_wreath` | 30x30 | RGBA | 1,1,29,30 | 10 % | 11 | yes |
 | `dolphin_body` | 342x171 | RGBA | 1,3,342,171 | 2 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
@@ -484,8 +486,9 @@ from the shipped PNGs; nothing is copied from documentation.
 | `tree_canopy` | 303x198 | RGBA | 0,0,303,198 | 0 % | 36 | yes |
 | `tree_canopy_snowcap` | 294x114 | RGBA | 18,0,294,114 | 6 % | 33 | yes |
 | `tree_dead_branches` | 282x198 | RGBA | 33,0,281,198 | 12 % | 19 | yes |
-| `tree_fir` | 240x366 | RGBA | 0,0,240,366 | 0 % | 16 | yes |
-| `tree_fir_snow` | 168x234 | RGBA | 0,0,168,234 | 0 % | 17 | yes |
+| `tree_fir` | 210x360 | RGBA | 0,0,210,360 | 0 % | 85 | yes |
+| `tree_fir_snow` | 192x291 | RGBA | 1,2,191,290 | 2 % | 17 | yes |
+| `tree_fir_star` | 48x45 | RGBA | 2,2,47,45 | 10 % | 1 | yes |
 | `tree_trunk` | 96x186 | RGBA | 0,0,96,186 | 0 % | 33 | yes |
 | `umbrella_canopy` | 144x72 | RGBA | 2,0,142,72 | 3 % | 21 | yes |
 | `water_splash0` | 162x54 | RGBA | 0,0,162,54 | 0 % | 20 | yes |

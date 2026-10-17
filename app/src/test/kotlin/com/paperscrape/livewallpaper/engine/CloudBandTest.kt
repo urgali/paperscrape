@@ -7,8 +7,8 @@ import org.junit.Test
 /**
  * The cloud band, and the two things hung off it.
  *
- * These exist because of a live-render report -- "i fulmini sono giganti e escono dalla cima del
- * cielo" -- whose cause was that the lightning did not read the band at all: it used a fixed 0.08
+ * These exist because of a live-render report -- the bolts were giants and came out of the top of
+ * the sky -- whose cause was that the lightning did not read the band at all: it used a fixed 0.08
  * of screen height while the band, at the default arc, starts at 0.15. The invariant worth pinning
  * is therefore not any one number but the *relationship*: a bolt is born inside the clouds, at
  * every arc height, and stays clear of the horizon.

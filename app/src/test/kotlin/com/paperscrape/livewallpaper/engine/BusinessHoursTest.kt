@@ -1,108 +1,136 @@
 package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The commercial opening hours (v4.22 Phase 4), as pure arithmetic.
+ * The opening hours (v4.22 Phase 4; at the minute since v5.14), as pure arithmetic.
  *
- * The claims pinned here are the maintainer's decisions, each in its own test: off means
- * constantly open (and therefore bitwise the pre-feature scene), `open == close` means always
- * open, the span wraps midnight, the boundary is a crossfade whose duration is **derived** —
- * the same [SunPositionCalculator.smoothEdge] twilight, over the same fraction of the arc — and
- * the whole thing runs on the hour the scene computed, which callers must take from
- * `DayPhase.hour24` (`SunPositionCalculatorTest` covers that field; nothing here reads a clock).
+ * The claims pinned here are the maintainer's decisions, each in its own test: off means constantly open (and
+ * therefore bitwise the pre-feature scene), `open == close` means always open, the span wraps midnight; and since
+ * v5.14 (*«verificare orari negozi - ho l'impressione che non vengano rispettati»*, 2026-10-14, and *«si a tutte»*
+ * to the way that recommended, 2026-10-15) **a building is open from its opening minute and shut at its closing
+ * minute, and its people are out in the minute before** -- open 09:00-20:00: open at 09:00 with everybody in,
+ * nobody in from 19:59, shut at 20:00. Everything runs on the hour the scene computed, which callers take from
+ * `DayPhase.hour24` (`SunPositionCalculatorTest` covers that field; nothing here reads a clock). The two seconds
+ * the glass takes, and the walks, are the doorway's (`WindowWalkTest`).
  */
 class BusinessHoursTest {
 
     private fun at(hour: Float, open: Float = 9f, close: Float = 20f, enabled: Boolean = true) =
         BusinessHours.opennessAt(enabled, open, close, hour)
 
+    private fun people(hour: Float, open: Float = 9f, close: Float = 20f, enabled: Boolean = true, n: Int = 3) =
+        BusinessHours.peopleAt(n, enabled, open, close, hour)
+
+    /** [h] hours and [m] minutes, as `SunPositionCalculator.currentHour24` writes it. */
+    private fun hm(h: Int, m: Int): Float = h + m / 60f
+
     @Test
-    fun `disabled is constantly open, whatever the hours say`() {
+    fun `disabled is constantly open, with everybody in, whatever the hours say`() {
         var h = 0f
         while (h < 24f) {
             assertEquals("disabled at $h", 1f, at(h, enabled = false), 0f)
             assertEquals("disabled with absurd hours at $h", 1f, BusinessHours.opennessAt(false, 3f, 3.5f, h), 0f)
+            assertEquals("disabled at $h", 3, people(h, enabled = false))
             h += 0.25f
         }
     }
 
     @Test
     fun `open equals close means always open`() {
+        // 00:00 until 24:00 is the same minute of the clock twice: always open too.
+        var m = 0f
+        while (m < 24f) {
+            assertEquals("00:00-24:00 at $m", 1f, at(m, open = 0f, close = 24f), 0f)
+            assertEquals("00:00-24:00 at $m", 3, people(m, open = 0f, close = 24f))
+            m += 1f / 60f
+        }
         for (boundary in floatArrayOf(0f, 9f, 20f, 24f)) {
             var h = 0f
             while (h < 24f) {
                 assertEquals("open==close==$boundary at $h", 1f, at(h, open = boundary, close = boundary), 0f)
+                assertEquals("open==close==$boundary at $h", 3, people(h, open = boundary, close = boundary))
                 h += 0.5f
             }
         }
     }
 
+    /**
+     * **At the minute**: the minute before the opening shut and empty, the opening minute open with everybody in;
+     * the minute before the closing open and empty -- they walk out in it -- and the closing minute shut. Every
+     * minute of the day for 09:00-20:00, by the real clock's minutes and by a fixed hour on the hour.
+     */
     @Test
-    fun `fully open in the middle of the day and fully closed at night`() {
-        assertEquals(1f, at(14f), 0f)
-        assertEquals(0f, at(23f), 0f)
-        assertEquals(0f, at(3f), 0f)
-        // The boundaries themselves are the closed ends of the crossfade.
-        assertEquals(0f, at(9f), 0f)
-        assertEquals(0f, at(20f), 0f)
+    fun `open from the opening minute, empty from the minute before the closing, shut at the closing minute`() {
+        assertEquals(0f, at(hm(8, 59)), 0f)
+        assertEquals(0, people(hm(8, 59)))
+        assertEquals(1f, at(hm(9, 0)), 0f)
+        assertEquals(3, people(hm(9, 0)))
+        assertEquals(1f, at(hm(19, 58)), 0f)
+        assertEquals(3, people(hm(19, 58)))
+        assertEquals(1f, at(hm(19, 59)), 0f)
+        assertEquals(0, people(hm(19, 59)))
+        assertEquals(0f, at(hm(20, 0)), 0f)
+        assertEquals(0, people(hm(20, 0)))
+        for (minute in 0 until 24 * 60) {
+            val hour = minute / 60f
+            val open = minute in 9 * 60 until 20 * 60
+            val inside = minute in 9 * 60 until 20 * 60 - 1
+            assertEquals("09-20 at $minute min", if (open) 1f else 0f, at(hour), 0f)
+            assertEquals("09-20 at $minute min", if (inside) 3 else 0, people(hour))
+        }
+        // A fixed hour at the opening hour is open, at the closing hour shut.
+        assertTrue(BusinessHours.isOpenAt(true, 9f, 20f, 9f))
+        assertFalse(BusinessHours.isOpenAt(true, 9f, 20f, 20f))
     }
 
     /**
-     * The wraparound day the decision names: 09:00–02:00 is a 17-hour span crossing midnight,
-     * run through the same wrap arithmetic the solar day uses for a post-midnight sunset.
+     * The four spans of the report's table: 09-20, 07-23, the school's 08-14 and a bar's 18-02 across midnight --
+     * the first minute open, the last minute empty, the closing minute shut.
      */
     @Test
-    fun `a span across midnight is open at midnight and closed in the small hours`() {
-        // 09:00-02:00 is a 17-hour arc, so its twilight edge is 0.12 * 17 = 2.04 h: the closing
-        // ramp runs from 23:57.6 to 02:00. Midnight-and-a-half is therefore *fading*, not full --
-        // (1 - 15.5/17) / 0.12 = 0.7353 -- and the fully-open check belongs before the ramp.
+    fun `every span opens at its minute, empties a minute before its closing and shuts at it`() {
+        for ((open, close) in listOf(9f to 20f, 7f to 23f, 8f to 14f, 18f to 2f, 22f to 6f, 0f to 23.75f, 9.25f to 9.5f)) {
+            val span = Math.round(SunPositionCalculator.dayLengthHours(open, close) * 60f)
+            val first = Math.round(open * 60f)
+            for (k in 0 until 24 * 60) {
+                val hour = Math.floorMod(first + k, 24 * 60) / 60f
+                assertEquals("$open-$close, $k min after opening", if (k < span) 1f else 0f, at(hour, open, close), 0f)
+                assertEquals("$open-$close, $k min after opening", if (k < span - 1) 3 else 0, people(hour, open, close))
+            }
+        }
+    }
+
+    /**
+     * The wraparound day the decision names: 09:00–02:00 is a 17-hour span crossing midnight, run through the same
+     * wrap arithmetic the solar day uses for a post-midnight sunset.
+     */
+    @Test
+    fun `a span across midnight is open at midnight and shut in the small hours`() {
         assertEquals(1f, at(23f, open = 9f, close = 2f), 0f)
-        assertEquals(0.7353f, at(0.5f, open = 9f, close = 2f), 1e-3f)
-        assertTrue("past midnight the shop is still open, if dimming", at(0.5f, open = 9f, close = 2f) > 0f)
+        assertEquals(1f, at(0.5f, open = 9f, close = 2f), 0f)
+        assertEquals(1f, at(hm(1, 58), open = 9f, close = 2f), 0f)
+        assertEquals(0, people(hm(1, 59), open = 9f, close = 2f))
+        assertEquals(0f, at(2f, open = 9f, close = 2f), 0f)
         assertEquals(0f, at(3f, open = 9f, close = 2f), 0f)
         assertEquals(0f, at(8f, open = 9f, close = 2f), 0f)
         assertEquals(1f, at(12f, open = 9f, close = 2f), 0f)
     }
 
     /**
-     * The fade and its derived duration. The open span is an arc and the easing is
-     * [SunPositionCalculator.smoothEdge], so the ramp occupies exactly
-     * [SunPositionCalculator.TWILIGHT_EDGE_FRACTION] of the span at each end — for 09:00–20:00
-     * (11 h) that is 1.32 h. Checked at the derivable points: half-way up the ramp at half the
-     * edge, fully open exactly where the twilight ends, and symmetric at closing.
+     * An hour that comes out of `Float` arithmetic a hair under a whole minute is that minute: 09:00 written as
+     * `9 + 0 / 60f` and then taken back from the opening is not always 0 to the bit.
      */
     @Test
-    fun `the boundary is the scene's own twilight over the opening span`() {
-        val span = 11f
-        val edgeHours = SunPositionCalculator.TWILIGHT_EDGE_FRACTION * span
-        assertEquals("half-open half-way up the opening ramp", 0.5f, at(9f + edgeHours / 2f), 1e-4f)
-        assertEquals("fully open where the ramp ends", 1f, at(9f + edgeHours), 1e-4f)
-        assertTrue("still fading just before the ramp ends", at(9f + edgeHours * 0.99f) < 1f)
-        assertEquals("half-open half-way down the closing ramp", 0.5f, at(20f - edgeHours / 2f), 1e-4f)
-        assertEquals("fully open where the closing ramp begins", 1f, at(20f - edgeHours), 1e-4f)
-    }
-
-    /** No hour, on either shape of span, may step the openness: the fade is a fade. */
-    @Test
-    fun `openness is continuous around the clock`() {
-        for ((open, close) in listOf(9f to 20f, 9f to 2f, 22f to 6f)) {
-            var h = 0f
-            var previous = at(0f, open, close)
-            // The largest slope in the model is the ramp: 1 over (edge * span) hours. A step of
-            // 0.01 h may therefore move the openness at most 0.01 / (0.12 * span), plus rounding.
-            val span = SunPositionCalculator.dayLengthHours(open, close)
-            val maxStep = 0.01f / (SunPositionCalculator.TWILIGHT_EDGE_FRACTION * span) + 1e-3f
-            while (h < 24f) {
-                h += 0.01f
-                val now = at(h, open, close)
-                assertTrue(
-                    "openness jumped ${previous} -> $now at $h for $open-$close",
-                    kotlin.math.abs(now - previous) <= maxStep,
-                )
-                previous = now
+    fun `an hour a hair under a whole minute is that minute`() {
+        for (h in 0 until 24) for (m in 0 until 60) {
+            val hour = h + m / 60f
+            for (eps in floatArrayOf(-2e-6f, 0f, 2e-6f)) {
+                val open = hour - eps
+                assertEquals("opening at $h:$m (eps $eps)", 1f, at(hour, open = open, close = open + 1f), 0f)
             }
         }
     }

@@ -99,6 +99,7 @@ reports/                  measurements, committed as evidence
 tests/                    tests that the fidelity criterion can fail
 build_occluder_table.py   writes engine/SpriteOccluderTable.kt (above)
 buildings/                the neighbourhood generator and its budget report
+fir/                      the Christmas fir's generator (v5.14)
 concepts/                 the drawing scripts of the people, the lake and the sky, beside their proposals
 ```
 
@@ -109,7 +110,16 @@ The generators that write artwork into `res/drawable-nodpi`:
   (gitignored); `--res` copies them into the runtime directory and writes
   `engine/NeighbourhoodTable.kt`, `--registry` rewrites their entries in `sources/sprites.json`,
   and `--budget` writes `buildings/budget.json` and `budget.md`. `validate` checks the budget
-  against the shipped PNGs, so neither file is edited by hand.
+  against the shipped PNGs, so neither file is edited by hand. Since v5.14 the table also carries
+  where the Christmas decorations hang -- each top piece's roofline, its highest point, each piece's
+  front door with the outline its card was cut to -- measured off what the generator draws
+  (`core.roofline_and_top`, `vocab.door` / `glass_door`): a redraw moves them with it.
+- **The Christmas fir.** From `tools/assets`, `python3 fir/build_fir.py --res` draws the fir A from one
+  geometry into `sources/svg/tree_fir.svg`, `tree_fir_snow.svg` and `tree_fir_star.svg`, renders them
+  into the runtime directory, writes `engine/FirTable.kt` (the blit origins, the lights, the presents,
+  the card's baubles) and the fir of `res/drawable/ic_launcher_christmas_foreground.xml` between its two
+  markers; `--check` writes nothing and fails unless every committed output is what it draws
+  (`tests/test_fir.py` makes the same comparison).
 - **The people.** Drawn by `concepts/people/build_people_concepts.py` and written by two scripts in
   `tools/`, run from the repository root in this order: `tools/generate_people_layers.py` writes
   every figure as fixed art plus up to four region masks, and `engine/PeopleLayerTable.kt`;

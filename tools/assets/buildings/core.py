@@ -242,6 +242,10 @@ class Group:
     #: The window panes drawn into this group (v5.12), (x, y, w, h) in its own frame: every pane of
     #: glass a house's night can light or leave dark -- see `vocab.bay_window` and the table's `panes`.
     panes: list = field(default_factory=list)
+    #: The front doors drawn into this group (v5.14), each a dict of its `box` (x, y, w, h), its `outline` -- the
+    #: card's points as cut, in this group's frame -- and the `relief` its shadow paper is offset by: see
+    #: `vocab.door` and the table's `BuildingDoor`.
+    doors: list = field(default_factory=list)
     _n: int = 0
 
     def face(self, name, points):
@@ -466,6 +470,94 @@ class Building:
         return UNITS_TALL[self.family]
 
 
+# ------------------------------------------------------------------ the Christmas decorations' places (v5.14)
+#: Units between two bulbs of a roof string.
+ROOF_BULB_SPACING = 6.0
+#: Anything narrower than this, in units, is taken off the roofline first: a chimney, a flag pole, a spire's needle --
+#: a string of lights does not climb a chimney.
+ROOF_NARROW = 9
+#: How near the piece's paper a bulb's centre has to be, in units: half a bulb (a roof's bulb is 3 units across).
+ROOF_BULB_REACH = 1.5
+
+
+def _opened(mask: np.ndarray, width_px: int) -> np.ndarray:
+    """A morphological opening with a horizontal line: every run of the mask narrower than `width_px` removed."""
+    out = np.zeros_like(mask)
+    for r in range(mask.shape[0]):
+        row = mask[r]
+        c, W = 0, mask.shape[1]
+        while c < W:
+            if row[c]:
+                e = c
+                while e < W and row[e]:
+                    e += 1
+                if e - c >= width_px:
+                    out[r, c:e] = True
+                c = e
+            else:
+                c += 1
+    return out
+
+
+def roofline_and_top(placed_layers) -> tuple[list, tuple]:
+    """Where a piece's roof string hangs and where its highest point is, in its own units (foot at y = 0).
+
+    `placed_layers` are the piece's fixed layer and masks -- not its snow -- as (pixels, x, y) in units. The union
+    of their coverage (alpha over half) has every run narrower than [ROOF_NARROW] taken off; its top outline, column
+    by column, is resampled every [ROOF_BULB_SPACING] units along its length: the roofline. Where the outline climbs
+    past an overhang -- a turret's cap, the fire station's hose tower -- it crosses open sky, and a bulb there would
+    hang in the air: a bulb is kept only with the piece's paper within half a bulb of its centre
+    ([ROOF_BULB_REACH]). Where a tip narrower than [ROOF_NARROW] was taken off -- a gable's apex -- the bulbs pass a
+    few units under it, on the roof. The top is the highest pixel of the union before the opening, at the middle of
+    the columns that reach it -- where a tower's star stands."""
+    xs, ys = [], []
+    for px, x, y in placed_layers:
+        h, w = px.shape[:2]
+        xs += [x * UNIT, x * UNIT + w]
+        ys += [y * UNIT, y * UNIT + h]
+    x0, y0 = int(math.floor(min(xs))), int(math.floor(min(ys)))
+    W, H = int(math.ceil(max(xs))) - x0, int(math.ceil(max(ys))) - y0
+    m = np.zeros((H, W), dtype=np.uint8)
+    for px, x, y in placed_layers:
+        a = px[:, :, 3]
+        cx, cy = int(round(x * UNIT)) - x0, int(round(y * UNIT)) - y0
+        h, w = a.shape
+        m[cy:cy + h, cx:cx + w] = np.maximum(m[cy:cy + h, cx:cx + w], a)
+    mask = m > 128
+    opened = _opened(mask, ROOF_NARROW * UNIT)
+    cols = [(c, int(np.argmax(opened[:, c]))) for c in range(W) if opened[:, c].any()]
+    line = []
+    if cols:
+        pts = [((c + x0) / UNIT, (r + y0) / UNIT) for c, r in cols]
+        d = [0.0]
+        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+            d.append(d[-1] + math.hypot(bx - ax, by - ay))
+        n = max(2, int(d[-1] // ROOF_BULB_SPACING) + 1)
+        step = d[-1] / (n - 1)
+        j = 0
+        for k in range(n):
+            t = k * step
+            while j < len(d) - 2 and d[j + 1] < t:
+                j += 1
+            seg = d[j + 1] - d[j] or 1.0
+            f = (t - d[j]) / seg
+            line.append((pts[j][0] + (pts[j + 1][0] - pts[j][0]) * f, pts[j][1] + (pts[j + 1][1] - pts[j][1]) * f))
+    reach = ROOF_BULB_REACH * UNIT
+    ys_, xs_ = np.where(mask)
+
+    def on_paper(ux, uy):
+        cx, cy = ux * UNIT - x0, uy * UNIT - y0
+        near = (np.abs(xs_ - cx) <= reach) & (np.abs(ys_ - cy) <= reach)
+        return bool(np.any((xs_[near] - cx) ** 2 + (ys_[near] - cy) ** 2 <= reach * reach))
+
+    line = [p for p in line if on_paper(*p)]
+    full = [(c, int(np.argmax(mask[:, c]))) for c in range(W) if mask[:, c].any()]
+    top_row = min(r for _, r in full)
+    same = [c for c, r in full if r == top_row]
+    top = (((sum(same) / len(same)) + x0) / UNIT, (top_row + y0) / UNIT)
+    return line, top
+
+
 # ------------------------------------------------------------------ production
 def build_concept(concept: str, buildings: dict, out: Path, extras=()):
     """Renders each group once, writes SVG/PNG; returns (table, pieces, files).
@@ -516,10 +608,21 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
             parts.append(("OCCUPANTS", 0, 0.0, 0.0))
         for x, y in piece.lamps:
             parts.append(("LAMP", 0, x, y))
+        # v5.14: where the Christmas decorations hang -- the roofline and the top, off what the piece draws (its
+        # fixed layer and masks, not its snow), and its front door, off the cards that drew it.
+        layers = [(layer.pixels, px + g.canvas()[0] + layer.dx, py + g.canvas()[1] + layer.dy)
+                  for g, px, py in piece.ordered() if not g.snow for layer in rendered[g.name]]
+        roof, top = roofline_and_top(layers)
+        doors = [dict(box=(px + d["box"][0], py + d["box"][1], d["box"][2], d["box"][3]),
+                      outline=[(px + x, py + y) for x, y in d["outline"]], relief=d["relief"])
+                 for g, px, py in piece.ordered() for d in g.doors]
+        if len(doors) > 1:
+            raise ValueError(f"{piece.name}: {len(doors)} front doors, the engine hangs one wreath")
         pieces[piece.name] = {"height": piece.height, "parts": parts, "windows": piece.windows,
                               "lights": piece.lights, "smoke": piece.smoke, "beacon": piece.beacon,
                               "panes": panes_of(piece),
-                              "people": len(piece.windows) if piece.people is None else piece.people}
+                              "people": len(piece.windows) if piece.people is None else piece.people,
+                              "roof": roof, "top": top, "door": doors[0] if doors else None}
 
     def panes_of(piece: Piece):
         """Every pane of glass of the piece, in piece space (v5.12): first the windows a bust may

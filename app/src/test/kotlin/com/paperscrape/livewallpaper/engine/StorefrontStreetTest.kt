@@ -26,17 +26,19 @@ class StorefrontStreetTest {
         "beach", "city", "tundra", "easter", "halloween", "spring",
     )
 
-    /** Every theme's seed, and some that are no theme's, and the extremes. */
-    private val seeds = themes.map { it.hashCode() } + listOf(0, 1, -1, 12345, Int.MIN_VALUE, Int.MAX_VALUE)
-
-    /** A few rounds of each: the first, the next ones, and far ones. */
-    private val rounds = listOf(0, 1, 2, 3, 17, 1000, -1)
+    /**
+     * Every theme's seed, some that are no theme's -- a saved theme's or a random one's is any -- and the extremes.
+     * (Until v5.14 each return of the wallpaper dealt the street a new round, another seed: the rules were held over
+     * a few rounds of each theme's; they are held over these seeds.)
+     */
+    private val seeds = themes.map { it.hashCode() } + listOf(0, 1, -1, 12345, Int.MIN_VALUE, Int.MAX_VALUE) +
+        (1..36).map { it * 7_919 + 104_729 * (it % 5) }
 
     @Test
     fun `every deck of six places holds the six buildings once each`() {
-        for (seed in seeds) for (round in rounds) for (deck in -200..200) {
-            val got = (0 until StorefrontStreet.DECK).map { StorefrontStreet.storefrontAt(seed, deck * StorefrontStreet.DECK + it, round) }
-            assertEquals("seed $seed, round $round, deck $deck: $got", Storefront.ALL.toSet(), got.toSet())
+        for (seed in seeds) for (deck in -200..200) {
+            val got = (0 until StorefrontStreet.DECK).map { StorefrontStreet.storefrontAt(seed, deck * StorefrontStreet.DECK + it) }
+            assertEquals("seed $seed, deck $deck: $got", Storefront.ALL.toSet(), got.toSet())
         }
     }
 
@@ -48,75 +50,72 @@ class StorefrontStreetTest {
      */
     @Test
     fun `no building twice in four places in a row, across a deck's seam too`() {
-        for (seed in seeds) for (round in rounds) {
-            val street = (-1200..1200).map { StorefrontStreet.storefrontAt(seed, it, round) }
+        for (seed in seeds) {
+            val street = (-1200..1200).map { StorefrontStreet.storefrontAt(seed, it) }
             for (k in 0 until street.size - 3) {
                 val four = street.subList(k, k + 4)
-                assertEquals("seed $seed round $round at place ${k - 1200}: $four", 4, four.toSet().size)
+                assertEquals("seed $seed at place ${k - 1200}: $four", 4, four.toSet().size)
             }
         }
     }
 
     /**
      * Any eleven places in a row hold a whole deck, so all six: 2.2 tiles of a built-in street, 4.4 screens.
-     * The shortest run that always holds all six, over every seed and round tried, is printed beside it.
+     * The shortest run that always holds all six, over every seed tried, is printed beside it.
      */
     @Test
     fun `any eleven places in a row hold all six`() {
         var shortestAlways = 0
-        for (seed in seeds) for (round in rounds) {
-            val street = (-1200..1200).map { StorefrontStreet.storefrontAt(seed, it, round) }
+        for (seed in seeds) {
+            val street = (-1200..1200).map { StorefrontStreet.storefrontAt(seed, it) }
             for (k in 0..street.size - 11) {
-                assertEquals("seed $seed round $round at place ${k - 1200}", 6, street.subList(k, k + 11).toSet().size)
+                assertEquals("seed $seed at place ${k - 1200}", 6, street.subList(k, k + 11).toSet().size)
             }
             for (w in 6..11) {
                 if ((0..street.size - w).all { street.subList(it, it + w).toSet().size == 6 }) { shortestAlways = maxOf(shortestAlways, w); break }
             }
         }
-        println("STREET_ALL_SIX every run of $shortestAlways places in a row held all six, over every seed and round tried")
+        println("STREET_ALL_SIX every run of $shortestAlways places in a row held all six, over every seed tried")
     }
 
     @Test
-    fun `the street is the theme's seed, the place and the round, and nothing else`() {
+    fun `the street is the theme's seed and the place, and nothing else`() {
         val a = IntArray(StorefrontStreet.DECK)
         val b = IntArray(StorefrontStreet.DECK)
-        for (seed in seeds) for (round in rounds) for (place in -50..50) {
-            val first = StorefrontStreet.storefrontAt(seed, place, round)
+        for (seed in seeds) for (place in -50..50) {
+            val first = StorefrontStreet.storefrontAt(seed, place)
             // Scratch arrays dirtied by another place first: nothing carries over.
-            StorefrontStreet.storefrontAt(seed + 7, place + 13, round + 1, a, b)
-            assertEquals(first, StorefrontStreet.storefrontAt(seed, place, round, a, b))
+            StorefrontStreet.storefrontAt(seed + 7, place + 13, a, b)
+            assertEquals(first, StorefrontStreet.storefrontAt(seed, place, a, b))
         }
-        // And the themes' streets differ, and a round is not its neighbour: a seed is not a decoration.
+        // And the themes' streets differ: a seed is not a decoration.
         val autumn = (0 until 60).map { StorefrontStreet.storefrontAt("autumn".hashCode(), it) }
         val winter = (0 until 60).map { StorefrontStreet.storefrontAt("winter".hashCode(), it) }
         assertNotEquals(autumn, winter)
-        assertNotEquals(autumn, (0 until 60).map { StorefrontStreet.storefrontAt("autumn".hashCode(), it, 1) })
     }
 
     /**
-     * A random-looking order: within a round each building takes every place of a deck but the round's
-     * anchor, which stands in every deck's head -- its first three places -- and takes each of those; and
-     * from round to round every building is the anchor of some.
+     * A random-looking order: on each street each building takes every place of a deck but the street's anchor,
+     * which stands in every deck's head -- its first three places -- and takes each of those; and over the seeds
+     * every building is the anchor of some.
      */
     @Test
     fun `a random-looking order - each building takes each position of a deck, the anchor each of the head's`() {
-        for (seed in themes.map { it.hashCode() }) {
-            val anchors = HashSet<Storefront>()
-            for (round in 0 until 40) {
-                val positions = Storefront.ALL.associateWith { HashSet<Int>() }
-                for (deck in 0 until 120) for (i in 0 until StorefrontStreet.DECK) {
-                    positions.getValue(StorefrontStreet.storefrontAt(seed, deck * StorefrontStreet.DECK + i, round)) += i
-                }
-                val heads = positions.filterValues { it == setOf(0, 1, 2) }.keys
-                assertEquals("seed $seed round $round: one anchor, $positions", 1, heads.size)
-                anchors += heads
-                for ((storefront, seen) in positions) {
-                    if (storefront in heads) continue
-                    assertEquals("seed $seed round $round: $storefront", (0 until StorefrontStreet.DECK).toSet(), seen)
-                }
+        val anchors = HashSet<Storefront>()
+        for (seed in seeds) {
+            val positions = Storefront.ALL.associateWith { HashSet<Int>() }
+            for (deck in 0 until 120) for (i in 0 until StorefrontStreet.DECK) {
+                positions.getValue(StorefrontStreet.storefrontAt(seed, deck * StorefrontStreet.DECK + i)) += i
             }
-            assertEquals("seed $seed: every building the anchor of some round", Storefront.ALL.toSet(), anchors)
+            val heads = positions.filterValues { it == setOf(0, 1, 2) }.keys
+            assertEquals("seed $seed: one anchor, $positions", 1, heads.size)
+            anchors += heads
+            for ((storefront, seen) in positions) {
+                if (storefront in heads) continue
+                assertEquals("seed $seed: $storefront", (0 until StorefrontStreet.DECK).toSet(), seen)
+            }
         }
+        assertEquals("every building the anchor of some street", Storefront.ALL.toSet(), anchors)
     }
 
     /**
@@ -281,22 +280,22 @@ class StorefrontStreetTest {
     }
 
     /**
-     * **A new round is a new shuffle, not the old one with another anchor**: two consecutive rounds of a street
-     * agree on about a sixth of its places, as two independent shuffles of six would; a round dealt from the
-     * same shuffles with only the anchor moved agreed on most of them (a mutation of v5.13B2 the tests above let
-     * through).
+     * **Another seed is another shuffle, not the same one with another anchor**: the streets of two seeds agree on
+     * about a sixth of their places, as two independent shuffles of six would; a street dealt from the same
+     * shuffles with only the anchor moved agreed on most of them (a mutation of v5.13B2 the tests above let
+     * through, when a round of the street was another seed).
      */
     @Test
-    fun `two rounds agree on about a sixth of the places, as two shuffles would`() {
+    fun `two seeds agree on about a sixth of the places, as two shuffles would`() {
         var same = 0
         var asked = 0
-        for (seed in seeds) for (round in 0 until 30) for (place in 0 until 120) {
+        for ((seed, other) in seeds.zipWithNext()) for (place in 0 until 120) {
             asked++
-            if (StorefrontStreet.storefrontAt(seed, place, round) == StorefrontStreet.storefrontAt(seed, place, round + 1)) same++
+            if (StorefrontStreet.storefrontAt(seed, place) == StorefrontStreet.storefrontAt(other, place)) same++
         }
         val share = same.toFloat() / asked
-        println("STREET_ROUNDS consecutive rounds agree on %.3f of the places".format(share))
-        assertTrue("consecutive rounds agree on $share of the places", share in 0.10f..0.25f)
+        println("STREET_SEEDS two seeds' streets agree on %.3f of the places".format(share))
+        assertTrue("two seeds' streets agree on $share of the places", share in 0.10f..0.25f)
     }
 
     /**
@@ -419,49 +418,49 @@ class StorefrontStreetTest {
         assertEquals("the two draws of a static object: $calls", 2, calls.size)
         assertTrue(calls.toString(), calls.any { it.endsWith("copyOf(r.spec.tileFractionX, geom, tileIndex))") })
         assertTrue(calls.toString(), calls.any { it.endsWith("copyOf(r.spec.tileFractionX, geom, 0))") })
-        assertTrue("the place's copy is dealt from that number", text.contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetRound,"))
+        assertTrue("the place's copy is dealt from that number", text.contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA,"))
     }
 
     /**
-     * **Each time the wallpaper comes back into view, a new round** (the maintainer's *«Nuovi edifici al
-     * ritorno sempre, anche quando la scena scorre: ogni volta che lo sfondo torna visibile i posti prendono
-     * altri edifici, mai sotto gli occhi»*, 2026-10-12): every round keeps every guarantee (above, over
-     * several rounds), and the first screen of a street shows other buildings from one round to the next on
-     * nearly every theme and round.
+     * **Coming back into view changes nothing of the street** (v5.14, the maintainer's «C» of 2026-10-14, which took
+     * back *«Nuovi edifici al ritorno sempre»* of 2026-10-12): a building changes only by scrolling. So the deal is
+     * the theme's seed and the place alone (above), and nothing in the engine touches it when the wallpaper becomes
+     * visible -- read in the sources, the engine and the renderer needing a phone: `onVisibilityChanged` hands the
+     * renderer nothing about the street, and no round of the street is counted or handed on anywhere in the app.
+     * The phone shows it: three returns from an app and the screen off and on again, the same buildings (v5.14B,
+     * filmed on the BV6600). And what numbers the copies -- the scroll -- moves only by the frame's time times the scroll
+     * speed, a frame's time capped at half a second, in the one renderer an engine builds.
      */
     @Test
-    fun `a new round deals the places other buildings`() {
-        var changed = 0
-        var asked = 0
-        for (themeId in themes) {
-            val places = StorefrontStreet.places(SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()))
-            val seed = themeId.hashCode()
-            for (round in 0 until 20) {
-                val now = places.indices.map { StorefrontStreet.storefrontAt(seed, StorefrontStreet.placeIndex(0, it, places.size), round) }
-                val next = places.indices.map { StorefrontStreet.storefrontAt(seed, StorefrontStreet.placeIndex(0, it, places.size), round + 1) }
-                asked++
-                if (now != next) changed++
-            }
-        }
-        println("STREET_ROUNDS the first stretch changed in $changed of $asked returns")
-        assertTrue("a return changes the first stretch on nearly every theme and round: $changed of $asked", changed >= asked * 9 / 10)
-    }
-
-    /**
-     * And it is wired: the engine asks for a new round when it becomes visible, on the render thread before
-     * the frame that shows it; the renderer keeps the count across a rebuild; the place is dealt with it.
-     * Read in the sources, the engine and the renderer needing a phone.
-     */
-    @Test
-    fun `the engine deals a new round each time it becomes visible`() {
+    fun `coming back into view deals the street nothing new`() {
         val service = source("PaperWallpaperService.kt").substringAfter("override fun onVisibilityChanged(visible: Boolean) {")
             .substringBefore("override fun onOffsetsChanged(")
-        assertTrue(service.contains("if (visible) onRenderThread { renderer?.nextStreetRound() }"))
-        assertTrue("before the thread is made visible", service.indexOf("nextStreetRound") < service.indexOf("thread.setVisible(drawing)"))
-        val renderer = source("PaperRenderer.kt")
-        assertTrue(renderer.contains("objectRenderer.streetRound++"))
-        assertTrue("kept across a rebuild", renderer.contains(".also { it.streetRound = existing.streetRound }"))
-        assertTrue(source("SceneObjectRenderer.kt").contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetRound, streetDeckA, streetDeckB"))
+        assertTrue("onVisibilityChanged was not found", service.contains("thread.setVisible(drawing)"))
+        for (word in listOf("Street", "street", "Round", "storefront", "Storefront")) {
+            assertTrue("onVisibilityChanged names \"$word\" in code", service.lines().none { it.trim().let { l -> !l.startsWith("//") && l.contains(word) } })
+        }
+        val main = mainSources().walk().filter { it.isFile && it.extension == "kt" }.toList()
+        assertTrue("the app's sources were not found", main.size > 50)
+        for (file in main) {
+            val text = file.readText()
+            assertTrue("${file.name} counts a round of the street", !text.contains("streetRound") && !text.contains("nextStreetRound"))
+        }
+        assertTrue(source("SceneObjectRenderer.kt").contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA, streetDeckB"))
+        // Nothing renumbers the copies but the scroll itself (v5.14C): the accumulator a copy is counted from is set once,
+        // to 0, and only ever grows by a frame's time times the scroll speed -- at *Scroll speed* 0 % it never moves -- and
+        // a frame's time is capped at half a second on both paths, so a wallpaper that comes back after an hour moves on by
+        // half a second's scroll; and the engine builds its renderer once, keeping it over a new surface.
+        val writes = source("PaperRenderer.kt").lines().map { it.trim() }
+            .filter { !it.startsWith("//") && !it.startsWith("*") && Regex("""continuousScrollAccum\s*[-+*/]?=""").containsMatchIn(it) }
+            .map { it.substringBefore(" //") }
+        assertEquals(
+            "what writes the scroll a copy is counted from",
+            listOf("private var continuousScrollAccum = 0.0", "continuousScrollAccum += deltaSeconds * scrollSpeed * 0.04"),
+            writes,
+        )
+        assertEquals("the engine builds its renderer more than once", 1, Regex("""renderer = PaperRenderer\(""").findAll(source("PaperWallpaperService.kt")).count())
+        assertTrue("the GL path's frame time is not capped", source("GlRenderThread.kt").contains("callbacks.onGlDrawFrame(target, delta.coerceIn(0f, 0.5f))"))
+        assertTrue("the Canvas path's frame time is not capped", source("PaperWallpaperService.kt").contains("((now - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.5f)"))
     }
 
     /**
@@ -510,15 +509,18 @@ class StorefrontStreetTest {
         }
     }
 
-    private fun source(name: String): String {
+    private fun source(name: String): String = java.io.File(mainSources(), "engine/$name").readText()
+
+    /** The app's Kotlin sources, `src/main/kotlin/com/paperscrape/livewallpaper`. */
+    private fun mainSources(): java.io.File {
         var dir: java.io.File? = java.io.File(".").absoluteFile
         while (dir != null) {
             for (prefix in listOf("", "app/")) {
-                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/engine/$name")
-                if (f.isFile) return f.readText()
+                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper")
+                if (java.io.File(f, "engine").isDirectory) return f
             }
             dir = dir.parentFile
         }
-        error(name)
+        error("src/main/kotlin")
     }
 }

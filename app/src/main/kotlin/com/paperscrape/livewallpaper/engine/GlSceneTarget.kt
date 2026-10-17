@@ -386,8 +386,9 @@ internal class GlSceneTarget : SceneCanvas {
      * Prepares a flat fill, returning false when the paint is fully transparent.
      *
      * Under premultiplied blending a zero-alpha primitive contributes exactly nothing, so emitting
-     * its geometry is pure cost. The scene fades a lot of things through zero — precipitation,
-     * leaves, star twinkle, the sleigh's edge fade — and those frames get the saving for free.
+     * its geometry is pure cost. The scene fades a lot of things through zero — the rain (the snow
+     * is a disc, which [drawDisc] skips at alpha 0 itself), leaves, the sleigh's edge fade — and those
+     * frames get the saving for free.
      */
     private fun beginSolid(paint: Paint): Boolean {
         val color = paint.color
@@ -748,8 +749,8 @@ internal class GlSceneTarget : SceneCanvas {
         additive: Boolean,
     ) {
         // A fully transparent blit contributes nothing under this blend function, and the scene
-        // produces plenty of them: every fading raindrop, leaf and twinkling star passes through
-        // zero. Skipping them here costs one comparison and saves six vertices plus the geometry
+        // produces plenty of them: every twinkling star's sparkle and the fading rainbow, firework or
+        // lightning pass through zero. Skipping them here costs one comparison and saves six vertices plus the geometry
         // that would have been rasterised behind them.
         if (alpha <= 0) return
 
@@ -899,6 +900,75 @@ internal class GlSceneTarget : SceneCanvas {
 
     /** [SpriteClip.clip]'s output, reused: the cut quad and its texture rectangle. */
     private val clippedQuad = FloatArray(SpriteClip.SIZE)
+
+    /**
+     * One quad of the atlas sampling the white disc [resId], its box laid over the square [radius] either side of
+     * ([cx], [cy]), tinted [colour] at [alpha] (v5.14): six vertices where [fillDisc]'s fan is 24 or more. The
+     * quad's numbers are [drawSprite]'s -- the content box, the texture rectangle, the vertex colour -- with the box
+     * scaled to the disc instead of the transform, so a disc costs no `save`/`scale`/`restore` of its own; and the
+     * detail level is the one the disc's drawn size asks for, as a sprite's is: device pixels per texel are the
+     * transform's scale times the diameter over the disc's own width in texels.
+     */
+    override fun drawDisc(
+        resId: Int,
+        source: SpriteSource,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        colour: Int,
+        alpha: Int,
+    ) {
+        if (alpha <= 0 || radius <= 0f) return
+        // The disc's width in texels, read off its pixels once: a level has to be chosen before the entry that would
+        // say so can be found. One drawing is the disc ([SpriteBlitter.drawDisc]); another one asked for reads its own.
+        if (resId != discRes) {
+            discTexels = source.bitmapFor(resId).width.toFloat()
+            discRes = resId
+        }
+        val diameter = radius + radius
+        val level = SpriteDetailLevel.levelFor(transform.uniformScale() * diameter / discTexels)
+        var index = textures.find(resId, level)
+        if (index < 0) {
+            index = textures.register(resId, level, source.bitmapFor(resId))
+            if (index < 0) return
+            source.onSpriteUploaded(resId)
+        }
+        spriteBlits++
+        useTexture(textures.handleAt(index))
+        ensureRoom(6)
+        val boxLeft = cx - radius
+        val boxTop = cy - radius
+        val quadLeft = boxLeft + diameter * textures.contentLeftAt(index)
+        val quadTop = boxTop + diameter * textures.contentTopAt(index)
+        val right = boxLeft + diameter * textures.contentRightAt(index)
+        val bottom = boxTop + diameter * textures.contentBottomAt(index)
+        val u0 = textures.u0At(index)
+        val v0 = textures.v0At(index)
+        val u1 = textures.u1At(index)
+        val v1 = textures.v1At(index)
+        val r = Color.red(colour) * INV_255
+        val g = Color.green(colour) * INV_255
+        val bl = Color.blue(colour) * INV_255
+        val al = alpha * INV_255
+        val m0x = transform.mapX(quadLeft, quadTop)
+        val m0y = transform.mapY(quadLeft, quadTop)
+        val m1x = transform.mapX(right, quadTop)
+        val m1y = transform.mapY(right, quadTop)
+        val m2x = transform.mapX(right, bottom)
+        val m2y = transform.mapY(right, bottom)
+        val m3x = transform.mapX(quadLeft, bottom)
+        val m3y = transform.mapY(quadLeft, bottom)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
+    }
+
+    /** [drawDisc]'s drawing and its width in texels, read once. */
+    private var discRes = 0
+    private var discTexels = 1f
 
     // --- Shared tessellation -----------------------------------------------------------------
 

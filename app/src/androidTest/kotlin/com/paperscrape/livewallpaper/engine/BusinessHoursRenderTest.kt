@@ -14,8 +14,10 @@ import org.junit.Test
  *  1. **Off is bitwise off.** With the toggle off the frame is identical to the default one,
  *     whatever the two hour fields hold. This is the property behind condition C: the default
  *     cannot move a golden because the default renders the same bytes.
- *  2. **Closed by day takes the people from the glass** -- by day the window colours carry no
- *     night to scale, so what can change is the occupants; the test asserts that the frame changes.
+ *  2. **Closed by day shows it** -- by day the window colours carry no night to scale; what changes is the
+ *     occupants leaving the glass and, since v5.14, the blinds and the shutter coming down
+ *     (`SceneObjectRenderer.drawShut`), which alone make the frame differ. The test asserts that the frame
+ *     changes; that the people leave is held on the JVM (`OpeningHoursGroupsTest`, `peopleFor`, v5.14C).
  *  3. **Closed by night darkens the businesses** -- their glass loses its night light, and since
  *     v5.12 the shut glass is the dark glass of a house's unlit window, not the day's pale glass
  *     (decision 58); the test asserts that the frame changes, that more of it is the dark glass and
@@ -86,14 +88,15 @@ class BusinessHoursRenderTest {
     }
 
     @Test
-    fun closedByDayTheOccupantsLeaveTheGlass() {
+    fun closedByDayTheFrameShowsIt() {
         // 13:00 against a 15:00-20:00 business day: closed, in full daylight. By day the glass
-        // colour has no night to lose, so what changes is the commercial occupants.
+        // colour has no night to lose: what changes is the commercial occupants and, since v5.14,
+        // the blinds and the shutter, which alone make the frame differ.
         val open = render(hour = 13f, enabled = false)
         val closed = render(hour = 13f, enabled = true, open = 15f, close = 20f)
         val differing = SceneGolden.differingFraction(open, closed)
         assertTrue(
-            "closing by day must remove somebody from the commercial glass (differing " +
+            "closing by day must show on the frame -- the blinds, the shutter, nobody at the glass (differing " +
                 "fraction $differing)",
             differing > 0.0,
         )

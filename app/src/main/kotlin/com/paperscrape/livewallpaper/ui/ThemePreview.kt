@@ -95,7 +95,7 @@ private fun drawScene(
         paint.alpha = 255
     }
 
-    for (item in scene.backdrop) if (item.y < horizon) drawItem(item, target, blitter, paint)
+    for (item in scene.backdrop) if (item.y < horizon) drawItem(item, target, blitter, paint, shape)
 
     // The wallpaper's own mountain, `MountainSilhouette`'s parabolic arch, standing on the ground
     // line; the hills, drawn next, cover its foot. The card drew half-ellipses here, and dunes for
@@ -107,7 +107,7 @@ private fun drawScene(
         MountainSilhouette.whole(shape, peak.x, base, peak.halfWidth * 2f, base - peak.peakY)
         target.drawShape(shape, paint)
         // Its distant houses, before the next mountain covers what it covers (v5.11).
-        for (house in peak.houses) drawItem(house, target, blitter, paint)
+        for (house in peak.houses) drawItem(house, target, blitter, paint, shape)
     }
 
     // The hills: one silhouette with a gentle wave, matching the single hill layer the scene
@@ -134,10 +134,10 @@ private fun drawScene(
     // Immediately after the water, and in a pass of its own: see [ThemePreviewScene.water]. The
     // boats used to ride in `backdrop`, which is split at the horizon, so on the one theme whose
     // water reaches above the horizon they were painted under it and vanished.
-    for (item in scene.water) drawItem(item, target, blitter, paint)
+    for (item in scene.water) drawItem(item, target, blitter, paint, shape)
 
-    for (item in scene.backdrop) if (item.y >= horizon) drawItem(item, target, blitter, paint)
-    for (item in scene.items) drawItem(item, target, blitter, paint)
+    for (item in scene.backdrop) if (item.y >= horizon) drawItem(item, target, blitter, paint, shape)
+    for (item in scene.items) drawItem(item, target, blitter, paint, shape)
 
     if (scene.hasRoad) {
         paint.color = scene.roadColour
@@ -148,10 +148,10 @@ private fun drawScene(
             target.drawRect(x, (ROAD_TOP + ROAD_BOTTOM) / 2f - 0.8f, x + 16f, (ROAD_TOP + ROAD_BOTTOM) / 2f + 0.8f, paint)
             x += 36f
         }
-        for (item in scene.cars) drawItem(item, target, blitter, paint)
+        for (item in scene.cars) drawItem(item, target, blitter, paint, shape)
     }
 
-    for (item in scene.ground) drawItem(item, target, blitter, paint)
+    for (item in scene.ground) drawItem(item, target, blitter, paint, shape)
 
     // Rain, snow and falling leaves are drawn over the scene, the way the real precipitation layer
     // is. They were told apart from the stars by radius, and rain and snow are smaller than a leaf,
@@ -165,15 +165,40 @@ private fun drawScene(
     }
 }
 
-private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: SpriteBlitter, paint: Paint) {
+private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: SpriteBlitter, paint: Paint, shape: SceneShape) {
     target.save()
     target.translate(item.x, item.y)
     target.scale(item.scale, item.scale)
     for (part in item.parts) {
+        val outline = part.outline
         if (part.rectWidth > 0f) {
-            // A flat card, not a sprite: a house's lit window over its dark glass at night (v5.12).
+            // A flat card, not a sprite: a house's lit window over its dark glass at night (v5.12), or a shut
+            // building's blinds (v5.14).
             paint.color = part.tint ?: continue
             target.drawRect(part.ox, part.oy, part.ox + part.rectWidth, part.oy + part.rectHeight, paint)
+        } else if (outline != null) {
+            // A flat card of a shape: a band of a shut building's shutter, cut from its door's outline (v5.14), or a tower's
+            // Christmas star (v5.14C2).
+            paint.color = part.tint ?: continue
+            shape.reset()
+            shape.moveTo(outline[0], outline[1])
+            var i = 2
+            while (i < outline.size) {
+                shape.lineTo(outline[i], outline[i + 1])
+                i += 2
+            }
+            shape.close()
+            target.drawShape(shape, paint)
+        } else if (part.discRadius > 0f) {
+            // A Christmas bulb (v5.14C2): a disc, as the wallpaper's preview draws one -- a circle on a Canvas.
+            blitter.drawDisc(target, part.ox, part.oy, part.discRadius, part.tint ?: continue, part.alpha)
+        } else if (part.scale != 1f) {
+            // A sprite drawn larger than its size from its origin: a wreath (v5.14C2), scaled as `drawWreath` scales it.
+            target.save()
+            target.translate(part.ox, part.oy)
+            target.scale(part.scale, part.scale)
+            blitter.draw(target, part.resId, 0f, 0f, SpriteScale.SCENE_UNITS, part.alpha, part.shade)
+            target.restore()
         } else if (part.tint != null) {
             if (part.added) {
                 blitter.drawTintedAdded(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)

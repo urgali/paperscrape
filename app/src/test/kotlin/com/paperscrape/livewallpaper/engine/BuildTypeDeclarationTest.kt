@@ -100,7 +100,8 @@ class BuildTypeDeclarationTest {
      *
      * The release job builds `assembleRelease`; the checks build `assembleDebug`, `test` and `lint`.
      * If a workflow ever names this build type, committing it stops being free and the decision has
-     * to be taken again.
+     * to be taken again. **Nor may a workflow run the aggregate `assemble`, `build` or `bundle`**
+     * (v5.14D): each builds every variant, `perf` among them, without naming it.
      */
     @Test
     fun `no workflow builds perf, and the release workflow builds assembleRelease`() {
@@ -108,6 +109,7 @@ class BuildTypeDeclarationTest {
             ?.filter { it.name.endsWith(".yml") || it.name.endsWith(".yaml") }
             ?: emptyList()
         assertTrue("no workflows found; this check would pass over an empty directory", workflows.isNotEmpty())
+        val aggregate = Regex("""gradlew\b.*(?:^|\s)(?::app:)?(assemble|build|bundle)(?=\s|$)""")
         for (file in workflows) {
             val text = file.readText()
             for (forbidden in listOf("assemblePerf", "bundlePerf", "installPerf", "testPerf", "perfUnitTest")) {
@@ -116,6 +118,13 @@ class BuildTypeDeclarationTest {
                         "workflow builds it, which is what makes committing it change nothing that " +
                         "ships; that basis is gone",
                     !text.contains(forbidden),
+                )
+            }
+            for (line in text.lines()) {
+                val hit = aggregate.find(line) ?: continue
+                throw AssertionError(
+                    "${file.name} runs the aggregate `${hit.groupValues[1]}`, which builds every variant, " +
+                        "`perf` among them: $line",
                 )
             }
         }

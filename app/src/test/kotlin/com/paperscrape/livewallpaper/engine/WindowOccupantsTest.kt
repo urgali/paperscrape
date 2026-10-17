@@ -472,10 +472,9 @@ class WindowOccupantsTest {
     }
 
     /**
-     * Across a closing fade the occupants leave one at a time and nobody arrives: the occupied
-     * set at any openness is a subset of the set at any higher openness. This is what makes the
-     * fade read as people going home rather than as a population being reshuffled -- the same
-     * nesting rule the car count keeps.
+     * Lowering the openness never seats anybody: the occupied set at any openness is a subset of the set at any
+     * higher one -- the same nesting rule the car count keeps. Since v5.14 a building is open (everybody) or shut
+     * (nobody) by the minute ([BusinessHours]); the walk between, one at a time, is the doorway's (`WindowWalkTest`).
      */
     @Test
     fun `lowering the openness only ever removes occupants`() {

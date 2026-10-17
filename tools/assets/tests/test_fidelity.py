@@ -271,7 +271,11 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # v5.1: +1. The one flower clump became two -- `ground_flowers_bloom` and
         # `ground_flowers_dry`, so an autumn or a winter scene stops drawing midsummer blooms --
         # and both are SVG, so the pair adds a source rather than replacing one.
-        self.assertEqual(104, len(self.results))
+        # v5.14: +3. The fir A's star is a piece of its own (`tree_fir_star`, so it stays bright under the
+        # fir's night shade), and the white disc of the bulbs, the snow and the stars and the wreath (`deco_bulb`,
+        # `deco_wreath`) are drawn from SVG and blitted from the atlas; the fir and its snow keep the sources they had,
+        # redrawn.
+        self.assertEqual(107, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

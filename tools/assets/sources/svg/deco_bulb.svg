@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 8 8">
+  <!-- The white disc (v5.14) a tintable mask the renderer colours dot by dot: every Christmas bulb (the roof strings, the
+       sill strings, every tree's, palm's and fir's lights, the distant houses'), every falling snowflake and every point
+       star. SceneCanvas.drawDisc: on the GL path a quad of the shared atlas, 6 vertices where a disc of drawCircle is 24
+       or more (the theme's snow and the night's stars took Christmas at night with everything on past the batch's 12 288
+       vertices, to two draw calls); on a Canvas the circle itself. 8 units, 24 px: larger than any disc is drawn (a flake
+       0.30 m across is 18 px on a 3200-pixel screen, a tower's bulb 21), so the GPU only ever reduces it. -->
+  <circle cx="4" cy="4" r="4" fill="#ffffff"/>
+</svg>

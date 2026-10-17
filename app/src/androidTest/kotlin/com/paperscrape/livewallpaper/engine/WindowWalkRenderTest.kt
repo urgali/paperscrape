@@ -78,6 +78,7 @@ class WindowWalkRenderTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: Paint) = Unit
         override fun drawShape(shape: SceneShape, paint: Paint) = Unit
@@ -147,7 +148,8 @@ class WindowWalkRenderTest {
         val r = renderer {
             it.copy(shopHoursEnabled = true, shopOpenHour = 9f, shopCloseHour = 20f, towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 20f)
         }
-        // From 18:40 to 20:10, a minute every fifteen frames: the closing of every shop, school, bar and tower.
+        // From 18:40 to 20:10, a minute every fifteen frames: the closing of every shop, bar and tower (the school keeps the
+        // public buildings' hours, off here) -- the first six seconds of the walking out.
         val minutes = (0..90).map { SunPositionCalculator.compute(hour24 = 18f + (40 + it) / 60f) }
         val cutFrames = watch("closing", r, 0.0, minutes.size * 15) { minutes[it / 15] }
         assertTrue("nobody walked out ($cutFrames frames)", cutFrames > 30)

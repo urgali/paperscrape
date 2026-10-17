@@ -934,10 +934,9 @@ class PaperWallpaperService : WallpaperService() {
             // this engine was not drawing. The receiver in SeasonalIconController catches midnight
             // while the process is alive; this catches the case where it was not.
             if (visible) iconController?.refresh()
-            // **The street's places take other buildings each time the wallpaper comes back into view**
-            // (v5.13, the maintainer's decision of 2026-10-12): a new round, dealt before the frame that
-            // shows it, so no building changes under the eyes.
-            if (visible) onRenderThread { renderer?.nextStreetRound() }
+            // **Nothing about the street changes here** (v5.14, the maintainer's «C» of 2026-10-14): the
+            // buildings among the houses are the same coming back from an app and with the screen on again,
+            // and a new one arrives only from the edge as the scene scrolls (`StorefrontStreet`).
             val thread = glThread
             if (thread != null) {
                 if (visible) {

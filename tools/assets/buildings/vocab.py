@@ -68,20 +68,27 @@ def bay_window(g: Group, host, x, y, w, h, relief, amp, frame=2.0, sill=True, ch
 
 
 def door(g: Group, host, x, y, w, h, relief, amp, style="arch", fill=DOOR, margin=1.2):
-    """Door with its shadow paper (a card glued onto the wall); three-facet arch or straight."""
+    """Door with its shadow paper (a card glued onto the wall); three-facet arch or straight.
+
+    The front door of the piece, declared to the engine (v5.14, `Group.doors`): its box, the card's own outline as
+    cut and its shadow paper's offset -- where the Christmas wreath hangs and where a shut building's shutter comes
+    down, exactly over the card and its shadow."""
     pts = arch(x, y, x + w, y + h, min(4.0, w * 0.32)) if style == "arch" else chamfered(x, y, x + w, y + h, 0.8, top_only=True)
-    g.add(pts, fill, relief=relief, amp=amp, host=host, margin=margin, label="door")
+    outline = g.add(pts, fill, relief=relief, amp=amp, host=host, margin=margin, label="door")
+    g.doors.append(dict(box=(x, y, w, h), outline=outline, relief=relief))
     if style != "plain":
         g.add(disc(x + w * 0.78, y + h * 0.55, 0.9), YELLOW)   # the handle: a dot
     return pts
 
 
 def glass_door(g: Group, host, x, y, w, h, relief, amp, margin=1.2):
-    """The glass entrance of the tower / the shop: cream frame, two glass leaves."""
+    """The glass entrance of the tower / the shop: cream frame, two glass leaves. Declared to the engine as the
+    piece's front door (`Group.doors`): the opening the two leaves fill, inside the frame, which casts the shadow."""
     g.add(chamfered(x - 1.5, y - 1.5, x + w + 1.5, y + h, 0.8, top_only=True), CREAM, relief=relief, amp=amp,
           host=host, margin=margin, label="entrance")
     g.add(rect(x, y, x + w / 2 - 0.6, y + h), GLASS, amp=amp * 0.3)
     g.add(rect(x + w / 2 + 0.6, y, x + w, y + h), GLASS, amp=amp * 0.3)
+    g.doors.append(dict(box=(x, y, w, h), outline=rect(x, y, x + w, y + h), relief=(0.0, 0.0)))
 
 
 def steps(g: Group, host, x0, x1, y, n, rise, relief, amp, margin=0.5):

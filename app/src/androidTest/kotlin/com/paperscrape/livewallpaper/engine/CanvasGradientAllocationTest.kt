@@ -73,6 +73,9 @@ class CanvasGradientAllocationTest {
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) =
             delegate.drawCircle(cx, cy, radius, paint)
 
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) =
+            delegate.drawDisc(resId, source, cx, cy, radius, colour, alpha)
+
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) =
             delegate.drawOval(left, top, right, bottom, paint)
 

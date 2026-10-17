@@ -528,16 +528,15 @@ object SceneSpace {
         /**
          * The Christmas fir that replaces one tree in three while the Christmas layer is on.
          *
-         * **122 units at [TREE]'s own metres-per-unit, which is why it reads taller than a leafy
+         * **126 units at [TREE]'s own metres-per-unit, which is why it reads taller than a leafy
          * tree rather than shorter.** `variantFor` never returns FIR -- a fir is a *state* of a
          * TREE candidate (`SceneObjectRenderer.standsAsFir`), so it is drawn under TREE's scale
          * and this `baseScale` is not applied; the only other reference is a `-> Unit` arm in the
-         * draw dispatch. `tree_fir` is 240x366 px = 80x122 u blitted at (-40,-122), so a fir
-         * occupies 122 units where the leafy tree occupies 118, and at 0.0803 m/unit that is
-         * 9.8 m against the tree's 9.479. (v4.21 redrew the fir into the "Broad Oak" family --
-         * stocky, three full skirts, a star at the tip -- and kept it at 122 units for the reason
-         * this paragraph gives: one metre governs both, so a fir cannot drift out of scale with
-         * the wood it stands in.)
+         * draw dispatch. The fir of v5.14 (`FirTable`, the fir A the maintainer chose on 2026-10-14)
+         * stands 72 units wide and 126 tall where the leafy tree occupies 118, and at 0.0803 m/unit
+         * that is 10.12 m against the tree's 9.479 -- one metre governs both, so a fir cannot drift
+         * out of scale with the wood it stands in. (The fir of v4.21 to v5.13 was 80 by 122 units,
+         * 9.8 m; this row followed the drawing then too.)
          *
          * This entry used to say 9.3 m, and `SceneSpaceTest` pinned "a fir is shorter than a
          * tree". **Both were wrong, and the project said so itself.** v2.8 introduced the entry as
@@ -551,7 +550,7 @@ object SceneSpace {
          *
          * Nothing is drawn differently by this change: the value was never read.
          */
-        FIR(9.8f, 122f),
+        FIR(10.12f, 126f),
 
         /** Trunk plus frond fan, ground to the top of the blades. */
         PALM_TREE(8f, 90.33f),

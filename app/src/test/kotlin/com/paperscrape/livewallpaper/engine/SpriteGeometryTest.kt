@@ -472,6 +472,12 @@ class SpriteGeometryTest {
      * **The maintainer moved this line** on 2026-10-11, with the proposal round's measurements: *«il
      * resto accetto i consigliati»* to the row that said the drawings' memory would rise as it had twice
      * before, from 45 to 47 MB and from 18 to 20 MB, at the same consumption.
+     *
+     * ### v5.14 moves neither ceiling
+     *
+     * The fir A, its snow and its star, the wreath and the bulb (24 px since v5.14B2) bring the set to **48 032 892 B**,
+     * 31 824 more than the 5.13's, and leave **1 250 180 B** under 47 MiB: the v5.14A table said no limit would rise, and
+     * the maintainer answered it *«si a tutte»* (2026-10-15).
      */
     private val decodedByteBudget = 47L * 1024L * 1024L
 

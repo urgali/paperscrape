@@ -24,7 +24,7 @@ internal enum class WindowBuildingKind {
      *
      * It is street-level glass like the restaurant and the bar: it keeps business hours (the public
      * buildings' since v5.13, `Storefront.group`), its panes go dark when it closes, and its occupants
-     * walk out one at a time over the first half of the closing fade. A value of its own is about the
+     * walk out one at a time in the minute before. A value of its own is about the
      * two rules that read the kind -- [WindowOccupants.occupantAt] makes its occupants children and
      * [WindowOccupants.rateFor] gives it [WindowOccupants.SCHOOL_RATE] -- and about keeping the
      * restaurant and the bar out of both. A flag on [BuildingFamily] would have been a second axis for
@@ -235,12 +235,10 @@ internal object WindowOccupants {
         windowCount: Int,
         kind: WindowBuildingKind,
         /**
-         * How open the building is, 0..1 -- [BusinessHours] for commercial kinds, constantly 1
-         * for houses. Applied to the dealt count, not per window: at openness x a building has
-         * [WindowRoster.presentCount] of its occupants in -- one fewer at each step of the first half of
-         * a closing fade, so the last is out while its glass is still half lit (v5.12; until then
-         * `round(count · x)`, across the whole fade) -- leaving in reverse deal order; at 1 the
-         * expression is bitwise the pre-v4.22 one.
+         * Whether the building is open, 1, or shut, 0 -- [BusinessHours] for the kinds that keep hours,
+         * constantly 1 for houses. Applied to the dealt count, not per window: open, a building has all its
+         * occupants in, shut none (v5.14; the walk out and in between is the doorway's, `WindowWalk.Doorway`);
+         * at 1 the expression is bitwise the pre-v4.22 one.
          */
         openness: Float = 1f,
         /**
@@ -253,7 +251,7 @@ internal object WindowOccupants {
     ): Boolean {
         if (windowIndex < 0 || windowIndex >= windowCount) return false
         val dealt = occupantCount(seed, buildingSeed, peopleWindows, kind)
-        val occupied = WindowRoster.presentCount(dealt, openness)
+        val occupied = if (openness >= 1f) dealt else 0
         if (occupied <= 0) return false
         if (occupied >= windowCount) return true
         return rankOf(seed, buildingSeed, windowIndex, windowCount) < occupied
@@ -261,8 +259,8 @@ internal object WindowOccupants {
 
     /**
      * Where window [windowIndex] falls in its building's seeded order of [windowCount] windows, 0 first:
-     * the first [occupantCount] are the ones somebody stands at, and across a closing fade the last of
-     * them leave first. Read by [isOccupied] and, since v5.12, by [WindowRoster], whose first state
+     * the first [occupantCount] are the ones somebody stands at, and at a closing the last of them leave
+     * first. Read by [isOccupied] and, since v5.12, by [WindowRoster], whose first state
      * places the people by it -- the same seed, channel and address, so the same windows.
      */
     fun rankOf(seed: Int, buildingSeed: Int, windowIndex: Int, windowCount: Int): Int =

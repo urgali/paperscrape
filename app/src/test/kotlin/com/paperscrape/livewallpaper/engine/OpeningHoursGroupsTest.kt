@@ -90,7 +90,7 @@ class OpeningHoursGroupsTest {
      * **The fire station and the police station never close** (the maintainer, 2026-10-12: *«pompieri e
      * polizia sono sempre aperti, 24 ore su 24, tutti i giorni, perché nella realtà non chiudono mai.
      * L'interruttore e il "dalle / alle" degli edifici pubblici valgono solo per la scuola»*): at every hour,
-     * with every group's hours on at any span, their glass is the open one and their people are in.
+     * with every group's hours on at any span, their glass is the open one and their people are in ([peopleFor]).
      */
     @Test
     fun `the fire and the police station are open at every hour, whatever the hours say`() {
@@ -107,9 +107,46 @@ class OpeningHoursGroupsTest {
                 val h = q / 4f
                 assertEquals("fire station at $h, $open-$close", 1f, c.opennessFor(Storefront.FIRE_STATION, h), 0f)
                 assertEquals("police station at $h, $open-$close", 1f, c.opennessFor(Storefront.POLICE_STATION, h), 0f)
+                assertEquals("the fire station's people at $h, $open-$close", 7, c.peopleFor(Storefront.FIRE_STATION, 7, h))
+                assertEquals("the police station's people at $h, $open-$close", 7, c.peopleFor(Storefront.POLICE_STATION, 7, h))
                 if (c.opennessFor(Storefront.SCHOOL, h) < 1f) schoolShut = true
             }
             assertTrue("the school does keep the hours $open-$close", schoolShut)
+        }
+    }
+
+    /**
+     * **A shut building has nobody at its glass, and an open one all its people but in its last minute** (v5.14, the
+     * hours to the minute): with each group's hours on, for every building that keeps hours -- the towers, the restaurant,
+     * the bar, the shop, the school -- at every minute of the day, [peopleFor] gives none while [opennessFor] says shut,
+     * all of them while it says open, and none in the minute before the closing, when they walk out; a house keeps all
+     * its people whatever the hours. Held for the people what `BusinessHoursRenderTest` can no longer tell on a frame by
+     * day, where the blinds and the shutter change it on their own.
+     */
+    @Test
+    fun `a shut building's people are out, an open one's in but in its last minute`() {
+        val spans = listOf(9f to 20f, 22f to 6f, 13f to 13.5f)
+        for ((open, close) in spans) {
+            val c = SceneCustomization.DEFAULT.copy(
+                shopHoursEnabled = true, shopOpenHour = open, shopCloseHour = close,
+                towerHoursEnabled = true, towerOpenHour = open, towerCloseHour = close,
+                publicHoursEnabled = true, publicOpenHour = open, publicCloseHour = close,
+            )
+            val lastMinute = close - 1f / 60f
+            for (m in 0 until 24 * 60) {
+                val h = m / 60f
+                val inLastMinute = Math.floorMod(Math.round((h - lastMinute) * 60f), 24 * 60) == 0
+                for (b in Storefront.ALL.filter { it.keepsHours }) {
+                    val shut = c.opennessFor(b, h) < 1f
+                    val expected = if (shut || inLastMinute) 0 else 5
+                    assertEquals("$b at minute $m, $open-$close", expected, c.peopleFor(b, 5, h))
+                }
+                val towerShut = c.opennessFor(SceneSpace.SceneVariant.TOWER, h) < 1f
+                assertEquals("a tower at minute $m, $open-$close", if (towerShut || inLastMinute) 0 else 5, c.peopleFor(SceneSpace.SceneVariant.TOWER, 5, h))
+                for (v in listOf(SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE)) {
+                    assertEquals("$v at minute $m", 5, c.peopleFor(v, 5, h))
+                }
+            }
         }
     }
 
@@ -135,7 +172,8 @@ class OpeningHoursGroupsTest {
     /**
      * **Shut at night, a business's glass is dark like a house's unlit window** (v5.12, the
      * maintainer's *«Scuri, come le case (consigliato)»* of 2026-10-09): open it is the lit window to
-     * the bit, by day both are the day's glass, and across the closing fade it goes from one to the other.
+     * the bit, by day both are the day's glass, and over the glass's two seconds (the doorway's, v5.14) it goes from one to
+     * the other.
      */
     @Test
     fun `a closed business is dark glass at night, and open it is the lit window it always was`() {

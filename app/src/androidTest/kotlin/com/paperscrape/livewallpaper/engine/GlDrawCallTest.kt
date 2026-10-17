@@ -97,6 +97,7 @@ class GlDrawCallTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: android.graphics.Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: android.graphics.Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: android.graphics.Paint) = Unit
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: android.graphics.Paint) = Unit
         override fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: android.graphics.Paint) = Unit
         override fun drawShape(shape: SceneShape, paint: android.graphics.Paint) = Unit
@@ -131,11 +132,97 @@ class GlDrawCallTest {
         val offsets = FloatArray(60) { 3f * tile * it / 60 }
         val seen = mutableListOf<String>()
         for (scene in crowded()) {
-            val calls = GlGolden.countDrawCallsAcross(scene, offsets)
-            seen += "${scene.name}: ${calls.min()}..${calls.max()} draws over ${calls.size} frames"
+            val sweep = GlGolden.countDrawCallsAcross(scene, offsets)
+            val calls = sweep.calls
+            seen += "${scene.name}: ${calls.min()}..${calls.max()} draws over ${calls.size} frames, at most ${sweep.vertices.max()} vertices"
             assertTrue("${scene.name} swept across the street: ${calls.toList()}", calls.all { it == 1 })
         }
         println("GlDrawCallTest sweep: " + seen.joinToString(" | "))
+    }
+
+    /**
+     * **And a Christmas street** (v5.14): the roofs' strings, the wreaths, the towers' stars, the sill strings, the fir
+     * A's lights, the trees' -- Christmas as a fresh install leaves it, and Autumn and Winter with *Christmas lights*
+     * on -- by day and at one in the morning, with the theme's snow and the night's stars, swept across three tiles of
+     * the street as above: one draw everywhere. And with everything on (the people at their most, the distant houses at
+     * 50 % with their bulbs, the three groups' hours 13:00-20:00 so every building that keeps hours is shut, blinds and
+     * shutters -- the fire and the police station never close), by day
+     * and at night, in Christmas, Autumn and Winter; and at night with everything at its very most -- the snow falling
+     * at 100 %, every star, the distant houses at 100 % -- in Christmas and Winter. One draw everywhere.
+     *
+     * Every bulb, every snowflake and every point star is a disc ([SceneCanvas.drawDisc]: a quad of the atlas sampling
+     * `deco_bulb`, 6 vertices) and every wreath a quad of `deco_wreath`, not drawn shapes (24 to 36). Drawn as shapes,
+     * the 5.13's sill strings alone took Christmas at night past the batch's [GlSceneTarget.MAX_VERTICES] at 16 offsets
+     * of these 60, at the factory settings (13 956 vertices, measured on the BV6600 with the 5.13's own build); and with
+     * everything on, the theme's snow (2 592 vertices of a frame) and the stars (1 320) still did at 4 to 6 (12 672) until
+     * they were discs too (inventory I-730). The most vertices a frame takes is printed, which is what this test is for.
+     */
+    @Test
+    fun aChristmasStreetIsStillASingleDrawCall() {
+        val tile = 2f / PaperRenderer.HILL_PARALLAX
+        val offsets = FloatArray(60) { 3f * tile * it / 60 }
+        val seen = mutableListOf<String>()
+        for (scene in christmas()) {
+            val sweep = GlGolden.countDrawCallsAcross(scene, offsets)
+            val calls = sweep.calls
+            seen += "${scene.name}: swept ${calls.min()}..${calls.max()} draws, at most ${sweep.vertices.max()} vertices"
+            assertTrue("${scene.name} swept across the street: ${calls.toList()}", calls.all { it == 1 })
+        }
+        println("GlDrawCallTest Christmas: " + seen.joinToString(" | "))
+    }
+
+    private fun christmas(): List<GoldenScene> {
+        val asInstalled = listOf("christmas", "autumn", "winter").flatMap { theme ->
+            listOf(12f to GoldenScene.day(12f), 1f to GoldenScene.night(1f)).map { (hour, phase) ->
+                GoldenScene(
+                    name = "christmas-lights-$theme-${hour.toInt()}",
+                    dayPhase = phase,
+                    themeId = theme,
+                    customise = { base -> base.copy(christmasDecorationsEnabled = true) },
+                )
+            }
+        }
+        val everything = listOf("christmas", "autumn", "winter").flatMap { theme ->
+            listOf(12f to GoldenScene.day(12f), 1f to GoldenScene.night(1f)).map { (hour, phase) ->
+                GoldenScene(
+                    name = "christmas-everything-$theme-${hour.toInt()}",
+                    dayPhase = phase,
+                    themeId = theme,
+                    customise = { base ->
+                        base.copy(
+                            christmasDecorationsEnabled = true,
+                            people = base.people.copy(visible = true, density = 1f),
+                            peopleNightDensity = 1f,
+                            distantHouses = DistantHousesConfig(visible = true, density = 0.5f),
+                            shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 20f,
+                            publicHoursEnabled = true, publicOpenHour = 13f, publicCloseHour = 20f,
+                            towerHoursEnabled = true, towerOpenHour = 13f, towerCloseHour = 20f,
+                        )
+                    },
+                )
+            }
+        }
+        val atItsMost = listOf("christmas", "winter").map { theme ->
+            GoldenScene(
+                name = "christmas-most-$theme-1",
+                dayPhase = GoldenScene.night(1f),
+                themeId = theme,
+                customise = { base ->
+                    base.copy(
+                        christmasDecorationsEnabled = true,
+                        people = base.people.copy(visible = true, density = 1f),
+                        peopleNightDensity = 1f,
+                        distantHouses = DistantHousesConfig(visible = true, density = 1f),
+                        precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 1f),
+                        stars = StarsConfig(visible = true, density = 1f),
+                        shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 20f,
+                        publicHoursEnabled = true, publicOpenHour = 13f, publicCloseHour = 20f,
+                        towerHoursEnabled = true, towerOpenHour = 13f, towerCloseHour = 20f,
+                    )
+                },
+            )
+        }
+        return asInstalled + everything + atItsMost
     }
 
     private fun crowded() = listOf("city", "spring", "winter").map { theme ->

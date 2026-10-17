@@ -13,11 +13,11 @@ import android.graphics.Path
  * this interface, so the *what* of the scene (geometry, candidates, depth, tiling, colours) has one
  * implementation and only the *how* of rasterisation has two.
  *
- * The operation set is deliberately the exact set the renderers already used, no wider: an interface
+ * The operation set is deliberately no wider than what both backends draw as one picture: an interface
  * that admitted arbitrary `Path`s, clips or `Xfermode`s would be one the GPU backend could not
  * honour, and a call site could then compile while producing a different picture on each backend.
- * The one cut it does admit is a box on a single sprite blit ([drawSpriteClipped], v5.12), which both
- * backends draw the same way and which reaches nothing else.
+ * It admits a box on a single sprite blit ([drawSpriteClipped], v5.12) and a disc ([drawDisc], v5.14),
+ * each held to one picture on both backends by a test; neither reaches anything else.
  *
  * [Paint] is passed through rather than being decomposed into arguments. Reading `color`, `alpha`,
  * `style`, `strokeWidth` and `strokeCap` off a paint allocates nothing, and it keeps the renderers'
@@ -179,6 +179,32 @@ interface SceneCanvas {
         clipRight: Float,
         clipBottom: Float,
     )
+
+    /**
+     * A filled disc centred on ([cx], [cy]), [radius] in the caller's coordinates, in [colour] at [alpha] (v5.14): a
+     * snowflake, a point star, a Christmas bulb -- the small round dots the scene draws by the hundred.
+     *
+     * Each backend draws the same disc its own lightest way, and the two agree (`DiscAgreementTest`):
+     *
+     * - **GL** draws one quad of the shared atlas sampling [resId], a white disc that fills its box, at the detail
+     *   level the drawn size asks for ([SpriteDetailLevel]), tinted by the vertex colour as [drawSprite] tints: **6
+     *   vertices**, where [drawCircle]'s fan is 24 or more. A frame of Christmas at night holds some six hundred of
+     *   them; drawn as fans they took it past the batch's end ([GlSceneTarget.MAX_VERTICES]) into a second draw;
+     * - **Canvas** draws the circle itself, as [drawCircle] does: a Canvas has no batch to fill, and the circle is the
+     *   disc the quad's texture is a picture of.
+     *
+     * [colour] is opaque, as every tint is (`TintOpacityTest`); [alpha] is the disc's own.
+     */
+    @Suppress("LongParameterList")
+    fun drawDisc(
+        resId: Int,
+        source: SpriteSource,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        colour: Int,
+        alpha: Int,
+    )
 }
 
 /**
@@ -208,9 +234,10 @@ interface SpriteSource {
 /**
  * A closed polygon, built the way a `Path` is but retaining its vertices.
  *
- * The renderers build four shapes: the hill silhouette (a sine ridge over a flat base), a
- * mountain's two faces (a parabolic face over a base), the lake's glitter diamonds, and the
- * sleigh's falling-gift bow triangles.
+ * The renderers build these shapes: the hill silhouette (a sine ridge over a flat base), a
+ * mountain's two faces (a parabolic face over a base), the lake's glitter diamonds, the sleigh's
+ * falling-gift bow triangles and, since v5.14, a tower's Christmas star (its pentagon and its five
+ * points) and the bands of a shut building's shutter (`SceneObjectRenderer.drawStar`, `drawDoorBand`).
  *
  * **The GPU backend has two fills, and only one of them needs the star-shaped property** (REN-02).
  * [SceneCanvas.drawShape] fills a fan from vertex 0, which is correct precisely when the polygon is
@@ -228,8 +255,9 @@ interface SpriteSource {
  * shadow was otherwise never seen on either backend: drawn 6 px below the ridge and then covered
  * by the opaque fill, every pixel of it that could show was the spill. So it was removed rather
  * than moved to the column fill, which would have drawn an invisible polygon at the cost of a
- * visible one. The shapes that still reach the fan are a mountain face, a triangle and the lake's
- * glitter diamond, each star-shaped about its first vertex; the preview's own multi-peaked ridge
+ * visible one. The shapes that still reach the fan are a mountain face, a triangle, the lake's
+ * glitter diamond and, since v5.14, the tower star's pentagon and points and the shutter's bands, each
+ * star-shaped about its first vertex (the bands held so by `DoorShutterTest`); the preview's own multi-peaked ridge
  * in `ThemePreview` is typed to `CanvasSceneTarget` and cannot reach a GPU fan at all.
  * `SceneShapeFanContractTest` pins it: the hill is not star-shaped on the themes the audit named,
  * and no `drawShape` in the hill loop takes the hill's shape.

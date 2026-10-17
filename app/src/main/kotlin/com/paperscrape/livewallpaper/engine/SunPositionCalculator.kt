@@ -182,13 +182,8 @@ object SunPositionCalculator {
 
     /**
      * Eases the first/last [TWILIGHT_EDGE_FRACTION] of the arc so twilight fades smoothly
-     * instead of snapping.
-     *
-     * Internal because it is **the** twilight of this scene, and [BusinessHours] deliberately
-     * borrows it rather than choosing a fade of its own: a shop's lights come up over the first
-     * 12% of its opening span and go down over the last 12%, exactly the way daylight does over
-     * the solar arc. One easing, two arcs — duplicating the function would only guard against a
-     * typo while letting the two twilights drift apart.
+     * instead of snapping. **The** twilight of this scene; the opening hours borrowed it until v5.14,
+     * and keep a step at the minute since ([BusinessHours]).
      */
     internal fun smoothEdge(t: Float): Float {
         val edge = TWILIGHT_EDGE_FRACTION

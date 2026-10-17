@@ -51,8 +51,8 @@ KNOWN_ONE_UNIT_SINKS: tuple[str, ...] = ()
 def _reached_only_by_lookup(name: str) -> bool:
     """Sprites a static resolver cannot reach, and the reason each one cannot.
 
-    The person set is chosen from `personWalkDrawables` and its two head tables by
-    kind, season and frame; the moons by phase; the sleigh by a conditional. None of
+    The person set is chosen from `PeopleLayerTable`'s tables (`WALK`, `CARRY`, `WINDOW`,
+    `CAR`) by kind, season and frame; the moons by phase; the sleigh by a conditional. None of
     them is ever named literally at a blit, so there is nothing to attribute -- which
     is why they are excused here rather than counted as agreeing.
 

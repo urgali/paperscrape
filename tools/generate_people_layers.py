@@ -270,7 +270,8 @@ def write_table(report: dict) -> None:
             seasons = []
             for season in ("summer", "winter"):
                 # Frame 3 names walk1 deliberately: a four-frame cycle of two poses, and the
-                # passing pose serves both passes. See `SceneObjectRenderer.personWalkDrawables`.
+                # passing pose serves both passes -- the choice the retired `personWalkDrawables`
+                # table made (its removal is recorded in `SceneObjectRenderer.kt`).
                 frames = [f"person_{kind}_{season}_walk{f}" for f in (0, 1, 2, 1)]
                 seasons.append("arrayOf(\n" + "".join(
                     f"                {_slots(f, present[f], alias)},\n" for f in frames) + "            )")

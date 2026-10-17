@@ -286,93 +286,217 @@ class WindowWalkTest {
 
     // ---------------------------------------------------------------- the hours
 
-    /** Openness over a closing then an opening: 1, down to 0 over [ramp] s, shut for a while, back up. */
-    private fun openness(t: Double, start: Double, ramp: Double): Float {
+    /**
+     * The hours at the minute (v5.14, [BusinessHours]) around one closing and the next opening, [start] the
+     * start of the closing's last minute: everybody in and open before it; nobody due in, still open, through it;
+     * shut and nobody due for [shut] seconds; then open with everybody due in again.
+     */
+    private fun hours(t: Double, start: Double, people: Int, shut: Double = 40.0): Pair<Int, Boolean> {
         val s = t - start
         return when {
-            s < 0 -> 1f
-            s < ramp -> (1.0 - s / ramp).toFloat()
-            s < ramp + 40 -> 0f
-            s < 2 * ramp + 40 -> ((s - ramp - 40) / ramp).toFloat()
-            else -> 1f
+            s < 0 -> people to true
+            s < 60 -> 0 to true
+            s < 60 + shut -> 0 to false
+            else -> people to true
         }
     }
 
+    /**
+     * **At the hours they walk, one at a time, in the order of before, and nobody is ever behind unlit glass**
+     * (v5.12; at the minute since v5.14): in the minute before the closing the people walk out, the last in the
+     * order first -- **every one of them out before the closing minute**, on every business of the twelve streets
+     * (the maintainer was told: in the last minute they walk out, at 20:00 the glass goes dark) -- and the glass
+     * goes dark at the closing minute, over two seconds, once nobody is in; at the opening minute it lights over
+     * two seconds and only then do they walk in, the first first. No walker jumps a frame's step, and the glass is
+     * below lit only while nobody is in or on the way.
+     */
     @Test
     fun `at the hours people walk out one at a time and walk in one at a time, in the order of before`() {
         val figures = WindowWalk.Figures()
         var departures = 0
         var arrivals = 0
+        var slowestOut = 0.0
+        var slowestIn = 0.0
         for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 0 }) {
             val p = b.plan
-            for (ramp in doubleArrayOf(0.0, 60.0)) {
-                val doorway = WindowWalk.Doorway()
-                // A start among the roster's changes, so walks of both kinds can meet.
-                val start = WindowRoster.tickTime(p, 3) - 5.0
-                var t = start - 1.0
-                doorway.advance(p, b.layout, SceneTime(t), 1f)
-                assertEquals("seen for the first time, everybody is in", p.people, doorway.shown)
-                val before = FloatArray(p.people)
-                val now = FloatArray(p.people)
+            val doorway = WindowWalk.Doorway()
+            // A start among the roster's changes, so walks of both kinds can meet.
+            val start = WindowRoster.tickTime(p, 3) - 5.0
+            var t = start - 1.0
+            doorway.advance(p, b.layout, SceneTime(t), p.people, open = true)
+            assertEquals("seen for the first time, everybody is in", p.people, doorway.shown)
+            assertEquals("and the glass lit", 1f, doorway.glassAt(t), 0f)
+            val before = FloatArray(p.people)
+            val now = FloatArray(p.people)
+            WindowWalk.figuresAt(p, b.layout, SceneTime(t), doorway, figures)
+            inSight(b, figures, before)
+            var lastShown = doorway.shown
+            var lastWalker = -1
+            var walkInStart = Double.NaN
+            val order = mutableListOf<Int>()
+            val end = start + 60 + 40 + 120
+            while (t < end) {
+                t += frame
+                val (present, open) = hours(t, start, p.people)
+                doorway.advance(p, b.layout, SceneTime(t), present, open)
                 WindowWalk.figuresAt(p, b.layout, SceneTime(t), doorway, figures)
-                inSight(b, figures, before)
-                var lastShown = doorway.shown
-                var lastWalker = -1
-                val order = mutableListOf<Int>()
-                val end = start + 2 * ramp + 40 + 120
-                while (t < end) {
-                    t += frame
-                    val open = openness(t, start, ramp)
-                    doorway.advance(p, b.layout, SceneTime(t), open)
-                    WindowWalk.figuresAt(p, b.layout, SceneTime(t), doorway, figures)
-                    inSight(b, figures, now)
-                    for (person in 0 until p.people) {
-                        assertTrue(
-                            "${b.theme} ${b.kind} ramp $ramp at ${"%.2f".format(t - start)} s: person $person " +
-                                "${before[person]} -> ${now[person]} in one frame",
-                            kotlin.math.abs(now[person] - before[person]) <= step,
-                        )
-                    }
-                    now.copyInto(before)
-                    val closing = t - start < ramp + 40
-                    if (closing) assertTrue("nobody comes in while it closes", doorway.shown <= lastShown)
-                    else assertTrue("nobody goes out while it opens", doorway.shown >= lastShown)
-                    assertTrue("one at a time", kotlin.math.abs(doorway.shown - lastShown) <= 1)
-                    if (doorway.walker >= 0 && doorway.walker != lastWalker) {
-                        // Out by the nearer end of the floor, in from it, walking toward the middle.
-                        val outward = b.layout.outward(doorway.window)
-                        assertEquals("${b.theme}: the way out and in", if (doorway.leaving) outward else -outward, doorway.direction)
-                        order += doorway.walker * (if (doorway.leaving) -1 else 1) - (if (doorway.leaving) 1 else 0)
-                        if (doorway.leaving) departures++ else arrivals++
-                    }
-                    lastWalker = doorway.walker
-                    lastShown = doorway.shown
-                    if (closing && t - start > ramp + 39) assertEquals("${b.theme}: all out when shut", 0, doorway.shown)
+                inSight(b, figures, now)
+                for (person in 0 until p.people) {
+                    assertTrue(
+                        "${b.theme} ${b.kind} at ${"%.2f".format(t - start)} s: person $person " +
+                            "${before[person]} -> ${now[person]} in one frame",
+                        kotlin.math.abs(now[person] - before[person]) <= step,
+                    )
                 }
-                assertEquals("${b.theme}: all in again", p.people, doorway.shown)
-                assertEquals("${b.theme}: nobody walking at the end", -1, doorway.walker)
-                // Out the last in the order first, in the first first: the order of before.
-                val outs = order.filter { it < 0 }.map { -it - 1 }
-                val ins = order.filter { it >= 0 }
-                assertEquals("${b.theme}: out in reverse order", (p.people - 1 downTo 0).toList(), outs)
-                assertEquals("${b.theme}: in in order", (0 until p.people).toList(), ins)
+                now.copyInto(before)
+                val glass = doorway.glassAt(t)
+                if (glass < 1f) {
+                    assertTrue(
+                        "${b.theme} at ${"%.2f".format(t - start)} s: somebody behind glass at $glass",
+                        doorway.shown == 0 && doorway.walker < 0,
+                    )
+                }
+                val closing = t - start < 100
+                if (closing) assertTrue("nobody comes in while it closes", doorway.shown <= lastShown)
+                else assertTrue("nobody goes out while it opens", doorway.shown >= lastShown)
+                assertTrue("one at a time", kotlin.math.abs(doorway.shown - lastShown) <= 1)
+                if (doorway.walker >= 0 && doorway.walker != lastWalker) {
+                    // Out by the nearer end of the floor, in from it, walking toward the middle.
+                    val outward = b.layout.outward(doorway.window)
+                    assertEquals("${b.theme}: the way out and in", if (doorway.leaving) outward else -outward, doorway.direction)
+                    order += doorway.walker * (if (doorway.leaving) -1 else 1) - (if (doorway.leaving) 1 else 0)
+                    if (doorway.leaving) departures++ else arrivals++
+                    if (!doorway.leaving) {
+                        assertEquals("${b.theme}: nobody walks in before the glass is lit", 1f, glass, 0f)
+                        if (walkInStart.isNaN()) walkInStart = t
+                    }
+                }
+                if (lastShown > 0 && doorway.shown == 0 && doorway.walker < 0) slowestOut = maxOf(slowestOut, t - start)
+                if (lastShown < p.people && doorway.shown == p.people) slowestIn = maxOf(slowestIn, t - start - 100)
+                lastWalker = doorway.walker
+                lastShown = doorway.shown
+                if (t - start >= 60 && t - start < 100) {
+                    assertEquals("${b.theme}: all out at the closing minute", 0, doorway.shown)
+                    assertEquals("${b.theme}: nobody still walking out at the closing minute", -1, doorway.walker)
+                }
+                if (t - start >= 62.5 && t - start < 100) assertEquals("${b.theme}: dark once shut", 0f, glass, 0f)
+            }
+            assertEquals("${b.theme}: all in again", p.people, doorway.shown)
+            assertEquals("${b.theme}: nobody walking at the end", -1, doorway.walker)
+            assertTrue("${b.theme}: the first walks in once the glass is lit, two seconds after the opening", walkInStart - start - 100 >= WindowRoster.FADE_SECONDS)
+            // Out the last in the order first, in the first first: the order of before.
+            val outs = order.filter { it < 0 }.map { -it - 1 }
+            val ins = order.filter { it >= 0 }
+            assertEquals("${b.theme}: out in reverse order", (p.people - 1 downTo 0).toList(), outs)
+            assertEquals("${b.theme}: in in order", (0 until p.people).toList(), ins)
+        }
+        println("HOURS_WALK the last out %.1f s into the last minute, the last in %.1f s after the opening, at the slowest".format(slowestOut, slowestIn))
+        assertTrue("departures $departures, arrivals $arrivals", departures > 100 && arrivals > 100)
+        assertTrue("the slowest closing takes $slowestOut s of its minute", slowestOut < 60.0)
+    }
+
+    /**
+     * **Out before the closing minute at every closing measured**: on every business of the twelve streets, closings
+     * whose last minute starts at up to 32 moments among the roster's own changes -- its first eight changes, four
+     * offsets each, a walk of the roster under way or not, from the scene's first second on -- the last person is out
+     * within the minute. The slowest is printed
+     * (`HOURS_LAST_OUT`): what the documents quote.
+     */
+    @Test
+    fun `at every closing measured the last person is out before the closing minute`() {
+        var slowest = 0.0
+        var where = ""
+        var closings = 0
+        for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 0 }) {
+            val p = b.plan
+            for (k in 1..8) for (d in doubleArrayOf(-5.0, -1.5, 0.5, 2.5)) {
+                // The scene's clock starts at 0 and never runs before it: a closing is measured from then on.
+                val start = WindowRoster.tickTime(p, k.toLong()) + d
+                if (start < 1.0) continue
+                val doorway = WindowWalk.Doorway()
+                var t = start - 1.0
+                doorway.advance(p, b.layout, SceneTime(t), p.people, open = true)
+                var out = Double.NaN
+                while (t < start + 60.0) {
+                    t += frame
+                    doorway.advance(p, b.layout, SceneTime(t), 0, open = true)
+                    if (out.isNaN() && doorway.shown == 0 && doorway.walker < 0) out = t - start
+                }
+                assertTrue("${b.theme} ${b.kind}: somebody still in at the closing minute ($k, $d)", !out.isNaN())
+                if (out > slowest) { slowest = out; where = "${b.theme} ${b.kind}, change $k ${"%+.1f".format(d)} s" }
+                closings++
             }
         }
-        assertTrue("departures $departures, arrivals $arrivals", departures > 100 && arrivals > 100)
+        println("HOURS_LAST_OUT %.1f s into the last minute at the slowest, of %d closings (%s)".format(slowest, closings, where))
+        assertTrue(closings > 1000)
+    }
+
+    /**
+     * **Nobody behind glass that is not lit, whatever the hours say** (the 5.12's rule): told to shut while
+     * somebody is still in -- which the hours never do, their people walking out in the minute before, but a
+     * caller could -- the glass stays lit until the last is out, and only then goes dark over its two seconds.
+     */
+    @Test
+    fun `the glass stays lit while anybody is in or on the way out`() {
+        for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 1 }.take(30)) {
+            val p = b.plan
+            val doorway = WindowWalk.Doorway()
+            var t = 10.0
+            doorway.advance(p, b.layout, SceneTime(t), p.people, open = true)
+            var dark = Double.NaN
+            while (t < 10.0 + 120.0) {
+                t += frame
+                doorway.advance(p, b.layout, SceneTime(t), 0, open = false)
+                val glass = doorway.glassAt(t)
+                if (doorway.shown > 0 || doorway.walker >= 0) {
+                    assertEquals("${b.theme} at ${"%.2f".format(t - 10.0)} s: somebody in behind glass at $glass", 1f, glass, 0f)
+                } else if (dark.isNaN()) dark = t
+            }
+            assertTrue("${b.theme}: everybody out", !dark.isNaN())
+            assertEquals("${b.theme}: dark two seconds after the last is out", 0f, doorway.glassAt(dark + WindowRoster.FADE_SECONDS + frame), 0f)
+        }
     }
 
     @Test
     fun `the hours leave everybody in, or nobody, without a walk when nothing changes`() {
         for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE }) {
             val doorway = WindowWalk.Doorway()
-            for (i in 0..300) doorway.advance(b.plan, b.layout, SceneTime(i * frame), 1f)
+            for (i in 0..300) doorway.advance(b.plan, b.layout, SceneTime(i * frame), b.plan.people, open = true)
             assertEquals(b.plan.people, doorway.shown)
             assertEquals(-1, doorway.walker)
+            assertEquals(1f, doorway.glassAt(300 * frame), 0f)
             val shut = WindowWalk.Doorway()
-            for (i in 0..300) shut.advance(b.plan, b.layout, SceneTime(i * frame), 0f)
+            for (i in 0..300) shut.advance(b.plan, b.layout, SceneTime(i * frame), 0, open = false)
             assertEquals("seen shut, shut: nobody walks out of an empty building", 0, shut.shown)
             assertEquals(-1, shut.walker)
+            assertEquals("and its glass dark", 0f, shut.glassAt(300 * frame), 0f)
         }
+    }
+
+    /**
+     * **The glass takes two seconds** ([WindowRoster.FADE_SECONDS], every light of the scene): from the opening
+     * minute it lights, eased, and at the closing minute -- the building empty -- it goes dark the same way;
+     * reopened half-way, it turns back from where it is.
+     */
+    @Test
+    fun `the glass lights and goes dark over two seconds, from where it is`() {
+        val b = buildings.first { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 0 }
+        val doorway = WindowWalk.Doorway()
+        doorway.advance(b.plan, b.layout, SceneTime(0.0), 0, open = false)
+        assertEquals(0f, doorway.glassAt(0.0), 0f)
+        doorway.advance(b.plan, b.layout, SceneTime(10.0), b.plan.people, open = true)
+        assertEquals(0f, doorway.glassAt(10.0), 0f)
+        assertEquals(0.5f, doorway.glassAt(11.0), 1e-4f)
+        assertEquals(1f, doorway.glassAt(12.0), 0f)
+        val still = WindowWalk.Doorway()
+        still.advance(b.plan, b.layout, SceneTime(0.0), 0, open = false)
+        still.advance(b.plan, b.layout, SceneTime(10.0), 0, open = true)
+        still.advance(b.plan, b.layout, SceneTime(11.0), 0, open = false)
+        val at = still.glassAt(11.0)
+        assertEquals("turned back from half-way", 0.5f, at, 1e-4f)
+        assertEquals(0f, still.glassAt(13.0), 0f)
+        val copy = WindowWalk.Doorway().also { it.copyFrom(still) }
+        assertEquals("a rebuild hands the glass on", still.glassAt(12.0), copy.glassAt(12.0), 0f)
     }
 
     /**
@@ -402,17 +526,19 @@ class WindowWalkTest {
         assertTrue("the renderer's setter cuts on the opening hours only", renderer.contains("if (!previous.sameOpeningHours(value)) doorwaysSettle = true"))
         for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 0 }) {
             val doorway = WindowWalk.Doorway()
-            doorway.advance(b.plan, b.layout, SceneTime(10.0), 1f)
-            doorway.advance(b.plan, b.layout, SceneTime(10.0 + frame), 0f, settle = true)
+            doorway.advance(b.plan, b.layout, SceneTime(10.0), b.plan.people, open = true)
+            doorway.advance(b.plan, b.layout, SceneTime(10.0 + frame), 0, open = false, settle = true)
             assertEquals("${b.theme}: shut by a cut, nobody in", 0, doorway.shown)
             assertEquals("${b.theme}: and nobody walking", -1, doorway.walker)
-            doorway.advance(b.plan, b.layout, SceneTime(10.0 + 2 * frame), 1f, settle = true)
+            assertEquals("${b.theme}: and the glass dark at once", 0f, doorway.glassAt(10.0 + frame), 0f)
+            doorway.advance(b.plan, b.layout, SceneTime(10.0 + 2 * frame), b.plan.people, open = true, settle = true)
             assertEquals("${b.theme}: open by a cut, everybody in", b.plan.people, doorway.shown)
+            assertEquals("${b.theme}: and the glass lit at once", 1f, doorway.glassAt(10.0 + 2 * frame), 0f)
             // Without the cut the same change walks them, one at a time (once the roster is not walking
             // the one whose turn it is).
             var t = 10.0 + 3 * frame
             while (doorway.walker < 0 && t < 40.0) {
-                doorway.advance(b.plan, b.layout, SceneTime(t), 0f)
+                doorway.advance(b.plan, b.layout, SceneTime(t), 0, open = true)
                 assertEquals("${b.theme}: nobody vanishes without the cut", b.plan.people, doorway.shown)
                 t += frame
             }
@@ -420,26 +546,16 @@ class WindowWalkTest {
         }
     }
 
+    /** Open, everybody in; shut, nobody: the rule the first state is ([WindowOccupants.isOccupied]) since v5.14. */
     @Test
-    fun `the people's share follows the first half of a closing`() {
-        for (people in 1..8) {
-            assertEquals(people, WindowRoster.presentCount(people, 1f))
-            for (i in 0..50) assertEquals("nobody in at openness ${i / 100f}", 0, WindowRoster.presentCount(people, i / 100f))
-            var previous = 0
-            for (i in 0..100) {
-                val n = WindowRoster.presentCount(people, i / 100f)
-                assertTrue("never fewer as it opens", n >= previous)
-                previous = n
-            }
-        }
-        // And isOccupied, the rule the first state is, thins the same way.
+    fun `open is everybody at the windows, shut nobody`() {
         for (b in buildings.filter { it.kind != WindowBuildingKind.HOUSE && it.plan.people > 1 }.take(20)) {
             val seed = b.theme.hashCode()
-            for (i in 0..20) {
-                val o = i / 20f
-                val count = (0 until b.plan.windows).count { WindowOccupants.isOccupied(seed, 0, it, b.plan.windows, b.kind, o) }
-                val dealt = WindowOccupants.occupantCount(seed, 0, b.plan.windows, b.kind)
-                assertEquals(WindowRoster.presentCount(dealt, o).coerceAtMost(b.plan.windows), count)
+            val dealt = WindowOccupants.occupantCount(seed, 0, b.plan.windows, b.kind)
+            val open = (0 until b.plan.windows).count { WindowOccupants.isOccupied(seed, 0, it, b.plan.windows, b.kind, 1f) }
+            assertEquals(dealt.coerceAtMost(b.plan.windows), open)
+            for (o in floatArrayOf(0f, 0.5f, 0.99f)) {
+                assertEquals("at $o", 0, (0 until b.plan.windows).count { WindowOccupants.isOccupied(seed, 0, it, b.plan.windows, b.kind, o) })
             }
         }
     }

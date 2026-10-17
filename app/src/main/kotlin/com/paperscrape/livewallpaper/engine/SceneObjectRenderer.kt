@@ -56,8 +56,8 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     var windowLayout: WindowWalk.Layout? = null
 
     /**
-     * Who of a building among the houses or of a tower is in at its hours, and who is walking out or in
-     * ([WindowWalk.Doorway]); null for a house, which keeps no hours.
+     * Who of a building among the houses or of a tower is in at its hours, who is walking out or in, and since
+     * v5.14 how lit its glass is ([WindowWalk.Doorway], [WindowWalk.Doorway.glassAt]); null for a house, which keeps no hours.
      */
     var doorway: WindowWalk.Doorway? = null
 
@@ -154,13 +154,6 @@ class SceneObjectRenderer(
             }
         }
     }
-
-    /**
-     * How many times the wallpaper has come back into view since this street was first drawn (v5.13): each
-     * return deals its places a new round ([StorefrontStreet.storefrontAt]), while nothing is on screen.
-     * Counted by [PaperRenderer.nextStreetRound] and handed on when this renderer is rebuilt.
-     */
-    internal var streetRound: Int = 0
 
     /** Scratch for [StorefrontStreet.storefrontAt] on the draw path: two decks, reused every call. */
     private val streetDeckA = IntArray(StorefrontStreet.DECK)
@@ -267,7 +260,7 @@ class SceneObjectRenderer(
      * (`AI_PROJECT_RULES.md` 5.2). The roster and the layout are a function of the building's spec and
      * the theme's seed alone, so a list rebuilt for another reason gives each building the ones it had,
      * and the picture does not move; a tower's people stay at their windows (`moves = false`). The
-     * doorway is the one thing that remembers -- who is walking out or in at the hours ([WindowWalk]) --
+     * doorway is the one thing that remembers -- who is walking out or in at the hours, and the glass's two seconds ([WindowWalk]) --
      * and [rebuildStaticRuntimes] hands it on. A place among the houses has none of them: the six
      * buildings that stand in the places have their own, in [storefronts].
      */
@@ -421,9 +414,64 @@ class SceneObjectRenderer(
         private val FALL_LEAF_TREE_PALETTE = intArrayOf(
             0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
         )
-        /** Where a fir's three presents stand and how big they are: built once, not per fir per frame. */
-        private val FIR_GIFT_X = floatArrayOf(-19f, -2f, 14f)
+        /** How big a fir's three presents are (where they stand is [FirTable.GIFT_X]): built once, not per fir per frame. */
         private val FIR_GIFT_SCALES = floatArrayOf(0.36f, 0.30f, 0.26f)
+
+        /** The fir's ground shadow, as a share of its width: the v4.21 fir's 26 units over its 80. */
+        private const val FIR_SHADOW_SHARE = 26f / 80f
+
+        /** The radius of a bulb on a string -- the sills' and the roofs' -- in units: [drawBulb]. */
+        const val CHRISTMAS_LIGHT_BULB_RADIUS_UNITS = 1.5f
+
+        /** The Christmas lights' four colours, the trees', the strings' and the distant houses' (`PaperRenderer`). */
+        internal val CHRISTMAS_LIGHT_COLOURS = intArrayOf(
+            0xFFE8564F.toInt(), 0xFFFFD54F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt(),
+        )
+
+        /** How much larger a tower's decorations, blinds' rails and shutter's slats are: see `drawDecorations`. */
+        const val TOWER_DECORATION_SCALE = 1.5f
+
+        /** The wreath on a front door, in piece units: how far below the door's top its middle hangs; and the drawing's
+         *  own geometry (`deco_wreath`, whose SVG `ChristmasDecorationsTest` reads against these) -- its ring's radius
+         *  and width, its bow's radius and how far below the middle, and the half of its canvas it is blitted back by. */
+        const val WREATH_DROP = 6.5f
+        const val WREATH_RADIUS = 3f
+        const val WREATH_BAND = 3f
+        const val WREATH_BOW_RADIUS = 1.4f
+        const val WREATH_BOW_DROP = 3.4f
+        const val WREATH_HALF = 5f
+
+        /** A tower's star, in piece units before [TOWER_DECORATION_SCALE]: how far above the top its middle is, its radii. */
+        const val TOWER_STAR_RISE = 6.5f
+        const val TOWER_STAR_OUTER = 7f
+        const val TOWER_STAR_INNER = 3f
+
+        /** A star's ten directions, points and notches in turn from straight up: worked out once, not per frame. */
+        internal val STAR_COS = FloatArray(10) { Math.cos(Math.toRadians(-90.0 + it * 36.0)).toFloat() }
+        internal val STAR_SIN = FloatArray(10) { Math.sin(Math.toRadians(-90.0 + it * 36.0)).toFloat() }
+
+        /** The fir's gold (`tree_fir_star`'s), for a tower's star. */
+        internal const val STAR_GOLD = 0xFFF2C24A.toInt()
+
+        /** A shut building's blind (`drawShut`): its share of the glass, its rail's height in piece units, its colours. */
+        const val BLIND_SHARE = 0.7f
+        const val BLIND_RAIL = 2.4f
+        internal const val BLIND_DAY = 0xFFE9DFC8.toInt()
+        internal const val BLIND_NIGHT = 0xFF4A4F5A.toInt()
+        internal const val BLIND_RAIL_DAY = 0xFFA89878.toInt()
+        internal const val BLIND_RAIL_NIGHT = 0xFF2E3138.toInt()
+
+        /**
+         * A shut building's shutter's colours (`drawShut`; its geometry is [DoorShutter]'s): the face, the box and
+         * slats, and its shadow paper -- the face's mixed 34 % towards the scene's ink `#2B2A33`, the generator's rule
+         * for every card's shadow (`tools/assets/buildings/core.py`, `RELIEF_T`).
+         */
+        internal const val SHUTTER_DAY = 0xFF9A9DA3.toInt()
+        internal const val SHUTTER_NIGHT = 0xFF3E4148.toInt()
+        internal const val SHUTTER_SLAT_DAY = 0xFF767A81.toInt()
+        internal const val SHUTTER_SLAT_NIGHT = 0xFF2C2E33.toInt()
+        internal const val SHUTTER_UNDER_DAY = 0xFF74767D.toInt()
+        internal const val SHUTTER_UNDER_NIGHT = 0xFF383941.toInt()
 
 
         /**
@@ -703,8 +751,8 @@ class SceneObjectRenderer(
         /**
          * A shop's, the school's or a tower's glass at [nightGlow], [openness] open (its group's opening
          * hours, [SceneCustomization.opennessFor]): the lit window's colour while it is open, the dark
-         * glass of an unlit window while it is shut, and across its closing fade the one going to the
-         * other -- so at night a closed business is dark like a house's unlit window, and by day both
+         * glass of an unlit window while it is shut, and across the two seconds its doorway eases it at the
+         * opening and the closing minute ([WindowWalk.Doorway.glassAt]) the one going to the other -- so at night a closed business is dark like a house's unlit window, and by day both
          * are the day's glass (v5.12, the maintainer's *«Scuri, come le case (consigliato)»* of
          * 2026-10-09, asked with the photographs; until then a closed business kept the day's pale glass
          * at night). Open -- every business with its group's switch off -- it is [windowGlassColor] to
@@ -1407,9 +1455,6 @@ class SceneObjectRenderer(
          */
         fun pileCount(density: Float): Int = (density.coerceIn(0f, 1f) * PILE_MAX_COUNT).toInt()
 
-        /** Bulbs on the string under one window. */
-        const val WINDOW_LIGHT_COUNT = 4
-
         /**
          * Whether an object whose origin sits at [x] can contribute any pixel to a viewport
          * [screenWidth] wide, given its scaled half-width [halfWidth].
@@ -1647,7 +1692,8 @@ class SceneObjectRenderer(
      * beside it fell to 0.40 of its own daytime value.
      *
      * This is the mechanism for saying so, and it is deliberately **not** a tint: see
-     * [SpriteBlitter.draw]'s `shade`. The one caller is [drawPalmTree]; the rest of the fixed-art
+     * [SpriteBlitter.draw]'s `shade`. The callers are [drawPalmTree] and, since v5.14, [drawFir] (its green; its
+     * snow, star and lights are not shaded); the rest of the fixed-art
      * library still stands lit at midnight and that is recorded as a defect rather than fixed in
      * passing, because every one of those sprites needs its own judgement about what its night
      * looks like (`BACKLOG_v5_1.md`).
@@ -2170,9 +2216,9 @@ class SceneObjectRenderer(
 
     /**
      * Every building that keeps hours, its doorway moved on to this frame ([WindowWalk.Doorway]): who
-     * walks out or in as its group's hours open and close it. Every one of them, seen or not, once a
-     * frame, so a building scrolled into view is where its clock says and not where it was last seen.
-     * A few comparisons a building; nothing allocated.
+     * walks out or in as its group's hours open and close it, and how lit its glass is. Every one of them,
+     * seen or not, once a frame, so a building scrolled into view is where its clock says and not where it
+     * was last seen. A few comparisons a building; nothing allocated.
      */
     private fun advanceDoorways(elapsed: SceneTime) {
         // A cut, not a change: the hour jumped since the last frame, or the opening hours were changed.
@@ -2185,7 +2231,13 @@ class SceneObjectRenderer(
             val doorway = r.doorway ?: continue
             val roster = r.roster ?: continue
             val layout = r.windowLayout ?: continue
-            doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)
+            val variant = variantFor(r.spec)
+            doorway.advance(
+                roster, layout, elapsed,
+                present = customization.peopleFor(variant, roster.people, frameHour),
+                open = customization.opennessFor(variant, frameHour) >= 1f,
+                settle = settle,
+            )
         }
         // The six buildings among the houses (v5.13), every one of them whether a place shows it or not:
         // a copy that comes in with one has its people where the building's clock and hours say.
@@ -2195,7 +2247,13 @@ class SceneObjectRenderer(
             val doorway = r.doorway ?: continue
             val roster = r.roster ?: continue
             val layout = r.windowLayout ?: continue
-            doorway.advance(roster, layout, elapsed, customization.opennessFor(Storefront.ALL[index], frameHour), settle)
+            val storefront = Storefront.ALL[index]
+            doorway.advance(
+                roster, layout, elapsed,
+                present = customization.peopleFor(storefront, roster.people, frameHour),
+                open = customization.opennessFor(storefront, frameHour) >= 1f,
+                settle = settle,
+            )
         }
     }
 
@@ -2727,7 +2785,7 @@ class SceneObjectRenderer(
         val buildings = storefronts
         if (r.place >= 0 && buildings != null) {
             val storefront = StorefrontStreet.storefrontAt(
-                themeSeed, StorefrontStreet.placeIndex(copy, r.place, places.size), streetRound, streetDeckA, streetDeckB,
+                themeSeed, StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA, streetDeckB,
             )
             drawNeighbourhoodBuilding(canvas, buildings[storefront.ordinal], elapsed, dayBlend, variantFor(r.spec), storefront)
             canvas.restore()
@@ -2769,34 +2827,6 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Whether window [index] of [count] carries a light string, chosen once and for good.
-     *
-     * **Deterministic, spread, and capped.** The first version lit the three lowest floors of a
-     * tower in one block, which is not how a building looks at Christmas and is not what anybody
-     * asked for. This hashes the object's own seed with the window's index, so the pattern is
-     * fixed for a given scene, differs between two buildings standing side by side, and does not
-     * flicker frame to frame -- and [lit] caps how many any one facade may light, which is what
-     * keeps the draw calls where they were.
-     */
-    private fun litWindowChosen(r: StaticRuntime, index: Int, count: Int, lit: Int): Boolean {
-        if (lit >= count) return true
-        val seed = (r.idleSeed * 100000f).toInt()
-        var rank = 0
-        val mine = hashWindow(seed, index)
-        for (other in 0 until count) {
-            if (other != index && hashWindow(seed, other) < mine) rank++
-        }
-        return rank < lit
-    }
-
-    private fun hashWindow(seed: Int, index: Int): Int {
-        var h = seed * 0x9E3779B1.toInt() + index * 0x85EBCA77.toInt()
-        h = h xor (h ushr 15)
-        h *= 0xC2B2AE35.toInt()
-        return h xor (h ushr 13)
-    }
-
-    /**
      * A string of Christmas lights hung under a window.
      *
      * **Under the window, not near the building.** The existing `drawChristmasLights` scatters
@@ -2805,32 +2835,173 @@ class SceneObjectRenderer(
      * between two points on the window's own sill and hangs the bulbs off it, so the string is
      * where a real one is and moves with the window rather than with the building.
      *
-     * Geometry only, and no new sprite: four bulbs and a two-segment cord per window is cheaper
-     * than a blit, and the colours are the tree lights' own array so a house and its tree agree.
-     * The window is not touched -- this is drawn after it and adds nothing to its box.
+     * Four bulbs and a two-segment cord per window (the bulbs where [ChristmasDecorations.forEachStringBulb] hangs them, which
+     * the gallery card uses too, without the cord), the colours the tree lights' own array so a house and its tree agree. The
+     * bulbs are discs 3 units across ([drawBulb], v5.14), a quad of the atlas each on the GL path where a drawn fan is 24
+     * vertices or more. The window is not touched -- this is drawn after it and adds nothing to its box.
      */
     private fun drawWindowLights(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, x: Float, sillY: Float, width: Float) {
         val left = x
         val right = x + width
-        val sag = width * 0.16f
-        strokePaint.color = 0xB0203528.toInt()
-        strokePaint.strokeWidth = 1.1f
+        val sag = width * ChristmasDecorations.STRING_SAG
+        strokePaint.color = ChristmasDecorations.STRING_CORD_COLOUR
+        strokePaint.strokeWidth = ChristmasDecorations.STRING_CORD_WIDTH
         canvas.drawLine(left, sillY, (left + right) / 2f, sillY + sag, strokePaint)
         canvas.drawLine((left + right) / 2f, sillY + sag, right, sillY, strokePaint)
-        for (bulb in 0 until WINDOW_LIGHT_COUNT) {
-            val along = (bulb + 1f) / (WINDOW_LIGHT_COUNT + 1f)
-            val bx = left + width * along
-            // The cord's own height at this point, so a bulb hangs off the string rather than
-            // floating beside it: two straight segments meeting at the middle.
-            val drop = sag * (1f - kotlin.math.abs(along - 0.5f) * 2f)
+        ChristmasDecorations.forEachStringBulb(x, sillY, width) { bulb, bx, by ->
             val phase = r.idleSeed * 3.1f + bulb * 1.7f
             val blink = 0.55f + 0.45f * elapsed.sinAt(1.6f, phase)
-            fillPaint.color = christmasLightColors[bulb % christmasLightColors.size]
-            fillPaint.setAlphaWithoutAllocating((255 * blink).toInt().coerceIn(70, 255))
-            canvas.drawCircle(bx, sillY + drop + 1.6f, 1.5f, fillPaint)
+            drawBulb(canvas, bx, by, CHRISTMAS_LIGHT_BULB_RADIUS_UNITS, christmasLightColors[bulb % christmasLightColors.size], (255 * blink).toInt().coerceIn(70, 255))
         }
-        fillPaint.setAlphaWithoutAllocating(255)
     }
+
+    /**
+     * The Christmas decorations of a building (v5.14, the set the maintainer chose on 2026-10-14, *«C ma con
+     * aggiunta di ghirlanda»*, with the wreath): bulbs along the roofline of its top piece, every 6 units
+     * ([BuildingPiece.roofX], the generator's measure of what the piece draws, chimneys and poles left out),
+     * blinking as the sill strings do; the wreath on its front door ([BuildingDoor]); and on a tower a star on its
+     * top ([BuildingPiece.topX]). The sill strings of before are drawn beside them by the caller.
+     *
+     * **Every part 2 px or more where the building stands farthest on the BV6600.** A unit of the pieces is
+     * 2.306 px x the perspective x the size jitter there: 0.81 px at the farthest house (0.28 deep), 0.89 at the
+     * farthest place among the houses (0.356) and 0.55 at the farthest tower (0) -- so a tower's are half as large
+     * again ([decorationScale]): a bulb 3 units across is 2.4, 2.7 and 2.5 px; the wreath's ring 3 units wide and its
+     * bow 2.8. Lit whether the building is open or shut: decorations are not the shop's lights. Bulbs are discs
+     * ([drawBulb]), the wreath a blit of `deco_wreath`; the star is a shape. Where each hangs is
+     * [ChristmasDecorations]' sequence, which the gallery card lays out too (v5.14C2). Nothing allocated.
+     */
+    private fun drawDecorations(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        elapsed: SceneTime,
+        deal: NeighbourhoodComposer.Deal,
+        kind: WindowBuildingKind,
+    ) {
+        ChristmasDecorations.forEachRoofBulb(deal, kind) { i, x, y, radius ->
+            val phase = r.idleSeed * 3.1f + i * 1.7f
+            val blink = 0.55f + 0.45f * elapsed.sinAt(1.6f, phase)
+            drawBulb(canvas, x, y, radius, christmasLightColors[i % christmasLightColors.size], (255 * blink).toInt().coerceIn(70, 255))
+        }
+        ChristmasDecorations.star(deal, kind) { cx, cy, outer, inner -> drawStar(canvas, cx, cy, outer, inner) }
+        ChristmasDecorations.forEachWreath(deal, kind) { cx, cy, k -> drawWreath(canvas, cx, cy, k) }
+    }
+
+    /** How much larger a decoration, a blind's rail and a shutter's slats are drawn on a building of [kind]: see [drawDecorations]. */
+    private fun decorationScale(kind: WindowBuildingKind): Float = ChristmasDecorations.scaleFor(kind)
+
+    /**
+     * The wreath on a front door, centred at ([cx], [cy]): a ring of greenery and a red bow under it, [k] times its size
+     * -- one blit of `deco_wreath`, 6 vertices, where the ring and the bow drawn as shapes were 36: twenty-two doors on a
+     * screen of Christmas at night took the frame past the batch's 12 288 (`GlDrawCallTest`, v5.14).
+     */
+    private fun drawWreath(canvas: SceneCanvas, cx: Float, cy: Float, k: Float) {
+        canvas.save()
+        canvas.translate(cx, cy)
+        if (k != 1f) canvas.scale(k, k)
+        drawSprite(canvas, R.drawable.deco_wreath, -WREATH_HALF, -WREATH_HALF)
+        canvas.restore()
+    }
+
+    /**
+     * A five-pointed star centred at ([cx], [cy]), the fir's gold: its middle pentagon, then the five points,
+     * each a triangle -- a star is not star-shaped from any one of its vertices, and the GL path fans a shape
+     * from its first. Counted loops, nothing allocated.
+     */
+    private fun drawStar(canvas: SceneCanvas, cx: Float, cy: Float, outer: Float, inner: Float) {
+        for (i in 0 until 10) {
+            val radius = if (i % 2 == 0) outer else inner
+            starX[i] = cx + radius * STAR_COS[i]
+            starY[i] = cy + radius * STAR_SIN[i]
+        }
+        fillPaint.color = STAR_GOLD
+        decorationShape.moveTo(starX[1], starY[1])
+        var v = 3
+        while (v < 10) {
+            decorationShape.lineTo(starX[v], starY[v])
+            v += 2
+        }
+        decorationShape.close()
+        canvas.drawShape(decorationShape, fillPaint)
+        var point = 0
+        while (point < 10) {
+            decorationShape.moveTo(starX[(point + 9) % 10], starY[(point + 9) % 10])
+            decorationShape.lineTo(starX[point], starY[point])
+            decorationShape.lineTo(starX[point + 1], starY[point + 1])
+            decorationShape.close()
+            canvas.drawShape(decorationShape, fillPaint)
+            point += 2
+        }
+    }
+
+    /**
+     * A shut building (v5.14, the maintainer's *«B ma con saracinesca su porta»* of 2026-10-14 and, on the
+     * photographs, *«va centrata bene sulla porta»* of 2026-10-15): a blind down in every window a person may stand
+     * at -- a cream card from the top of the glass, its rail at the bottom -- and the shutter down over the front
+     * door. [shut] is how far the closing has gone, 0 .. 1, on the glass's two seconds ([WindowWalk.Doorway.glassAt]):
+     * the blinds come down to 70 % of the glass and the shutter rolls down from its box. By day and by night, the
+     * night's colours blended in on [night] as every colour of the scene. A tower carries blinds only where its
+     * windows have busts, the hall's; its small windows higher up are left as they are.
+     *
+     * **The shutter covers the door, exactly**: it is the door's own card -- the outline the scissors cut it to
+     * ([BuildingDoor.outlineX]) -- cut at how far it has come down, over a shadow paper offset as the door's is,
+     * so with the shutter down nothing of the door or of its shadow shows and nothing of the shutter stands outside
+     * them; its box is the top of that card, and its slats are bands of it. A tower's glass door is an opening in
+     * its frame, with no shadow of its own: its shutter fills the opening. Nothing allocated.
+     */
+    private fun drawShut(canvas: SceneCanvas, deal: NeighbourhoodComposer.Deal, kind: WindowBuildingKind, shut: Float, night: Float) {
+        if (shut <= 0f) return
+        val k = decorationScale(kind)
+        val blind = SceneColour.blendArgb(BLIND_DAY, BLIND_NIGHT, night)
+        val rail = SceneColour.blendArgb(BLIND_RAIL_DAY, BLIND_RAIL_NIGHT, night)
+        for (index in 0 until deal.size) {
+            val placed = deal[index]
+            val windows = placed.piece.windows
+            for (i in windows.indices) {
+                val w = windows[i]
+                val h = w.h * BLIND_SHARE * shut
+                if (h <= 0f) continue
+                val top = placed.baseY + w.y + LIT_PANE_INSET
+                val left = w.x + LIT_PANE_INSET
+                val right = w.x + w.w - LIT_PANE_INSET
+                fillPaint.color = blind
+                canvas.drawRect(left, top, right, top + h, fillPaint)
+                fillPaint.color = rail
+                canvas.drawRect(left, top + h - minOf(BLIND_RAIL * k, h), right, top + h, fillPaint)
+            }
+        }
+        val ground = deal[0]
+        val door = ground.piece.door ?: return
+        val under = SceneColour.blendArgb(SHUTTER_UNDER_DAY, SHUTTER_UNDER_NIGHT, night)
+        val face = SceneColour.blendArgb(SHUTTER_DAY, SHUTTER_NIGHT, night)
+        val slat = SceneColour.blendArgb(SHUTTER_SLAT_DAY, SHUTTER_SLAT_NIGHT, night)
+        DoorShutter.forEachBand(door, ground.baseY, shut, k) { paper, bandTop, bandBottom, dx, dy ->
+            fillPaint.color = when (paper) {
+                DoorShutter.Paper.UNDER -> under
+                DoorShutter.Paper.FACE -> face
+                DoorShutter.Paper.SLAT -> slat
+            }
+            drawDoorBand(canvas, door, ground.baseY, bandTop, bandBottom, dx, dy)
+        }
+    }
+
+    /** [door]'s band [bandTop] .. [bandBottom] moved by ([dx], [dy]) ([DoorShutter.band]), filled in [fillPaint]. */
+    private fun drawDoorBand(canvas: SceneCanvas, door: BuildingDoor, baseY: Float, bandTop: Float, bandBottom: Float, dx: Float, dy: Float) {
+        val n = DoorShutter.band(door, baseY, bandTop, bandBottom, dx, dy, bandX, bandY, scratchX, scratchY)
+        if (n == 0) return
+        decorationShape.moveTo(bandX[0], bandY[0])
+        for (i in 1 until n) decorationShape.lineTo(bandX[i], bandY[i])
+        decorationShape.close()
+        canvas.drawShape(decorationShape, fillPaint)
+    }
+
+    /** Reused by the star, the shutter and its bands: one shape, rewritten for each. */
+    private val decorationShape = SceneShape(16)
+    private val starX = FloatArray(10)
+    private val starY = FloatArray(10)
+    private val bandX = FloatArray(32)
+    private val bandY = FloatArray(32)
+    private val scratchX = FloatArray(32)
+    private val scratchY = FloatArray(32)
 
     /**
      * A building of the neighbourhood: the pieces [NeighbourhoodTable] deals for this instance,
@@ -2889,13 +3060,18 @@ class SceneObjectRenderer(
         }
         val night = (1f - dayBlend).coerceIn(0f, 1f)
         // A house lights half its windows at night, every one somebody stands at among them
-        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is the closing
-        // fade of this building's group -- the towers', the shops' or the public buildings' hours, by
-        // what it is -- and at 1 -- the default, the group's switch off -- this is arithmetically
-        // `1f - dayBlend`, the expression it always was. See [BusinessHours]. Shut, a business's glass is
-        // the dark glass of an unlit window at night ([businessGlassColor], v5.12) and its lamp is dark:
-        // `glassNight` is what the lamp lights on.
-        val businessOpenness = if (storefront != null) {
+        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is how lit its glass
+        // is by its group's hours -- the towers', the shops' or the public buildings', by what it is -- eased
+        // over two seconds at the opening and the closing minute on the building's doorway
+        // ([WindowWalk.Doorway.glassAt], v5.14); and at 1 -- the default, the group's switch off -- this is
+        // arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours]. Shut, a
+        // business's glass is the dark glass of an unlit window at night ([businessGlassColor], v5.12), its
+        // lamp is dark -- `glassNight` is what the lamp lights on -- and its blinds and shutter are down
+        // ([drawShut]).
+        val doorway = r.doorway
+        val businessOpenness = if (doorway != null) {
+            doorway.glassAt(elapsed.seconds)
+        } else if (storefront != null) {
             customization.opennessFor(storefront, frameHour)
         } else {
             customization.opennessFor(variant, frameHour)
@@ -2973,23 +3149,22 @@ class SceneObjectRenderer(
                 }
             }
         }
+        // Shut (v5.14): the blinds down and the shutter over the front door, coming down with the glass's two
+        // seconds -- by day as by night; a house is never shut.
+        if (family.kind != WindowBuildingKind.HOUSE && businessOpenness < 1f) {
+            drawShut(canvas, deal, family.kind, 1f - businessOpenness, night)
+        }
+        // The Christmas decorations (v5.14), lit whether the building is open or shut: a string of bulbs along
+        // the roofline of its top piece, the wreath on its front door, a star on a tower's top ([drawDecorations]);
+        // and the strings under the sills, below.
+        if (customization.christmasDecorationsEnabled) drawDecorations(canvas, r, elapsed, deal, family.kind)
         // Christmas strings hang from the sills the pieces declare, spread over the whole
         // building rather than over one piece, so a tall house does not light its ground floor
-        // and nothing else. The cap is the one [litWindowChosen] has always applied.
+        // and nothing else; three in four of a building with more than four, the same ones for good
+        // ([ChristmasDecorations.forEachSillString], the gallery card's sequence too).
         if (customization.christmasDecorationsEnabled) {
-            var sills = 0
-            for (index in 0 until deal.size) sills += deal[index].piece.lights.size
-            var sill = 0
-            for (index in 0 until deal.size) {
-                val placed = deal[index]
-                val lights = placed.piece.lights
-                for (lightIndex in lights.indices) {
-                    val light = lights[lightIndex]
-                    if (sills <= 4 || litWindowChosen(r, sill, sills, (sills * 3) / 4)) {
-                        drawWindowLights(canvas, r, elapsed, light.x, placed.baseY + light.y, light.w)
-                    }
-                    sill++
-                }
+            ChristmasDecorations.forEachSillString(deal, r.idleSeed) { x, sillY, width ->
+                drawWindowLights(canvas, r, elapsed, x, sillY, width)
             }
         }
         val smokes = ChimneySmoke.smokes(customization)
@@ -3254,31 +3429,39 @@ class SceneObjectRenderer(
     private fun standsAsFir(r: StaticRuntime): Boolean = drawsFirs(customization) && isFirSeed(r.idleSeed)
 
     /**
-     * A fir in the leafy tree's place: tiers, snow while the winter palette is on, the tree
-     * lights, and presents at its foot.
+     * A fir in the leafy tree's place (v5.14, the fir A the maintainer chose on 2026-10-14, *«A – a palchi
+     * (consigliato)»*): four tiers with their hems cut in a zigzag, snow while the winter palette is on, the
+     * star on the top, ten lights on the hems' teeth and three presents at its foot -- every number from
+     * [FirTable], which `tools/assets/fir/build_fir.py` writes with the drawing. Each piece is trimmed to its
+     * content and blits at an origin of its own: `tree_fir` is 210x360 px = 70x120 u, `tree_fir_snow` is
+     * 192x291 px = 64x97 u and `tree_fir_star` is 48x45 px = 16x15 u, in the fir's 72 by 126 units.
      *
-     * The lights come from [drawChristmasLights], the same call the leafy tree makes, with the
-     * ellipse pulled in to the fir's own narrower crown. The presents are `gift_box`/`gift_ribbon`
-     * rather than a new sprite: they are the same objects the Gifts decoration already draws.
+     * **At night the green goes dark as the trees around it do**: the fir is drawn under the trees'
+     * night shade ([SceneCustomization.nightShadeFor]), decision 36's mechanism, which until v5.14 only the
+     * palms took; the snow, the star and the lights are not shaded -- the star is a piece of its own
+     * (`tree_fir_star`) for that, and the lights are lights. The lights are discs ([drawBulb]): a quad of the
+     * atlas each on the GL path, where a drawn fan is 24 vertices or more.
      */
-    private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime) {
-        drawGroundShadow(canvas, 26f)
-        // v4.21: the stocky fir of the "Broad Oak" family -- `tree_fir` is 240x366 px = 80x122
-        // u, content filling its canvas, so it blits at (-40,-122) and stands x -40..40.
-        drawSprite(canvas, R.drawable.tree_fir, -40f, -122f)
+    private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
+        drawGroundShadow(canvas, FirTable.WIDTH * FIR_SHADOW_SHARE)
+        drawShadedSprite(canvas, R.drawable.tree_fir, FirTable.FIR_X, FirTable.FIR_Y, customization.nightShadeFor(r.spec, dayBlend))
         if (customization.winterColorsEnabled) {
-            // **The snow carries its own origin, and that is the point of it.** `tree_fir_snow` is
-            // cut out of the fir's own frame at (14,10) and trimmed to its content, 168x234 px =
-            // 56x78 u: a full-canvas copy of the fir would have cost 211 680 B of transparency,
-            // the single largest item in this release's sprite budget. So it blits at
-            // (-40+14, -122+10) = (-28,-112). The two offsets are one derivation -- move the fir
-            // and this moves with it, or the snow slides off the shoulders it was cut for.
-            drawSprite(canvas, R.drawable.tree_fir_snow, -28f, -112f)
+            drawSprite(canvas, R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
         }
-        drawChristmasLights(canvas, r, elapsed, centerY = -66f, radiusX = 22f, radiusY = 34f)
+        drawSprite(canvas, R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
+        // The lights blink as a leafy tree's do ([drawChristmasLights]): off in the low part of each one's cycle,
+        // at the tree lights' radius.
+        val xs = FirTable.LIGHT_X
+        val ys = FirTable.LIGHT_Y
+        for (i in xs.indices) {
+            val phase = ((r.idleSeed + i * 0.37f) * 10f) % 6.283f
+            val blink = (elapsed.sinAt(2.4f, phase) * 0.5f + 0.5f)
+            if (blink < 0.35f) continue // off phase of the blink cycle
+            drawBulb(canvas, xs[i], ys[i], CHRISTMAS_LIGHT_RADIUS_UNITS, christmasLightColors[i % christmasLightColors.size], 255)
+        }
         // Three presents at the foot, sized against the fir rather than against the scene: the
-        // gift sprite is 30 units on its own canvas and a fir is 122, so a third of it reads.
-        val gifts = FIR_GIFT_X
+        // gift sprite is 30 units on its own canvas and a fir is 126, so a third of it reads.
+        val gifts = FirTable.GIFT_X
         val sizes = FIR_GIFT_SCALES
         for (i in gifts.indices) {
             canvas.save()
@@ -3291,6 +3474,15 @@ class SceneObjectRenderer(
     }
 
     /**
+     * One Christmas bulb centred on ([cx], [cy]), [radius] in units, in [colour] at [alpha]: a disc
+     * ([SpriteBlitter.drawDisc]) -- a quad of the atlas on the GPU, the circle itself on a Canvas, so the
+     * lights are the circles they were until v5.14 at the cost of a sprite.
+     */
+    private fun drawBulb(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) {
+        sprites.drawDisc(canvas, cx, cy, radius, colour, alpha)
+    }
+
+    /**
      * Fall Colors / Winter-Christmas Colors override the normal per-tree leaf color/decoration --
      * see [SceneCustomization.fallColorsEnabled]'s own doc comment for why these live as a
      * palette override here rather than their own placeable category. Mutually exclusive by
@@ -3299,7 +3491,7 @@ class SceneObjectRenderer(
      */
     private fun drawTree(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float = 1f) {
         if (standsAsFir(r)) {
-            drawFir(canvas, r, elapsed)
+            drawFir(canvas, r, elapsed, dayBlend)
             return
         }
         val sway = elapsed.sinAt(1.1f, r.idleSeed) * 4f
@@ -3394,9 +3586,7 @@ class SceneObjectRenderer(
      * Kept as two parallel `FloatArray`s rather than an array of points, because an array of
      * points is what the boxing came from.
      */
-    private val christmasLightColors = intArrayOf(
-        0xFFE8564F.toInt(), 0xFFFFD54F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt(),
-    )
+    private val christmasLightColors = CHRISTMAS_LIGHT_COLOURS
 
     /**
      * Where the lights sit, as offsets in a **unit disc** rather than in local units.
@@ -3436,6 +3626,8 @@ class SceneObjectRenderer(
         radiusY: Float,
         centerX: Float = 0f,
     ) {
+        // The lights are discs ([drawBulb]): a quad of the atlas each on the GPU, where a drawn fan was 24 vertices,
+        // at the radius they always had.
         canvas.save()
         canvas.translate(centerX, centerY)
         for (i in christmasLightX.indices) {
@@ -3447,9 +3639,7 @@ class SceneObjectRenderer(
             // actually drawn this frame.
             val lx = christmasLightX[i] * radiusX
             val ly = christmasLightY[i] * radiusY
-            fillPaint.color = christmasLightColors[i % christmasLightColors.size]
-            fillPaint.setAlphaWithoutAllocating(255)
-            canvas.drawCircle(lx, ly, CHRISTMAS_LIGHT_RADIUS_UNITS, fillPaint)
+            drawBulb(canvas, lx, ly, CHRISTMAS_LIGHT_RADIUS_UNITS, christmasLightColors[i % christmasLightColors.size], 255)
         }
         canvas.restore()
     }

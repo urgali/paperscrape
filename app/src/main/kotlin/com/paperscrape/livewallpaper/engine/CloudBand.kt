@@ -9,8 +9,8 @@ package com.paperscrape.livewallpaper.engine
  * began at a flat 8 % of screen height while the band, at the default arc, starts at 15 % and is
  * 16 % tall. So every bolt was born roughly half a band *above* the cloud it was supposed to come
  * out of, hanging from the top edge of the sky with nothing over it, and at 26-40 % of screen height
- * it was also taller than the entire cloud layer. aa reported both halves of that from a live
- * render: "i fulmini sono giganti e escono dalla cima del cielo".
+ * it was also taller than the entire cloud layer. A live render showed both halves of that: bolts
+ * that were giants, coming out of the top of the sky.
  *
  * Duplicating the band arithmetic in three call sites is what let one of them drift, so the band's
  * top and height are written once here and the bolt's origin is *derived* from them rather than

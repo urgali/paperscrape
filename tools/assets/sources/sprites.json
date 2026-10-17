@@ -1822,6 +1822,58 @@
    "notes": "Redrawn in v4.26 as concept C1 \"Puff\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground -- DESIGN_NOTES 4.1 -- which is what lets it carry a gradient. Canvas and content box unchanged, so CloudCoverage.CLOUD_CONTENT_HALF_UNITS still reads 133."
   },
   {
+   "name": "deco_bulb",
+   "category": "decoration",
+   "width": 24,
+   "height": 24,
+   "contentBox": [
+    0,
+    0,
+    24,
+    24
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "deco_bulb.svg"
+   },
+   "notes": "v5.14: the white disc, tinted dot by dot through SceneCanvas.drawDisc (SpriteBlitter.drawDisc): every Christmas bulb (the roof strings, the sill strings, every tree's, palm's and fir's lights, the distant houses'), every falling snowflake and every point star. On the GL path a quad of the atlas each instead of a drawn disc of 24 vertices or more, which keeps Christmas at night to one GL draw call with everything on (GlDrawCallTest); on a Canvas the circle itself (DiscAgreementTest). 8 units (24 px) so no disc is ever drawn larger than its texture; drawn by its centre and radius."
+  },
+  {
+   "name": "deco_wreath",
+   "category": "decoration",
+   "width": 30,
+   "height": 30,
+   "contentBox": [
+    1,
+    1,
+    29,
+    30
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "deco_wreath.svg"
+   },
+   "notes": "v5.14: the wreath on a front door (the maintainer's set C with the wreath, 2026-10-14), a ring of greenery and a red bow, blitted centred on the ring at (-5,-5) (SceneObjectRenderer.drawWreath), a tower's half as large again: one quad of the atlas where the same ring and bow drawn as shapes were 36 vertices."
+  },
+  {
    "name": "dolphin_body",
    "category": "lake",
    "width": 342,
@@ -11829,7 +11881,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it. The gallery card's fir also uses it, tinted, as Christmas baubles (ThemePreviewScene.fir): the one tinted use, on a preview placed by eye."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it. The gallery card also uses it, tinted, as Christmas baubles -- the only tinted uses, both on the preview: three on the fir (ThemePreviewScene.fir, at FirTable.BAUBLE_X/BAUBLE_Y, which tools/assets/fir/build_fir.py writes and tests/test_fir.py holds on the fir's paper, v5.14) and one on a lit palm's crown (ThemePreviewScene.palmTree, placed by eye)."
   },
   {
    "name": "sun_body",
@@ -12978,13 +13030,13 @@
   {
    "name": "tree_fir",
    "category": "vegetation",
-   "width": 240,
-   "height": 366,
+   "width": 210,
+   "height": 360,
    "contentBox": [
     0,
     0,
-    240,
-    366
+    210,
+    360
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -12999,18 +13051,18 @@
     "kind": "svg",
     "file": "tree_fir.svg"
    },
-   "notes": "v4.21: the fir of the 'Broad Oak' - squat and broad like the broadleaf it stands beside, three full tiers cut almost straight, each with its own tilt, like paper cut freehand. A star on the tip (four points, the same language as the other proposals, widened to 6.5x7.5 half-diagonals for the proportions of this body). 122 units like the broadleaf: a single metres-per-unit family governs both."
+   "notes": "v5.14: the fir A -- four tiers whose hems are cut in a zigzag, each over a darker under-paper 4.5 units under it, and the trunk; the star is a piece of its own (tree_fir_star). Fixed art drawn under the trees' night shade (decision 36). 70x120 units trimmed to its content from the fir's 72x126 frame, blitted at FirTable.FIR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
   },
   {
    "name": "tree_fir_snow",
    "category": "vegetation",
-   "width": 168,
-   "height": 234,
+   "width": 192,
+   "height": 291,
    "contentBox": [
-    0,
-    0,
-    168,
-    234
+    1,
+    2,
+    191,
+    290
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -13025,7 +13077,33 @@
     "kind": "svg",
     "file": "tree_fir_snow.svg"
    },
-   "notes": "v4.21: snow on the shoulders of the three tiers, with the same slight tilt as each of them. Canvas trimmed to the content (viewBox 14 10 56 78 in tree_fir's frame), so it has a BLIT ORIGIN OF ITS OWN (-28,-112) against the fir's (-40,-122): the two are derived from the same viewBox and have to be moved together. The trim recovers 211 680 B, the largest item of the v4.21 budget."
+   "notes": "v5.14: the snow of the fir A under the winter palette, each tier's cap cut to what is seen of that tier (an SVG mask), with its cool rim; trimmed to its content, blitted at FirTable.SNOW_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
+  },
+  {
+   "name": "tree_fir_star",
+   "category": "vegetation",
+   "width": 48,
+   "height": 45,
+   "contentBox": [
+    2,
+    2,
+    47,
+    45
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "tree_fir_star.svg"
+   },
+   "notes": "v5.14: the fir A's five-pointed star, a piece of its own so it stays bright at night while the fir takes the trees' night shade; blitted at FirTable.STAR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
   },
   {
    "name": "tree_trunk",
@@ -13077,7 +13155,7 @@
     "kind": "svg",
     "file": "umbrella_canopy.svg"
    },
-   "notes": "v4.28 canopy U1 \"Tall\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is picked per pedestrian from SceneObjectRenderer.UMBRELLA_PALETTE. The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
+   "notes": "v4.28 canopy U1 \"Tall\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is dealt per pedestrian and per crossing from PedestrianCarry.PALETTE (PedestrianCarry.canopyColour). The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
   },
   {
    "name": "water_splash0",

@@ -1081,7 +1081,8 @@ private fun OpeningHoursGroup(
 
 /** The towers' group's line, with its switch interactive. */
 private const val TOWER_HOURS_LINE =
-    "The towers keep opening hours: outside them nobody stands at their windows and the glass stays dark, even at night."
+    "The towers keep opening hours: outside them the blinds are down, the door's shutter is down and " +
+        "nobody stands at the windows; at night the glass stays dark."
 
 /** The towers' group's line while there is no tower to keep the hours. */
 private const val TOWER_HOURS_LOCKED_LINE =
@@ -1089,25 +1090,29 @@ private const val TOWER_HOURS_LOCKED_LINE =
 
 /** The shops' group's line, with its switch interactive. */
 private const val SHOP_HOURS_LINE =
-    "The restaurant, the bar and the shop keep opening hours: outside them nobody stands at their " +
-        "windows and the glass stays dark, even at night. Houses are homes and keep no hours."
+    "The restaurant, the bar and the shop keep opening hours: outside them the blinds are down, the " +
+        "door's shutter is down and nobody stands at the windows; at night the glass stays dark. Houses " +
+        "are homes and keep no hours."
 
 /**
  * The public buildings' group's line, with its switch interactive (v5.13): the hours are the school's, the
  * fire and the police station never close (the maintainer, 2026-10-12: *«la pagina deve dirlo»*).
  */
 private const val PUBLIC_HOURS_LINE =
-    "These hours are the school's: outside them nobody stands at its windows and the glass stays dark, " +
-        "even at night. The fire station and the police station never close. Houses are homes and keep no hours."
+    "These hours are the school's: outside them the blinds are down, the door's shutter is down and " +
+        "nobody stands at the windows; at night the glass stays dark. " +
+        "The fire station and the police station never close. Houses are homes and keep no hours."
 
 /** The shops' or the public buildings' line while no building of the group stands to keep the hours. */
 private const val STOREFRONT_HOURS_LOCKED_LINE =
     "Needs Show Buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your choice is kept until then."
 
-/** Under each group's two hours. */
+/** Under each group's two hours (v5.14: at the minute, `BusinessHours`). */
 private const val HOURS_CLOCK_LINE =
-    "The hours follow the scene's own clock, so a frozen time of day obeys them too. Closing past " +
-        "midnight works (09:00 until 02:00). Setting both to the same time means always open."
+    "At the opening time the lights come on and the people walk in; by the closing time the last have " +
+        "walked out and the lights go off. The hours follow the scene's own clock, so a frozen time of " +
+        "day obeys them too. Closing past midnight works (09:00 until 02:00). Setting both to the same " +
+        "time means always open."
 
 /** A decimal hour as the clock text the opening-hours sliders print, quantised to 15 minutes. */
 private fun formatHour(hour: Float): String {

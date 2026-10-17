@@ -267,6 +267,7 @@ class FallingLeafContinuityTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
         override fun drawWedge(
             cx: Float,
             cy: Float,

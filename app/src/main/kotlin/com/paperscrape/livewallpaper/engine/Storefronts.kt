@@ -111,9 +111,8 @@ enum class Storefront(
  * built-in street has five places a tile, and the plan never lets a screen show five of them
  * (`SceneObjectCatalog`, `fiveOnAScreen`), so **no building is twice in any four places in a row**, which is
  * every set of places a screen can show at once: never two alike on the screen. A deck is a **head** -- its
- * first three places -- and a **tail** -- its last three. Each round of the street has an anchor, one of the
- * six drawn by its seed, which stands in every deck's head with two of the other five; the tail holds the
- * other three. So no deck's head is the tail before it, and the seam between two decks is cleared by
+ * first three places -- and a **tail** -- its last three. The street has an anchor, one of the six drawn by
+ * its seed, which stands in every deck's head with two of the other five; the tail holds the other three. So no deck's head is the tail before it, and the seam between two decks is cleared by
  * order alone: the tail ends on a building that is not in the next head, the next head never starts with
  * one of the tail's buildings and never has the tail's second-to-last second. Every order is the deck's own
  * shuffle but for those moves, and every place is worked out from three shuffles, the deck's and its two
@@ -124,11 +123,13 @@ enum class Storefront(
  *
  * ### Deterministic
  *
- * Nothing but the theme's seed, the place and the round: no clock, no random number. The same frame is
- * the same picture, which is what the goldens and the tests rely on. A theme's street starts again at
- * copy 0 with a new engine, where the scroll starts; **each time the wallpaper comes back into view it is
- * dealt a new round** -- the decks shuffled by another seed and another anchor ([roundSeed]) -- while
- * nothing is on screen: the maintainer's decision of 2026-10-12.
+ * Nothing but the theme's seed and the place: no clock, no random number. The same frame is the same
+ * picture, which is what the goldens and the tests rely on. **A building changes only by scrolling**: a
+ * copy keeps its buildings for as long as it exists, coming back from an app and with the screen on again
+ * alike, and a new one comes in from the edge as the scene scrolls -- at *Scroll speed* 0 % never; a new
+ * engine (the phone restarted, the app updated) starts the theme's street again at copy 0, where the
+ * scroll starts. The maintainer's «C» of 2026-10-14, which took back the new round each return dealt
+ * from v5.13 on.
  */
 internal object StorefrontStreet {
 
@@ -149,72 +150,47 @@ internal object StorefrontStreet {
     /** The noise channel of the decks' shuffles ([CandidateNoise]): a number no other attribute uses. */
     private const val SHUFFLE_CHANNEL = 601
 
-    /** The noise channel of a round's anchor. */
+    /** The noise channel of the street's anchor. */
     private const val ANCHOR_CHANNEL = 602
 
     /** How many coins a deck's shuffles draw: its address stride on [SHUFFLE_CHANNEL]. */
     private const val COINS_A_DECK = 16
 
-    /**
-     * The street's place for the `rank`-th place of a tile, in copy [copy]. Which round of the street it is
-     * dealt in is [storefrontAt]'s other argument.
-     */
+    /** The street's place for the `rank`-th place of a tile, in copy [copy]. */
     fun placeIndex(copy: Int, rank: Int, placesPerTile: Int): Int = copy * placesPerTile + rank
 
     /**
-     * The seed round [round] of the street seeded [seed] is dealt with: **each time the wallpaper comes back
-     * into view the street is dealt a new round** (the maintainer's *«Nuovi edifici al ritorno sempre, anche
-     * quando la scena scorre: ogni volta che lo sfondo torna visibile i posti prendono altri edifici, mai
-     * sotto gli occhi»*, 2026-10-12; `SceneObjectRenderer.streetRound`), so the places take other buildings
-     * while nobody sees them, the scene scrolling or not. Round 0 is the theme's own seed.
+     * The building at street place [place] for the theme seeded [seed]. [a] and [b] are scratch arrays of
+     * [DECK] ints, overwritten: the draw path asks this once a place a frame and allocates nothing.
      */
-    private fun roundSeed(seed: Int, round: Int): Int =
-        if (round == 0) seed else (CandidateNoise.value(seed, round, ROUND_CHANNEL) * ROUND_SEEDS).toInt()
-
-    /** The noise channel a round's seed is drawn on. */
-    private const val ROUND_CHANNEL = 603
-
-    /** How many seeds a round's is drawn among: [CandidateNoise.value]'s 24 bits. */
-    private const val ROUND_SEEDS = 16_777_216f
-
-    /**
-     * The building at street place [place] for the theme seeded [seed], in round [round]. [a] and [b] are
-     * scratch arrays of [DECK] ints, overwritten: the draw path asks this once a place a frame and
-     * allocates nothing.
-     */
-    fun storefrontAt(seed: Int, place: Int, round: Int, a: IntArray, b: IntArray): Storefront {
-        val s = roundSeed(seed, round)
-        val anchor = anchorOf(seed, round)
+    fun storefrontAt(seed: Int, place: Int, a: IntArray, b: IntArray): Storefront {
+        val anchor = anchorOf(seed)
         val deck = Math.floorDiv(place, DECK)
         val i = Math.floorMod(place, DECK)
-        shuffled(s, anchor, deck, a)
+        shuffled(seed, anchor, deck, a)
         if (i < HALF) {
-            shuffled(s, anchor, deck - 1, b)
+            shuffled(seed, anchor, deck - 1, b)
             endTail(b, a)
             startHead(a, b)
         } else {
-            shuffled(s, anchor, deck + 1, b)
+            shuffled(seed, anchor, deck + 1, b)
             endTail(a, b)
         }
         return Storefront.ALL[a[i]]
     }
 
     /** [storefrontAt], with scratch arrays of its own: for the card and the tests, off the draw path. */
-    fun storefrontAt(seed: Int, place: Int, round: Int = 0): Storefront =
-        storefrontAt(seed, place, round, IntArray(DECK), IntArray(DECK))
+    fun storefrontAt(seed: Int, place: Int): Storefront =
+        storefrontAt(seed, place, IntArray(DECK), IntArray(DECK))
 
-    /**
-     * The anchor of round [round] of the street seeded [seed]: the building every deck of the round has in
-     * its head. One drawn by the seed for round 0, the next one each round, so that six rounds in a row
-     * have all six.
-     */
-    private fun anchorOf(seed: Int, round: Int): Int =
-        Math.floorMod((CandidateNoise.value(seed, 0, ANCHOR_CHANNEL) * DECK).toInt() + round, DECK)
+    /** The anchor of the street seeded [seed]: the building every deck has in its head, drawn by the seed. */
+    private fun anchorOf(seed: Int): Int =
+        Math.floorMod((CandidateNoise.value(seed, 0, ANCHOR_CHANNEL) * DECK).toInt(), DECK)
 
     /**
      * Deck [deck]'s shuffle into [into], before its seams are cleared: [anchor] and two of the other five
      * in its head, the other three in its tail, each half in an order of its own -- Fisher-Yates, one coin a
-     * step, on the round's seed.
+     * step, on the street's seed.
      */
     private fun shuffled(s: Int, anchor: Int, deck: Int, into: IntArray) {
         into[0] = anchor
@@ -466,9 +442,8 @@ internal object StorefrontStreet {
 
     /**
      * The three buildings a gallery card draws among its houses, far to near (its restaurant's, school's
-     * and bar's rows): **three of the street's first stretch**, its first round and copy 0 -- one stretch of
-     * the street, not the buildings a given wallpaper shows, which deals a round each time it comes into view
-     * -- in each row of the size table, the place of copy 0 the card stands for it ([cardPlaceOf]); the far
+     * and bar's rows): **three of the street's first stretch**, copy 0 -- one stretch of the street, not the
+     * buildings a given wallpaper shows, which deals others as it scrolls -- in each row of the size table, the place of copy 0 the card stands for it ([cardPlaceOf]); the far
      * place of the restaurant's row and of the bar's are left out (`DESIGN_NOTES.md` §9). A row
      * with no place on the layout (a random theme) takes the next places of the street, so the three are
      * three different buildings.

@@ -983,6 +983,88 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        0,
+        0,
+        24,
+        24
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        24,
+        24
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "deco_bulb",
+      "reference_bbox": [
+        0,
+        0,
+        24,
+        24
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        24,
+        24
+      ],
+      "size_match": true,
+      "total_pixels": 576,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        1,
+        29,
+        30
+      ],
+      "candidate_padding_fraction": 0.09777777777777774,
+      "candidate_size": [
+        30,
+        30
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "deco_wreath",
+      "reference_bbox": [
+        1,
+        1,
+        29,
+        30
+      ],
+      "reference_padding_fraction": 0.09777777777777774,
+      "reference_size": [
+        30,
+        30
+      ],
+      "size_match": true,
+      "total_pixels": 900,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
         1,
         3,
         342,
@@ -4306,13 +4388,13 @@
       "candidate_bbox": [
         0,
         0,
-        240,
-        366
+        210,
+        360
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        240,
-        366
+        210,
+        360
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -4323,16 +4405,16 @@
       "reference_bbox": [
         0,
         0,
-        240,
-        366
+        210,
+        360
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        240,
-        366
+        210,
+        360
       ],
       "size_match": true,
-      "total_pixels": 87840,
+      "total_pixels": 75600,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4345,15 +4427,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        168,
-        234
+        1,
+        2,
+        191,
+        290
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.020618556701030966,
       "candidate_size": [
-        168,
-        234
+        192,
+        291
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -4362,18 +4444,59 @@
       "mean_alpha_diff": 0.0,
       "name": "tree_fir_snow",
       "reference_bbox": [
-        0,
-        0,
-        168,
-        234
+        1,
+        2,
+        191,
+        290
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.020618556701030966,
       "reference_size": [
-        168,
-        234
+        192,
+        291
       ],
       "size_match": true,
-      "total_pixels": 39312,
+      "total_pixels": 55872,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        2,
+        47,
+        45
+      ],
+      "candidate_padding_fraction": 0.10416666666666663,
+      "candidate_size": [
+        48,
+        45
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "tree_fir_star",
+      "reference_bbox": [
+        2,
+        2,
+        47,
+        45
+      ],
+      "reference_padding_fraction": 0.10416666666666663,
+      "reference_size": [
+        48,
+        45
+      ],
+      "size_match": true,
+      "total_pixels": 2160,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

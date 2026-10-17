@@ -169,6 +169,9 @@ class SpriteTintAtBlitTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
+        // A disc is drawn in the colour of the dot itself -- white snow is white -- and not over any artwork's own
+        // colours: the two rules here are about artwork, and the disc's drawing is a plain white mask.
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawWedge(
             cx: Float,

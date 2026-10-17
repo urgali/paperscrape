@@ -87,6 +87,12 @@ class SpriteCanvasConventionTest {
         "palmtree_fronds_frost",
         // `tree_fir_snow` was here until v4.21 trimmed it to its content and gave it its own blit
         // origin. See this class's own doc for why that is a recovery rather than a lost anchor.
+        // **v5.14 puts it back, for a reason that is not an anchor's**: the fir A's snow is trimmed to
+        // whole units of the 3-px grid (`tools/assets/fir/build_fir.py`, DESIGN_NOTES.md §4 rule 3), and
+        // its cut edge falls one and two pixels inside them, on every side -- a margin under a unit,
+        // the grid's, which no crop on the grid can take off. Its origin is the generator's
+        // (`FirTable.SNOW_X`/`SNOW_Y`), derived with the fir's from one frame.
+        "tree_fir_snow",
     )
 
     @Test
@@ -166,7 +172,8 @@ class SpriteCanvasConventionTest {
         // the door (2), the short body's wide snow cap (1), and the three distant houses (4 each).
         // 460 in v5.13: the shop (4 layers), the police station (4) and the fire station, its block and
         // its hose tower each a piece of canvas of its own (8, inventory I-607).
-        assertEquals("460 sprites are expected", 460, all.size)
+        // 463 in v5.14: the fir's star, a piece of its own, the Christmas bulb (`deco_bulb`) and the wreath (`deco_wreath`).
+        assertEquals("463 sprites are expected", 463, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -212,7 +219,10 @@ class SpriteCanvasConventionTest {
         // 242 in v5.13: thirteen of the sixteen new layers reach the canvas they were cut to, as every
         // piece's do; the fire station's wall mask and the police station's two masks do not -- their
         // weights stop short of the canvas their fixed art fills (the registration of the exemption above).
-        assertEquals("242 of them reach a canvas edge", 242, touching)
+        // 244 in v5.14: the fir A's star reaches its canvas's foot, the Christmas bulb all four of its edges and the
+        // wreath's bow the foot of its canvas; the fir's snow, trimmed to whole units, reaches none and is declared above
+        // (the fir reaches its own, as the old one did).
+        assertEquals("244 of them reach a canvas edge", 244, touching)
     }
 
     private companion object {

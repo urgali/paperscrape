@@ -51,9 +51,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74, v5.12 → 75, v5.13 → 76. Ordinary bumps: one release, one step.
-        versionCode = 76
-        versionName = "5.13"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74, v5.12 → 75, v5.13 → 76, v5.14 → 77. Ordinary bumps: one release, one step.
+        versionCode = 77
+        versionName = "5.14"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -410,6 +410,12 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(layout.projectDirectory.dir("src/androidTest/kotlin"))
         .withPropertyName("instrumentedSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the goldens (v5.14D): `GoldenUniquenessTest` hashes `src/androidTest/assets/golden/*.png`, assets of the
+    // instrumented APK that nothing above declares -- a change to the goldens alone left the unit tests UP-TO-DATE, so two
+    // identical goldens came back green without the test running.
+    inputs.dir(layout.projectDirectory.dir("src/androidTest/assets"))
+        .withPropertyName("instrumentedAssets")
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
         .withPropertyName("appResources")

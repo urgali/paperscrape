@@ -158,10 +158,18 @@ def extras():
 
 
 # ------------------------------------------------------------------ the Kotlin table
+def fa(values) -> str:
+    """A Kotlin `floatArrayOf` of [values], two decimals each."""
+    return "floatArrayOf(" + ", ".join(f"{v:.2f}f" for v in values) + ")"
+
+
 def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
     # The panes are a house's (v5.12): what its night lights or leaves dark, pane by pane. Every other
     # building lights all its glass together, so its pieces carry none.
     house_pieces = {o for f in ("HOUSE_SMALL", "HOUSE_LARGE") for slot in table[f]["slots"] for o in slot["options"] + slot["heights"]}
+    # The roofline and the top are read off a building's top piece (v5.14) -- a house's roof, a tower's crown, a
+    # building of one piece -- and off the distant houses: the other pieces carry none.
+    top_pieces = {o for t in table.values() for o in t["slots"][-1]["options"] + t["slots"][-1]["heights"]} | set(distant_names)
     blocks = []
     for pname, p in pieces.items():
         parts = []
@@ -182,6 +190,18 @@ def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
         if pname in house_pieces and p["panes"]:
             panes = ("        panes = listOf(" +
                      ", ".join(f"BuildingWindow({x:.2f}f, {y:.2f}f, {w:.2f}f, {h:.2f}f)" for x, y, w, h in p["panes"]) + "),\n")
+        door = ""
+        if p["door"] is not None:
+            d = p["door"]
+            x, y, w, h = d["box"]
+            door = (f"        door = BuildingDoor({x:.2f}f, {y:.2f}f, {w:.2f}f, {h:.2f}f, "
+                    f"{fa([px for px, _ in d['outline']])}, {fa([py for _, py in d['outline']])}, "
+                    f"{d['relief'][0]:.2f}f, {d['relief'][1]:.2f}f),\n")
+        roof = ""
+        if pname in top_pieces:
+            roof = (f"        roofX = {fa([x for x, _ in p['roof']])},\n"
+                    f"        roofY = {fa([y for _, y in p['roof']])},\n"
+                    f"        topX = {p['top'][0]:.2f}f, topY = {p['top'][1]:.2f}f,\n")
         blocks.append(
             f"    private val {production(pname).upper()} = BuildingPiece(\n"
             f"        {p['height']:.2f}f,\n"
@@ -189,7 +209,7 @@ def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
             f"        listOf({wins}),\n"
             f"        listOf({lights}),\n"
             f"        {p['smoke'][0]:.2f}f, {p['smoke'][1]:.2f}f, {p['beacon'][0]:.2f}f, {p['beacon'][1]:.2f}f,\n"
-            + people + panes +
+            + people + panes + door + roof +
             f"    )")
     families = []
     for family, t in table.items():
@@ -254,6 +274,18 @@ internal class BuildingPart(val res: Int, val x: Float, val y: Float, val role: 
  */
 internal class BuildingWindow(val x: Float, val y: Float, val w: Float, val h: Float)
 
+/**
+ * A piece's front door (v5.14), in the piece's own units: its box ([x], [y], [w], [h] -- the rectangle the door is
+ * drawn in), the outline of its card as the scissors cut it ([outlineX], [outlineY], convex but for the wobble's small dents), and how far its
+ * shadow paper is offset ([reliefX], [reliefY]; 0 for the towers' glass doors, which are an opening in a framed
+ * card). Where the Christmas wreath hangs, and what a shut building's shutter covers: the card and its shadow, exactly.
+ */
+internal class BuildingDoor(
+    val x: Float, val y: Float, val w: Float, val h: Float,
+    val outlineX: FloatArray, val outlineY: FloatArray,
+    val reliefX: Float, val reliefY: Float,
+)
+
 internal class BuildingPiece(
     /** How far the next piece's foot rises above this one's. */
     val height: Float,
@@ -279,6 +311,18 @@ internal class BuildingPiece(
      * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
      */
     val people: Int = windows.size,
+    /** The piece's front door, where it has one (v5.14): see [BuildingDoor]. */
+    val door: BuildingDoor? = null,
+    /**
+     * Where a roof string's bulbs hang on a building's top piece and on a distant house (v5.14): its roofline -- the
+     * top outline of what the piece draws, parts narrower than 9 units (a chimney, a pole, a spire's needle) left
+     * out -- every 6 units along it. Empty for the other pieces.
+     */
+    val roofX: FloatArray = floatArrayOf(),
+    val roofY: FloatArray = floatArrayOf(),
+    /** The highest point the piece draws, where a tower's star stands (v5.14); 0, 0 where [roofX] is empty. */
+    val topX: Float = 0f,
+    val topY: Float = 0f,
 )
 
 /**
