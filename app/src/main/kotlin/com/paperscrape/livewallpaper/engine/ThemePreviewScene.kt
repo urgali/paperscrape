@@ -286,8 +286,11 @@ object ThemePreviewScenes {
      */
     private const val CAR_PAINTED_FLOOR_UNITS = -17f + 130f / 3f
 
-    /** The carved moon's own tint in `PaperRenderer`; not the theme's `moonColor`. */
-    private const val HALLOWEEN_MOON_COLOUR = PaperRenderer.HALLOWEEN_MOON_COLOUR
+    /**
+     * How wide the card's sleigh is, in the card's 320 units: what the card gave the sleigh until v5.15 (198 units at
+     * 0.26), kept for the group of v5.15 (the maintainer, 2026-10-19: *«Scheda slitta: lascia così»*).
+     */
+    const val SLEIGH_CARD_WIDTH = 51f
 
     /**
      * The clock hours the card shows, on the default day `SunPositionCalculator.compute` assumes
@@ -401,13 +404,32 @@ object ThemePreviewScenes {
         val dots = mutableListOf<PreviewDot>()
 
         // --- sun or moon ----------------------------------------------------------------------
+        // The moon at night, and on a card with *Halloween* on by day too (decided, inventory I-936) -- only
+        // while *Moon* is on, as the wallpaper's (`PaperRenderer.drawCelestialBody`): until v5.15C2 the card
+        // drew it whatever *Moon* said (inventory I-974). With *Moon* off such a card has neither moon nor sun.
         if (night || halloween) {
-            val moonSprite = if (halloween) R.drawable.moon_jack_o_lantern else R.drawable.moon_full
-            val moonTint = if (halloween) HALLOWEEN_MOON_COLOUR else c.moon.color
-            backdrop += PreviewItem(
-                if (halloween) 250f else 60f, 44f, 0.55f,
-                listOf(PreviewSprite(moonSprite, -40f, -40f, moonTint)),
-            )
+            if (c.moon.visible) {
+                // The Halloween moon is the moon in the theme's own moon colour, with the face cut out of it
+                // and the light inside the cuts over it, untinted (v5.15, `PaperRenderer.drawMoonWithPhase`):
+                // the light's origin is the wallpaper's, in the card's units.
+                val moonSprite = if (halloween) R.drawable.moon_jack_o_lantern else R.drawable.moon_full
+                val moon = PreviewSprite(moonSprite, -40f, -40f, c.moon.color)
+                backdrop += PreviewItem(
+                    if (halloween) 250f else 60f, 44f, 0.55f,
+                    if (halloween) {
+                        listOf(
+                            moon,
+                            PreviewSprite(
+                                R.drawable.moon_jack_o_lantern_light,
+                                PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
+                                PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_Y / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
+                            ),
+                        )
+                    } else {
+                        listOf(moon)
+                    },
+                )
+            }
         } else if (c.sun.visible) {
             val sunY = if (theme.id == "sunset") 118f else 46f
             val sunX = if (theme.id == "sunset") 262f else 248f
@@ -653,23 +675,39 @@ object ThemePreviewScenes {
         //
         // **Placed where the effect flies it and where the sky is free.** `startFlight` picks
         // `screenHeight * (0.10..0.26)`, which is 24..62 on this 240-unit canvas; 52 is inside that
-        // band. 0.26 puts 51 of the card's 320 units across it -- a shade under the near cloud's
-        // 58 -- and the span 116..167 is the gap between the two clouds, clear of the sun on the
-        // right and a unit clear of the nearest gull below. Fixed art, untinted, like the scene's.
+        // band. [SLEIGH_CARD_WIDTH] of the card's 320 units across it -- a shade under the near
+        // cloud's 58 -- and the span 116..167 is the gap between the two clouds, clear of the sun on
+        // the right and a unit clear of the nearest gull below. Fixed art, untinted, like the scene's.
         //
-        // The two origins are `PaperRenderer`'s own, referenced rather than re-typed -- the same
-        // way the dolphin takes hers. -99.67 is knowingly not the centre of the drawing and that
-        // KDoc explains why; a copy here would be a second place for that to be "corrected".
-        // `santa_sleigh_scene` is the still frame of the two the scene alternates.
+        // The group of v5.15 from its pieces, still, as `SantaSleighDrawer` lays them
+        // (`SantaSleighTable`): the two reindeer in their first pose, Rudolph's red nose over his, the
+        // sleigh with Santa and the presents; facing left, its middle on the flight point. As small as
+        // the card's sleigh was (the maintainer, 2026-10-19: *«Scheda slitta: lascia così»*), so its
+        // details are under 2 px there, as they were; the cords are left out, a fraction of a pixel on
+        // the gallery card and about one on the home card, as the strings' cords are.
         if (c.santaEnabled) {
+            val mid = (SantaSleighTable.LEFT + SantaSleighTable.RIGHT) * 0.5f
             backdrop += PreviewItem(
-                142f, 52f, 0.26f,
+                142f, 52f, SLEIGH_CARD_WIDTH / (SantaSleighTable.RIGHT - SantaSleighTable.LEFT),
                 listOf(
                     PreviewSprite(
-                        R.drawable.santa_sleigh_scene,
-                        PaperRenderer.SANTA_SLEIGH_ORIGIN_X_UNITS,
-                        PaperRenderer.SANTA_SLEIGH_ORIGIN_Y_UNITS,
+                        SantaSleighTable.DEER_RES[0],
+                        SantaSleighTable.LEAD_X - mid + SantaSleighTable.DEER_X[0],
+                        SantaSleighTable.LEAD_Y + SantaSleighTable.DEER_Y[0],
                     ),
+                    PreviewSprite(
+                        SantaSleighTable.DEER_RES[0],
+                        SantaSleighTable.NEAR_X - mid + SantaSleighTable.DEER_X[0],
+                        SantaSleighTable.NEAR_Y + SantaSleighTable.DEER_Y[0],
+                    ),
+                    PreviewSprite(
+                        0,
+                        SantaSleighTable.LEAD_X - mid + SantaSleighTable.NOSE_X[0],
+                        SantaSleighTable.LEAD_Y + SantaSleighTable.NOSE_Y[0],
+                        tint = SantaSleighTable.RUDOLPH_NOSE_COLOUR,
+                        discRadius = SantaSleighTable.RUDOLPH_NOSE_RADIUS,
+                    ),
+                    PreviewSprite(SantaSleighTable.SLEIGH_RES, SantaSleighTable.SLEIGH_X - mid, SantaSleighTable.SLEIGH_Y),
                 ),
             )
         }

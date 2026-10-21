@@ -83,10 +83,12 @@ class BackgroundLocationManifestTest {
      * And no foreground service of any type, which is the other way the same capability is usually
      * bought.
      *
-     * Checked as "no services but the wallpaper, and it declares no foreground service type",
-     * because a `location` type is only reachable through a service and the app has exactly one.
-     * The `FOREGROUND_SERVICE*` permissions are checked too: they are what a type would require,
-     * so their absence is the same statement made from the other end.
+     * Checked as "no services but the wallpaper and the update check's job, and neither declares a
+     * foreground service type", because a `location` type is only reachable through a service. The
+     * job (v5.15, `UpdateCheckJobService`) is the phone's scheduler's to start, never the app's: not
+     * exported, bound only with `BIND_JOB_SERVICE`, and it asks for no position. The
+     * `FOREGROUND_SERVICE*` permissions are checked too: they are what a type would require, so their
+     * absence is the same statement made from the other end.
      */
     @Test
     fun thereIsNoForegroundService() {
@@ -103,20 +105,20 @@ class BackgroundLocationManifestTest {
             PackageManager.GET_SERVICES,
         ).services.orEmpty()
         assertEquals(
-            "the app declares services other than the wallpaper: ${services.map { it.name }}",
-            1,
-            services.size,
+            "the app declares services other than the wallpaper and the update check's job",
+            setOf(WALLPAPER_SERVICE, UPDATE_JOB_SERVICE),
+            services.map { it.name }.toSet(),
         )
-        val wallpaper = services.single()
-        assertEquals(
-            "com.paperscrape.livewallpaper.engine.PaperWallpaperService",
-            wallpaper.name,
-        )
-        assertEquals(
-            "the wallpaper service declared a foreground service type",
-            0,
-            wallpaper.foregroundServiceType,
-        )
+        for (service in services) {
+            assertEquals(
+                "${service.name} declared a foreground service type",
+                0,
+                service.foregroundServiceType,
+            )
+        }
+        val job = services.single { it.name == UPDATE_JOB_SERVICE }
+        assertEquals("the update check's job is the scheduler's to bind", "android.permission.BIND_JOB_SERVICE", job.permission)
+        assertFalse("the update check's job is exported", job.exported)
     }
 
     /**
@@ -132,7 +134,7 @@ class BackgroundLocationManifestTest {
         val service = context.packageManager.getPackageInfo(
             context.packageName,
             PackageManager.GET_SERVICES,
-        ).services.orEmpty().single()
+        ).services.orEmpty().single { it.name == WALLPAPER_SERVICE }
         assertNotNull("the wallpaper service is not exported to the system", service.permission)
         assertEquals("android.permission.BIND_WALLPAPER", service.permission)
         assertTrue("the wallpaper service must be exported for the system to bind it", service.exported)
@@ -140,5 +142,7 @@ class BackgroundLocationManifestTest {
 
     private companion object {
         const val BACKGROUND_LOCATION = "android.permission.ACCESS_BACKGROUND_LOCATION"
+        const val WALLPAPER_SERVICE = "com.paperscrape.livewallpaper.engine.PaperWallpaperService"
+        const val UPDATE_JOB_SERVICE = "com.paperscrape.livewallpaper.update.UpdateCheckJobService"
     }
 }

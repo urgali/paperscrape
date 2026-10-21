@@ -33,7 +33,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,7 +47,6 @@ import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
-import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
 import com.paperscrape.livewallpaper.prefs.AppBackup
 import com.paperscrape.livewallpaper.prefs.BackupImportError
 import com.paperscrape.livewallpaper.prefs.BackupParseResult
@@ -62,6 +60,7 @@ import com.paperscrape.livewallpaper.update.ApkInstaller
 import com.paperscrape.livewallpaper.update.ApkSafety
 import com.paperscrape.livewallpaper.update.DownloadPhase
 import com.paperscrape.livewallpaper.update.InstallVerdict
+import com.paperscrape.livewallpaper.update.UpdateCheckJobs
 import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateDownloadResult
@@ -116,14 +115,12 @@ internal fun AdvancedScreen(
      */
     onRequestNotificationPermission: (onResult: (granted: Boolean, canAskAgain: Boolean) -> Unit) -> Unit =
         { it(true, true) },
-    /** The system's preview, where PaperScrape is set as the wallpaper: the tap on *Notify me* when it is not (v5.10C). */
-    onApplyWallpaper: () -> Unit = {},
     startInstallFor: UpdateInfo? = null,
     onInstallStarted: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    /** Where the button's check keeps GitHub's last reply, the store the engine and the home screen use (v5.10D). */
+    /** Where the button's check keeps GitHub's last reply, the store the update job and the home screen use (v5.10D). */
     val updateReplyStore: UpdateReplyStore = remember(context) { UpdatePrefs(context.applicationContext) }
     /**
      * Whether the last attempt to switch notifications on was refused (A1, v5.7D).
@@ -157,6 +154,24 @@ internal fun AdvancedScreen(
     var confirmResetSaved by remember { mutableStateOf(false) }
     var confirmResetEdits by remember { mutableStateOf(false) }
     var updateState by updateState
+    /**
+     * The button's check (and *Try again*'s): "Checking..." on the row, which takes no tap until the check is
+     * over (inventory I-969: `Checking` was never set until v5.15C2, so a second tap was a second request, inside
+     * GitHub's limit too). Set before the coroutine starts, so a tap that lands in the same frame finds it.
+     */
+    fun startCheck() {
+        if (!updateState.allowsChecking) return
+        updateState = UpdateUiState.Checking
+        scope.launch {
+            var finished: UpdateUiState = UpdateUiState.Idle
+            try {
+                finished = checkForUpdate(updateReplyStore, onUpdateFound)
+            } finally {
+                // A check cut short (the screen gone) leaves no "Checking..." behind.
+                updateState = finished
+            }
+        }
+    }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     /** The text the preview read, and what it parsed to: Restore imports exactly this text. */
     var pendingImport by remember { mutableStateOf<Pair<String, AppBackup>?>(null) }
@@ -353,7 +368,16 @@ internal fun AdvancedScreen(
                 supporting = stringResource(R.string.settings_auto_update_check_subtitle),
                 icon = Icons.Outlined.SystemUpdate,
                 checked = settings.automaticUpdateCheckEnabled,
-                onCheckedChange = { scope.launch { prefs.setAutomaticUpdateCheckEnabled(it) } },
+                // The update job follows the two switches (v5.15): scheduled with both on, cancelled
+                // otherwise. Its check at once when this one comes on is the settings screen's own, which
+                // runs whenever it does (`SettingsScreen`): the job asks for no run of its own, or GitHub
+                // was asked twice in one instant with *Notify me* already on (inventory I-967).
+                onCheckedChange = { on ->
+                    scope.launch {
+                        prefs.setAutomaticUpdateCheckEnabled(on)
+                        UpdateCheckJobs.reconcile(context, checkAtOnce = false)
+                    }
+                },
             )
             // **A row of its own, under the switch it depends on, and greyed while that one is
             // off** (A1, v5.7D). Not a new meaning for the switch above: somebody turned that on to
@@ -362,22 +386,27 @@ internal fun AdvancedScreen(
             // was repaired one round ago.
             //
             // **On only if a notification can really arrive** (v5.10C, the maintainer's decision of
-            // 2026-09-30, inventory I-201): the phone must let PaperScrape post, and PaperScrape must
-            // be the wallpaper, because the check runs inside it. Otherwise the switch is off, the line
-            // says what is missing, and the tap goes where it is put right -- the phone's notification
-            // page, the permission dialog, or the system's wallpaper preview. The saved choice is not
-            // written to make the switch look right: it comes back by itself. The whole rule is
-            // `UpdateNotificationPolicy.notifyRow`.
-            val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
+            // 2026-09-30, inventory I-201): the phone must let PaperScrape post. Otherwise the switch is
+            // off, the line says what is missing, and the tap goes where it is put right -- the phone's
+            // notification page or the permission dialog. The saved choice is not written to make the
+            // switch look right: it comes back by itself. The whole rule is
+            // `UpdateNotificationPolicy.notifyRow`. Since v5.15 PaperScrape need not be the wallpaper:
+            // the phone's job scheduler checks with any (`UpdateCheckJobService`).
             val notifyRow = UpdateNotificationPolicy.notifyRow(
                 automaticCheckEnabled = settings.automaticUpdateCheckEnabled,
                 notifySwitchOn = settings.updateNotificationsEnabled,
                 permission = phoneNotifications.permission,
                 appNotificationsEnabled = phoneNotifications.appNotificationsEnabled,
                 channelTurnedOff = phoneNotifications.channelTurnedOff,
-                isTheWallpaper = isTheWallpaper,
                 requestRefused = permissionRefused,
             )
+            /** Stores *Notify me* and puts the update job where the two switches say (v5.15). */
+            fun storeNotify(on: Boolean) {
+                scope.launch {
+                    prefs.setUpdateNotificationsEnabled(on)
+                    UpdateCheckJobs.reconcile(context, userTurnedOn = on)
+                }
+            }
             fun openPhonePage(intent: Intent) {
                 // The per-app page, or, on a phone that has none, the app's details, which link to it.
                 runCatching { context.startActivity(intent) }.onFailure {
@@ -395,8 +424,6 @@ internal fun AdvancedScreen(
                         stringResource(R.string.settings_update_notify_blocked_ask)
                     UpdateNotificationPolicy.NotifyRowLine.REFUSED ->
                         stringResource(R.string.settings_update_notify_refused)
-                    UpdateNotificationPolicy.NotifyRowLine.NOT_THE_WALLPAPER ->
-                        stringResource(R.string.settings_update_notify_not_wallpaper)
                     UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION ->
                         stringResource(R.string.settings_update_notify_subtitle)
                 },
@@ -406,11 +433,10 @@ internal fun AdvancedScreen(
                 onCheckedChange = {
                     when (notifyRow.tap) {
                         UpdateNotificationPolicy.NotifyTap.NOTHING -> Unit
-                        UpdateNotificationPolicy.NotifyTap.TURN_OFF ->
-                            scope.launch { prefs.setUpdateNotificationsEnabled(false) }
+                        UpdateNotificationPolicy.NotifyTap.TURN_OFF -> storeNotify(false)
                         UpdateNotificationPolicy.NotifyTap.TURN_ON -> {
                             permissionRefused = false
-                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            storeNotify(true)
                         }
                         // Ask *before* storing, so the stored value and what the user will actually
                         // see agree: a saved "on" with the permission refused reads as blocked.
@@ -425,30 +451,23 @@ internal fun AdvancedScreen(
                                 permissionRefused = !granted
                                 phoneNotifications = UpdateNotifier.phoneState(context)
                                 when {
-                                    granted -> {
-                                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
-                                        if (!isTheWallpaper) onApplyWallpaper()
-                                    }
+                                    granted -> storeNotify(true)
                                     // The system will not ask again: the phone's page is the one place
                                     // left, and the choice is saved so it shows on once allowed there.
                                     !canAskAgain && pageAfterRefusal -> {
-                                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                                        storeNotify(true)
                                         openPhonePage(UpdateNotifier.appNotificationSettingsIntent(context))
                                     }
                                 }
                             }
                         }
                         UpdateNotificationPolicy.NotifyTap.OPEN_APP_NOTIFICATIONS -> {
-                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            storeNotify(true)
                             openPhonePage(UpdateNotifier.appNotificationSettingsIntent(context))
                         }
                         UpdateNotificationPolicy.NotifyTap.OPEN_CHANNEL -> {
-                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            storeNotify(true)
                             openPhonePage(UpdateNotifier.channelSettingsIntent(context))
-                        }
-                        UpdateNotificationPolicy.NotifyTap.SET_AS_WALLPAPER -> {
-                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
-                            onApplyWallpaper()
                         }
                     }
                 },
@@ -460,7 +479,7 @@ internal fun AdvancedScreen(
                 },
                 supporting = when (val state = updateState) {
                     is UpdateUiState.UpToDate -> "You're up to date (v${BuildConfig.VERSION_NAME})"
-                    is UpdateUiState.CheckFailed -> UpdateCheckResult.Unreachable(state.reason).message
+                    is UpdateUiState.CheckFailed -> UpdateCheckResult.Unreachable(state.reason, state.limitedUntilMillis).message
                     is UpdateUiState.Available -> "Update available - PaperScrape ${state.info.tagName}"
                     is UpdateUiState.Downloading -> "Downloading..."
                     is UpdateUiState.Verifying -> "Verifying..."
@@ -471,7 +490,7 @@ internal fun AdvancedScreen(
                 enabled = updateState.allowsChecking,
                 supportingIsAccent = updateState is UpdateUiState.Available ||
                     updateState is UpdateUiState.ReadyToInstall,
-                onClick = { scope.launch { updateState = checkForUpdate(updateReplyStore, onUpdateFound) } },
+                onClick = { startCheck() },
             )
         }
 
@@ -487,7 +506,7 @@ internal fun AdvancedScreen(
             },
             onGrantPermission = { permissionLauncher.launch(ApkInstaller.installPermissionIntent(context)) },
             onOpenReleasePage = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-            onRetry = { scope.launch { updateState = checkForUpdate(updateReplyStore, onUpdateFound) } },
+            onRetry = { startCheck() },
             onDismiss = { updateState = UpdateUiState.Idle },
         )
 
@@ -699,7 +718,11 @@ internal sealed interface UpdateUiState {
      * nothing to clean up -- the question simply was not answered. It is also not [UpToDate], which
      * is the whole point (see [checkForUpdate]).
      */
-    data class CheckFailed(val reason: UpdateCheckResult.Unreachable.Reason) : UpdateUiState
+    data class CheckFailed(
+        val reason: UpdateCheckResult.Unreachable.Reason,
+        /** With [UpdateCheckResult.Unreachable.Reason.RATE_LIMITED]: when GitHub said this network may ask again (v5.15). */
+        val limitedUntilMillis: Long = 0L,
+    ) : UpdateUiState
 
     data class Available(val info: UpdateInfo) : UpdateUiState
 
@@ -712,7 +735,7 @@ internal sealed interface UpdateUiState {
     data class NeedsPermission(val apk: java.io.File) : UpdateUiState
     data class Error(val message: String, val releasePageUrl: String? = null) : UpdateUiState
 
-    /** A check may be started from any state except one already in flight. */
+    /** A check may be started from any state except one already in flight: checking, downloading or verifying. */
     val allowsChecking: Boolean
         get() = this !is Checking && this !is Downloading && this !is Verifying
 }
@@ -728,8 +751,10 @@ internal sealed interface UpdateUiState {
  * than the failure simply being reported everywhere.
  */
 private suspend fun checkForUpdate(store: UpdateReplyStore, onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
-    // The reply kept from the last check answers for a list GitHub says has not changed (v5.10D).
-    val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, store)
+    // The reply kept from the last check answers for a list GitHub says has not changed (v5.10D). The
+    // user has just asked, so GitHub is asked even inside a limit it set (v5.15): it may have lifted,
+    // or the phone be on another network; refused again, the row says until when.
+    val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, store, honourLimit = false)
     if (result is UpdateCheckResult.Available) onUpdateFound(result.info)
     return updateStateFor(result)
 }
@@ -738,7 +763,7 @@ private suspend fun checkForUpdate(store: UpdateReplyStore, onUpdateFound: (Upda
 internal fun updateStateFor(result: UpdateCheckResult): UpdateUiState = when (result) {
     is UpdateCheckResult.Available -> UpdateUiState.Available(result.info)
     UpdateCheckResult.UpToDate -> UpdateUiState.UpToDate
-    is UpdateCheckResult.Unreachable -> UpdateUiState.CheckFailed(result.reason)
+    is UpdateCheckResult.Unreachable -> UpdateUiState.CheckFailed(result.reason, result.limitedUntilMillis)
 }
 
 /**

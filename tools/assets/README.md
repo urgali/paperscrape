@@ -100,10 +100,15 @@ tests/                    tests that the fidelity criterion can fail
 build_occluder_table.py   writes engine/SpriteOccluderTable.kt (above)
 buildings/                the neighbourhood generator and its budget report
 fir/                      the Christmas fir's generator (v5.14)
+sleigh/                   Santa's sleigh and reindeer's generator (v5.15)
+moon/                     the Halloween moon's generator (v5.15)
+notification/             the update notification's small icon's generator (v5.15)
+papercut.py               the paper-cutout geometry the sleigh's and the moon's generators share (cut edges, under-papers, the 3-px grid)
 concepts/                 the drawing scripts of the people, the lake and the sky, beside their proposals
 ```
 
-The generators that write artwork into `res/drawable-nodpi`:
+The generators that write artwork into `res/` (into `drawable-nodpi`; the fir of the Christmas launcher icon and the
+notification's icon into `drawable`):
 
 - **The buildings.** From `tools/assets`, `python3 -m buildings.build_neighbourhood --res
   --registry --budget` draws every piece of the nine building families into `buildings/out/`
@@ -120,6 +125,22 @@ The generators that write artwork into `res/drawable-nodpi`:
   the card's baubles) and the fir of `res/drawable/ic_launcher_christmas_foreground.xml` between its two
   markers; `--check` writes nothing and fails unless every committed output is what it draws
   (`tests/test_fir.py` makes the same comparison).
+- **Santa's sleigh.** From `tools/assets`, `python3 sleigh/build_sleigh.py --res` draws the sleigh with Santa and the
+  presents and the reindeer in four poses into `sources/svg/santa_sleigh.svg` and `santa_reindeer_0..3.svg`, renders them
+  into the runtime directory and writes `engine/SantaSleighTable.kt` (where each piece stands, the cords' points, Rudolph's
+  nose, the size the maintainer chose against the people); `--check` writes nothing and fails unless every committed output
+  is what it draws, and `tests/test_sleigh.py` also erodes every colour of the group as the renderer draws it -- its cords
+  included, in the drawer's own order, at every moment of the gallop -- for the 2 px rule on the BV6600 (every piece 2 px
+  somewhere), and measures the buckle's four bars and its hole everywhere they show.
+- **The Halloween moon.** `python3 moon/build_jack_moon.py --res` draws the full moon with the jack-o'-lantern's face cut
+  out (`moon_jack_o_lantern`, a mask) and the light behind the face (`moon_jack_o_lantern_light`, fixed art, trimmed to the
+  face, its orange rim a band of `RIM` all along every cut); `--check` as above, `tests/test_jack_moon.py`, which measures
+  the rim everywhere -- no yellow nearer a cut's edge than 2 px of the BV6600's wallpaper --, every piece and cut and the
+  paper between two cuts 2 px or more on the gallery card; the grin's teeth no test measures (the generator's docstring says how
+  long they are: the first, 1.8 to 2.1 px on the card, is the maintainer's choice of 2026-10-20).
+- **The update notification's small icon.** `python3 notification/build_glyph.py` writes `res/drawable/ic_stat_update.xml`,
+  a vector drawable -- not a PNG, so it has no entry in `sources/sprites.json` -- with every gap and band 2 px or more at
+  17 and 24 dp on the BV6600 (density 2); `--check`, `--preview DIR`, `tests/test_glyph.py`.
 - **The people.** Drawn by `concepts/people/build_people_concepts.py` and written by two scripts in
   `tools/`, run from the repository root in this order: `tools/generate_people_layers.py` writes
   every figure as fixed art plus up to four region masks, and `engine/PeopleLayerTable.kt`;
@@ -230,7 +251,7 @@ does with it, and it disagreed with the call sites twice. It declared
 `star_sparkle` `CANVAS_PIXELS`, which would draw the 180px sparkle three times too
 large; the registry keeps `SCENE_UNITS`, because a *convention* is a fact about the
 call site and `PaperRenderer.drawStars` is where it lives (the entry's `notes` say
-so). It declared `santa_sleigh_scene` `SCENE_UNITS` where the call site then said
+so). It declared `santa_sleigh_scene` (the sleigh until v5.15) `SCENE_UNITS` where the call site then said
 `CANVAS_PIXELS`, and there the manifest was right — the sprite had been redrawn on
 the authoring grid — so the call site was changed to agree with it.
 

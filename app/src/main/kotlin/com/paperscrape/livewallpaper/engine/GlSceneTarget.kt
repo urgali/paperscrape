@@ -83,6 +83,9 @@ internal class GlSceneTarget : SceneCanvas {
 
     val atlasRowsUsed: Int get() = textures.atlasRowsUsed
 
+    /** Whether the texture cache holds [resId] at some level (the GL sweeps' check, v5.15C2). */
+    fun holdsSprite(resId: Int): Boolean = textures.holds(resId)
+
     private val vertexData = FloatArray(MAX_VERTICES * GlSpriteProgram.FLOATS_PER_VERTEX)
     private val vertexBuffer: FloatBuffer = ByteBuffer
         .allocateDirect(vertexData.size * GlSpriteProgram.BYTES_PER_FLOAT)

@@ -116,10 +116,12 @@ class UpdateCheckOutcomeTest {
 
     @Test
     fun `an http error is not up to date`() {
+        // A 429 is the rate limit whatever its headers say (v5.15); a 403 is only with them (`UpdateCheckRateLimitTest`).
         for (status in listOf(403, 404, 429, 500, 503)) {
+            val reason = if (status == 429) UpdateCheckResult.Unreachable.Reason.RATE_LIMITED else UpdateCheckResult.Unreachable.Reason.SERVER_ERROR
             assertEquals(
                 "HTTP $status must not be reported as up to date",
-                UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR),
+                UpdateCheckResult.Unreachable(reason),
                 check(serve(status, """{"message":"rate limit exceeded"}""")),
             )
             stop()
@@ -158,6 +160,6 @@ class UpdateCheckOutcomeTest {
         val messages = UpdateCheckResult.Unreachable.Reason.entries.map {
             UpdateCheckResult.Unreachable(it).message
         }
-        assertEquals("three reasons, three sentences", messages.size, messages.toSet().size)
+        assertEquals("every reason, its own sentence", messages.size, messages.toSet().size)
     }
 }

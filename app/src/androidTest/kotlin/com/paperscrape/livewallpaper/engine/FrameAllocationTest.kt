@@ -33,9 +33,10 @@ import org.junit.runner.RunWith
  * shows no site in either). The scene scrolls, as the wallpaper does.
  *
  * **Events are not frames.** A firework burst, a gift thrown from the sleigh and a sleigh setting
- * off are an object each when they happen -- every few seconds, not every frame -- so the five
+ * off are an object each when they happen -- every few seconds, not every frame -- so the seven
  * scenes that have them (Christmas and New Year's Eve at night, Christmas at noon and at 23:00 with
- * the distant houses -- the sleigh flies by day too -- and everything on at once at Christmas) are
+ * the distant houses -- the sleigh flies by day too -- everything on at once at Christmas, and since
+ * v5.15 Christmas at noon and at night with the sleigh held in flight in every counted frame) are
  * held to "fewer objects than a tenth of the frames" and log their exact
  * count; every other scene is held to zero.
  *
@@ -52,6 +53,8 @@ class FrameAllocationTest {
         val hour: Float,
         val weather: LiveWeatherSnapshot? = null,
         val events: Boolean = false,
+        /** From 0 to 1, the sleigh held in flight at that point of its crossing in every frame (v5.15); negative, as it flies. */
+        val sleighHeld: Float = -1f,
         val customise: (SceneCustomization) -> SceneCustomization = { it },
     )
 
@@ -177,6 +180,11 @@ class FrameAllocationTest {
         Scene("autumn-christmas-lights-night", "autumn", 1f, customise = { it.copy(christmasDecorationsEnabled = true) }),
         Scene("christmas-distant-houses-night", "christmas", 23f, events = true, customise = distantHouses),
         Scene("shut-by-day", "autumn", 12f, customise = shutAtNoon),
+        // v5.15 (inventory I-934): the sleigh of v5.15 held in flight in every counted frame, by day and at night, so its
+        // drawing is in the count -- a flight of 9 to 13 s every 34 to 73 s may otherwise miss the 150 frames, and the
+        // prototype's `Paint.alpha =` allocated two objects a frame there (inventory I-942).
+        Scene("christmas-sleigh-noon", "christmas", 12f, events = true, sleighHeld = 0.5f),
+        Scene("christmas-sleigh-night", "christmas", 1f, events = true, sleighHeld = 0.5f),
         Scene("everything-on-evening", "city", 21f, customise = everything),
         Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
         Scene(
@@ -222,6 +230,7 @@ class FrameAllocationTest {
             renderer.liveWeatherOverride = scene.weather
             renderer.lightningStrikesEnabled = false
             renderer.scrollSpeed = 0.15f
+            renderer.holdSantaSleighForTest(scene.sleighHeld)
             val dayPhase = SunPositionCalculator.compute(hour24 = scene.hour)
             var time = SceneTime(0.0)
             repeat(WARM_UP_FRAMES) {

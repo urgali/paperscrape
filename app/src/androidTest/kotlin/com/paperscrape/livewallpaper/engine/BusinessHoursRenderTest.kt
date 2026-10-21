@@ -96,7 +96,7 @@ class BusinessHoursRenderTest {
         val closed = render(hour = 13f, enabled = true, open = 15f, close = 20f)
         val differing = SceneGolden.differingFraction(open, closed)
         assertTrue(
-            "closing by day must show on the frame -- the blinds, the shutter, nobody at the glass (differing " +
+            "closing by day must show on the frame -- the blinds and the shutter (differing " +
                 "fraction $differing)",
             differing > 0.0,
         )

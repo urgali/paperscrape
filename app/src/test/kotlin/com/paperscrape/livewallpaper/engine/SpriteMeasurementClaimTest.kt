@@ -230,7 +230,6 @@ class SpriteMeasurementClaimTest {
         Declared("PalmSpriteLayout.kt", "40x40-unit", "history: the crown's canvas before v5.1 redrew it"),
         Declared("TreeSpriteLayout.kt", "10x44 u", "history: the v4.20 trunk, a drawRect and never a sprite"),
         Declared("PaperRenderer.kt", "768x510 px", "history: the canvas the old cloud origin centred, which never shipped"),
-        Declared("PaperRenderer.kt", "624x168", "history: the sleigh canvas an orphaned KDoc used to quote, cited twice as such", times = 2),
         Declared("SceneObjectRenderer.kt", "47x44 units", "history: the seated bust canvas before v4.25 trimmed it"),
         Declared("SceneObjectRenderer.kt", "159x171 px", "history: the window bust canvas before REN-07"),
         Declared("SceneObjectRenderer.kt", "297x174", "history: firetruck_body's size from v4.19 until its redraw"),

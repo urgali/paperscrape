@@ -128,9 +128,17 @@ class SpriteCanvasConventionTest {
             // same sentence.
             val isRegionMask = name.matches(MASK_NAME) || name.matches(NEIGHBOURHOOD_LAYER) ||
                 name.matches(VEHICLE_SHEET)
-            val loadBearing = name in marginIsLoadBearing || isRegionMask
+            // **v5.15's generated pieces are exempt as a class too, for the grid's reason `tree_fir_snow`
+            // gives**: Santa's sleigh and its reindeer (`tools/assets/sleigh/build_sleigh.py`) are trimmed to
+            // whole units of the 3-px grid, so each side keeps the 0 to 2 px between its ink and the unit's
+            // edge -- whether a given pose's ink reaches a side is where its cut happens to fall, and it moves
+            // with any redraw; the Halloween moon's light (`moon/build_jack_moon.py`) keeps a guard pixel on
+            // every side it trims (ARCHITECTURE.md §5, "The transparent margin is part of the drawing"). Their
+            // origins are the generators', derived with their drawings.
+            val isGridTrimmed = name.matches(GRID_TRIMMED)
+            val loadBearing = name in marginIsLoadBearing || isRegionMask || isGridTrimmed
             if (!touches && !loadBearing) unexpected += name
-            if (touches && isRegionMask) continue
+            if (touches && (isRegionMask || isGridTrimmed)) continue
             if (touches && loadBearing) missing += name
         }
         assertTrue(
@@ -173,7 +181,9 @@ class SpriteCanvasConventionTest {
         // 460 in v5.13: the shop (4 layers), the police station (4) and the fire station, its block and
         // its hose tower each a piece of canvas of its own (8, inventory I-607).
         // 463 in v5.14: the fir's star, a piece of its own, the Christmas bulb (`deco_bulb`) and the wreath (`deco_wreath`).
-        assertEquals("463 sprites are expected", 463, all.size)
+        // 467 in v5.15: Santa's sleigh, two sprites (`santa_sleigh_scene` and `santa_sleigh_trot`), became five (the sleigh
+        // and the reindeer's four poses), and the Halloween moon gained its light (`moon_jack_o_lantern_light`).
+        assertEquals("467 sprites are expected", 467, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -222,7 +232,10 @@ class SpriteCanvasConventionTest {
         // 244 in v5.14: the fir A's star reaches its canvas's foot, the Christmas bulb all four of its edges and the
         // wreath's bow the foot of its canvas; the fir's snow, trimmed to whole units, reaches none and is declared above
         // (the fir reaches its own, as the old one did).
-        assertEquals("244 of them reach a canvas edge", 244, touching)
+        // 245 in v5.15: the old sleigh's two frames reached their left edge; of the five pieces that replace them, three of
+        // the reindeer's poses reach an edge of the canvas their units trim them to and the sleigh and the first pose
+        // do not, and the moon's light keeps its guard pixel -- the generated pieces' exemption above.
+        assertEquals("245 of them reach a canvas edge", 245, touching)
     }
 
     private companion object {
@@ -250,6 +263,9 @@ class SpriteCanvasConventionTest {
         // two stations' since v5.13, whose production names are their pieces' own.
         val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar|school|shop|fire_station|police_station)_(.*_)?(fx|mw|mg)""")
 
+        /** v5.15's generated pieces trimmed on the grid, or with a guard pixel: see the exemption where it is read. */
+        val GRID_TRIMMED = Regex("""santa_sleigh|santa_reindeer_\d|moon_jack_o_lantern_light""")
+
         /**
          * A v5.6F vehicle sheet: a body's paper, a body's glass, or the appliance's.
          *
@@ -272,6 +288,46 @@ class SpriteCanvasConventionTest {
          * an asset change.
          */
         val VEHICLE_SHEET = Regex("""(car_body|car_window|firetruck_body).*""")
+    }
+
+    /**
+     * **The grid-trimmed pieces' exemption, held to what it says** (v5.15C2, inventory I-975): the exemption above takes
+     * them out of both checks, so a margin grown past the grid's would pass there. The sleigh's five pieces keep 0 to 2 px
+     * between their ink and the unit's edge on every side; the moon's light keeps its guard pixel at its left and top and
+     * 1 to 3 px at its right and bottom, where its box was rounded up to the grid.
+     */
+    @Test
+    fun `the grid-trimmed pieces keep only the grid's margin`() {
+        val seen = mutableListOf<String>()
+        for (file in sprites()) {
+            val name = file.nameWithoutExtension
+            if (!name.matches(GRID_TRIMMED)) continue
+            seen += name
+            val (left, top, right, bottom) = margins(ImageIO.read(file))
+            if (name == "moon_jack_o_lantern_light") {
+                assertEquals("$name left: its guard pixel", 1, left)
+                assertEquals("$name top: its guard pixel", 1, top)
+                assertTrue("$name right: $right", right in 1..3)
+                assertTrue("$name bottom: $bottom", bottom in 1..3)
+            } else {
+                for ((side, m) in listOf("left" to left, "top" to top, "right" to right, "bottom" to bottom)) {
+                    assertTrue("$name $side: $m px between its ink and the unit's edge", m in 0..2)
+                }
+            }
+        }
+        assertEquals(6, seen.size)
+    }
+
+    /** Transparent columns and rows between the ink and each edge: left, top, right, bottom. */
+    private fun margins(image: BufferedImage): List<Int> {
+        val w = image.width
+        val h = image.height
+        fun ink(x: Int, y: Int) = image.getRGB(x, y) ushr 24 != 0
+        val left = (0 until w).first { x -> (0 until h).any { ink(x, it) } }
+        val right = w - 1 - (w - 1 downTo 0).first { x -> (0 until h).any { ink(x, it) } }
+        val top = (0 until h).first { y -> (0 until w).any { ink(it, y) } }
+        val bottom = h - 1 - (h - 1 downTo 0).first { y -> (0 until w).any { ink(it, y) } }
+        return listOf(left, top, right, bottom)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

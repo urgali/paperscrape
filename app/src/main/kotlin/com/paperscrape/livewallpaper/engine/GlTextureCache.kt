@@ -114,6 +114,9 @@ internal class GlTextureCache {
 
     val atlasPackedCount: Int get() = atlas.packedCount
 
+    /** Whether [resId] is uploaded at some level. Diagnostics only: a scan of the table, never on the draw path. */
+    fun holds(resId: Int): Boolean = (0 until count).any { resIds[it] == resId }
+
     /**
      * Index of the entry for [resId] at [level], or `-1` if that pairing has not been uploaded yet.
      *

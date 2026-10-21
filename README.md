@@ -51,8 +51,9 @@ moving on its own.
   Christmas fir in tiers with lights and presents, and every building has a string of lights along its
   roof and its windowsills, a wreath on its front door and, on a tower, a star; the gallery cards show
   them too.
-- **Halloween**, and a **horror sky**, as two independent switches. The first carves the
-  moon into a jack-o'-lantern and strips the trees to bare branches; the second turns the
+- **Halloween**, and a **horror sky**, as two independent switches. The first carves a
+  jack-o'-lantern's face into the full moon, lit from inside, strips the trees to bare branches,
+  withers the palms and carves a face on every pumpkin; the second turns the
   sky near-black with a hard orange horizon. The Halloween theme starts with both on;
   either can be turned off afterwards, in any combination, and neither touches winter,
   Christmas or the autumn palette.
@@ -75,7 +76,8 @@ moving on its own.
   needed), WeatherAPI.com or OpenWeather (free account, own API key). If no location is available,
   or the chosen provider needs a key it does not have, it says so and falls back to the
   theme's own weather rather than quietly asking the other service.
-- **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
+- **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
+  on (the Christmas theme starts with it on), fireworks, lightning and birds.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   its lowest a single sporadic car — with a night amount of its own that the road fades to at
   dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
@@ -84,7 +86,7 @@ moving on its own.
   windows and the lamp by the door stay unlit — dark glass at night, like a house's unlit windows. The fire station and the police station never close, and houses are homes
   and are unaffected. All three switches are off by default. By day every lamp by a door is off.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
-  is the theme's own — and shows the switch off and locked while that theme is showing, without
+  is always full, in the theme's moon colour — and shows the switch off and locked while that theme is showing, without
   overwriting what you chose.
 
 ---
@@ -145,8 +147,8 @@ service collects the preferences flow, so changes reach the running scene withou
 restart.
 
 **Theme previews.** A gallery card is a real mini scene, drawn from the shipping sprites
-at the renderer's own part offsets with the theme's own palette, and containing only what
-that theme actually has switched on. It is static: no GL context, no animation, and the
+at the renderer's own part offsets with the theme's own palette, and containing only what that theme
+has switched on -- the moon too, which a card at night, and Halloween's by day, draws only while *Moon* is on. It is static: no GL context, no animation, and the
 sprite pixels are shared with the rest of the process.
 
 **Updates.** Advanced & about checks the GitHub Releases API, downloads the release's own APK,
@@ -154,16 +156,23 @@ verifies it against the SHA-256 the release publishes, and hands it to Android's
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
 downloads or installs without an explicit tap.
 
-Since v5.7 the app can also *tell* you a release exists: with both *Check for updates when I
-open PaperScrape* and *Notify me about new versions* switched on (both are off by default), the
-wallpaper checks about every three hours while it is on screen and posts a silent notification that
-opens the same update dialog. Each check asks GitHub whether anything has changed since the last
-one, and when nothing has, nothing is downloaded. The dialog lists what changed in every release
-since the one you have, in full. It never checks while another wallpaper is set, or while the
-wallpaper is out of sight -- and since v5.10 the switch says so: it reads on only while a
-notification can actually arrive.
+The app can also *tell* you a release exists: with both *Check for updates when I open
+PaperScrape* and *Notify me about new versions* switched on (both are off by default), Android's own
+job scheduler runs a check about every three hours, whenever there is a network -- with the screen
+off and with another wallpaper set too -- and a newer release puts a small house with an arrow in the
+status bar and a notification in the shade and on the lock screen, with no sound and no pop-up, once
+per version; a tap opens the same update dialog. While the phone has PaperScrape's notifications turned off,
+the check with the screen off asks GitHub nothing (opening the settings still checks). Each check asks GitHub whether anything has changed
+since the last one, and when nothing has, nothing is downloaded; two checks that fall in the same moment
+(opening the settings as the job runs, the button pressed during a check) ask GitHub once; when GitHub turns the checks away for
+a while (it allows 60 requests an hour to each internet address without an account), the automatic check
+waits until the moment GitHub gives, and the manual button, which asks anyway, says so. The dialog lists what changed in every release since the
+one you have, in full. The switch reads on only while a notification can actually arrive; the phone
+may delay a check to save battery, and a phone that force-stops the app stops the checks until the app
+runs again.
 
-The flow reports four states — checking, downloading, verifying, ready to install — and cannot be
+While it asks GitHub the button reads "Checking..." and takes no second tap. After it, the flow
+reports three states — downloading, verifying, ready to install — and cannot be
 left stuck on any of them: a cancelled download returns the screen to the offer rather than freezing
 on a progress bar.
 

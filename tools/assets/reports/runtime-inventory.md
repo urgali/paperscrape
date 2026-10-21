@@ -5,10 +5,10 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 463 |
-| Unique contents | 463 |
-| Bytes on disk | 1397.1 KB |
-| Decoded `ARGB_8888` | 48.03 MB |
+| Files | 467 |
+| Unique contents | 467 |
+| Bytes on disk | 1394.7 KB |
+| Decoded `ARGB_8888` | 47.98 MB |
 | Of which transparent padding | 18.85 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
@@ -127,7 +127,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `moon_full` | 240x240 | RGBA | 19,19,221,220 | 30 % | 18 | yes |
 | `moon_gibbous` | 240x240 | RGBA | 65,21,220,219 | 47 % | 18 | yes |
 | `moon_half` | 240x240 | RGBA | 118,21,218,219 | 66 % | 18 | yes |
-| `moon_jack_o_lantern` | 240x240 | RGBA | 20,21,218,218 | 32 % | 1 | yes |
+| `moon_jack_o_lantern` | 240x240 | RGBA | 19,19,221,220 | 30 % | 18 | yes |
+| `moon_jack_o_lantern_light` | 135x102 | RGBA | 1,1,133,101 | 4 % | 67 | yes |
 | `palmtree_fronds` | 168x144 | RGBA | 8,11,165,130 | 23 % | 224 | yes |
 | `palmtree_fronds_dead` | 168x144 | RGBA | 26,44,150,144 | 49 % | 220 | yes |
 | `palmtree_fronds_frost` | 168x144 | RGBA | 8,10,166,129 | 22 % | 420 | yes |
@@ -427,8 +428,11 @@ from the shipped PNGs; nothing is copied from documentation.
 | `restaurant_pavilion_snow_fx` | 312x72 | RGBA | 2,2,310,70 | 7 % | 39 | yes |
 | `sailboat_hull` | 246x51 | RGBA | 2,0,246,51 | 1 % | 71 | yes |
 | `sailboat_sail` | 183x180 | RGBA | 3,0,182,180 | 2 % | 77 | yes |
-| `santa_sleigh_scene` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
-| `santa_sleigh_trot` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
+| `santa_reindeer_0` | 144x120 | RGBA | 2,2,143,118 | 5 % | 284 | yes |
+| `santa_reindeer_1` | 129x135 | RGBA | 2,2,129,135 | 3 % | 262 | yes |
+| `santa_reindeer_2` | 126x135 | RGBA | 1,1,126,134 | 2 % | 251 | yes |
+| `santa_reindeer_3` | 129x135 | RGBA | 2,0,129,133 | 3 % | 273 | yes |
+| `santa_sleigh` | 243x210 | RGBA | 2,2,241,208 | 4 % | 545 | yes |
 | `school_fx` | 330x231 | RGBA | 1,0,328,230 | 1 % | 516 | yes |
 | `school_mg` | 294x114 | RGBA | 2,2,292,112 | 5 % | 1 | yes |
 | `school_mw` | 330x228 | RGBA | 1,0,328,228 | 1 % | 1 | yes |

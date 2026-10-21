@@ -49,6 +49,7 @@ import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 /**
  * The name of this store's file, shared with the instrumented tests: the recovery test corrupts a
@@ -138,8 +139,9 @@ data class WallpaperSettings(
     val liveWeatherStatus: String = LiveWeatherStatus.OFF.storageId,
     /**
      * Whether the app may check GitHub for a new release on its own: when the settings screen
-     * opens, and -- together with [updateNotificationsEnabled] -- from the wallpaper engine's check
-     * every three hours (`UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS`).
+     * opens, and -- together with [updateNotificationsEnabled] -- from the update job's check every
+     * three hours (`UpdateCheckJobService`, v5.15; the wallpaper engine's loop until then,
+     * `UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS`).
      *
      * Off by default, and deliberately: the check used to run on every open, which is a network
      * request the user never asked for. The manual button is always available, so opting out costs
@@ -1175,6 +1177,31 @@ class WallpaperPrefs internal constructor(
     suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
         store.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
 
+    /** The two update switches as stored: what the update job reads, and nothing else (v5.15). */
+    data class UpdateSwitches(val automaticCheck: Boolean, val notifications: Boolean)
+
+    /**
+     * The two update switches, read once from the store (v5.15): what `UpdateCheckJobs` schedules the job
+     * from and what each run of it reads first. Not [settingsFlow], which builds every setting of the app
+     * and emits again whenever the saved themes change; and never a screen's state, whose first value is a fresh install's.
+     *
+     * **Null when the read fails for a passing reason** (an `IOException`, inventory I-968), not a fresh
+     * install's switches: [PrefsRecovery.recoveringFromReadErrors] serves those for one emission of a flow that
+     * will read again, and here they would be acted on -- both off, the job cancelled until the next start.
+     * A corrupt file is the store's own handler's (it is rewritten empty once, and reads as both off).
+     */
+    suspend fun readUpdateSwitches(): UpdateSwitches? {
+        val prefs = try {
+            store.data.first()
+        } catch (_: IOException) {
+            return null
+        }
+        return UpdateSwitches(
+            automaticCheck = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
+            notifications = prefs[Keys.UPDATE_NOTIFICATIONS] ?: false,
+        )
+    }
+
     suspend fun setUpdateNotificationsEnabled(enabled: Boolean) =
         store.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
 
@@ -1803,7 +1830,7 @@ class WallpaperPrefs internal constructor(
             prefs.remove(Keys.PUBLIC_CLOSE_HOUR)
         }
         // And the trees carry the Palms switch, which is on their page since v5.10C2 (the
-        // maintainer: *«il flag non deve stare in summer ma in tree»*): "Reset Trees to default" puts
+        // maintainer, 2026-10-03: *«il flag non deve stare in summer ma in tree»*): "Reset Trees to default" puts
         // the palms back to the theme's own -- on Beach and Desert, on; elsewhere, off -- and
         // "Reset decorations to defaults" no longer does (v5.10E, inventory I-294, the maintainer's
         // *«3 - si»* of 2026-10-04). Both fields of the switch, as every wipe here removes them.

@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -17,8 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  * of the v5.10A table, inventory I-244).
  *
  * Until v5.10D every check downloaded the whole first page of the release list -- 252 KB to read,
- * ~51 KB on the wire, measured 2026-10-03 -- and the engine checks every three hours since the same
- * round. GitHub's real reply to a conditional request is a 304 with no body
+ * ~51 KB on the wire, measured 2026-10-03 -- and the app checks every three hours since the same
+ * round (from the phone's job scheduler since v5.15). GitHub's real reply to a conditional request is a 304 with no body
  * (`consegna_v5_10d/registri/rete/`); these tests stand a loopback server that keeps the same
  * contract, so what is asserted is the bytes the client asks for and what it concludes, not a mock of
  * the checker.
@@ -236,18 +237,25 @@ class UpdateCheckConditionalTest {
         assertNull("an unanswered check is never kept", SavedUpdateReply.fromJson("""{"etag":"x","forVersionName":"5.9","apiUrl":"u"}"""))
     }
 
+    /**
+     * The three callers since v5.15 -- the update job of the phone's scheduler, the settings screen's check and the
+     * button -- each pass the store, so each asks "has anything changed?" and each keeps GitHub's limit; only the button
+     * the user has just pressed asks inside it (`honourLimit = false`), and the settings screen's check when a tapped
+     * notification asked. The wallpaper engine checks no more.
+     */
     @Test
     fun `the three callers in the app pass the store`() {
-        val engine = source("engine/PaperWallpaperService.kt")
+        val job = source("update/UpdateCheckJobService.kt")
         val home = source("ui/SettingsScreen.kt")
         val advanced = source("ui/AdvancedScreen.kt")
-        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(BuildConfig\.VERSION_NAME, updatePrefs\)""").find(engine))
-        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(BuildConfig\.VERSION_NAME, updatePrefs\)""").find(home))
-        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(BuildConfig\.VERSION_NAME, store\)""").find(advanced))
+        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(BuildConfig\.VERSION_NAME, updatePrefs, takeRecentAnswer = true\)""").find(job))
+        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(\s*BuildConfig\.VERSION_NAME,\s*updatePrefs,\s*honourLimit = !askedByNotification,""").find(home))
+        assertNotNull(Regex("""UpdateChecker\.checkForUpdate\(BuildConfig\.VERSION_NAME, store, honourLimit = false\)""").find(advanced))
         assertTrue("UpdatePrefs is the store", source("update/UpdatePrefs.kt").contains("class UpdatePrefs(private val context: Context) : UpdateReplyStore"))
-        for (text in listOf(engine, home, advanced)) {
+        for (text in listOf(job, home, advanced)) {
             assertEquals("no caller checks without the store", 0, Regex("""checkForUpdate\(BuildConfig\.VERSION_NAME\)""").findAll(text).count())
         }
+        assertFalse("the engine checks no more", source("engine/PaperWallpaperService.kt").contains("checkForUpdate"))
     }
 
     private fun source(path: String): String {

@@ -20,14 +20,22 @@ import com.paperscrape.livewallpaper.ui.SettingsActivity
  *
  * ### What it is allowed to be
  *
- * A live wallpaper that interrupts its user is a live wallpaper that gets uninstalled, so every
- * choice here is the quiet one and each is deliberate:
+ * A live wallpaper that interrupts its user is a live wallpaper that gets uninstalled, so it makes
+ * no sound -- and since v5.15 it is seen (the maintainer's *«A – icona in alto, senza suono
+ * (consigliata)»*, 2026-10-19):
  *
- * - **[NotificationManagerCompat.IMPORTANCE_LOW]** — it appears in the shade and on the lock screen
- *   and does nothing else. No sound, no vibration, no heads-up banner. On API 26+ importance is a
- *   property of the *channel* and cannot be raised per notification, which is the point: a future
- *   edit cannot make this louder without changing the channel, and the user can always make it
- *   quieter still from system settings;
+ * - **[NotificationManagerCompat.IMPORTANCE_DEFAULT] with the sound and the vibration taken off the
+ *   channel** ([CHANNEL_ID]) — its icon in the status bar, the notification among the normal ones in
+ *   the shade and on the lock screen; no sound, no vibration, no heads-up banner (that is
+ *   [NotificationManagerCompat.IMPORTANCE_HIGH]'s). Until v5.15 the channel was
+ *   [NotificationManagerCompat.IMPORTANCE_LOW]: on the BV6600 a silent notification at the bottom of
+ *   the shade, and in the status bar the launcher's silhouette at 17 dp, which nobody could read. On
+ *   API 26+ importance is a property of the *channel* and cannot be raised once the channel exists,
+ *   so the louder one is a new channel and the old one is deleted ([ensureChannel]);
+ * - **its own small icon** ([R.drawable.ic_stat_update]): a house with an arrow cut out of it, drawn
+ *   for 24 dp by `tools/assets/notification/build_glyph.py`, every gap 2 px or more where Android 10
+ *   draws a status-bar icon (17 dp). It replaces the launcher's silhouette in the shade too, beside the
+ *   app's name;
  * - **`setAutoCancel(true)`** — tapping it takes it away, so the shade does not accumulate;
  * - **one notification per version tag**, which is enforced twice over. The platform tag is the
  *   release tag, so two posts about `v5.7` replace each other rather than stack; and
@@ -51,8 +59,21 @@ import com.paperscrape.livewallpaper.ui.SettingsActivity
  */
 object UpdateNotifier {
 
-    /** Stable across releases: renaming it would orphan every user's notification setting for it. */
-    const val CHANNEL_ID = "update_available"
+    /**
+     * The channel since v5.15: [NotificationManagerCompat.IMPORTANCE_DEFAULT], no sound, no vibration.
+     * Stable from here on: renaming it would orphan every user's notification setting for it.
+     */
+    const val CHANNEL_ID = "update_new_release"
+
+    /**
+     * The channel until v5.14, [NotificationManagerCompat.IMPORTANCE_LOW]. Deleted by [ensureChannel];
+     * a user who had turned it off finds [CHANNEL_ID] off as well. The phone's notification settings then
+     * say "1 category deleted", which Android writes for every channel an app deletes.
+     */
+    const val OLD_CHANNEL_ID = "update_available"
+
+    /** The app's own orange on the notification's header: `PaperOrangeDark`, `DESIGN_NOTES.md` §7. */
+    const val NOTIFICATION_COLOUR = 0xFFB5651D.toInt()
 
     /**
      * One id for every update notification, because the *tag* is what distinguishes them.
@@ -108,8 +129,12 @@ object UpdateNotifier {
         )
     }
 
-    /** The phone's side of [PhoneState], read now. */
+    /**
+     * The phone's side of [PhoneState], read now -- after [ensureChannel], so a user who had turned the
+     * channel of v5.14 off reads off before anything is posted (v5.15).
+     */
     fun phoneState(context: Context): PhoneState {
+        ensureChannel(context)
         val manager = NotificationManagerCompat.from(context)
         return PhoneState(
             permission = notificationPermission(context),
@@ -133,26 +158,57 @@ object UpdateNotifier {
     fun appDetailsIntent(context: Context): Intent =
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
 
-    /** The phone's page for the *Update available* channel alone, for when only that is turned off. */
+    /** The phone's page for the *Update available* channel ([CHANNEL_ID]) alone, for when only that is turned off. */
     fun channelSettingsIntent(context: Context): Intent =
         Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
             .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
             .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
 
     /**
-     * Creates the channel if it is not there, which is safe to call as often as one likes.
+     * Creates the channel if it is not there, and deletes the one of v5.14 -- safe to call as often as
+     * one likes ([phoneState] and [post] both do).
      *
-     * Called before every post rather than once at startup: posting happens only in the wallpaper
-     * engine's loop, and nothing else creates the channel. The platform treats a repeat creation
-     * as a no-op, and it will not raise an existing channel's importance — a user who has turned
-     * this down stays turned down.
+     * **A choice the user made in the phone's settings is carried over** (v5.15, inventory I-923): the
+     * new channel is created off ([NotificationManagerCompat.IMPORTANCE_NONE]) where the old one had been
+     * turned off, and at the lowest importance where it had been turned down to that; otherwise at the
+     * default importance with no sound and no vibration ([channelImportance]). Once it exists the
+     * platform treats a repeat creation as a no-op -- it updates the name and the description and nothing
+     * the user chose -- and it will not raise its importance: a user who turns it down stays turned down.
      */
     fun ensureChannel(context: Context) {
-        val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-            .setName(context.getString(R.string.update_channel_name))
-            .setDescription(context.getString(R.string.update_channel_description))
-            .build()
-        NotificationManagerCompat.from(context).createNotificationChannel(channel)
+        val manager = NotificationManagerCompat.from(context)
+        if (manager.getNotificationChannelCompat(CHANNEL_ID) == null) {
+            val old = manager.getNotificationChannelCompat(OLD_CHANNEL_ID)?.importance
+            manager.createNotificationChannel(
+                NotificationChannelCompat.Builder(CHANNEL_ID, channelImportance(old))
+                    .setName(context.getString(R.string.update_channel_name))
+                    .setDescription(context.getString(R.string.update_channel_description))
+                    .setSound(null, null)
+                    .setVibrationEnabled(false)
+                    .setLightsEnabled(false)
+                    .build(),
+            )
+        } else {
+            // The name and the description only: the platform keeps everything else as the user set it.
+            manager.createNotificationChannel(
+                NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+                    .setName(context.getString(R.string.update_channel_name))
+                    .setDescription(context.getString(R.string.update_channel_description))
+                    .build(),
+            )
+        }
+        if (manager.getNotificationChannelCompat(OLD_CHANNEL_ID) != null) manager.deleteNotificationChannel(OLD_CHANNEL_ID)
+    }
+
+    /**
+     * The new channel's importance from the old one's, or null where there was none (v5.15): off stays
+     * off, the lowest stays the lowest, and anything else -- the old channel as it shipped, or no old
+     * channel -- is [NotificationManagerCompat.IMPORTANCE_DEFAULT]. Pure: `UpdateChannelTest`.
+     */
+    fun channelImportance(oldImportance: Int?): Int = when (oldImportance) {
+        NotificationManagerCompat.IMPORTANCE_NONE -> NotificationManagerCompat.IMPORTANCE_NONE
+        NotificationManagerCompat.IMPORTANCE_MIN -> NotificationManagerCompat.IMPORTANCE_MIN
+        else -> NotificationManagerCompat.IMPORTANCE_DEFAULT
     }
 
     /**
@@ -170,11 +226,11 @@ object UpdateNotifier {
      * a lock screen in one glance, and "which version am I on" is the second question, not the first.
      */
     fun post(context: Context, tagName: String, currentVersionName: String): Boolean {
+        // The channel is made (and the old one's "off" carried over) before the phone is asked about it.
         val phone = phoneState(context)
         if (!UpdateNotificationPolicy.mayPost(phone.permission)) return false
-        // Only ever called with *Notify me about new versions* on (the engine's loop checks it first).
+        // Only ever called with *Notify me about new versions* on (the update job checks it first).
         if (phone.blocks(notifySwitchOn = true)) return false
-        ensureChannel(context)
 
         // FLAG_IMMUTABLE is mandatory from API 31 and available from 23, so it is unconditional
         // rather than version-gated. Nothing here needs to fill the intent in later.
@@ -190,14 +246,18 @@ object UpdateNotifier {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            // The themed-icon silhouette the launcher already ships. A notification small icon is
-            // drawn as a tinted mask, which is exactly what this drawable was drawn to be, so the
-            // feature costs no new artwork and no atlas row.
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            // A glyph drawn for the status bar (v5.15): the launcher's silhouette, which was the icon
+            // until then, is 0.71 px at its narrowest at 24 dp and about half a pixel at the bar's 17 dp
+            // (the registered exception of 2026-09-23, which leaned on the app's name written beside it
+            // in the shade -- the bar has no name).
+            .setSmallIcon(R.drawable.ic_stat_update)
+            .setColor(NOTIFICATION_COLOUR)
             .setContentTitle(context.getString(R.string.update_notification_title, tagName))
             .setContentText(context.getString(R.string.update_notification_body, currentVersionName))
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            // Read below API 26 only, which this app does not reach: the channel decides.
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()

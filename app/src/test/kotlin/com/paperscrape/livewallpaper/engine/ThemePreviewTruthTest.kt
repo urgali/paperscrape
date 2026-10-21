@@ -27,8 +27,9 @@ import org.junit.Test
  *
  * - **R1, families.** Every family the scene draws at least once per tile appears on the card, and
  *   the card shows no family the scene does not draw. [EXEMPT_FROM_THE_CARD] lists what is left
- *   out on purpose, each with its reason; [HOUR_DEPENDENT] lists what a card may or may not have
- *   because a card is a single hour and the scene is all of them.
+ *   out on purpose, each with its reason; [HOUR_DEPENDENT] lists what a card may leave out because
+ *   a card is a single hour and the scene is all of them -- but not show with its switch off (the
+ *   moon was, with *Moon* off, until v5.15C2: inventory I-974; R9 holds the moon to its hour).
  * - **R2, place.** Every boat and every dolphin has its ink inside the water band.
  * - **R3, sight.** Nothing is more than half covered by something drawn after it.
  * - **R4, colour and landscape** (v5.8B). The card is one real moment of the wallpaper's day, and
@@ -92,8 +93,10 @@ class ThemePreviewTruthTest {
     private val EXEMPT_FROM_THE_CARD = setOf("PARASOL")
 
     /**
-     * Families whose presence depends on the hour rather than on the theme, so neither their
-     * absence nor their presence can be held against a card: a card is one moment.
+     * Families whose presence depends on the hour rather than on the theme, so their absence cannot be
+     * held against a card: a card is one moment. Their presence can: a card shows none of them with its
+     * switch off, which is the scene drawing none at any hour (until v5.15C2 this list exempted both
+     * directions, and the card drew the moon with *Moon* off: inventory I-974).
      */
     private val HOUR_DEPENDENT = setOf("SUN", "MOON", "CLOUDS")
 
@@ -113,6 +116,8 @@ class ThemePreviewTruthTest {
         "house_small_" to "HOUSE_SMALL",
         "ground_flowers" to "FLOWERS",
         "santa_sleigh" to "SANTA",
+        // v5.15: the sleigh's reindeer, a piece of the same group.
+        "santa_reindeer_" to "SANTA",
         "star_sparkle" to "LIGHTS",
         // The wreath on a front door (v5.14C2): the one sprite of a building's Christmas decorations, its bulbs and star
         // being flat parts.
@@ -374,7 +379,6 @@ class ThemePreviewTruthTest {
             if (actual[family] == null) out += "$label: R1 the scene draws $count $family and the card shows none"
         }
         for (family in actual.keys) {
-            if (family in HOUR_DEPENDENT) continue
             if (expected[family] == null) out += "$label: R1 the card shows $family and the scene draws none"
         }
         return out
@@ -504,6 +508,35 @@ class ThemePreviewTruthTest {
     fun `R1 every family the scene draws is on the card, and nothing else is`() {
         val fails = mutableListOf<String>()
         for ((theme, c) in builtIns()) fails += checkFamilies(theme.id, theme, c, null)
+        report(fails)
+    }
+
+    /**
+     * **R9, the moon** (v5.15C2, inventory I-974). The card shows the moon at night, and with *Halloween* on by day too
+     * (the carved moon, decided: inventory I-936) -- and only while *Moon* is on, as the wallpaper draws it. Every
+     * built-in with *Moon* on and off, *Halloween* on and off, at its own hour, forced to night and forced to day.
+     */
+    @Test
+    fun `R9 the card shows the moon where its hour has it, and only with Moon on`() {
+        val fails = mutableListOf<String>()
+        var shown = 0
+        var hidden = 0
+        for ((theme, base) in builtIns()) for (moonOn in listOf(true, false)) for (halloween in listOf(true, false)) {
+            val c = base.copy(moon = base.moon.copy(visible = moonOn), halloweenEnabled = halloween)
+            for (forceNight in listOf(null, true, false)) {
+                val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+                val expected = moonOn && (night || halloween)
+                val actual = "MOON" in cardFamilies(ThemePreviewScenes.forTheme(theme, c, forceNight))
+                if (actual != expected) {
+                    fails += "${theme.id} moon=$moonOn halloween=$halloween forceNight=$forceNight: R9 the card ${if (actual) "shows" else "leaves out"} the moon"
+                }
+                if (actual) shown++
+                if (!moonOn && (night || halloween)) hidden++
+            }
+        }
+        // Not vacuous: the moon is drawn on some cards, and some cards with *Moon* off are ones its hour would have it on.
+        assertTrue("R9 found no card with the moon", shown > 0)
+        assertTrue("R9 found no card with Moon off at the moon's hour", hidden > 0)
         report(fails)
     }
 
@@ -814,6 +847,16 @@ class ThemePreviewTruthTest {
                 seen?.let { it["DECORATION"] = (it["DECORATION"] ?: 0) + 1 }
             }
             for (part in item.parts.filter { it.isFlat && !it.decoration }) {
+                if (family == "SANTA") {
+                    // Rudolph's nose (v5.15, `SantaSleighDrawer`): a red disc over the reindeer's own, the wallpaper's red at
+                    // every hour -- the sleigh is drawn at night as by day.
+                    if (part.discRadius <= 0f || part.tint != SantaSleighTable.RUDOLPH_NOSE_COLOUR || part.alpha != 255) {
+                        out += "$label: R7 a flat card at x=%.0f is ${hex(part.tint)} on the sleigh, where the wallpaper draws only Rudolph's red nose"
+                            .format(item.x)
+                    }
+                    seen?.let { it["RUDOLPH_NOSE"] = (it["RUDOLPH_NOSE"] ?: 0) + 1 }
+                    continue
+                }
                 if (!house) {
                     // A shut business's blinds and shutter (v5.14, `SceneObjectRenderer.drawShut`): the wallpaper's
                     // own colours at the card's hour, and only on a building the card shows shut.
@@ -940,7 +983,7 @@ class ThemePreviewTruthTest {
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
-        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION")) {
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
     }

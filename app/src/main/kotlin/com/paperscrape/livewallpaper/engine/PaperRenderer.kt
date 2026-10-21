@@ -312,6 +312,24 @@ class PaperRenderer(
     private val fireworkEffect = FireworkEffect()
     private val santaSleighEffect = SantaSleighEffect()
 
+    /** Santa's sleigh group, drawn from its pieces (v5.15). */
+    private val santaSleighDrawer = SantaSleighDrawer(sprites)
+
+    /**
+     * The sleigh group's scale on this screen ([SantaSleighScale.pxPerUnit]) and the screen height it was worked out
+     * for: worked out again, with the effect's margins and gifts, when the screen's height changes (v5.15).
+     */
+    private var sleighPxPerUnit = 0f
+    private var sleighGeometryHeight = -1
+
+    /** For the tests that count a frame with the sleigh in flight (v5.15): see [SantaSleighEffect.heldProgress]. */
+    internal fun holdSantaSleighForTest(progress: Float) {
+        santaSleighEffect.heldProgress = progress
+    }
+
+    /** How many gifts are falling from the sleigh now: for the GL sweeps that hold it in flight (v5.15C2). */
+    internal fun santaGiftsFallingForTest(): Int = santaSleighEffect.giftsFalling
+
     /**
      * Keeps [objectRenderer] in step with the active theme and configuration.
      *
@@ -866,19 +884,12 @@ class PaperRenderer(
         const val LIGHTNING_VEIL_MAX_ALPHA = 180f
 
         /**
-         * What the carved moon is multiplied by, in place of the theme's own moon colour.
-         *
-         * The sprite stays a colourless mask -- `SpriteTintClassTest` requires that of every
-         * tintable sprite, and multiplying one hue by another compounds them -- so the orange has
-         * to arrive at the blit. What the artwork carries instead is one flat light tone with the
-         * face cut out of it, which this colour turns into a flat orange lantern without a
-         * gradient, a glow or a second draw call.
-         *
-         * Fixed rather than derived from the theme. A carved lantern is orange in the same way a
-         * pumpkin is; letting a theme's cool moon colour through would produce a blue jack-o'-
-         * lantern, which is nobody's Halloween.
+         * Where the light inside the Halloween moon's carved face blits, from the moon's centre, in px of the moon's
+         * 240-px frame (v5.15): the corner of `moon_jack_o_lantern_light`, which `tools/assets/moon/build_jack_moon.py`
+         * trims to the face. `tests/test_jack_moon.py` compares these with what the generator works out.
          */
-        const val HALLOWEEN_MOON_COLOUR = 0xFFFF8C2A.toInt()
+        const val HALLOWEEN_LIGHT_ORIGIN_X = -68f
+        const val HALLOWEEN_LIGHT_ORIGIN_Y = -42f
 
         /**
          * The horror sky's four corners: near-black overhead, hard orange at the horizon.
@@ -892,6 +903,13 @@ class PaperRenderer(
         const val HORROR_SKY_TOP_DAY = 0xFF1A1020.toInt()
         const val HORROR_SKY_LOW_NIGHT = 0xFFB03A06.toInt()
         const val HORROR_SKY_LOW_DAY = 0xFFF07A10.toInt()
+
+        /**
+         * Half the side of a gift falling from Santa's sleigh, in the group's units (v5.15): 9 units across, as large
+         * as the presents piled behind him; at the group's scale, so it is in proportion to it on every phone (it was
+         * 22 px on every phone until then).
+         */
+        const val SANTA_GIFT_HALF_UNITS = 4.5f
 
         /**
          * The dolphin's re-entry splash: how long it lasts and how it is timed.
@@ -915,57 +933,6 @@ class PaperRenderer(
         const val SPLASH_ORIGIN_X_UNITS = -27f
         const val SPLASH_ORIGIN_Y_UNITS = -18f
 
-        /**
-         * The sleigh's scale and the X half of its origin, in the units its own `canvas.scale`
-         * establishes.
-         *
-         * `santa_sleigh_scene` is 594x123 px -- 198 x 41 local units -- and so is
-         * `santa_sleigh_trot`. An orphaned KDoc here used to say 624x168 "with a content box of
-         * (12,12)-(610,159)", attached to nothing and describing a canvas that stopped existing at
-         * the v4.7 redraw; `SANTA_CROP_REPORT.md` reported it as stale and left it, and v4.29 is
-         * where it was actually removed.
-         *
-         * **-99.67 is knowingly not the centre of the drawing**, and that is the one thing not to
-         * "fix" here. It is `-598/2/3`, from a content width the sprite had before the v4.7 redraw;
-         * the content is 592 px wide, so the group sits about 3 sprite pixels left of the flight
-         * point. `SANTA_CROP_REPORT.md` assessed exactly this and recorded the decision **not** to
-         * realign, because the sleigh addresses its canvas corner on purpose and the registry
-         * anchor is descriptive metadata. Moving it is an artwork judgement, not a tidy-up.
-         *
-         * [SANTA_SLEIGH_SCALE] keeps the on-screen width the shipped release had: 198 local units
-         * at 1.5 is the 297 px the historical raw-pixel pair produced.
-         */
-        const val SANTA_SLEIGH_SCALE = 1.5f
-        const val SANTA_SLEIGH_ORIGIN_X_UNITS = -99.67f
-
-        /**
-         * Moved by the trim when the sleigh's canvas was normalised, so the drawing keeps the
-         * coordinates it had.
-         *
-         * These two constants address the sprite's **canvas corner**, not its content, which is
-         * what makes a canvas change something they have to follow: the PNG lost 18 rows off the
-         * top (and, harmlessly for the origin, 6 columns off the right and 12 rows off the
-         * bottom), so pixel (0,0) is now 18 sprite pixels lower in the drawing than it was, and
-         * the origin moves down by the same 18 -- six local units -- to cancel it. `-25.5 + 6`.
-         *
-         * X does not move because the trim removed nothing from the left: the content already
-         * started at column 0. That is also why only one of the two numbers changed here, and a
-         * future crop that does take columns off the left has to move X by its own trim.
-         *
-         * `SantaSleighOriginTest` derives this from the shipped PNG rather than trusting the
-         * literal, so forgetting the compensation on a later crop fails instead of flying the
-         * sleigh six units too high.
-         */
-        const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -19.5f
-
-        /**
-         * How fast the sleigh's two leg poses alternate, in poses per second.
-         *
-         * `SceneTime.frameIndex` multiplies by this, so it is a rate and not a duration: 4.5
-         * holds each pose for about a fifth of a second. Fast enough to read as a trot, slow
-         * enough not to blur into one shape at the 30 fps the renderer paces at.
-         */
-        const val SANTA_TROT_FRAMES_PER_SECOND = 4.5f
 
         /**
          * One star in this many is drawn with the sparkle sprite; the rest are points.
@@ -1468,40 +1435,27 @@ class PaperRenderer(
         }
     }
 
-    /** Built once, like [drawFireworkBurst]. */
+    /**
+     * Built once, like [drawFireworkBurst]. The group from its pieces at this screen's scale (v5.15,
+     * [SantaSleighDrawer]): the size follows the people's, and at night it is drawn as by day.
+     */
     private val drawSleigh = SantaSleighEffect.SleighBlit { x, y, dir, alpha ->
         val canvas = effectCanvas
-        if (canvas != null) {
-            val elapsedSeconds = effectElapsed
-            // The sleigh was a 1563x434 raw-pixel sprite reduced by a historical 130/680 divisor
-            // and anchored at (-283,+244) -- an origin inherited from a 2040x840 canvas that was
-            // 60 % transparent. The V2 redraw put it on the authoring grid, which makes it a
-            // SCENE_UNITS sprite and retires both numbers. **The manifest's SCENE_UNITS is right
-            // and the shipped call site's CANVAS_PIXELS was the stale half**; the manifest's
-            // declared anchor is taken as given here.
-            //
-            // The canvas this paragraph used to quote -- 624x168, content box 598px wide -- is two
-            // canvases out of date: `santa_sleigh_scene` is 594x123 px since v4.19's crop. See
-            // [SANTA_SLEIGH_SCALE] for the current geometry and for why the X origin is
-            // deliberately not the content's centre.
-            canvas.save()
-            canvas.translate(x, y)
-            canvas.scale(dir * SANTA_SLEIGH_SCALE, SANTA_SLEIGH_SCALE)
-            // Two frames, alternating on the same clock the walking people use. The team stopped
-            // moving its legs when the whole group became one sprite: a single bitmap cannot
-            // bend, so the trot has to be a second drawing rather than a transform. The two
-            // reindeer are drawn in opposite leg phases within each frame, so the pair never
-            // steps in unison.
-            val trotting = elapsedSeconds.frameIndex(SANTA_TROT_FRAMES_PER_SECOND, 0f, 2) == 1
-            sprites.draw(
-                canvas,
-                if (trotting) R.drawable.santa_sleigh_trot else R.drawable.santa_sleigh_scene,
-                SANTA_SLEIGH_ORIGIN_X_UNITS, SANTA_SLEIGH_ORIGIN_Y_UNITS,
-                SpriteScale.SCENE_UNITS,
-                (alpha * 255).toInt().coerceIn(0, 255),
-            )
-            canvas.restore()
-        }
+        if (canvas != null) santaSleighDrawer.draw(canvas, x, y, dir, alpha, effectElapsed, sleighPxPerUnit)
+    }
+
+    /** The sleigh's scale, its gifts and its margins for this screen's height (v5.15); nothing when it has not changed. */
+    private fun updateSleighGeometry() {
+        if (sleighGeometryHeight == screenHeight) return
+        sleighGeometryHeight = screenHeight
+        val sc = SantaSleighScale.pxPerUnit(screenHeight.toFloat())
+        sleighPxPerUnit = sc
+        santaSleighEffect.setGroupGeometry(
+            sackDx = santaSleighDrawer.sackDxPx(sc),
+            sackDy = santaSleighDrawer.sackDyPx(sc),
+            giftHalf = SANTA_GIFT_HALF_UNITS * sc,
+            groupHalfWidth = santaSleighDrawer.halfWidthPx(sc),
+        )
     }
 
     fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
@@ -1626,6 +1580,7 @@ class PaperRenderer(
         effectElapsed = elapsedSeconds
         fireworkEffect.draw(drawFireworkBurst)
 
+        updateSleighGeometry()
         santaSleighEffect.update(deltaSeconds, sceneCustomization.santaEnabled, screenWidth.toFloat(), screenHeight.toFloat())
         santaSleighEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat(), drawSleigh)
         effectCanvas = null
@@ -1920,8 +1875,13 @@ class PaperRenderer(
         // Halloween replaces the disc outright, phases and all. A carved face that waxed and
         // waned would be a lit fraction of a grin, which reads as a rendering fault rather than as
         // a decoration -- and the phase sprites are a fixed set of four silhouettes, so there is
-        // no "jack-o'-lantern crescent" to reach for. One sprite, always full, while the flag is
-        // on.
+        // no "jack-o'-lantern crescent" to reach for. Always full, while the flag is on.
+        //
+        // **It is the moon, lit from inside** (v5.15, the maintainer's «C – faccia accesa»,
+        // 2026-10-19): the full moon's disc and craters in the theme's own moon colour, as every
+        // moon -- until v5.15 an orange fixed for every theme -- with the face cut out of it, and
+        // the light inside the cuts drawn over it untinted, a warm yellow with an orange rim: one
+        // sprite more, in the same batch.
         if (sceneCustomization.halloweenEnabled) {
             canvas.save()
             canvas.translate(cx, cy)
@@ -1932,7 +1892,14 @@ class PaperRenderer(
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_SCALE,
-                HALLOWEEN_MOON_COLOUR,
+                litColor,
+            )
+            sprites.draw(
+                canvas,
+                R.drawable.moon_jack_o_lantern_light,
+                HALLOWEEN_LIGHT_ORIGIN_X,
+                HALLOWEEN_LIGHT_ORIGIN_Y,
+                CELESTIAL_DISC_SCALE,
             )
             canvas.restore()
             return

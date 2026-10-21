@@ -206,29 +206,46 @@ object GlGolden {
     /**
      * The draw calls of one frame of [scene] at each swipe offset of [offsets], in turn, in one context
      * (v5.13B2): the street swept across its copies, so the places leave the screen and come back with
-     * other buildings. The scene's clock stands still; only the offset moves. And the vertices each frame
-     * drew (v5.14), so a sweep says how near the batch's end its fullest frame came.
+     * other buildings. Without the sleigh the scene's clock stands still; only the offset moves. And the vertices each frame
+     * drew (v5.14), so a sweep says how near the batch's end its fullest frame came. With [sleighInFlight] Santa's
+     * sleigh is held in the middle of its crossing at every frame (v5.15, inventory I-934), and the scene's clock moves
+     * [SLEIGH_SWEEP_STEP_SECONDS] a frame (v5.15C2, inventory I-975): the reindeer go through their four poses and the
+     * gifts fall, as on the phone -- with the clock still, a sweep drew two poses and no gift.
      */
-    fun countDrawCallsAcross(scene: GoldenScene, offsets: FloatArray): Sweep = withContext { gl ->
+    fun countDrawCallsAcross(scene: GoldenScene, offsets: FloatArray, sleighInFlight: Boolean = false): Sweep = withContext { gl ->
         val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
         scene.configure(renderer)
+        if (sleighInFlight) renderer.holdSantaSleighForTest(0.5f)
         renderer.swipeScrollEnabled = true
-        val clock = SceneTime(scene.sceneSeconds)
+        val step = if (sleighInFlight) SLEIGH_SWEEP_STEP_SECONDS else 0f
+        var clock = SceneTime(scene.sceneSeconds)
         val vertices = LongArray(offsets.size)
+        val clocks = DoubleArray(offsets.size)
+        val gifts = IntArray(offsets.size)
         val calls = IntArray(offsets.size) { i ->
             renderer.homeScreenOffset = offsets[i]
+            if (i > 0) clock += step
+            clocks[i] = clock.seconds
             gl.beginFrame()
-            renderer.draw(gl, scene.dayPhase, clock, 0f)
+            renderer.draw(gl, scene.dayPhase, clock, if (i > 0) step else 0f)
             gl.endFrame()
             GLES20.glFinish()
             vertices[i] = gl.drawnVertices
+            gifts[i] = renderer.santaGiftsFallingForTest()
             gl.drawCalls
         }
-        Sweep(calls, vertices)
+        Sweep(calls, vertices, clocks, gifts)
     }
 
-    /** What a sweep counted, a frame an offset: its draw calls and its vertices. */
-    class Sweep(val calls: IntArray, val vertices: LongArray)
+    /** A sleigh sweep's step: a pose of the gallop (six a second), so its 60 frames go through every pose fifteen times. */
+    const val SLEIGH_SWEEP_STEP_SECONDS = 1f / 6f
+
+    /**
+     * What a sweep counted, a frame an offset: its draw calls, its vertices, the scene's clock and the gifts falling. The
+     * clock as the frame was given it, a `Double` as [SceneTime] keeps it (v5.15D: kept as a `Float` until then, a pose
+     * worked out from it differed from the drawn one at 40 of 120 frames and reindeer).
+     */
+    class Sweep(val calls: IntArray, val vertices: LongArray, val clocks: DoubleArray, val giftsFalling: IntArray)
 
     /**
      * One frame of [draw] on the GPU backend, read back: for a test that sets one operation on both
@@ -244,8 +261,8 @@ object GlGolden {
         readFramebuffer()
     }
 
-    /** What one context ended up holding after a sweep. */
-    data class Occupancy(val entries: Int, val standalone: Int, val rowsUsed: Int)
+    /** What one context ended up holding after a sweep, and which of the sleigh's five pieces were among it (v5.15C2). */
+    data class Occupancy(val entries: Int, val standalone: Int, val rowsUsed: Int, val sleighPiecesHeld: Int = 0)
 
     /**
      * Draws one crowded frame of every theme in [themeIds] **in a single context**, and reports what
@@ -255,10 +272,14 @@ object GlGolden {
      * wallpaper left running accumulates, not what one scene needs.
      */
     fun sweepThemes(themeIds: List<String>): Occupancy = withContext { gl ->
-        for (themeId in themeIds) {
+        // Every theme by day, and then (v5.15, inventory I-934) what the sweep's frames never had: Santa's sleigh in
+        // flight, by day and at night, and the Halloween moon with its light at night.
+        val sweep = themeIds.map { themeId -> Triple(themeId, GoldenScene.day(), false) } +
+            listOf(Triple("christmas", GoldenScene.day(12f), true), Triple("christmas", GoldenScene.night(1f), true), Triple("halloween", GoldenScene.night(22f), false))
+        for ((themeId, dayPhase, sleighInFlight) in sweep) {
             val scene = GoldenScene(
                 name = "sweep-$themeId",
-                dayPhase = GoldenScene.day(),
+                dayPhase = dayPhase,
                 themeId = themeId,
                 customise = { base ->
                     // The people at their fullest, and since v5.11 the distant houses at 100 % on both
@@ -270,11 +291,13 @@ object GlGolden {
                         distantHouses = DistantHousesConfig(visible = true, density = 1f),
                         mountainsFront = base.mountainsFront.copy(visible = true, density = 1f),
                         mountainsBack = base.mountainsBack.copy(visible = true, density = 1f),
+                        santaEnabled = base.santaEnabled || sleighInFlight,
                     )
                 },
             )
             val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
             scene.configure(renderer)
+            if (sleighInFlight) renderer.holdSantaSleighForTest(0.5f)
             var clock = SceneTime(scene.sceneSeconds)
             repeat(scene.warmUpFrames) {
                 clock += scene.warmUpDeltaSeconds
@@ -285,9 +308,18 @@ object GlGolden {
             gl.beginFrame()
             renderer.draw(gl, scene.dayPhase, clock, 0f)
             gl.endFrame()
+            // The sleigh a pose later too: its two reindeer stand two poses apart, so two frames a pose apart put all four
+            // poses in the atlas (v5.15C2, inventory I-975; one frame left two of them out).
+            if (sleighInFlight) {
+                clock += SLEIGH_SWEEP_STEP_SECONDS
+                gl.beginFrame()
+                renderer.draw(gl, scene.dayPhase, clock, SLEIGH_SWEEP_STEP_SECONDS)
+                gl.endFrame()
+            }
         }
         GLES20.glFinish()
-        Occupancy(gl.uploadedEntries, gl.standaloneTextures, gl.atlasRowsUsed)
+        val sleighPieces = intArrayOf(SantaSleighTable.SLEIGH_RES) + SantaSleighTable.DEER_RES
+        Occupancy(gl.uploadedEntries, gl.standaloneTextures, gl.atlasRowsUsed, sleighPieces.count { gl.holdsSprite(it) })
     }
 
     fun render(scene: GoldenScene): Result {

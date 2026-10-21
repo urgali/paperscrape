@@ -283,7 +283,9 @@ private fun SeasonDetailScreen(
                     )
                     SettingsSwitchRow(
                         title = "Santa",
-                        supporting = "Santa's sleigh occasionally flies across the sky dropping gifts",
+                        // v5.15, the maintainer's «Tieni il ritmo, cambia la scritta» (2026-10-19): a flight starts 25 to
+                        // 60 s after the last one ended (`SantaSleighEffect`), so "occasionally" said less than the truth.
+                        supporting = "Santa's sleigh flies across the sky about once a minute, dropping gifts",
                         checked = customization.santaEnabled,
                         onCheckedChange = { scope.launch { prefs.setSantaEnabled(it, forThemeId) } },
                     )
@@ -292,7 +294,9 @@ private fun SeasonDetailScreen(
                 Season.HALLOWEEN -> {
                     SettingsSwitchRow(
                         title = "Halloween",
-                        supporting = "A carved jack-o'-lantern moon, and every tree stripped to bare branches",
+                        // What the switch does, all of it (`DESIGN_NOTES.md` §16): the moon, the trees -- not one standing
+                        // as a Christmas fir -- the palms and the pumpkins. Until v5.15 the line named the first two only.
+                        supporting = "The moon with a carved face lit from inside, bare branches on the leafy trees, withered palms, and a face carved on every pumpkin",
                         checked = customization.halloweenEnabled,
                         onCheckedChange = { scope.launch { prefs.setHalloweenEnabled(it, forThemeId) } },
                     )

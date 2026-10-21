@@ -499,7 +499,7 @@ class LiveWeatherScheduleTest {
             }
             dir = dir.parentFile
         }
-        val loop = src!!.substringAfter("LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)").substringBefore("maybeCheckForUpdate()")
+        val loop = src!!.substringAfter("LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)").substringBefore("withTimeoutOrNull(")
         assertFalse("the loop must not read the raw switch any more:\n$loop", loop.contains("settings.liveWeatherEnabled"))
         assertTrue(loop.contains("enabled = liveWeatherRuns"))
         assertTrue(loop.contains("if (liveWeatherRuns && fix != null"))

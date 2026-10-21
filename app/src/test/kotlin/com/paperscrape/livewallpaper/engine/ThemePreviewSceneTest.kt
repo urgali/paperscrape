@@ -117,12 +117,21 @@ class ThemePreviewSceneTest {
         }
     }
 
+    /**
+     * The card's Halloween moon is the wallpaper's (v5.15, the maintainer's «C – faccia accesa», 2026-10-19): the moon in the
+     * theme's own moon colour -- an orange fixed for every theme until v5.15 -- and the light inside its carved face
+     * over it, untinted, where the wallpaper blits it.
+     */
     @Test
-    fun `the carved moon is tinted orange rather than with the theme's moon colour`() {
-        val moon = sceneFor("halloween").backdrop
-            .flatMap { it.parts }
-            .first { it.resId == R.drawable.moon_jack_o_lantern }
-        assertEquals(0xFFFF8C2A.toInt(), moon.tint) // PaperRenderer.HALLOWEEN_MOON_COLOUR
+    fun `the carved moon takes the theme's moon colour, with its face lit from inside`() {
+        val parts = sceneFor("halloween").backdrop.flatMap { it.parts }
+        val moon = parts.first { it.resId == R.drawable.moon_jack_o_lantern }
+        assertEquals(defaultCustomizationFor("halloween").moon.color, moon.tint)
+        val light = parts.first { it.resId == R.drawable.moon_jack_o_lantern_light }
+        assertEquals(null, light.tint)
+        assertEquals(PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X / SpriteBlitter.SPRITE_PIXELS_PER_UNIT, light.ox, 0.001f)
+        assertEquals(PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_Y / SpriteBlitter.SPRITE_PIXELS_PER_UNIT, light.oy, 0.001f)
+        assertTrue("the light over the moon", parts.indexOf(light) > parts.indexOf(moon))
     }
 
     @Test

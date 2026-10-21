@@ -252,8 +252,8 @@ class SceneGoldenTest {
      * on and phases *off* could not pin it: with nothing to ignore, the frame would come out
      * identical whether the guard stood or fell. **Both flags on is what gives this frame a way to
      * fail** -- if the phase path ever leaked through, the disc drawn here would become one of the
-     * four phase silhouettes in the moon's own colour instead of the orange lantern, which is the
-     * whole 79-pixel disc moving. It is the same requirement `SettingsGateScenesTest` derives its
+     * four phase silhouettes, without the carved face and the light inside it (since v5.15 the carved moon wears the
+     * moon's own colour too), which is the whole 79-pixel disc moving. It is the same requirement `SettingsGateScenesTest` derives its
      * gates from: a proof needs a frame that could fail.
      *
      * Both are written down here rather than inherited. `realisticPhases` already defaults to true
@@ -293,8 +293,8 @@ class SceneGoldenTest {
      *
      * It carries the shared [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION], not a derived gate: this
      * golden pins a sprite, not a settings gate, and no tolerance is moved for it. What it adds
-     * over the whole-frame rule is the face -- the eyes, nose and grin are cut *through* the paper,
-     * so they are a few hundred pixels of sky showing through, and the frame's own budget of 576
+     * over the whole-frame rule is the face -- the eyes, nose and grin are cut *through* the paper and lit from inside by
+     * `moon_jack_o_lantern_light`, so they are a few hundred pixels of the candle's light, and the frame's own budget of 576
      * would have forgiven the face closing up while the disc stayed put. (That budget is zero since
      * v4.31; the focus stays because it names the part of the picture this golden exists for.)
      */

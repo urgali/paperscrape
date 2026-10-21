@@ -2,13 +2,20 @@ package com.paperscrape.livewallpaper.update
 
 import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
 import com.paperscrape.livewallpaper.readAtMost
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * An app version as the release scheme states it: `MAJOR.MINOR`, matching `versionName` and the
@@ -87,20 +94,32 @@ sealed interface UpdateCheckResult {
      * The check did not complete, so nothing at all is known about whether an update exists.
      *
      * [reason] is carried so the explicit path can say *which* wall it hit -- "no connection" and
-     * "GitHub answered 403" send the user to different places -- while the automatic path can go
-     * on ignoring all of them equally.
+     * "GitHub is turning this network away" send the user to different places -- while the automatic
+     * path can go on ignoring all of them equally.
+     *
+     * [limitedUntilMillis] is set with [Reason.RATE_LIMITED] alone: the moment, on the wall clock,
+     * GitHub said this address may ask again (v5.15, inventory I-909), or 0 when it did not say.
      */
-    data class Unreachable(val reason: Reason) : UpdateCheckResult {
+    data class Unreachable(val reason: Reason, val limitedUntilMillis: Long = 0L) : UpdateCheckResult {
 
         enum class Reason {
             /** No network, DNS failure, connection refused, or a timeout. */
             NO_CONNECTION,
 
             /**
-             * A reply arrived and it was not 200 (rate limiting, a renamed repo, an outage), or it
-             * was too long to read.
+             * A reply arrived and it was not 200 (a renamed repo, an outage, a refusal that is not the
+             * rate limit), or it was too long to read.
              */
             SERVER_ERROR,
+
+            /**
+             * GitHub refused because this address has spent its requests (v5.15): a 429, or a 403 with
+             * `Retry-After` or with `X-RateLimit-Remaining: 0`. Without credentials the limit is 60 an
+             * hour **for the network's public address**, which the phone shares with every device behind
+             * it, so the phone may find it spent by others. Until v5.15 this read as [SERVER_ERROR] and
+             * the engine asked again after 2, 4, 8 minutes, refused each time.
+             */
+            RATE_LIMITED,
 
             /**
              * A 200 whose body was not the JSON this expects, or an installed version name that
@@ -109,16 +128,25 @@ sealed interface UpdateCheckResult {
             UNREADABLE_RESPONSE,
         }
 
-        /** One sentence for the settings row, in the app's own voice. */
+        /** One sentence for the settings row, in the app's own voice, the time in the phone's own format. */
         val message: String
-            get() = when (reason) {
-                Reason.NO_CONNECTION ->
-                    "Couldn't check - no connection. Your version may or may not be current."
-                Reason.SERVER_ERROR ->
-                    "Couldn't check - GitHub didn't answer. Try again in a few minutes."
-                Reason.UNREADABLE_RESPONSE ->
-                    "Couldn't check - the reply from GitHub wasn't readable."
+            get() = message { DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) }
+
+        /** [message] with the time written by [time] (the tests give a fixed format). */
+        fun message(time: (Long) -> String): String = when (reason) {
+            Reason.NO_CONNECTION ->
+                "Couldn't check - no connection. Your version may or may not be current."
+            Reason.SERVER_ERROR ->
+                "Couldn't check - GitHub didn't answer. Try again in a few minutes."
+            Reason.RATE_LIMITED -> if (limitedUntilMillis > 0L) {
+                "Couldn't check - GitHub is turning away checks from your network for now. Try again after " +
+                    "${time(limitedUntilMillis)}."
+            } else {
+                "Couldn't check - GitHub is turning away checks from your network for now. Try again later."
             }
+            Reason.UNREADABLE_RESPONSE ->
+                "Couldn't check - the reply from GitHub wasn't readable."
+        }
     }
 }
 
@@ -201,10 +229,56 @@ data class SavedUpdateReply(
  * Where a [SavedUpdateReply] is kept between checks: `UpdatePrefs` in the app, a field in the tests.
  * Both calls may fail; a reply that cannot be read or written only costs the next check a full
  * download.
+ *
+ * And, since v5.15, until when GitHub has said this network may not ask ([readLimitedUntil], on the
+ * wall clock; 0 for no limit): a check made for nobody in particular is not made before then
+ * ([UpdateChecker.checkForUpdate]'s `honourLimit`). The two have defaults so a store that keeps only
+ * the reply keeps no limit.
  */
 interface UpdateReplyStore {
     suspend fun readReply(): SavedUpdateReply?
     suspend fun writeReply(reply: SavedUpdateReply)
+    suspend fun readLimitedUntil(): Long = 0L
+    suspend fun writeLimitedUntil(untilMillis: Long) {}
+}
+
+/**
+ * The one line every update check writes into the phone's log (v5.15, inventory I-910, the
+ * maintainer's *«D sì, con la riga»* of 2026-10-19): what came of it, GitHub's HTTP code and how many
+ * requests GitHub says this network has left -- and nothing else: no address, no version list, no
+ * identifier. Written by [UpdateChecker.checkForUpdate] for every caller, the release build included,
+ * because a notification that did not arrive on 2026-10-17 could not be explained afterwards: the
+ * 5.13 wrote nothing.
+ *
+ * Under the tag `PaperScrapeUpdate`; `adb logcat -s PaperScrapeUpdate` reads them. [sink] is where the
+ * line goes -- the platform log, and on the JVM, where `android.util.Log` is not implemented, nowhere
+ * unless a test listens.
+ */
+object UpdateCheckLog {
+    const val TAG = "PaperScrapeUpdate"
+
+    @Volatile
+    var sink: (String) -> Unit = { line -> runCatching { Log.i(TAG, line) } }
+
+    /** The line for a check: [outcome], the last reply's [httpCode] (null: no reply) and [remaining] as GitHub sent it. */
+    fun line(outcome: String, httpCode: Int?, remaining: String?): String =
+        "update check: $outcome, HTTP ${httpCode ?: "-"}, ${remaining ?: "?"} requests left"
+
+    /** What came of a check, in the log's words; [clock] writes a moment of the wall clock. */
+    fun outcome(result: UpdateCheckResult, notModified: Boolean, clock: (Long) -> String = ::clockTime): String = when (result) {
+        is UpdateCheckResult.Available -> "${result.info.tagName} available${if (notModified) " (unchanged)" else ""}"
+        UpdateCheckResult.UpToDate -> "up to date${if (notModified) " (unchanged)" else ""}"
+        is UpdateCheckResult.Unreachable -> when (result.reason) {
+            UpdateCheckResult.Unreachable.Reason.NO_CONNECTION -> "no connection"
+            UpdateCheckResult.Unreachable.Reason.SERVER_ERROR -> "GitHub did not answer"
+            UpdateCheckResult.Unreachable.Reason.RATE_LIMITED ->
+                if (result.limitedUntilMillis > 0L) "turned away by GitHub's limit until ${clock(result.limitedUntilMillis)}"
+                else "turned away by GitHub's limit"
+            UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE -> "reply not readable"
+        }
+    }
+
+    internal fun clockTime(millis: Long): String = SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date(millis))
 }
 
 /**
@@ -241,10 +315,37 @@ object UpdateChecker {
      *
      * Never throws: every failure is an [UpdateCheckResult.Unreachable] with a reason, so a caller
      * that wants to stay silent can, and a caller that has to answer the user can say something
-     * true. The three callers do exactly that -- `SettingsScreen`'s check and the wallpaper
-     * engine's check every three hours act on [UpdateCheckResult.Available] and ignore the rest (the
-     * engine only retries sooner after [UpdateCheckResult.Unreachable]), `AdvancedScreen`'s button
-     * reports all three.
+     * true. The three callers do exactly that -- the job of the phone's scheduler every three hours
+     * (`UpdateCheckJobService`, v5.15) acts on [UpdateCheckResult.Available] and ignores the rest (it only
+     * tries again sooner after [UpdateCheckResult.Unreachable], and after GitHub's limit once, when it
+     * lifts); `SettingsScreen`'s check does the same when the screen is opened, and reports every outcome
+     * when a tapped notification opened it; `AdvancedScreen`'s button reports all of them.
+     *
+     * ### GitHub's limit (v5.15, inventory I-909)
+     *
+     * A refusal that says this network has spent its requests -- a 429, or a 403 with `Retry-After` or with
+     * `X-RateLimit-Remaining: 0` -- is [UpdateCheckResult.Unreachable.Reason.RATE_LIMITED],
+     * with the moment GitHub gives (`Retry-After`, or `X-RateLimit-Reset` with `X-RateLimit-Remaining: 0`),
+     * and that moment is kept in the [store] ([UpdateReplyStore.writeLimitedUntil]). With [honourLimit]
+     * -- every caller but the button the user has just pressed and a tapped notification -- no request is
+     * made before it: the answer is the same refusal, at no cost to the network's requests. A check GitHub
+     * answers with the list (200, or 304 for the kept one) clears it; any other failure leaves it as it was.
+     *
+     * ### One request for one moment (v5.15, inventory I-956, I-967)
+     *
+     * The callers can want GitHub at one instant: opening the settings after a force stop starts the screen's
+     * check while the wallpaper the phone binds again puts the update job back and runs it, and the button can
+     * be pressed while the job is checking. So one check is on the network at a time in this process: **a check
+     * that finds another on the network waits for it and takes its answer**, whoever asked; and with
+     * [takeRecentAnswer] -- a check nobody asked for this instant, the screen opening or a run of the job -- **an
+     * answer GitHub gave less than [RECENT_ANSWER_MILLIS] ago stands for it too**. Neither makes a request.
+     * Only a check that reached GitHub (or tried to: no connection) is taken; one that the limit kept from
+     * asking is not.
+     *
+     * ### One line in the log (v5.15, inventory I-910)
+     *
+     * Every call writes [UpdateCheckLog.line]: the outcome, the last reply's HTTP code and the requests
+     * left. A check not made because of the limit says so, and so does one answered by another check.
      *
      * ### "Has anything changed?" (v5.10D, row 16)
      *
@@ -252,7 +353,7 @@ object UpdateChecker {
      * installed version (`If-None-Match`). While nothing has changed GitHub answers **304 with no
      * body**, and the kept answer is returned: nothing is downloaded. Until v5.10D every check
      * downloaded the whole first page -- 252 KB to read, ~51 KB on the wire, measured 2026-10-03 --
-     * and the engine checks every three hours since the same round. A new release, an edited one,
+     * and the app checks every three hours since the same round (from the phone's job scheduler since v5.15). A new release, an edited one,
      * or a download counted on one of the thirty releases of the first page (the list carries each
      * file's download count) changes the page, and the answer is worked out again.
      *
@@ -272,33 +373,102 @@ object UpdateChecker {
         store: UpdateReplyStore? = null,
         /**
          * Overridden only by the tests (`UpdateCheckOutcomeTest`, `UpdateCheckConditionalTest`,
-         * `UpdateNotesWholeTest`), which stand a `HttpServer` on a loopback port so the outcomes can be
-         * produced for real -- a 200 with releases, a 304, a 403, a body that is not JSON, and a port
-         * with nothing listening -- rather than asserted about a mock of this function. Every caller
+         * `UpdateNotesWholeTest`, `UpdateCheckRateLimitTest`, `UpdateCheckOneRequestTest`), which stand a `HttpServer` on a loopback port so the
+         * outcomes can be produced for real -- a 200 with releases, a 304, a 403, a 403 or a 429 with GitHub's limit, a
+         * body that is not JSON, and a port with nothing listening -- rather than asserted about a mock of this function. Every caller
          * in the app uses the default.
          */
         apiUrl: String = API_URL,
+        /**
+         * Whether a limit GitHub set ([UpdateReplyStore.readLimitedUntil]) stops the request: true for a
+         * check nobody asked for this instant, false for the button the user has just pressed and for a
+         * tapped notification.
+         */
+        honourLimit: Boolean = true,
+        /**
+         * Whether an answer GitHub gave less than [RECENT_ANSWER_MILLIS] ago, to any caller, stands for this
+         * check: true for a check nobody asked for this instant (the settings screen opening, a run of the
+         * update job), false for the button and a tapped notification, which ask -- and for the tests, which
+         * ask one server several times in a row.
+         */
+        takeRecentAnswer: Boolean = false,
+        /** The wall clock; the tests give their own. */
+        nowMillis: () -> Long = System::currentTimeMillis,
     ): UpdateCheckResult = withContext(Dispatchers.IO) {
         // An unparsable installed version is not a network problem and not "up to date": there is
         // nothing to compare against, so no update can be offered and none can be ruled out.
         val current = AppVersion.parse(currentVersionName)
             ?: return@withContext UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE)
+                .also { UpdateCheckLog.sink(UpdateCheckLog.line(UpdateCheckLog.outcome(it, false), null, null)) }
+        // Read before waiting: a check of this list that reaches GitHub while this one waits answers for it.
+        val seen = lastAsked?.serial
+        onTheNetwork.withLock {
+            val last = lastAsked?.takeIf { it.apiUrl == apiUrl && it.versionName == currentVersionName }
+            if (last != null && (last.serial != seen || (takeRecentAnswer && nowMillis() - last.atMillis in 0 until RECENT_ANSWER_MILLIS))) {
+                UpdateCheckLog.sink("update check: not made, answered by the check of ${UpdateCheckLog.clockTime(last.atMillis)}")
+                return@withLock last.result
+            }
+            askOnce(current, currentVersionName, store, apiUrl, honourLimit, nowMillis)
+        }
+    }
+
+    /** How long an answer of GitHub stands for a check nobody asked for ([checkForUpdate]'s `takeRecentAnswer`): one moment, a minute. */
+    internal const val RECENT_ANSWER_MILLIS = 60 * 1000L
+
+    /** One check on the network at a time ([checkForUpdate]). */
+    private val onTheNetwork = Mutex()
+
+    /** The last check that reached GitHub (or tried to): its list, the installed version, when, and what came of it. */
+    private class AskedCheck(val apiUrl: String, val versionName: String, val serial: Long, val atMillis: Long, val result: UpdateCheckResult)
+
+    /** Written under [onTheNetwork]; read before it too, by a check about to wait. */
+    @Volatile
+    private var lastAsked: AskedCheck? = null
+
+    /** The checks that reached GitHub in this process, [AskedCheck.serial]: written under [onTheNetwork]. */
+    private var asked = 0L
+
+    /** [checkForUpdate]'s check itself, under [onTheNetwork]. */
+    private suspend fun askOnce(
+        current: AppVersion,
+        currentVersionName: String,
+        store: UpdateReplyStore?,
+        apiUrl: String,
+        honourLimit: Boolean,
+        nowMillis: () -> Long,
+    ): UpdateCheckResult {
+        if (honourLimit && store != null) {
+            val until = runCatching { store.readLimitedUntil() }.getOrDefault(0L)
+            if (until > nowMillis()) {
+                val refused = UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.RATE_LIMITED, until)
+                UpdateCheckLog.sink("update check: not made, GitHub's limit until ${UpdateCheckLog.clockTime(until)}")
+                return refused
+            }
+        }
         val saved = runCatching { store?.readReply() }.getOrNull()
             ?.takeIf { it.forVersionName == currentVersionName && it.apiUrl == apiUrl }
-        try {
+        var lastCode: Int? = null
+        var lastRemaining: String? = null
+        var notModified = false
+        val result = try {
             val parsed = mutableListOf<ParsedRelease>()
             var etag: String? = null
             var url: String? = apiUrl
             var pages = 0
-            while (url != null && pages < MAX_PAGES) {
-                val page = fetchPage(url, ifNoneMatch = if (pages == 0) saved?.etag else null)
+            var early: UpdateCheckResult? = null
+            while (url != null && pages < MAX_PAGES && early == null) {
+                val page = fetchPage(url, ifNoneMatch = if (pages == 0) saved?.etag else null, now = nowMillis())
+                lastCode = page.httpCode
+                lastRemaining = page.remaining
                 when (page) {
                     // Only the first page is asked conditionally, so only there can this arrive -- and
                     // only with a reply kept to answer for it. A 304 to an unconditional request is a
                     // reply this app cannot read.
-                    PageReply.NotModified -> return@withContext saved?.result
-                        ?: UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
-                    is PageReply.Failed -> return@withContext UpdateCheckResult.Unreachable(page.reason)
+                    is PageReply.NotModified -> {
+                        notModified = true
+                        early = saved?.result ?: UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
+                    }
+                    is PageReply.Failed -> early = UpdateCheckResult.Unreachable(page.reason, page.limitedUntilMillis)
                     is PageReply.Releases -> {
                         if (pages == 0) etag = page.etag
                         parsed += page.releases
@@ -309,11 +479,11 @@ object UpdateChecker {
                 }
                 pages++
             }
-            val result = answerFor(parsed, current)
-            if (store != null && etag != null) {
-                runCatching { store.writeReply(SavedUpdateReply(etag, currentVersionName, apiUrl, result)) }
+            early ?: answerFor(parsed, current).also { answered ->
+                if (store != null && etag != null) {
+                    runCatching { store.writeReply(SavedUpdateReply(etag, currentVersionName, apiUrl, answered)) }
+                }
             }
-            result
         } catch (_: IOException) {
             // No network, DNS failure, connection refused, a socket timeout: the request never
             // got an answer. Kept apart from the parse failure below because it is the one the
@@ -324,6 +494,19 @@ object UpdateChecker {
             // Still "nothing is known", still never a crash, but not the user's connection.
             UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE)
         }
+        // GitHub's limit is remembered while it lasts; a check GitHub answers with the list (200, or 304 for the kept reply)
+        // clears it, and any other failure leaves it as it was.
+        if (store != null) {
+            val limitedUntil = (result as? UpdateCheckResult.Unreachable)
+                ?.takeIf { it.reason == UpdateCheckResult.Unreachable.Reason.RATE_LIMITED }?.limitedUntilMillis
+            when {
+                limitedUntil != null && limitedUntil > 0L -> runCatching { store.writeLimitedUntil(limitedUntil) }
+                result !is UpdateCheckResult.Unreachable -> runCatching { store.writeLimitedUntil(0L) }
+            }
+        }
+        lastAsked = AskedCheck(apiUrl, currentVersionName, ++asked, nowMillis(), result)
+        UpdateCheckLog.sink(UpdateCheckLog.line(UpdateCheckLog.outcome(result, notModified), lastCode, lastRemaining))
+        return result
     }
 
     /** One release of the list, as far as this app reads it. */
@@ -335,13 +518,51 @@ object UpdateChecker {
         val assets: List<ReleaseAsset>,
     )
 
+    /** One page's reply, with the two facts every reply carries for the log: its HTTP code and the requests left. */
     private sealed interface PageReply {
-        data class Releases(val releases: List<ParsedRelease>, val etag: String?, val nextUrl: String?) : PageReply
-        data object NotModified : PageReply
-        data class Failed(val reason: UpdateCheckResult.Unreachable.Reason) : PageReply
+        val httpCode: Int
+        val remaining: String?
+
+        data class Releases(
+            val releases: List<ParsedRelease>,
+            val etag: String?,
+            val nextUrl: String?,
+            override val httpCode: Int,
+            override val remaining: String?,
+        ) : PageReply
+
+        data class NotModified(override val httpCode: Int, override val remaining: String?) : PageReply
+
+        data class Failed(
+            val reason: UpdateCheckResult.Unreachable.Reason,
+            override val httpCode: Int,
+            override val remaining: String?,
+            val limitedUntilMillis: Long = 0L,
+        ) : PageReply
     }
 
-    private fun fetchPage(url: String, ifNoneMatch: String?): PageReply {
+    /**
+     * Whether a refusal is GitHub's rate limit, and until when (v5.15, inventory I-909): a 403 or 429
+     * with `Retry-After` (seconds from [nowMillis]) or with `X-RateLimit-Remaining: 0` and
+     * `X-RateLimit-Reset` (seconds since 1970). GitHub's documentation gives those two headers for the
+     * two ways it refuses an address that asks too much; any other 403 (a repository made private, a
+     * request refused for another reason) is not the limit and returns null; a 429 is, whatever else it
+     * says. A limit with no moment given returns 0.
+     */
+    internal fun rateLimitedUntil(
+        code: Int,
+        retryAfter: String?,
+        remaining: String?,
+        reset: String?,
+        nowMillis: Long,
+    ): Long? {
+        if (code != 403 && code != 429) return null
+        retryAfter?.trim()?.toLongOrNull()?.takeIf { it >= 0 }?.let { return nowMillis + it * 1000L }
+        if (remaining?.trim() != "0") return if (code == 429) 0L else null
+        return reset?.trim()?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L) ?: 0L
+    }
+
+    private fun fetchPage(url: String, ifNoneMatch: String?, now: Long): PageReply {
         var connection: HttpURLConnection? = null
         try {
             connection = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -355,16 +576,32 @@ object UpdateChecker {
                 if (ifNoneMatch != null) setRequestProperty("If-None-Match", ifNoneMatch)
             }
             val code = connection.responseCode
-            if (code == HttpURLConnection.HTTP_NOT_MODIFIED && ifNoneMatch != null) return PageReply.NotModified
-            if (code != HttpURLConnection.HTTP_OK) return PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
+            val remaining = connection.getHeaderField("X-RateLimit-Remaining")?.trim()?.takeIf { it.length <= 6 }
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED && ifNoneMatch != null) return PageReply.NotModified(code, remaining)
+            if (code != HttpURLConnection.HTTP_OK) {
+                val limitedUntil = rateLimitedUntil(
+                    code,
+                    retryAfter = connection.getHeaderField("Retry-After"),
+                    remaining = remaining,
+                    reset = connection.getHeaderField("X-RateLimit-Reset"),
+                    nowMillis = now,
+                )
+                return if (limitedUntil != null) {
+                    PageReply.Failed(UpdateCheckResult.Unreachable.Reason.RATE_LIMITED, code, remaining, limitedUntil)
+                } else {
+                    PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR, code, remaining)
+                }
+            }
             // Bounded: one page of 30 releases read 252 KB on 2026-10-03, and an unbounded read is
             // not (SEC-03).
             val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
-                ?: return PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
+                ?: return PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR, code, remaining)
             return PageReply.Releases(
                 releases = parseReleases(body),
                 etag = connection.getHeaderField("ETag")?.ifBlank { null },
                 nextUrl = nextPageUrl(connection.getHeaderField("Link")),
+                httpCode = code,
+                remaining = remaining,
             )
         } finally {
             connection?.disconnect()

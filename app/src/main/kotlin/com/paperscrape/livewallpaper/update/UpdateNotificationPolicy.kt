@@ -1,7 +1,6 @@
 package com.paperscrape.livewallpaper.update
 
 import com.paperscrape.livewallpaper.engine.WEATHER_REFRESH_INTERVAL_MS
-import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
 
 /**
  * Whether this device needs the notification permission asked for, and what the answer was.
@@ -53,53 +52,31 @@ object UpdateNotificationPolicy {
     const val RUNTIME_PERMISSION_SDK = 33
 
     /**
-     * The normal wait between two update checks in the engine's loop: **3 hours**, derived.
+     * The wait between two automatic update checks: **3 hours**, derived -- the period of the job the
+     * phone's scheduler runs since v5.15 ([UpdateCheckSchedule.PERIOD_MILLIS]).
      *
-     * Written as a multiple of [WEATHER_REFRESH_INTERVAL_MS] for the same reason
-     * [com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS] is — the
-     * policy is the declaration, and a reader can see what it is a multiple *of*. The two schedules
-     * share a loop.
+     * Written as a multiple of [WEATHER_REFRESH_INTERVAL_MS] so a reader can see what it is a multiple
+     * *of*: the two schedules shared the wallpaper engine's loop until v5.15.
      *
      * **Why 3, the maintainer's decision of 2026-09-30** (row 3 of the v5.10A table, *«3 - voglio B»*,
      * which replaces his choice of 2026-09-23, once a day). It was 24 until v5.10D, and the v5.9
      * release reached him without a notification: published at 20:54, it waited for a check that
      * came up to a day after his wallpaper's last one, and he had installed it by then. Every three
-     * hours, still inside the wallpaper and with no library added, the notice arrives within a few
-     * hours. What it costs is eight requests a day to GitHub instead of one, and only with both
-     * update switches on; and since the same round a check that finds the list unchanged downloads
-     * nothing (`UpdateChecker`, `If-None-Match`: GitHub answers 304 with no body). The list also
-     * changes when somebody downloads a release's file (it carries the download counts), and then the
-     * check downloads it again, once.
+     * hours the notice arrives within a few hours. What it costs is eight requests a day to GitHub
+     * instead of one, and only with both update switches on; and since the same round a check that
+     * finds the list unchanged downloads nothing (`UpdateChecker`, `If-None-Match`: GitHub answers 304
+     * with no body). The list also changes when somebody downloads a release's file (it carries the
+     * download counts), and then the check downloads it again, once.
      *
-     * **What this is not.** It is not a promise of eight checks a day. It can be more: every rebind
-     * of the wallpaper checks at once, and a failed check is retried from two minutes, doubling up
-     * to this. It can be less: the loop parks while the wallpaper is invisible (ARC-02), so a
-     * device whose wallpaper is rarely on screen checks rarely, and a user who has another
-     * wallpaper set is never checked by this loop (only by the settings screen's own check, when
-     * they open it). That limit was stated to the maintainer before the decision of 2026-09-23 and
-     * accepted with it, and row 3 kept it; the manual button in *Advanced & about* is what those
-     * users have.
+     * **What this is not.** It is not a promise of eight checks a day. It can be more: a check that
+     * found nothing out is tried again from two minutes, doubling, and a job a force stop took away
+     * checks at once when it is put back. It can be less: the phone decides when the job runs inside
+     * its period, and with the screen off for long, or for an app it judges rarely used, it holds it
+     * longer ([UpdateCheckSchedule]). Until v5.15 the check rode the wallpaper's loop, which parks while
+     * the wallpaper is not on screen, so a phone with another wallpaper set was never checked -- the
+     * limit the maintainer accepted on 2026-09-23, and reversed on 2026-10-19 (*«S sì»*).
      */
     const val UPDATE_CHECK_INTERVAL_MILLIS = 3 * WEATHER_REFRESH_INTERVAL_MS
-
-    /**
-     * Whether the engine's loop checks on this pass: [UPDATE_CHECK_INTERVAL_MILLIS] since the last
-     * check, or the retry ladder's shorter wait while checks come back
-     * [UpdateCheckResult.Unreachable] -- the *same* ladder the weather loop uses
-     * ([com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.nextAttemptDelayMillis], from two
-     * minutes doubling up to the interval), reused rather than re-derived, so there is one
-     * bounded-backoff rule in this app and not two that can drift.
-     *
-     * [elapsedSinceLastCheckMillis] is on the monotonic clock (`SystemClock.elapsedRealtime`); a
-     * fresh engine's sentinel reads as long ago, so its first pass checks. Pure, so the cadence is
-     * asserted over a day of passes on the JVM (`UpdateCheckCadenceTest`) rather than read off a
-     * constant.
-     */
-    fun checkDue(elapsedSinceLastCheckMillis: Long, consecutiveUnreachable: Int): Boolean =
-        LiveWeatherSchedule.isAttemptDue(
-            elapsedSinceLastCheckMillis,
-            LiveWeatherSchedule.nextAttemptDelayMillis(consecutiveUnreachable, UPDATE_CHECK_INTERVAL_MILLIS),
-        )
 
     /**
      * What the notification permission means on this device, from the two facts that decide it.
@@ -187,9 +164,6 @@ object UpdateNotificationPolicy {
         /** The permission dialog was just refused; a tap asks again. */
         REFUSED,
 
-        /** PaperScrape is not the phone's wallpaper, and the check runs inside it; a tap sets it. */
-        NOT_THE_WALLPAPER,
-
         /** What the switch does. */
         DESCRIPTION,
     }
@@ -207,9 +181,8 @@ object UpdateNotificationPolicy {
 
         /**
          * Ask for `POST_NOTIFICATIONS`, and store "on" only once it is granted -- a saved "on" with the
-         * permission refused would read as [NotifyRowLine.BLOCKED_ASK]. Granted and PaperScrape not the
-         * wallpaper, carry on to [SET_AS_WALLPAPER]; refused where the system will not show the dialog
-         * again, store "on" and carry on to [OPEN_APP_NOTIFICATIONS].
+         * permission refused would read as [NotifyRowLine.BLOCKED_ASK]. Refused where the system will
+         * not show the dialog again, store "on" and carry on to [OPEN_APP_NOTIFICATIONS].
          */
         ASK_PERMISSION,
 
@@ -218,9 +191,6 @@ object UpdateNotificationPolicy {
 
         /** Store "on", and open the phone's page for the *Update available* channel. */
         OPEN_CHANNEL,
-
-        /** Store "on", and put up the system's preview, where PaperScrape is set as the wallpaper. */
-        SET_AS_WALLPAPER,
     }
 
     /**
@@ -243,17 +213,20 @@ object UpdateNotificationPolicy {
      * The row, from what the settings screen knows when it draws.
      *
      * **A notification can arrive only if all of these hold**, and the switch shows on only then:
-     * the automatic check is on (the engine checks only with both switches on,
-     * `PaperWallpaperService.maybeCheckForUpdate`); the phone lets PaperScrape post -- the permission
-     * on Android 13+ ([mayPost]), the app's notifications and the *Update available* channel left on
+     * the automatic check is on (the update job checks only with both switches on,
+     * `UpdateCheckJobs.runOnce`); and the phone lets PaperScrape post -- the permission on Android 13+
+     * ([mayPost]), the app's notifications and the *Update available* channel left on
      * ([blockedInPhoneSettings] judged as if the switch were on, which is how [UpdateNotifier.post]
-     * judges); and PaperScrape is the phone's wallpaper, because the check runs inside it and nowhere
-     * else ([isTheWallpaper], `WallpaperEngineCensus`). Until v5.10C the switch read the saved choice
-     * and the automatic check alone, and said the rest in the line under it -- the defect the
-     * maintainer met on Android 16 (inventory I-201).
+     * judges). Until v5.10C the switch read the saved choice and the automatic check alone, and said
+     * the rest in the line under it -- the defect the maintainer met on Android 16 (inventory I-201).
+     *
+     * **Whether PaperScrape is the wallpaper is no longer one of them** (v5.15): the phone's job
+     * scheduler checks with any wallpaper, the screen off included (`UpdateCheckJobService`). From
+     * v5.10C to v5.14 the check ran inside the wallpaper, and the row read off with "Works only while
+     * PaperScrape is your wallpaper" while it was not -- true then, false since.
      *
      * When something is missing, the line names the first one, in the order a user can fix them
-     * without leaving the app first: the automatic check, the phone's settings, the wallpaper.
+     * without leaving the app first: the automatic check, then the phone's settings.
      *
      * [notifySwitchOn] is the switch as saved; [requestRefused] is whether the permission dialog was
      * refused a moment ago on this screen.
@@ -264,7 +237,6 @@ object UpdateNotificationPolicy {
         permission: NotificationPermission,
         appNotificationsEnabled: Boolean,
         channelTurnedOff: Boolean,
-        isTheWallpaper: Boolean,
         requestRefused: Boolean,
     ): NotifyRowState {
         if (!automaticCheckEnabled) {
@@ -272,7 +244,7 @@ object UpdateNotificationPolicy {
         }
         val phoneLetsItPost = mayPost(permission) &&
             !blockedInPhoneSettings(permission, appNotificationsEnabled, channelTurnedOff, notifySwitchOn = true)
-        if (notifySwitchOn && phoneLetsItPost && isTheWallpaper) {
+        if (notifySwitchOn && phoneLetsItPost) {
             return NotifyRowState(true, enabled = true, NotifyRowLine.DESCRIPTION, NotifyTap.TURN_OFF)
         }
         val (line, tap) = when {
@@ -280,11 +252,9 @@ object UpdateNotificationPolicy {
             mustAsk(permission) -> when {
                 notifySwitchOn -> NotifyRowLine.BLOCKED_ASK
                 requestRefused -> NotifyRowLine.REFUSED
-                !isTheWallpaper -> NotifyRowLine.NOT_THE_WALLPAPER
                 else -> NotifyRowLine.DESCRIPTION
             } to NotifyTap.ASK_PERMISSION
             !appNotificationsEnabled -> NotifyRowLine.BLOCKED to NotifyTap.OPEN_APP_NOTIFICATIONS
-            !isTheWallpaper -> NotifyRowLine.NOT_THE_WALLPAPER to NotifyTap.SET_AS_WALLPAPER
             else -> NotifyRowLine.DESCRIPTION to NotifyTap.TURN_ON
         }
         return NotifyRowState(false, enabled = true, line, tap)
@@ -299,9 +269,8 @@ object UpdateNotificationPolicy {
      * idea of being told about releases.
      *
      * [untilMillis] is a wall-clock stamp, because it is the one the snooze was written with and it
-     * has to survive the process dying. That makes it the wrong clock for a *schedule* — see
-     * [UPDATE_CHECK_INTERVAL_MILLIS]'s caller, which uses `elapsedRealtime` — and the right one for
-     * an expiry the user set in calendar terms.
+     * has to survive the process dying: an expiry the user set in calendar terms. The schedule of the
+     * checks is the phone's scheduler's ([UpdateCheckSchedule]).
      */
     fun isSnoozed(
         tagName: String,
@@ -345,17 +314,4 @@ object UpdateNotificationPolicy {
         else -> true
     }
 
-    /**
-     * Whether a finished check is worth retrying sooner than [UPDATE_CHECK_INTERVAL_MILLIS].
-     *
-     * The counterpart of [com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.isTransient],
-     * and simpler than it for a reason worth writing down: the weather providers can answer *no* —
-     * a missing key, a rejected key, a spent quota — and hammering them sooner neither helps nor is
-     * polite. GitHub's public Releases endpoint has no such answer for this app: it either replies
-     * with the list or it does not reply usefully, and all three
-     * [UpdateCheckResult.Unreachable.Reason]s mean the same thing, which is *nothing is known*.
-     *
-     * A null [result] is "no check was made on this pass" and is not a failure.
-     */
-    fun isTransient(result: UpdateCheckResult?): Boolean = result is UpdateCheckResult.Unreachable
 }

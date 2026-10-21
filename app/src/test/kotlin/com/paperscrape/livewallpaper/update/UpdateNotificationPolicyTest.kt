@@ -27,8 +27,8 @@ import org.junit.Test
  * - above it a denial stops the post rather than throwing or posting into a void;
  * - the decision is a function of its inputs and of nothing else — no clock, no context, no state;
  * - the four reasons to stay quiet, one at a time and in combination;
- * - the check interval is the weather interval times 3, and is 3 hours (24 until v5.10D; the
- *   cadence over a day of passes is `UpdateCheckCadenceTest`).
+ * - the check interval is the weather interval times 3, and is 3 hours (24 until v5.10D; the job's
+ *   period, its retries and its wiring are `UpdateCheckCadenceTest`).
  *
  * **Not covered here, and it must not be claimed:** that the permission is actually requested, that
  * the system dialog appears, that a user's answer reaches the switch, that the channel exists, that
@@ -247,22 +247,23 @@ class UpdateNotificationPolicyTest {
     }
 
     /**
-     * Every unreachable outcome earns a retry; a real answer does not, and nor does "no check ran".
-     *
-     * Unlike the weather providers, GitHub's public endpoint has no "the service answered no" for
-     * this app — no key, no quota — so all three reasons collapse to "nothing is known" and all
-     * three are worth asking again about.
+     * Every unreachable outcome earns a retry, but GitHub's limit (v5.15, inventory I-909): a refusal that says this
+     * network has spent its requests is asked again once, when it lifts, not on the back-off -- every try before it
+     * would be refused too. A real answer earns no retry, and nor does "no check ran". The scheduler's half of it is
+     * `UpdateCheckCadenceTest`.
      */
     @Test
-    fun `only an unreachable check is retried sooner`() {
+    fun `only a check that found nothing out is retried sooner, and the limit only once`() {
         for (reason in UpdateCheckResult.Unreachable.Reason.entries) {
-            assertTrue(
-                "$reason should be retried",
-                UpdateNotificationPolicy.isTransient(UpdateCheckResult.Unreachable(reason)),
-            )
+            val next = UpdateCheckSchedule.afterCheck(UpdateCheckResult.Unreachable(reason))
+            if (reason == UpdateCheckResult.Unreachable.Reason.RATE_LIMITED) {
+                assertEquals(UpdateCheckSchedule.Next.AFTER_LIMIT, next)
+            } else {
+                assertEquals("$reason should be retried", UpdateCheckSchedule.Next.RETRY, next)
+            }
         }
-        assertFalse(UpdateNotificationPolicy.isTransient(UpdateCheckResult.UpToDate))
-        assertFalse("no check was made on this pass", UpdateNotificationPolicy.isTransient(null))
+        assertEquals(UpdateCheckSchedule.Next.DONE, UpdateCheckSchedule.afterCheck(UpdateCheckResult.UpToDate))
+        assertEquals("no check was made on this pass", UpdateCheckSchedule.Next.DONE, UpdateCheckSchedule.afterCheck(null))
     }
 
     // -- the "switched off in your phone's settings" line (A13, v5.8B) ---------------------------
@@ -337,7 +338,6 @@ class UpdateNotificationPolicyTest {
         notifySwitchOn: Boolean,
         automaticCheckEnabled: Boolean = true,
         channelTurnedOff: Boolean = false,
-        isTheWallpaper: Boolean = true,
         requestRefused: Boolean = false,
     ) = UpdateNotificationPolicy.notifyRow(
         automaticCheckEnabled = automaticCheckEnabled,
@@ -345,7 +345,6 @@ class UpdateNotificationPolicyTest {
         permission = UpdateNotificationPolicy.permissionFor(sdk, granted),
         appNotificationsEnabled = appNotificationsEnabled,
         channelTurnedOff = channelTurnedOff,
-        isTheWallpaper = isTheWallpaper,
         requestRefused = requestRefused,
     )
 

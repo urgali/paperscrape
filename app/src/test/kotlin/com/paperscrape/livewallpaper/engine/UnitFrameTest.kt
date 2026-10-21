@@ -76,7 +76,7 @@ class UnitFrameTest {
         "rainbow" to "1/3 px of rainbow",
         "lightning" to "1/3 px of lightning_bolt",
         "splash" to "1/3 px of the dolphin's splash",
-        "santaSleigh" to "1/3 px of the sleigh",
+        "santaSleigh" to "1/3 px of the sleigh group's sprites (santa_sleigh, santa_reindeer_*): the group's units",
         "dolphin" to "1/3 px of dolphin_body",
         "sailboat" to "1/3 px of sailboat_hull and sailboat_sail",
         "flower" to "1/3 px of ground_flowers_bloom / ground_flowers_dry (one canvas, two drawings)",
@@ -125,7 +125,8 @@ class UnitFrameTest {
         "RAINBOW_" to setOf("rainbow"),
         "LIGHTNING_" to setOf("lightning"),
         "SPLASH_" to setOf("splash"),
-        "SANTA_SLEIGH_" to setOf("santaSleigh"),
+        // v5.15: every length of Santa's sleigh group, the sprites' and the cords' (`SantaSleighTable`, the generator).
+        "SANTA_" to setOf("santaSleigh"),
         "DOLPHIN_" to setOf("dolphin"),
         "SAILBOAT_" to setOf("sailboat"),
         "FLOWER_" to setOf("flower"),
@@ -172,10 +173,6 @@ class UnitFrameTest {
             "measured on the seated bust canvas. Renamed in v4.26 from WIDEST_SEATABLE_HEAD_UNITS, " +
             "which named neither the quantity's frame nor anything else, and was the second of " +
             "item 61's two defects"),
-        "CONTENT_LEFT_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
-        "CONTENT_TOP_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
-        "CONTENT_WIDTH_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
-        "CONTENT_HEIGHT_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
         // v5.9B (I-41): the people generator, read since this release. Its lengths are mostly named
         // quantity-first, so the prefix table cannot resolve them.
         "SEATED_HALF_BAND" to (setOf("bustCar") to

@@ -300,6 +300,36 @@ class LinesSayWhatTheyDoTest {
         }
     }
 
+    // ---------------------------------------------------------------- Santa and Halloween (v5.15)
+
+    @Test
+    fun `Santa's line says about once a minute, the rhythm the sleigh keeps`() {
+        // The maintainer, 2026-10-19: «Tieni il ritmo, cambia la scritta». The next flight sets off 25 to 60 s after
+        // the last one ends and a flight lasts 9 to 13 s: a pass every 34 to 73 s, about once a minute.
+        val effect = source("engine/SantaSleighEffect.kt")
+        assertTrue(effect.contains("timeUntilNextFlight = 25f + Random.nextFloat() * 35f"))
+        // And the flight's own length, the other half of "a pass every 34 to 73 s" (v5.15C2, inventory I-975).
+        assertTrue(effect.contains("flightDuration = 9f + Random.nextFloat() * 4f"))
+        assertTrue(source("ui/SeasonsScreen.kt").contains("supporting = \"Santa's sleigh flies across the sky about once a minute, dropping gifts\""))
+    }
+
+    @Test
+    fun `Halloween's line names the four things its switch does`() {
+        // One switch, four changes (`DESIGN_NOTES.md` §16): the moon's carved face with its light, the bare trees,
+        // the withered palms, the carved pumpkins. Until v5.15 the line named the first two.
+        val objects = source("engine/SceneObjectRenderer.kt")
+        for (sprite in listOf("tree_dead_branches", "palmtree_fronds_dead", "pumpkin_face")) {
+            assertTrue("the street no longer draws $sprite", objects.contains("R.drawable.$sprite"))
+        }
+        assertTrue(source("engine/PaperRenderer.kt").contains("R.drawable.moon_jack_o_lantern_light"))
+        val seasons = source("ui/SeasonsScreen.kt")
+        val row = seasons.substring(seasons.indexOf("title = \"Halloween\",")).substringBefore("checked =")
+        val line = Regex("""supporting = "([^"]+)"""").find(row)!!.groupValues[1]
+        for (word in listOf("moon", "lit from inside", "bare branches on the leafy trees", "withered palms", "every pumpkin")) {
+            assertTrue("the Halloween line no longer says '$word': $line", line.contains(word))
+        }
+    }
+
     private fun source(path: String): String {
         val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/$path"
         var dir: File? = File(".").absoluteFile

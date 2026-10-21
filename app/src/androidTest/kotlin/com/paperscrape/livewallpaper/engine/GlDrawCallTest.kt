@@ -50,7 +50,7 @@ class GlDrawCallTest {
                 counted.drawCalls,
             )
         }
-        // Printed whether it passes or not: the number is the measurement the release reports.
+        // Printed once every scene has passed (a failing one names its own count in the assertion): the number is the measurement the release reports.
         println("GlDrawCallTest: " + worst.joinToString(" | "))
         assertTrue("no crowded scene was rendered", worst.isNotEmpty())
     }
@@ -148,7 +148,12 @@ class GlDrawCallTest {
      * 50 % with their bulbs, the three groups' hours 13:00-20:00 so every building that keeps hours is shut, blinds and
      * shutters -- the fire and the police station never close), by day
      * and at night, in Christmas, Autumn and Winter; and at night with everything at its very most -- the snow falling
-     * at 100 %, every star, the distant houses at 100 % -- in Christmas and Winter. One draw everywhere.
+     * at 100 %, every star, the distant houses at 100 % -- in Christmas and Winter. One draw everywhere. Since v5.15 the
+     * last two again with Santa's sleigh held in the middle of its crossing above them, and Halloween at 22:00 with its
+     * lit moon and the sleigh (inventory I-934): the sleigh, its cords, Rudolph's nose, the reindeer in all four of their
+     * poses and the gifts falling -- the sweep's clock moves a pose a frame there ([GlGolden.SLEIGH_SWEEP_STEP_SECONDS]),
+     * and the test checks the poses went by and gifts fell (v5.15C2, inventory I-975: with the clock still, two poses and
+     * no gift were all the sweep drew).
      *
      * Every bulb, every snowflake and every point star is a disc ([SceneCanvas.drawDisc]: a quad of the atlas sampling
      * `deco_bulb`, 6 vertices) and every wreath a quad of `deco_wreath`, not drawn shapes (24 to 36). Drawn as shapes,
@@ -163,10 +168,22 @@ class GlDrawCallTest {
         val offsets = FloatArray(60) { 3f * tile * it / 60 }
         val seen = mutableListOf<String>()
         for (scene in christmas()) {
-            val sweep = GlGolden.countDrawCallsAcross(scene, offsets)
+            val sleigh = scene.name.contains("-sleigh-")
+            val sweep = GlGolden.countDrawCallsAcross(scene, offsets, sleighInFlight = sleigh)
             val calls = sweep.calls
-            seen += "${scene.name}: swept ${calls.min()}..${calls.max()} draws, at most ${sweep.vertices.max()} vertices"
+            seen += "${scene.name}: swept ${calls.min()}..${calls.max()} draws, at most ${sweep.vertices.max()} vertices" +
+                if (sleigh) ", at most ${sweep.giftsFalling.max()} gifts falling" else ""
             assertTrue("${scene.name} swept across the street: ${calls.toList()}", calls.all { it == 1 })
+            if (sleigh) {
+                // The reindeer's four poses went by -- Rudolph's and the second's, picked from each frame's clock as the
+                // drawer picks them -- and gifts fell. That the four are drawn is held where the drawn sprites can be seen,
+                // in the atlas (`GlAtlasOccupancyTest`, `GlTextureCache.holds`).
+                val poses = sweep.clocks.flatMap { t ->
+                    SantaSleighDrawer.DEER_PHASE.map { phase -> SceneTime(t).frameIndex(SantaSleighDrawer.POSES_PER_SECOND, phase, 4) }
+                }.toSet()
+                assertEquals("${scene.name}: the reindeer's poses the sweep's clock went through", setOf(0, 1, 2, 3), poses)
+                assertTrue("${scene.name}: no gift fell in the sweep", sweep.giftsFalling.max() > 0)
+            }
         }
         println("GlDrawCallTest Christmas: " + seen.joinToString(" | "))
     }
@@ -222,7 +239,23 @@ class GlDrawCallTest {
                 },
             )
         }
-        return asInstalled + everything + atItsMost
+        // v5.15 (inventory I-934): the same streets at their most with Santa's sleigh held in flight above them -- its
+        // reindeer, cords and sleigh in the batch, and its gifts falling (the sweep's clock moves, v5.15C2) -- and Halloween
+        // at night with its moon lit and the sleigh too.
+        val withTheSleigh = atItsMost.map { scene ->
+            GoldenScene(
+                name = scene.name.replace("christmas-most-", "christmas-most-sleigh-"),
+                dayPhase = scene.dayPhase,
+                themeId = scene.themeId,
+                customise = { base -> scene.customise(base).copy(santaEnabled = true) },
+            )
+        } + GoldenScene(
+            name = "halloween-sleigh-night-22",
+            dayPhase = GoldenScene.night(22f),
+            themeId = "halloween",
+            customise = { base -> base.copy(santaEnabled = true, people = base.people.copy(visible = true, density = 1f), peopleNightDensity = 1f) },
+        )
+        return asInstalled + everything + atItsMost + withTheSleigh
     }
 
     private fun crowded() = listOf("city", "spring", "winter").map { theme ->

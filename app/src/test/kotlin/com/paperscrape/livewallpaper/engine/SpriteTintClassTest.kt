@@ -96,7 +96,8 @@ class SpriteTintClassTest {
         "cloud_body", "bird_body",
         "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
         // The Halloween moon. Tintable like every other phase: it is the same disc under the
-        // same theme colour, with the skull cut out of it rather than painted on.
+        // same theme colour -- since v5.15 the theme's moon colour, as every moon's, where it was an
+        // orange fixed for every theme -- with the face cut out of it rather than painted on.
         "moon_jack_o_lantern",
         // v4.28. The umbrella's canopy is tinted per pedestrian from `PedestrianCarry.PALETTE`, so
         // one drawing serves every colour on the street; the wave's two masks are tinted per frame
@@ -190,15 +191,18 @@ class SpriteTintClassTest {
         "firetruck_ladder", "firetruck_body",
         "dolphin_body", "sailboat_hull", "sailboat_sail",
         "sun_body", "sun_glow", "star_sparkle",
-        "santa_sleigh_scene", "santa_sleigh_trot",
+        // v5.15: Santa's sleigh and its reindeer's four poses, fixed art drawn as by day at night too, and the light
+        // inside the Halloween moon's carved face, laid over the tinted moon untinted.
+        "santa_sleigh", "santa_reindeer_0", "santa_reindeer_1", "santa_reindeer_2", "santa_reindeer_3",
+        "moon_jack_o_lantern_light",
         "rainbow_arc", "lightning_bolt", "firework",
     )
 
     /**
      * Person art: every walk frame and every head, all of it blitted untinted.
      *
-     * Matched by prefix rather than listed, because the set is 36 sprites generated from four
-     * kinds, two seasons and five poses, and a hand-written list of that size stops being read.
+     * Matched by prefix rather than listed, because the set is generated -- kinds, seasons, poses and
+     * pieces -- and a hand-written list of that size stops being read.
      * The property is the same one [fixedArtSprites] carries, and a person sprite that lost its
      * colours would fail it exactly as loudly.
      */
@@ -214,8 +218,8 @@ class SpriteTintClassTest {
      * the two mask rules below now check of them, and why they are kept out of the "carries a
      * colour of its own" rule that governs finished art.
      *
-     * Matched by name rather than listed for the reason [isPersonSprite] gives and more so: there
-     * are 167 of them, generated.
+     * Matched by name rather than listed for the reason [isPersonSprite] gives and more so: they are
+     * generated, one per colourable region of every shape.
      */
     private fun isRegionMask(name: String) = name.matches(Regex("""person_.*_m[shtb]"""))
 

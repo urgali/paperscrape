@@ -28,7 +28,10 @@ import org.junit.runner.RunWith
  * everything the process has drawn. Sweeping the built-in themes in one context is the closest a
  * test can get to what a wallpaper left running does, which is the case v4.29 measured on the
  * device. Since v5.11 the sweep has the distant houses on, at 100 % on every mountain, and the
- * mountains on where a theme ships them off: their twelve drawings are in the atlas too.
+ * mountains on where a theme ships them off: their twelve drawings are in the atlas too. Since v5.15
+ * it also draws what its frames never had: Santa's sleigh held in flight, by day and at night, and the
+ * Halloween moon with its light at night (inventory I-934) -- the sleigh in two frames a pose apart, so the
+ * reindeer's four poses are all in the atlas (v5.15C2, inventory I-975: one frame put two of them there).
  */
 @RunWith(AndroidJUnit4::class)
 class GlAtlasOccupancyTest {
@@ -47,5 +50,6 @@ class GlAtlasOccupancyTest {
             0,
             counted.standalone,
         )
+        assertEquals("the sleigh and the reindeer's four poses in the sweep's atlas", 5, counted.sleighPiecesHeld)
     }
 }

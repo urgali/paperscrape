@@ -75,6 +75,7 @@ import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.update.UpdateCheckJobs
 import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateInfo
@@ -232,7 +233,20 @@ fun SettingsScreen(
     // Held here rather than read inside the effect: `LocalContext` is a composition local and the
     // effect's body is a coroutine that outlives the composition pass that started it.
     val screenContext = LocalContext.current
-    LaunchedEffect(settings.automaticUpdateCheckEnabled, openUpdateForTag) {
+    // **The update job is put back where the switches say whenever this screen opens and whenever they
+    // change** (v5.15, `UpdateCheckJobService`): the screen opening is one of the two moments PaperScrape
+    // learns it may run after a force stop took the job away (the wallpaper's service starting is the
+    // other), and a backup restored here can change the switches. The job reads the switches from the
+    // store, so the defaults-shaped first value of `settings` cannot cancel it. A job put back here does not
+    // check at once -- no run at once of its own, and its periodic runs start a period later -- because this
+    // screen checks itself as it opens (below), and GitHub would be asked twice (inventory I-956).
+    LaunchedEffect(settings.automaticUpdateCheckEnabled, settings.updateNotificationsEnabled) {
+        UpdateCheckJobs.reconcile(screenContext, checkAtOnce = false)
+    }
+    // A tapped notification's check does not start again when the stored settings replace the first,
+    // defaults-shaped value: it does not depend on them, and starting again asked GitHub a second time
+    // (until v5.15). The check of an opening that nobody asked for follows the switch, as before.
+    LaunchedEffect(settings.automaticUpdateCheckEnabled.takeIf { openUpdateForTag == null }, openUpdateForTag) {
         // A tapped notification is a request, so it runs whatever the opt-in says -- the user has
         // just asked, the same way the button in Advanced & about is an ask (A3, v5.7D).
         val askedByNotification = openUpdateForTag != null
@@ -244,8 +258,17 @@ fun SettingsScreen(
         // other outcomes are shown too -- Advanced & about with "could not check" or "up to date",
         // the same state its own button reports (v5.8C; until then an offline tap showed nothing
         // at all, and the notification looked broken).
-        // With the reply kept from the last check, so an unchanged list costs no download (v5.10D).
-        val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, updatePrefs)
+        // With the reply kept from the last check, so an unchanged list costs no download (v5.10D). Not
+        // inside a limit GitHub set, unless a tapped notification asked (v5.15): opening the screen is
+        // nobody's request, and GitHub would refuse it. And an answer GitHub gave less than a minute ago
+        // stands for it (v5.15C2): the wallpaper the phone binds again after a force stop may have just
+        // checked, as this screen opened.
+        val result = UpdateChecker.checkForUpdate(
+            BuildConfig.VERSION_NAME,
+            updatePrefs,
+            honourLimit = !askedByNotification,
+            takeRecentAnswer = !askedByNotification,
+        )
         val update = (result as? UpdateCheckResult.Available)?.info
         if (update == null) {
             if (askedByNotification) {
@@ -254,7 +277,7 @@ fun SettingsScreen(
             }
             return@LaunchedEffect
         }
-        // The same rule the engine's notification consults, read from one place so the two cannot
+        // The same rule the update job's notification consults (`UpdateCheckJobs.runOnce`), read from one place so the two cannot
         // drift -- see UpdateNotificationPolicy.isSnoozed, which is this expression moved.
         val isSnoozedForThisVersion = UpdateNotificationPolicy.isSnoozed(
             tagName = update.tagName,
@@ -523,7 +546,6 @@ fun SettingsScreen(
             scope = scope,
             onUpdateFound = { availableUpdate = it },
             onRequestNotificationPermission = onRequestNotificationPermission,
-            onApplyWallpaper = onApplyWallpaper,
             startInstallFor = pendingInstall,
             onInstallStarted = { pendingInstall = null },
             onBack = { destination = SettingsDestination.HOME },

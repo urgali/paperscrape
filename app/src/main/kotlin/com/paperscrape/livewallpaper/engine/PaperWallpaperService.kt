@@ -23,11 +23,7 @@ import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.update.ApkDownloader
-import com.paperscrape.livewallpaper.update.UpdateCheckResult
-import com.paperscrape.livewallpaper.update.UpdateChecker
-import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
-import com.paperscrape.livewallpaper.update.UpdateNotifier
-import com.paperscrape.livewallpaper.update.UpdatePrefs
+import com.paperscrape.livewallpaper.update.UpdateCheckJobs
 import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
 import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
 import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
@@ -74,7 +70,9 @@ internal const val WEATHER_CHECK_INTERVAL_MS = 2 * 60 * 1000L
 class PaperWallpaperService : WallpaperService() {
 
     /**
-     * How many engines are currently visible, i.e. actually drawing frames.
+     * How many engines are currently on screen, i.e. actually drawing frames: shown, and holding a
+     * surface ([GlLifecyclePolicy.countsAsVisible]; since v5.15 an engine the system calls visible with
+     * no surface is not counted, inventory I-918).
      *
      * A wallpaper process can host more than one engine at a time -- the picker's preview engine
      * alongside the live one -- and they share a single [SpriteCache], so the memory policy needs
@@ -147,6 +145,14 @@ class PaperWallpaperService : WallpaperService() {
     override fun onCreate() {
         super.onCreate()
         iconController = SeasonalIconController(applicationContext).also { it.start() }
+        // **The update check is not this service's since v5.15**: the phone's job scheduler runs it,
+        // with the screen off and whatever the wallpaper (`UpdateCheckJobService`, the maintainer's
+        // «S sì» of 2026-10-19). What is left here is putting the job back where a force stop -- the
+        // user's, or the BV6600 firmware's at every restart of the phone -- took it away: the
+        // wallpaper's process starting again is one of the two moments PaperScrape learns it may run
+        // (the settings screen opening is the other). Reads the switches from the store; a job already
+        // pending is kept as it is.
+        UpdateCheckJobs.reconcile(applicationContext)
     }
 
     override fun onDestroy() {
@@ -235,7 +241,32 @@ class PaperWallpaperService : WallpaperService() {
         // what makes the write visible wherever it is read; what was wrong was the thread named.
         @Volatile
         private var settings: WallpaperSettings = WallpaperSettings()
+        /** What the system last said of this engine's visibility. Main thread. */
         private var visible = false
+
+        /** Whether the system has given this engine a surface it has not taken back (v5.15). Main thread. */
+        private var hasSurface = false
+
+        /** Set by [onDestroy]: a switch to `Canvas` posted before it does nothing after it (v5.15). Main thread. */
+        private var destroyed = false
+
+        /**
+         * Whether this engine is on screen: shown, with a surface ([GlLifecyclePolicy.countsAsVisible],
+         * v5.15, inventory I-918). What the service counts for the memory policy, and what wakes the
+         * weather loop. Main thread.
+         */
+        private val onScreen: Boolean get() = GlLifecyclePolicy.countsAsVisible(visible, hasSurface)
+
+        /** Runs [change] and keeps the service's count of engines on screen in step with [onScreen]. */
+        private inline fun changingOnScreen(change: () -> Unit) {
+            val before = onScreen
+            change()
+            onEngineVisibilityChanged(nowVisible = onScreen, wasVisible = before)
+        }
+
+        /** Whether the `Canvas` loop may run on this engine now: [GlLifecyclePolicy.canvasLoopMayRun]. */
+        private fun canvasLoopMayRun(): Boolean =
+            GlLifecyclePolicy.canvasLoopMayRun(canvasFallback, hasSurface, hasGlThread = glThread != null, destroyed = destroyed)
         private var lastFrameNanos = System.nanoTime()
         private var elapsedSeconds = SceneTime.ZERO
 
@@ -342,45 +373,6 @@ class PaperWallpaperService : WallpaperService() {
         private var weatherTransientFailures = 0
 
         /**
-         * When the last **update** check was attempted, on the monotonic clock (v5.7D, A0).
-         *
-         * The same field, the same sentinel and the same clock as [lastWeatherFetchElapsed], for the
-         * same reason: a wall clock moved backwards once froze the weather loop until it caught up,
-         * and a schedule that can be frozen by a timezone edit is not a schedule. `elapsedRealtime`
-         * counts since boot, includes deep sleep and cannot go backwards.
-         *
-         * The sentinel is what makes the *first* pass of a freshly-bound engine due immediately, so
-         * a user who has just set the wallpaper is told about a waiting release now rather than
-         * in three hours. It resets on every rebind, which is the honest cost of keeping the schedule
-         * in the engine: a device that rebinds its wallpaper several times a day checks at each
-         * rebind. Bounded above by one check per rebind and one every three hours otherwise, plus the
-         * retry ladder while checks come back Unreachable (see [updateCheckTransientFailures]).
-         */
-        private var lastUpdateCheckElapsed: Long = Long.MIN_VALUE / 4
-
-        /**
-         * How many update checks in a row came back [UpdateCheckResult.Unreachable].
-         *
-         * Feeds [UpdateNotificationPolicy.checkDue], which runs the *same*
-         * [LiveWeatherSchedule.nextAttemptDelayMillis] ladder the weather loop uses with
-         * [UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS] (three hours since v5.10D) as the
-         * normal interval instead of the hourly one. From two minutes it doubles to the three-hour
-         * cap: seven retries in the first 4 h 14 min of being offline (2, 6, 14, 30, 62, 126, 254 minutes),
-         * then one every three hours (`UpdateCheckCadenceTest`).
-         */
-        private var updateCheckTransientFailures = 0
-
-        /**
-         * The snooze and notified-tag store, built once with the engine rather than per pass.
-         *
-         * Backed by the same DataStore instance the settings screen uses in this process (the
-         * `updateDataStore` delegate is one per process, whichever `UpdatePrefs` wraps it), so a
-         * snooze written from the dialog is visible to the loop without a restart -- a DataStore
-         * reads its own writes, and only its own.
-         */
-        private val updatePrefs by lazy { UpdatePrefs(applicationContext) }
-
-        /**
          * What the renderer was last told, so an unchanged decision costs nothing.
          *
          * Main-thread only: written and read by the weather loop alone, unlike the renderer's own
@@ -447,12 +439,16 @@ class PaperWallpaperService : WallpaperService() {
         /** Whether this engine draws now: on screen, and past its [firstFrameGate]. */
         private val drawing: Boolean get() = visible && firstFrameGate.isOpen
 
-        /** The gate has opened: start the frames it was holding, on whichever backend draws. */
+        /**
+         * The gate has opened: start the frames it was holding, on whichever backend draws -- the
+         * `Canvas` loop only where it may run (v5.15, [canvasLoopMayRun]): an engine with no GL thread
+         * may also be one that has no surface yet, or none at all.
+         */
         private fun onFirstFrameAllowed() {
             val thread = glThread
             if (thread != null) {
                 thread.setVisible(drawing)
-            } else if (drawing && renderer != null) {
+            } else if (drawing && renderer != null && canvasLoopMayRun()) {
                 lastFrameNanos = System.nanoTime()
                 handler.post(drawRunnable)
             }
@@ -669,7 +665,12 @@ class PaperWallpaperService : WallpaperService() {
                     // immediately and the due-check runs at once, so a refresh that fell due while
                     // the screen was off is picked up on the first frame instead of up to two
                     // minutes later -- the loop got *more* responsive, not less.
-                    if (!visible) {
+                    //
+                    // On screen means shown **with a surface** since v5.15 ([onScreen], inventory
+                    // I-918): the picker's preview of a stopped package, bound later to a window
+                    // nobody shows, was "visible" with nothing to draw on and fetched the weather for
+                    // it. A surface arriving or going wakes this loop, as visibility does.
+                    if (!onScreen) {
                         weatherWakeUp.receive()
                         continue
                     }
@@ -802,17 +803,6 @@ class PaperWallpaperService : WallpaperService() {
                     // Not an answer about inputs replaced while this pass was fetching: see
                     // [weatherInputsGeneration]. The next pass, due at once, answers for the new ones.
                     if (generationAtStart == weatherInputsGeneration) publishWeatherStatus(decision.status)
-                    // **The update check rides this loop, every three hours** (v5.7D, A0; three
-                    // hours since v5.10D, the maintainer's row 3). It is here and not in a job
-                    // scheduler, an alarm or a WorkManager worker because that was the decision: no
-                    // new dependency, no new component, and it inherits the three things this loop
-                    // already had argued out -- the monotonic clock, the bounded backoff, and ARC-02's
-                    // parking. Its whole cost is one more `if` per two-minute tick and about eight
-                    // GitHub requests a day (one more per rebind, and a short retry ladder while
-                    // GitHub is unreachable), each answered with no body while the list's first page
-                    // has not changed; when it has, the page is read again, and so is each older page
-                    // down to the installed version (UpdateChecker).
-                    maybeCheckForUpdate()
                     // Waits for the tick *or* for a settings change, whichever comes first -- and the
                     // tick comes sooner when a try for the phone's position falls due before it
                     // (v5.10E): 5 minutes after a request that found nothing means 5, not the next
@@ -840,6 +830,10 @@ class PaperWallpaperService : WallpaperService() {
          */
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
+            // On screen now if the system already called this engine visible (v5.15, [onScreen]): the
+            // count the memory policy reads, and the weather loop, which parks while it is not.
+            changingOnScreen { hasSurface = true }
+            weatherWakeUp.trySend(Unit)
             val frame = holder.surfaceFrame
             val existing = renderer
             if (existing == null) {
@@ -865,7 +859,7 @@ class PaperWallpaperService : WallpaperService() {
                 GlLifecyclePolicy.SurfaceAction.NO_GL -> {
                     // The Canvas loop draws this engine. It was stopped when the surface went away
                     // (see onSurfaceDestroyed); a new surface is what restarts it.
-                    if (drawing) {
+                    if (drawing && canvasLoopMayRun()) {
                         lastFrameNanos = System.nanoTime()
                         handler.post(drawRunnable)
                     }
@@ -874,6 +868,9 @@ class PaperWallpaperService : WallpaperService() {
         }
 
         private fun startGlThread(holder: SurfaceHolder) {
+            // A `Canvas` loop started on this engine before it had GL (v5.15, inventory I-916) stops
+            // here, not at the next screen off: from now on the GL thread draws the surface.
+            handler.removeCallbacks(drawRunnable)
             val thread = GlRenderThread(glCallbacks)
             glThread = thread
             thread.start()
@@ -917,14 +914,15 @@ class PaperWallpaperService : WallpaperService() {
          * cadence, because until now only visibility-false and engine-destroy removed it.
          */
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
+            changingOnScreen { hasSurface = false }
+            weatherWakeUp.trySend(Unit)
             glThread?.onSurfaceDestroyed()
             handler.removeCallbacks(drawRunnable)
             super.onSurfaceDestroyed(holder)
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
-            onEngineVisibilityChanged(nowVisible = visible, wasVisible = this.visible)
-            this.visible = visible
+            changingOnScreen { this.visible = visible }
             // Releases the Live Weather loop, which parks on this channel while invisible (ARC-02).
             // Sent on the way down as well: an engine that has just gone invisible has to reach the
             // `!visible` check to park, and a loop asleep in `withTimeoutOrNull` would otherwise
@@ -948,7 +946,11 @@ class PaperWallpaperService : WallpaperService() {
                 thread.setVisible(drawing)
                 return
             }
-            if (drawing) {
+            // No GL thread: the `Canvas` loop, only where it may run (v5.15, inventory I-913). An
+            // engine with no GL thread may be one with no surface yet, or the picker's preview of a
+            // stopped package, which the system keeps visible over a window it never gives a surface:
+            // that one used to start the loop here and call `lockCanvas` on nothing ten times a second.
+            if (drawing && canvasLoopMayRun()) {
                 applyEffectiveTheme()
                 lastFrameNanos = System.nanoTime()
                 handler.post(drawRunnable)
@@ -1005,8 +1007,10 @@ class PaperWallpaperService : WallpaperService() {
             // An engine can be destroyed while still marked visible (the picker's preview engine
             // usually is). Without this the counter would never fall back to zero and the memory
             // policy would keep believing something is drawing.
-            onEngineVisibilityChanged(nowVisible = false, wasVisible = visible)
-            visible = false
+            changingOnScreen {
+                visible = false
+                destroyed = true
+            }
             engines.remove(this)
             handler.removeCallbacks(drawRunnable)
             handler.removeCallbacks(firstFrameWaitLimit)
@@ -1069,7 +1073,10 @@ class PaperWallpaperService : WallpaperService() {
          * other backend.
          */
         private fun switchToCanvasFallback() {
-            if (canvasFallback) return
+            // Not twice, and not after onDestroy (v5.15, inventory I-915): this is posted from the render
+            // thread, and landing after the engine is gone it counted a `Canvas` engine nobody would
+            // take off the census again.
+            if (!GlLifecyclePolicy.mayFallBackToCanvas(alreadyCanvas = canvasFallback, destroyed = destroyed)) return
             canvasFallback = true
             WallpaperEngineCensus.engineFellBackToCanvas()
             glThread?.shutdown()
@@ -1077,7 +1084,7 @@ class PaperWallpaperService : WallpaperService() {
             val frame = surfaceHolder.surfaceFrame
             renderer?.onSizeChanged(frame.width(), frame.height())
             lastFrameNanos = System.nanoTime()
-            if (drawing) handler.post(drawRunnable)
+            if (drawing && canvasLoopMayRun()) handler.post(drawRunnable)
         }
 
         /**
@@ -1095,6 +1102,14 @@ class PaperWallpaperService : WallpaperService() {
         private fun drawFrame() {
             val frameStartNanos = System.nanoTime()
             val holder = surfaceHolder
+            // **No `Canvas` frame without a surface to lock, and no next one** (v5.15, inventory I-914):
+            // `lockCanvas` on a surface that does not exist, or that GL holds, returns nothing after
+            // Android has waited up to 100 ms on the main thread, and a loop that went on rescheduling
+            // itself did that ten times a second. A new surface or the switch to `Canvas` starts it again.
+            if (!canvasLoopMayRun() || holder.surface?.isValid != true) {
+                handler.removeCallbacks(drawRunnable)
+                return
+            }
             var canvas: Canvas? = null
             try {
                 canvas = holder.lockCanvas()
@@ -1175,95 +1190,6 @@ class PaperWallpaperService : WallpaperService() {
             )
 
             renderer?.draw(target, dayPhase, elapsedSeconds, deltaSeconds)
-        }
-
-        /**
-         * One pass of the update check, run from the Live Weather loop (A0, v5.7D).
-         *
-         * ### Why it lives in this loop and not in a scheduler
-         *
-         * The maintainer's decision, taken 2026-09-23 with its limit stated first; on 2026-09-30 he
-         * kept the place and moved the cadence from once a day to every three hours (row 3 of the
-         * v5.10A table). The alternative
-         * was a `WorkManager` periodic job, which would run whether or not this wallpaper is set and
-         * would survive reboot -- and would cost a **thirteenth dependency** in a project that ships
-         * twelve and has argued over each, a new initializer in a process that starts nothing, and a
-         * manifest disclosure that currently says truthfully that the app makes no timed background
-         * network call. Here, the check is one `if` on a tick that already exists.
-         *
-         * **The limit, which is not a bug to be fixed later.** This loop parks on `weatherWakeUp`
-         * while the engine is invisible (ARC-02), so the check only happens while PaperScrape is
-         * the wallpaper *and* on screen. Somebody who has the app installed and a different
-         * wallpaper set is never checked and never notified. That was said before the choice was
-         * made and accepted with it; *Advanced & about*'s button is what those users have.
-         *
-         * ### What each guard is for
-         *
-         * - **[isPreview]**: the system wallpaper picker's preview is a second engine running this
-         *   same loop. It must not check and must not post -- the person is choosing a wallpaper,
-         *   not waiting for an update, and the same reasoning that stopped the preview publishing
-         *   the weather status applies here twice over. (The settings screen's own preview card is
-         *   not an engine at all: it is a Compose `Canvas`, `ui/ThemePreview.kt`.);
-         * - **the two switches**: the notification reports on the automatic check, so it needs both.
-         *   Neither is consulted once, at startup: they are read off `settings` every pass, so
-         *   turning either off stops the next check rather than the one after a restart;
-         * - **[UpdateNotificationPolicy.mayPost]**, read *before* the network call: a check whose
-         *   result could not be shown to anybody is a request made for nothing. On API 33+ with the
-         *   permission denied this is what keeps the update check off the network entirely.
-         *
-         * Nothing here throws but the last write: `checkForUpdate` never does by construction, the
-         * notification path returns a boolean rather than raising, and the two preference reads
-         * recover from read errors; `setNotifiedTag` is a plain DataStore edit. A failed check only
-         * moves the retry ladder. The write is caught: an I/O error from `setNotifiedTag` used to
-         * escape into the Live Weather loop and end it until the engine was created again.
-         */
-        private suspend fun maybeCheckForUpdate() {
-            if (isPreview) return
-            val current = settings
-            if (!current.automaticUpdateCheckEnabled || !current.updateNotificationsEnabled) return
-            if (!UpdateNotificationPolicy.mayPost(UpdateNotifier.notificationPermission(applicationContext))) return
-
-            if (!UpdateNotificationPolicy.checkDue(SystemClock.elapsedRealtime() - lastUpdateCheckElapsed, updateCheckTransientFailures)) return
-
-            // Stamped before the request, not after, so a slow or hanging call cannot be retried by
-            // the next tick two minutes later. The weather loop stamps in the same place.
-            lastUpdateCheckElapsed = SystemClock.elapsedRealtime()
-            // With the reply kept from the last check: while nothing has changed GitHub answers with
-            // no body (v5.10D, row 16).
-            val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, updatePrefs)
-            updateCheckTransientFailures = if (UpdateNotificationPolicy.isTransient(result)) {
-                updateCheckTransientFailures + 1
-            } else {
-                0
-            }
-            val info = (result as? UpdateCheckResult.Available)?.info ?: return
-
-            // **The snooze is honoured, not routed around.** "Remind me later -> In a month" is
-            // keyed to the version tag, so a month on v5.6 does not hide v5.7 -- and a notification
-            // that ignored it would be the app answering a question the user has already answered.
-            val snooze = updatePrefs.readSnoozeState()
-            val post = UpdateNotificationPolicy.shouldPost(
-                notificationsEnabled = current.updateNotificationsEnabled,
-                permission = UpdateNotifier.notificationPermission(applicationContext),
-                tagName = info.tagName,
-                alreadyNotifiedTag = updatePrefs.readNotifiedTag(),
-                snoozedTag = snooze.versionTag,
-                snoozeUntilMillis = snooze.untilMillis,
-                nowMillis = System.currentTimeMillis(),
-            )
-            if (!post) return
-
-            // Recorded only if it actually went out: a tag written for a notification the platform
-            // dropped would silence that release for the one user who never saw it.
-            //
-            // The write is the one thing here that can throw (a full disk, an I/O error), and it
-            // runs inside the Live Weather loop: until v5.8C an exception from it ended that loop,
-            // and with it every weather refresh and update check, until the engine was created
-            // again (v5.8B comment audit). A failed write now costs at most a second notification
-            // for the same release on a later check -- the lesser of the two.
-            if (UpdateNotifier.post(applicationContext, info.tagName, BuildConfig.VERSION_NAME)) {
-                runCatching { updatePrefs.setNotifiedTag(info.tagName) }
-            }
         }
 
         /**

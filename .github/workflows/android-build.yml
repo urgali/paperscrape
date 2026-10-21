@@ -19,7 +19,7 @@ jobs:
   # sees release-signing secrets, so a compromised dependency or a malicious PR pulled in here
   # has nothing to exfiltrate beyond what `contents: read` already exposes.
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -80,7 +80,7 @@ jobs:
   release:
     needs: build
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       # For actions/attest-build-provenance below: id-token mints the OIDC token used to request

@@ -100,4 +100,41 @@ internal object GlLifecyclePolicy {
      */
     fun mayReuseEglSurface(hasEglSurface: Boolean, surfaceStale: Boolean): Boolean =
         hasEglSurface && !surfaceStale
+
+    /**
+     * Whether the `Canvas` loop may run on an engine: only one that has given up on GL
+     * ([canvasFallback]), holds a surface the system has not taken back ([hasSurface]), has no GL
+     * thread and is not destroyed (v5.15).
+     *
+     * **"No GL thread" is not "the Canvas fallback".** Before its first surface an engine has no GL
+     * thread either, and an engine the system keeps visible may never get a surface: the picker's
+     * preview of a package that was stopped, left spinning in the picker's task, is bound once the
+     * package can start again and attached to a window nobody shows. The engine's visibility and the
+     * first-frame gate used to start the loop on [PaperWallpaperService]'s `drawing` alone, so that
+     * preview called `lockCanvas` on a surface that did not exist ten times a second while the screen
+     * was on -- each call held by Android up to 100 ms on the main thread, about 4 % of a core
+     * (measured on the BV6600, 2026-10-19). Starting the loop from these four facts, and stopping it
+     * in the frame when any of them goes, is the repair; a loop started before GL took the surface
+     * goes with the same rule.
+     */
+    fun canvasLoopMayRun(canvasFallback: Boolean, hasSurface: Boolean, hasGlThread: Boolean, destroyed: Boolean): Boolean =
+        canvasFallback && hasSurface && !hasGlThread && !destroyed
+
+    /**
+     * Whether a switch to the `Canvas` fallback reported from the render thread may still be made: not
+     * twice, and not after the engine is destroyed (v5.15). The switch is posted to the main thread and
+     * can land after `onDestroy`, which takes an engine off the census of `Canvas` engines only if it
+     * already was one -- so a switch applied after it counted an engine nobody would take off again.
+     */
+    fun mayFallBackToCanvas(alreadyCanvas: Boolean, destroyed: Boolean): Boolean =
+        !alreadyCanvas && !destroyed
+
+    /**
+     * Whether an engine counts as on screen for the memory policy and for its weather loop: shown by
+     * the system **and** holding a surface (v5.15, inventory I-918). An engine with no surface draws
+     * nothing whatever the system says of its visibility: counted as visible it kept the memory policy
+     * believing something was drawing, and its weather loop fetched for a picture nobody sees.
+     */
+    fun countsAsVisible(visible: Boolean, hasSurface: Boolean): Boolean =
+        visible && hasSurface
 }

@@ -275,7 +275,11 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # fir's night shade), and the white disc of the bulbs, the snow and the stars and the wreath (`deco_bulb`,
         # `deco_wreath`) are drawn from SVG and blitted from the atlas; the fir and its snow keep the sources they had,
         # redrawn.
-        self.assertEqual(107, len(self.results))
+        # v5.15: +4. Santa's sleigh is five drawings with an SVG each -- the sleigh with Santa and the presents, and the
+        # reindeer in four poses (`santa_reindeer_0`..`3`), written by `tools/assets/sleigh/build_sleigh.py` -- in place of
+        # the two it had (`santa_sleigh_scene`, `santa_sleigh_trot`); and the Halloween moon's light behind its face
+        # (`moon_jack_o_lantern_light`, `tools/assets/moon/build_jack_moon.py`) is a source of its own beside the moon's.
+        self.assertEqual(111, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

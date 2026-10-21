@@ -19,6 +19,11 @@ import org.junit.Test
  * visible sends on the channel, the body re-enters at once, and a refresh that fell due while the
  * screen was off is picked up immediately instead of up to two minutes later.
  *
+ * **On screen means shown with a surface since v5.15** (inventory I-918): the picker's preview of a stopped package,
+ * bound later to a window nobody shows, was "visible" with nothing to draw on and fetched the weather for it. The loop
+ * parks on `onScreen` -- [com.paperscrape.livewallpaper.engine.GlLifecyclePolicy.countsAsVisible] of the visibility and
+ * the surface -- and a surface arriving or going wakes it, as visibility does.
+ *
  * ### Why this reads the source
  *
  * What has to hold is a shape: a park with no timeout, reached before any timed wait, and a producer
@@ -34,7 +39,7 @@ class WeatherLoopVisibilityTest {
     @Test
     fun `the loop parks with no timeout while the engine is invisible`() {
         val park = Regex(
-            """if \(!visible\) \{\s*\n\s*weatherWakeUp\.receive\(\)\s*\n\s*continue\s*\n\s*\}""",
+            """if \(!onScreen\) \{\s*\n\s*weatherWakeUp\.receive\(\)\s*\n\s*continue\s*\n\s*\}""",
         )
         assertTrue(
             "the Live Weather loop must park on weatherWakeUp while invisible, with no timeout",
@@ -44,7 +49,7 @@ class WeatherLoopVisibilityTest {
 
     @Test
     fun `the park comes before the timed wait, so the timer only runs when visible`() {
-        val parkAt = source.indexOf("if (!visible) {")
+        val parkAt = source.indexOf("if (!onScreen) {")
         // One timed wait, of the check interval or -- since v5.10E -- less, when a try for the phone's
         // position falls due before it (`SolarDaySchedule.nextPassDelayMillis`).
         val timedAt = TIMED_WAIT.find(source)?.range?.first ?: -1
@@ -54,6 +59,17 @@ class WeatherLoopVisibilityTest {
             "the two-minute wait must sit after the park, or an invisible engine still ticks",
             parkAt < timedAt,
         )
+    }
+
+    @Test
+    fun `on screen is shown with a surface, and a surface coming or going wakes the loop`() {
+        assertTrue(source.contains("private val onScreen: Boolean get() = GlLifecyclePolicy.countsAsVisible(visible, hasSurface)"))
+        for (callback in listOf("override fun onSurfaceCreated(", "override fun onSurfaceDestroyed(")) {
+            val start = source.indexOf(callback)
+            require(start > 0) { "$callback is gone" }
+            val body = source.substring(start, source.indexOf("\n        }", start))
+            assertTrue("$callback must keep the count and wake the loop", body.contains("weatherWakeUp.trySend(Unit)") && body.contains("changingOnScreen {"))
+        }
     }
 
     @Test

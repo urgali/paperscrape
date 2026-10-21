@@ -11,8 +11,11 @@ import org.junit.Test
  * normale non legge, vede il toggle e si arrabbia perché non funziona»*.
  *
  * Asserted at API **29** (this project's phone, no notification permission), **33** (the first with
- * one), **34** and **37**, in the four branches the round was asked for: the permission granted, the
- * dialog refused, notifications blocked in the phone's settings, and PaperScrape not the wallpaper.
+ * one), **34** and **37**, in the branches the round was asked for: the permission granted, the dialog
+ * refused, notifications blocked in the phone's settings. **Since v5.15 whether PaperScrape is the
+ * wallpaper is not one of them**: the phone's job scheduler checks with any wallpaper
+ * (`UpdateCheckJobService`, the maintainer's *«S sì»* of 2026-10-19), so the row that read "Works only
+ * while PaperScrape is your wallpaper" from v5.10C to v5.14 would now say something false, and it is gone.
  * **Evidence about the decision, not about a phone**, as `UpdateNotificationPolicyTest` says of the
  * same object: the branches of Android 13+ cannot be reached on the BV6600, and the phone's own
  * settings are not touched by these rounds.
@@ -28,7 +31,6 @@ class NotifySwitchTruthTest {
         channelTurnedOff: Boolean = false,
         notifySwitchOn: Boolean = true,
         automaticCheckEnabled: Boolean = true,
-        isTheWallpaper: Boolean = true,
         requestRefused: Boolean = false,
     ) = UpdateNotificationPolicy.notifyRow(
         automaticCheckEnabled = automaticCheckEnabled,
@@ -36,12 +38,11 @@ class NotifySwitchTruthTest {
         permission = UpdateNotificationPolicy.permissionFor(sdk, granted),
         appNotificationsEnabled = appNotificationsEnabled,
         channelTurnedOff = channelTurnedOff,
-        isTheWallpaper = isTheWallpaper,
         requestRefused = requestRefused,
     )
 
     @Test
-    fun `granted, the wallpaper, both switches on - on at every level, and a tap turns it off`() {
+    fun `granted and both switches on - on at every level, whatever the wallpaper, and a tap turns it off`() {
         for (sdk in levels) {
             val r = row(sdk)
             assertTrue("API $sdk", r.shownOn)
@@ -88,30 +89,30 @@ class NotifySwitchTruthTest {
     }
 
     @Test
-    fun `not the wallpaper - off, said, and a tap sets it`() {
-        for (sdk in levels) {
-            val r = row(sdk, isTheWallpaper = false)
-            assertFalse("API $sdk: on with another wallpaper, where the check never runs", r.shownOn)
-            assertEquals("API $sdk", UpdateNotificationPolicy.NotifyRowLine.NOT_THE_WALLPAPER, r.line)
-            assertEquals("API $sdk", UpdateNotificationPolicy.NotifyTap.SET_AS_WALLPAPER, r.tap)
-        }
-        // Not the wallpaper and the permission never asked: the line names the wallpaper, and the
-        // tap asks first (granted, the screen carries on to the wallpaper -- see AdvancedScreen).
-        val both = row(34, granted = false, appNotificationsEnabled = false, notifySwitchOn = false, isTheWallpaper = false)
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NOT_THE_WALLPAPER, both.line)
-        assertEquals(UpdateNotificationPolicy.NotifyTap.ASK_PERMISSION, both.tap)
+    fun `the wallpaper is no condition any more - no line, no tap and no string for it`() {
+        // v5.15: the job of the phone's scheduler checks with any wallpaper, so nothing about the row may depend on it.
+        assertFalse(UpdateNotificationPolicy.NotifyRowLine.entries.any { "WALLPAPER" in it.name })
+        assertFalse(UpdateNotificationPolicy.NotifyTap.entries.any { "WALLPAPER" in it.name })
+        val screen = source("ui/AdvancedScreen.kt")
+        val updates = screen.substring(screen.indexOf("SettingsSectionHeader(\"Updates\")"))
+            .substringBefore("SettingsSectionHeader(\"Backup\")")
+        assertFalse("the updates' rows read the wallpaper", updates.contains("isTheWallpaper"))
+        assertFalse("the updates' rows put up the wallpaper's preview", updates.contains("onApplyWallpaper"))
+        val strings = resource("res/values/strings.xml")
+        assertFalse("a line still says the check needs the wallpaper", strings.contains("Works only while PaperScrape is your wallpaper"))
+        assertFalse(strings.contains("settings_update_notify_not_wallpaper"))
     }
 
     @Test
     fun `on only when everything holds - every combination at every level`() {
         val bools = listOf(true, false)
         for (sdk in levels) for (granted in bools) for (app in bools) for (channel in bools) for (saved in bools)
-            for (check in bools) for (wallpaper in bools) for (refused in bools) {
-                val r = row(sdk, granted, app, channel, saved, check, wallpaper, refused)
+            for (check in bools) for (refused in bools) {
+                val r = row(sdk, granted, app, channel, saved, check, refused)
                 val permission = UpdateNotificationPolicy.permissionFor(sdk, granted)
-                val canArrive = check && saved && wallpaper && !channel && app &&
+                val canArrive = check && saved && !channel && app &&
                     UpdateNotificationPolicy.mayPost(permission)
-                val label = "API $sdk granted=$granted app=$app channel-off=$channel saved=$saved check=$check wallpaper=$wallpaper refused=$refused"
+                val label = "API $sdk granted=$granted app=$app channel-off=$channel saved=$saved check=$check refused=$refused"
                 assertEquals(label, canArrive, r.shownOn)
                 // A switch drawn off is never one a tap leaves as it is, unless the row is greyed.
                 if (!r.shownOn && r.enabled) {
@@ -128,25 +129,34 @@ class NotifySwitchTruthTest {
         val screen = source("ui/AdvancedScreen.kt")
         val ask = screen.substring(screen.indexOf("UpdateNotificationPolicy.NotifyTap.ASK_PERMISSION ->"))
             .substringBefore("UpdateNotificationPolicy.NotifyTap.OPEN_APP_NOTIFICATIONS ->")
-        val grantedBranch = ask.substringAfter("granted -> {").substringBefore("!canAskAgain")
-        assertTrue("granted stores on", grantedBranch.contains("prefs.setUpdateNotificationsEnabled(true)"))
-        assertTrue("granted and not the wallpaper carries on to it", grantedBranch.contains("if (!isTheWallpaper) onApplyWallpaper()"))
+        val grantedBranch = ask.substringAfter("granted ->").substringBefore("!canAskAgain")
+        assertTrue("granted stores on", grantedBranch.contains("storeNotify(true)"))
+        // Storing the switch puts the update job where the two switches say, and checks at once when it comes on (v5.15).
+        val store = screen.substring(screen.indexOf("fun storeNotify(on: Boolean)")).substringBefore("SettingsSwitchRow(")
+        assertTrue(store.contains("prefs.setUpdateNotificationsEnabled(on)"))
+        assertTrue(store.contains("UpdateCheckJobs.reconcile(context, userTurnedOn = on)"))
         assertTrue(
             "a refusal the system will not ask again goes to the page -- after one already seen, or with the switch saved on",
             ask.contains("!canAskAgain && pageAfterRefusal -> {") &&
                 ask.contains("val pageAfterRefusal = permissionRefused || settings.updateNotificationsEnabled"),
         )
-        assertFalse("the ask path must not store before the answer", ask.substringBefore("onRequestNotificationPermission").contains("setUpdateNotificationsEnabled"))
+        // Stored through `storeNotify` since v5.15, so both spellings of a store are looked for (v5.15C2, inventory I-975: the
+        // check read only the one no line of the ask path uses any more, and passed a `storeNotify(true)` put before the ask).
+        val beforeTheAsk = ask.substringBefore("onRequestNotificationPermission")
+        assertTrue("the ask path was not found", ask.contains("onRequestNotificationPermission { granted, canAskAgain ->"))
+        assertFalse("the ask path must not store before the answer", beforeTheAsk.contains("setUpdateNotificationsEnabled"))
+        assertFalse("the ask path must not store before the answer", beforeTheAsk.contains("storeNotify("))
         for (tap in UpdateNotificationPolicy.NotifyTap.entries) {
             assertTrue("the screen does not handle $tap", screen.contains("UpdateNotificationPolicy.NotifyTap.${tap.name} ->"))
         }
         assertTrue(screen.contains("UpdateNotifier.appNotificationSettingsIntent(context)"))
         assertTrue(screen.contains("UpdateNotifier.channelSettingsIntent(context)"))
-        assertTrue("PaperScrape-is-the-wallpaper must come from the engines", screen.contains("WallpaperEngineCensus.isTheWallpaper.collectAsState()"))
     }
 
-    private fun source(path: String): String {
-        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/$path"
+    private fun source(path: String): String = resource("kotlin/com/paperscrape/livewallpaper/$path")
+
+    private fun resource(path: String): String {
+        val suffix = "src/main/$path"
         var dir: java.io.File? = java.io.File(".").absoluteFile
         while (dir != null) {
             for (prefix in listOf("", "app/")) {

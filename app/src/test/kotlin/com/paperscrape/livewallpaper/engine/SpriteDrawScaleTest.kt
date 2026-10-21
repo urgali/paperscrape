@@ -386,7 +386,7 @@ class SpriteDrawScaleTest {
         put(
             DrawPath("sun and moon discs", SpriteScale.CANVAS_PIXELS, ::celestialScale),
             "sun_body", "sun_glow", "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
-            "moon_jack_o_lantern",
+            "moon_jack_o_lantern", "moon_jack_o_lantern_light",
         )
         // One bird is blitted at `scale(1, +-1)` inside a bare translate: its own pixels, 1:1.
         put(DrawPath("bird", SpriteScale.CANVAS_PIXELS) { 1f }, "bird_body")
@@ -424,9 +424,10 @@ class SpriteDrawScaleTest {
             },
             "firework",
         )
+        // v5.15: the group in proportion to the people (`SantaSleighScale`), never past its sprites' 3 px a unit.
         put(
-            DrawPath("Santa's sleigh", SpriteScale.SCENE_UNITS) { _ -> PaperRenderer.SANTA_SLEIGH_SCALE },
-            "santa_sleigh_scene", "santa_sleigh_trot",
+            DrawPath("Santa's sleigh", SpriteScale.SCENE_UNITS) { v -> SantaSleighScale.pxPerUnit(v.heightPx) },
+            "santa_sleigh", "santa_reindeer_0", "santa_reindeer_1", "santa_reindeer_2", "santa_reindeer_3",
         )
     }
 
@@ -456,8 +457,9 @@ class SpriteDrawScaleTest {
     /**
      * The walk, carry and head sprites, each on the transform that actually blits it.
      *
-     * Resolved by name rather than listed: 202 of the 305 shipped PNGs are person variants, and a
-     * hand-written list of them would be a second place for the skin/season axes to be declared.
+     * Resolved by name rather than listed: the person variants are most of the shipped PNGs (count the `person_`
+     * files of `drawable-nodpi` against all its PNGs), and a hand-written list of them would be a second place for
+     * the skin/season axes to be declared.
      */
     private fun personPathFor(name: String): DrawPath? = when {
         name.contains("_head_window") -> DrawPath("bust behind a window", SpriteScale.SCENE_UNITS) { v ->

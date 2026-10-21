@@ -39,9 +39,11 @@ private val Context.updateDataStore by preferencesDataStore(
 
 /**
  * Persists what has already been decided about each release: the "remind me later" snooze and the
- * last version notified about -- and, since v5.10D, GitHub's last reply to a check ([readReply]).
+ * last version notified about -- and, since v5.10D, GitHub's last reply to a check ([readReply]), and since
+ * v5.15 the moment GitHub's limit lifts ([readLimitedUntil]).
  * Read on demand, not as a reactive Flow: by the settings screen
- * before it shows the prompt, and by the wallpaper engine's loop before it posts a notification.
+ * before it shows the prompt, and by the update job before it posts a notification
+ * (`UpdateCheckJobService`, v5.15; the wallpaper engine's loop until then).
  *
  * Snoozing is tied to the *specific version* that was snoozed: if a newer release comes out
  * during the snooze period, the prompt reappears immediately for that newer version instead of
@@ -73,6 +75,14 @@ class UpdatePrefs(private val context: Context) : UpdateReplyStore {
          * one full download, nothing else.
          */
         val LAST_REPLY = stringPreferencesKey("update_last_reply")
+
+        /**
+         * Until when GitHub said this network may not ask again (v5.15, inventory I-909), on the wall
+         * clock; absent or 0 for no limit. Written when a check is turned away by the rate limit,
+         * cleared by a check GitHub answers with the list ([UpdateChecker.checkForUpdate]); read before every check
+         * nobody asked for this instant, so none is made before then. Losing it costs one refused request.
+         */
+        val LIMITED_UNTIL_MILLIS = longPreferencesKey("update_limited_until_millis")
     }
 
     data class SnoozeState(val untilMillis: Long, val versionTag: String?)
@@ -91,10 +101,10 @@ class UpdatePrefs(private val context: Context) : UpdateReplyStore {
     /**
      * The newest release a notification has already gone out for, or null if none ever has.
      *
-     * Read by the wallpaper engine's loop before posting, so that **one notification per version
-     * tag** survives the process being killed and restarted -- which for a live wallpaper is a
-     * routine event, not an exception. Without it, every rebind would be a fresh chance to raise
-     * the same release again.
+     * Read by the update job before posting (`UpdateCheckJobService`, v5.15), so that **one
+     * notification per version tag** survives the process being killed and restarted -- which for a
+     * live wallpaper and for a job of the phone's scheduler is a routine event, not an exception.
+     * Without it, every run would be a fresh chance to raise the same release again.
      */
     suspend fun readNotifiedTag(): String? =
         context.updateDataStore.data.recoveringFromReadErrors().first()[Keys.NOTIFIED_VERSION_TAG]
@@ -116,6 +126,15 @@ class UpdatePrefs(private val context: Context) : UpdateReplyStore {
 
     override suspend fun writeReply(reply: SavedUpdateReply) {
         context.updateReplyDataStore.edit { prefs -> prefs[Keys.LAST_REPLY] = reply.toJson() }
+    }
+
+    override suspend fun readLimitedUntil(): Long =
+        context.updateDataStore.data.recoveringFromReadErrors().first()[Keys.LIMITED_UNTIL_MILLIS] ?: 0L
+
+    override suspend fun writeLimitedUntil(untilMillis: Long) {
+        context.updateDataStore.edit { prefs ->
+            if (untilMillis > 0L) prefs[Keys.LIMITED_UNTIL_MILLIS] = untilMillis else prefs.remove(Keys.LIMITED_UNTIL_MILLIS)
+        }
     }
 
     /** "Remind me later" -> "In a month": suppress the prompt for this specific version for ~30 days. */

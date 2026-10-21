@@ -1721,12 +1721,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        20,
-        21,
-        218,
-        218
+        19,
+        19,
+        221,
+        220
       ],
-      "candidate_padding_fraction": 0.32281249999999995,
+      "candidate_padding_fraction": 0.2951041666666666,
       "candidate_size": [
         240,
         240
@@ -1738,18 +1738,59 @@
       "mean_alpha_diff": 0.0,
       "name": "moon_jack_o_lantern",
       "reference_bbox": [
-        20,
-        21,
-        218,
-        218
+        19,
+        19,
+        221,
+        220
       ],
-      "reference_padding_fraction": 0.32281249999999995,
+      "reference_padding_fraction": 0.2951041666666666,
       "reference_size": [
         240,
         240
       ],
       "size_match": true,
       "total_pixels": 57600,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        1,
+        133,
+        101
+      ],
+      "candidate_padding_fraction": 0.04139433551198257,
+      "candidate_size": [
+        135,
+        102
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "moon_jack_o_lantern_light",
+      "reference_bbox": [
+        1,
+        1,
+        133,
+        101
+      ],
+      "reference_padding_fraction": 0.04139433551198257,
+      "reference_size": [
+        135,
+        102
+      ],
+      "size_match": true,
+      "total_pixels": 13770,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3812,35 +3853,35 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        143,
+        118
       ],
-      "candidate_padding_fraction": 0.019572417946401632,
+      "candidate_padding_fraction": 0.053472222222222254,
       "candidate_size": [
-        594,
-        123
+        144,
+        120
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "santa_sleigh_scene",
+      "name": "santa_reindeer_0",
       "reference_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        143,
+        118
       ],
-      "reference_padding_fraction": 0.019572417946401632,
+      "reference_padding_fraction": 0.053472222222222254,
       "reference_size": [
-        594,
-        123
+        144,
+        120
       ],
       "size_match": true,
-      "total_pixels": 73062,
+      "total_pixels": 17280,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3853,35 +3894,158 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        129,
+        135
       ],
-      "candidate_padding_fraction": 0.019572417946401632,
+      "candidate_padding_fraction": 0.030089003732414632,
       "candidate_size": [
-        594,
-        123
+        129,
+        135
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "santa_sleigh_trot",
+      "name": "santa_reindeer_1",
       "reference_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        129,
+        135
       ],
-      "reference_padding_fraction": 0.019572417946401632,
+      "reference_padding_fraction": 0.030089003732414632,
       "reference_size": [
-        594,
-        123
+        129,
+        135
       ],
       "size_match": true,
-      "total_pixels": 73062,
+      "total_pixels": 17415,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        1,
+        126,
+        134
+      ],
+      "candidate_padding_fraction": 0.02263374485596703,
+      "candidate_size": [
+        126,
+        135
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "santa_reindeer_2",
+      "reference_bbox": [
+        1,
+        1,
+        126,
+        134
+      ],
+      "reference_padding_fraction": 0.02263374485596703,
+      "reference_size": [
+        126,
+        135
+      ],
+      "size_match": true,
+      "total_pixels": 17010,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        0,
+        129,
+        133
+      ],
+      "candidate_padding_fraction": 0.030089003732414632,
+      "candidate_size": [
+        129,
+        135
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "santa_reindeer_3",
+      "reference_bbox": [
+        2,
+        0,
+        129,
+        133
+      ],
+      "reference_padding_fraction": 0.030089003732414632,
+      "reference_size": [
+        129,
+        135
+      ],
+      "size_match": true,
+      "total_pixels": 17415,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        2,
+        241,
+        208
+      ],
+      "candidate_padding_fraction": 0.035194983343131536,
+      "candidate_size": [
+        243,
+        210
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "santa_sleigh",
+      "reference_bbox": [
+        2,
+        2,
+        241,
+        208
+      ],
+      "reference_padding_fraction": 0.035194983343131536,
+      "reference_size": [
+        243,
+        210
+      ],
+      "size_match": true,
+      "total_pixels": 51030,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

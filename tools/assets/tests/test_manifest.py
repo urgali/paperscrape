@@ -52,9 +52,10 @@ def _reached_only_by_lookup(name: str) -> bool:
     """Sprites a static resolver cannot reach, and the reason each one cannot.
 
     The person set is chosen from `PeopleLayerTable`'s tables (`WALK`, `CARRY`, `WINDOW`,
-    `CAR`) by kind, season and frame; the moons by phase; the sleigh by a conditional. None of
-    them is ever named literally at a blit, so there is nothing to attribute -- which
-    is why they are excused here rather than counted as agreeing.
+    `CAR`) by kind, season and frame; the moons by phase; the sleigh and its reindeer by
+    `SantaSleighTable` (v5.15: the sleigh's resource and the four poses' are the table's, which
+    `build_sleigh.py` writes). None of them is ever named literally at a blit, so there is
+    nothing to attribute -- which is why they are excused here rather than counted as agreeing.
 
     The three `road_*` sprites used to be a different case with the same symptom:
     nothing blitted them at all. **v4.20 deleted them**, along with `house_window`,
@@ -65,7 +66,8 @@ def _reached_only_by_lookup(name: str) -> bool:
     return (
         name.startswith("person_")
         or name.startswith("moon_")
-        or name.startswith("santa_sleigh_")
+        or name == "santa_sleigh"
+        or name.startswith("santa_reindeer_")
     )
 
 
@@ -364,12 +366,12 @@ class ResolverTest(unittest.TestCase):
         self.assertEqual(sites[0].scale, "SCENE_UNITS")
 
     def test_an_identity_tint_is_read_as_fixed_art(self):
-        # White multiplies to nothing, so the sprite keeps its own colours. The
-        # tinted entry point is used only because `draw` has no alpha argument.
+        # White multiplies to nothing, so the sprite keeps its own colours: a made-up
+        # call site, read as fixed art whatever the sprite (`draw` takes an alpha of its own).
         sites, _ = self.resolve(
             """
             fun body(canvas: Canvas) {
-                sprites.drawTinted(canvas, R.drawable.santa_sleigh_scene, -340f, -140f,
+                sprites.drawTinted(canvas, R.drawable.santa_sleigh, -340f, -140f,
                     SpriteScale.CANVAS_PIXELS, 0xFFFFFFFF.toInt(), alpha)
             }
             """
@@ -448,6 +450,10 @@ class ShippedSourcesTest(unittest.TestCase):
                 # meant to. The table itself is what states where each sprite goes, and
                 # `PreviewRendererAgreementTest` checks the two things that read it agree.
                 or site.expression == "part.res"
+                # v5.15: Santa's sleigh is drawn from `SantaSleighTable`, which `build_sleigh.py` writes beside
+                # its drawings: the sleigh's resource is the table's constant and each reindeer's pose its
+                # array's entry (`DEER_RES[pose]`, caught by the "[" below). Named by a table, as above.
+                or site.expression == "SantaSleighTable.SLEIGH_RES"
                 or site.expression == "drawable"
                 or "R.drawable." in site.expression
                 or "[" in site.expression,

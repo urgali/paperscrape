@@ -51,9 +51,8 @@ TINT_COLOUR_ARG = 5
 
 #: Opaque white. Tinting multiplies, so white is the identity: a sprite blitted
 #: through `drawTinted` with this colour keeps its own baked-in art exactly, and
-#: is fixed art despite the entry point. The reason to route it through the
-#: tinted path anyway is that `draw` takes no alpha argument, so a sprite that
-#: fades needs `drawTinted` even when it is not recoloured.
+#: is fixed art despite the entry point. `draw` takes an alpha of its own, so
+#: no call site needs this today; one that did would still be read as fixed art.
 IDENTITY_TINT = 0xFFFFFFFF
 
 #: Argument index of the sprite resource and of the two origin coordinates. The

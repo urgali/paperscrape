@@ -3423,39 +3423,75 @@
     },
     {
       "content_band_centre_x": [
-        0.5031868279376585,
-        0.5071712031254016
+        0.5063478984281066,
+        0.5016100043739314
       ],
       "content_band_coverage": [
-        0.6515151515151515,
-        0.5012243648607285
+        0.7105445544554455,
+        0.6102342907558083
       ],
       "content_bbox": [
-        20,
-        21,
-        218,
-        218
+        19,
+        19,
+        221,
+        220
       ],
-      "content_column_max": 0.8426395939086294,
-      "content_coverage": 0.5759883094908476,
-      "content_height": 197,
-      "content_row_max": 0.9747474747474747,
-      "content_width": 198,
+      "content_column_max": 0.8756218905472637,
+      "content_coverage": 0.6601398945864736,
+      "content_height": 201,
+      "content_row_max": 0.9900990099009901,
+      "content_width": 202,
       "decoded_bytes": 230400,
-      "distinct_colour_count": 29,
-      "file_bytes": 5506,
+      "distinct_colour_count": 58,
+      "file_bytes": 6227,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 240,
       "mode": "RGBA",
       "name": "moon_jack_o_lantern",
       "on_grid": true,
-      "opaque_rgb_count": 1,
-      "pixels_sha256": "d58dfe807741cff1f4c433f7389e964caf406a7728275debcfb43f18a22fa6bc",
-      "sha256": "26556dc960c920d5b1fe9d5f0170c7681b0078a4e42f3558425d0418885813dc",
-      "transparent_padding_bytes": 74376,
-      "transparent_padding_fraction": 0.3228125,
+      "opaque_rgb_count": 18,
+      "pixels_sha256": "f08c67e6bed3d18900c6b9888fffd5459c9b5824bdb80fbf7cef3226eae75bd7",
+      "sha256": "87031e4f0a52cfa039015853cb978082f021f917e9c174b5507cb2cf3a53f268",
+      "transparent_padding_bytes": 67992,
+      "transparent_padding_fraction": 0.29510416666666667,
       "width": 240
+    },
+    {
+      "content_band_centre_x": [
+        0.5036246762271779,
+        0.502995297350136
+      ],
+      "content_band_coverage": [
+        0.21803030303030302,
+        0.5213636363636364
+      ],
+      "content_bbox": [
+        1,
+        1,
+        133,
+        101
+      ],
+      "content_column_max": 0.6,
+      "content_coverage": 0.3696969696969697,
+      "content_height": 100,
+      "content_row_max": 0.8106060606060606,
+      "content_width": 132,
+      "decoded_bytes": 55080,
+      "distinct_colour_count": 113,
+      "file_bytes": 4426,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 102,
+      "mode": "RGBA",
+      "name": "moon_jack_o_lantern_light",
+      "on_grid": true,
+      "opaque_rgb_count": 67,
+      "pixels_sha256": "87403d588ad4115708ccba20523216b0a9f42f76431ea2dc288e89c8d3a99724",
+      "sha256": "e14191b123ca1cb118c5fe04d03a334a73c5a466c92fdca8214a8191fd1a99ae",
+      "transparent_padding_bytes": 2280,
+      "transparent_padding_fraction": 0.04139433551198257,
+      "width": 135
     },
     {
       "content_band_centre_x": [
@@ -14223,75 +14259,183 @@
     },
     {
       "content_band_centre_x": [
-        0.5359506964423861,
-        0.5971022885392965
+        0.2726233383715072,
+        0.5493231989583375
       ],
       "content_band_coverage": [
-        0.4268581081081081,
-        0.6400642445724413
+        0.24614820249449743,
+        0.6513817559305454
       ],
       "content_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        143,
+        118
       ],
-      "content_column_max": 1.0,
-      "content_coverage": 0.5343421934331025,
-      "content_height": 121,
-      "content_row_max": 0.8057432432432432,
-      "content_width": 592,
-      "decoded_bytes": 292248,
-      "distinct_colour_count": 1405,
-      "file_bytes": 22872,
+      "content_column_max": 0.9396551724137931,
+      "content_coverage": 0.4487649792125214,
+      "content_height": 116,
+      "content_row_max": 0.851063829787234,
+      "content_width": 141,
+      "decoded_bytes": 69120,
+      "distinct_colour_count": 512,
+      "file_bytes": 6385,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 123,
+      "height": 120,
       "mode": "RGBA",
-      "name": "santa_sleigh_scene",
+      "name": "santa_reindeer_0",
       "on_grid": true,
-      "opaque_rgb_count": 831,
-      "pixels_sha256": "c3149c3d58aa53dab25e5fd880e16d9b945f7979f92115d6373c3c07541b9faa",
-      "sha256": "fa8f366bcab547e8f8a0c0374f0bf4904fcc1e73fa0f775a3f18d0f8782f6ccf",
-      "transparent_padding_bytes": 5720,
-      "transparent_padding_fraction": 0.019572417946401688,
-      "width": 594
+      "opaque_rgb_count": 284,
+      "pixels_sha256": "a29b32cdc52818942a517f74e0992b323d0ddc3cf802bcbe10dad975876397ac",
+      "sha256": "cd2015761477dde264b2079f98d32ec6bfa42028e1ebe253c1e2724b59f0ce7c",
+      "transparent_padding_bytes": 3696,
+      "transparent_padding_fraction": 0.05347222222222222,
+      "width": 144
     },
     {
       "content_band_centre_x": [
-        0.5359506964423861,
-        0.6026201798839594
+        0.32534666444286436,
+        0.6208680690614607
       ],
       "content_band_coverage": [
-        0.4268581081081081,
-        0.6400642445724413
+        0.32104509663564784,
+        0.528146668233635
       ],
       "content_bbox": [
-        0,
-        1,
-        592,
-        122
+        2,
+        2,
+        129,
+        135
       ],
-      "content_column_max": 1.0,
-      "content_coverage": 0.5343421934331025,
-      "content_height": 121,
-      "content_row_max": 0.8057432432432432,
-      "content_width": 592,
-      "decoded_bytes": 292248,
-      "distinct_colour_count": 1405,
-      "file_bytes": 22871,
+      "content_column_max": 0.8721804511278195,
+      "content_coverage": 0.4253744597714759,
+      "content_height": 133,
+      "content_row_max": 0.7874015748031497,
+      "content_width": 127,
+      "decoded_bytes": 69660,
+      "distinct_colour_count": 482,
+      "file_bytes": 6240,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 123,
+      "height": 135,
       "mode": "RGBA",
-      "name": "santa_sleigh_trot",
+      "name": "santa_reindeer_1",
       "on_grid": true,
-      "opaque_rgb_count": 831,
-      "pixels_sha256": "06a547c562765b1b36fb0b25ee3d5699669873c06eebe3f4f9e2cbf5901193b2",
-      "sha256": "c98dd6b098cd6d6027192472f073b01eea08e66bce2da5ca60b562e8d5144649",
-      "transparent_padding_bytes": 5720,
-      "transparent_padding_fraction": 0.019572417946401688,
-      "width": 594
+      "opaque_rgb_count": 262,
+      "pixels_sha256": "c2e12f3c3bb5d2871a28a61d2d44003b1975d4bf3d3141479057ca3914b609ed",
+      "sha256": "4af3c0eed24fed8a11ca44bce8ce37bb882dec3350102f3c4c3a51c61dece2c1",
+      "transparent_padding_bytes": 2096,
+      "transparent_padding_fraction": 0.030089003732414583,
+      "width": 129
+    },
+    {
+      "content_band_centre_x": [
+        0.3258720796629644,
+        0.6139858930602958
+      ],
+      "content_band_coverage": [
+        0.3164848484848485,
+        0.5247761194029851
+      ],
+      "content_bbox": [
+        1,
+        1,
+        126,
+        134
+      ],
+      "content_column_max": 0.8421052631578947,
+      "content_coverage": 0.42141353383458646,
+      "content_height": 133,
+      "content_row_max": 0.736,
+      "content_width": 125,
+      "decoded_bytes": 68040,
+      "distinct_colour_count": 464,
+      "file_bytes": 5937,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 135,
+      "mode": "RGBA",
+      "name": "santa_reindeer_2",
+      "on_grid": true,
+      "opaque_rgb_count": 251,
+      "pixels_sha256": "6a11aab4f7ea9d04466d1dd02a702f19e2003e7396e9585cab5b399be7d3fc84",
+      "sha256": "60cd7114d22e64d3d126f103a450c66206e9efa08cddd33b93cd6b997d27deb8",
+      "transparent_padding_bytes": 1540,
+      "transparent_padding_fraction": 0.02263374485596708,
+      "width": 126
+    },
+    {
+      "content_band_centre_x": [
+        0.32572473384647144,
+        0.6219327222106287
+      ],
+      "content_band_coverage": [
+        0.3185397279885469,
+        0.5454224938300622
+      ],
+      "content_bbox": [
+        2,
+        0,
+        129,
+        133
+      ],
+      "content_column_max": 0.9924812030075187,
+      "content_coverage": 0.43283405363803207,
+      "content_height": 133,
+      "content_row_max": 0.7874015748031497,
+      "content_width": 127,
+      "decoded_bytes": 69660,
+      "distinct_colour_count": 493,
+      "file_bytes": 6197,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 135,
+      "mode": "RGBA",
+      "name": "santa_reindeer_3",
+      "on_grid": true,
+      "opaque_rgb_count": 273,
+      "pixels_sha256": "7b68db60173ef1570b53240dbe0f7db3e7f7dd64525380558770007f0592c336",
+      "sha256": "12d55a1ac2258f56eca80aec0aa9441d66b9518042f3ad2fa222ce498e993108",
+      "transparent_padding_bytes": 2096,
+      "transparent_padding_fraction": 0.030089003732414583,
+      "width": 129
+    },
+    {
+      "content_band_centre_x": [
+        0.5710988877131858,
+        0.5127945398506485
+      ],
+      "content_band_coverage": [
+        0.46325709875289434,
+        0.7437543161230045
+      ],
+      "content_bbox": [
+        2,
+        2,
+        241,
+        208
+      ],
+      "content_column_max": 0.9368932038834952,
+      "content_coverage": 0.6035057074379494,
+      "content_height": 206,
+      "content_row_max": 0.9205020920502092,
+      "content_width": 239,
+      "decoded_bytes": 204120,
+      "distinct_colour_count": 938,
+      "file_bytes": 13404,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 210,
+      "mode": "RGBA",
+      "name": "santa_sleigh",
+      "on_grid": true,
+      "opaque_rgb_count": 545,
+      "pixels_sha256": "bf4336a586a7d5c3250cb1caaad5f7dfd0f095b28ef347efac7b62b200548355",
+      "sha256": "058864caed4658c41bd07b1420e1c85d53677e4ec1715f9e9e2b241b23549de9",
+      "transparent_padding_bytes": 7184,
+      "transparent_padding_fraction": 0.035194983343131495,
+      "width": 243
     },
     {
       "content_band_centre_x": [
