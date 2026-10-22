@@ -569,12 +569,28 @@ class ThemeCustomizationPersistenceTest {
         prefs.setCloudsAutoMode(AutoColorMode.FROM_DAY, "beach")
         prefs.setPrecipitationRainAutoMode(AutoColorMode.FROM_NIGHT, "beach")
         prefs.setPrecipitationSnowAutoMode(AutoColorMode.FROM_DAY, "beach")
+        // v5.16's fields, each off its default: the three switches *Christmas lights* became, the Halloween switches that
+        // need nothing of the decorations' rule, the scarecrows; the Halloween decorations themselves on another theme below,
+        // as they and the Christmas ones exclude each other (decision 77).
+        prefs.setChristmasBuildingLightsEnabled(true, "beach")
+        prefs.setChristmasTreeLightsEnabled(true, "beach")
+        prefs.setChristmasFirsEnabled(true, "beach")
+        prefs.setLaughingMoonEnabled(true, "beach")
+        prefs.setNightSkyByDayEnabled(true, "beach")
+        prefs.setBloodRainEnabled(true, "beach")
+        prefs.setHeadlessHorsemanEnabled(true, "beach")
+        prefs.setCategoryVisible(ObjectCategory.SCARECROWS, true, "beach")
+        prefs.setCategoryDensity(ObjectCategory.SCARECROWS, 0.31f, "beach")
         val beach = customizationOf("beach")
         // Not vacuous: the values being compared really are the non-default ones.
         assertFalse("the palms switch was never set", beach.palmsEnabled)
         assertEquals("the hills' mode was never set", AutoColorMode.FROM_DAY, beach.hillsAutoMode)
         assertEquals("a category's mode was never set", AutoColorMode.FROM_NIGHT, beach.houses.autoMode2)
         assertEquals("the snow's mode was never set", AutoColorMode.FROM_DAY, beach.precipitation.snowAutoMode)
+        assertTrue("v5.16's switches were never set", beach.christmasBuildingLightsEnabled && beach.christmasTreeLightsEnabled && beach.christmasFirsEnabled &&
+            beach.laughingMoonEnabled && beach.nightSkyByDayEnabled && beach.bloodRainEnabled && beach.headlessHorsemanEnabled)
+        assertEquals("the scarecrows were never set", 0.31f, beach.scarecrows.density, 0f)
+        assertTrue(beach.scarecrows.visible)
 
         // Force the archive/restore cycle: leave beach, come back to it.
         prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.93f, "winter")
@@ -590,6 +606,14 @@ class ThemeCustomizationPersistenceTest {
         prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.91f, "winter")
         prefs.setCategoryDensity(ObjectCategory.HOUSES, city.houses.density, "city")
         assertEquals("a field was lost archiving and restoring city", city, customizationOf("city"))
+
+        // The Halloween decorations (v5.16), on a theme where no Christmas switch is on, through the same cycle.
+        prefs.setHalloweenDecorationsEnabled(true, "spring")
+        val spring = customizationOf("spring")
+        assertTrue("the Halloween decorations were never set", spring.halloweenDecorationsEnabled)
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.89f, "winter")
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, spring.houses.density, "spring")
+        assertEquals("a field was lost archiving and restoring spring", spring, customizationOf("spring"))
     }
 
     private fun entryFor(id: String, sourceThemeId: String, name: String, customization: SceneCustomization) =

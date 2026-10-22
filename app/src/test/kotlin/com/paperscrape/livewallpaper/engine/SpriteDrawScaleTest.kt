@@ -218,6 +218,15 @@ class SpriteDrawScaleTest {
             },
             "deco_wreath",
         )
+        // v5.16: the Halloween decorations, on a house's or a shop's piece units as the wreath, never on a tower.
+        put(
+            DrawPath("Halloween decorations", SpriteScale.SCENE_UNITS) { v ->
+                NeighbourhoodTable.FAMILIES.filter { (variant, _) -> variant != SceneSpace.SceneVariant.TOWER }.maxOf { (variant, family) ->
+                    staticPath("", variant, inner = variant.spriteUnitsTall / family.unitsTall).maxCanvasScale(v)
+                }
+            },
+            "deco_cobweb", "deco_bat", "deco_jack_o_lantern", "deco_jack_o_lantern_light",
+        )
         put(
             staticPath("palm", SceneSpace.SceneVariant.PALM_TREE),
             "palmtree_trunk", "palmtree_fronds", "palmtree_fronds_dead", "palmtree_fronds_frost",
@@ -289,6 +298,11 @@ class SpriteDrawScaleTest {
         put(
             staticPath("snowman", SceneSpace.SceneVariant.SNOWMAN),
             "snowman_body", "snowman_nose", "snowman_scarf",
+        )
+        // v5.16: the scarecrow, in a snowman's place at its own row of the size table.
+        put(
+            staticPath("scarecrow", SceneSpace.SceneVariant.SCARECROW),
+            "scarecrow", "scarecrow_light",
         )
         put(
             staticPath("penguin", SceneSpace.SceneVariant.PENGUIN),
@@ -387,6 +401,8 @@ class SpriteDrawScaleTest {
             DrawPath("sun and moon discs", SpriteScale.CANVAS_PIXELS, ::celestialScale),
             "sun_body", "sun_glow", "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
             "moon_jack_o_lantern", "moon_jack_o_lantern_light",
+            // v5.16: the laughing face and its light, in the carved face's place, at its scale.
+            "moon_jack_o_lantern_laugh", "moon_jack_o_lantern_laugh_light",
         )
         // One bird is blitted at `scale(1, +-1)` inside a bare translate: its own pixels, 1:1.
         put(DrawPath("bird", SpriteScale.CANVAS_PIXELS) { 1f }, "bird_body")
@@ -428,6 +444,12 @@ class SpriteDrawScaleTest {
         put(
             DrawPath("Santa's sleigh", SpriteScale.SCENE_UNITS) { v -> SantaSleighScale.pxPerUnit(v.heightPx) },
             "santa_sleigh", "santa_reindeer_0", "santa_reindeer_1", "santa_reindeer_2", "santa_reindeer_3",
+        )
+        // v5.16: the Headless Horseman, his rider as tall as Santa (`HeadlessHorsemanScale`).
+        put(
+            DrawPath("Headless Horseman", SpriteScale.SCENE_UNITS) { v -> HeadlessHorsemanScale.pxPerUnit(v.heightPx) },
+            "horseman_horse_0", "horseman_horse_1", "horseman_horse_2", "horseman_horse_3",
+            "horseman_legs_0", "horseman_legs_1", "horseman_legs_2", "horseman_legs_3", "horseman_rider", "horseman_cape",
         )
     }
 
@@ -1006,8 +1028,18 @@ class SpriteDrawScaleTest {
      * With the fir A, its snow and its star, the wreath and the bulb the set uploads **20 273 432 B**, 30 688 more than
      * the 5.13's, and leaves **698 088 B** under 20 MiB (the v5.14A table's row that said no limit would rise, *«si a
      * tutte»*, 2026-10-15).
+     *
+     * ### v5.16 raises it to 21 MiB, for Halloween's new things
+     *
+     * The Headless Horseman's ten pieces, the scarecrow and its light, the cobweb, the bat, the door's jack-o'-lantern and
+     * its light, and the laughing moon's face and light take the set to **21 301 904 B** at the reference 1080x2340,
+     * 1 077 600 more than the 5.15's 20 224 304 (measured on the 5.15's own tree, 2026-10-21); 20 MiB would be 330 384
+     * short, 21 MiB leaves **718 192 B**. The decoded set is 49 137 552 B, inside its 47 MiB (`SpriteGeometryTest`).
+     *
+     * *The decision, the maintainer's*: *«il resto, si a tutte»* (2026-10-21), to the table of v5.16A whose row 11 proposed
+     * this ceiling at 21 MiB, to be raised only if the measurement of the final choices needed it.
      */
-    private val uploadedTexelBudget = 20L * 1024L * 1024L
+    private val uploadedTexelBudget = 21L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {

@@ -1,7 +1,7 @@
 {
   "matches_expected": true,
   "numpy": "2.4.4",
-  "pillow": "12.3.0",
+  "pillow": "13.0.0",
   "probe_expected_sha256": "ec77e95decaa9c2705fa0b3f07d9dc9332ba552fc176ac8a32c38f293fbb367f",
   "probe_png_sha256": "20e57750234196faa3994b1fb52551f3fbed8c570bf1938395d0ca7dc53c82fc",
   "probe_sha256": "ec77e95decaa9c2705fa0b3f07d9dc9332ba552fc176ac8a32c38f293fbb367f",

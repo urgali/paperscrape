@@ -77,6 +77,8 @@ class UnitFrameTest {
         "lightning" to "1/3 px of lightning_bolt",
         "splash" to "1/3 px of the dolphin's splash",
         "santaSleigh" to "1/3 px of the sleigh group's sprites (santa_sleigh, santa_reindeer_*): the group's units",
+        "horseman" to "1/3 px of the Headless Horseman's sprites (horseman_*): the group's units",
+        "scarecrow" to "1/3 px of scarecrow and scarecrow_light",
         "dolphin" to "1/3 px of dolphin_body",
         "sailboat" to "1/3 px of sailboat_hull and sailboat_sail",
         "flower" to "1/3 px of ground_flowers_bloom / ground_flowers_dry (one canvas, two drawings)",
@@ -127,6 +129,14 @@ class UnitFrameTest {
         "SPLASH_" to setOf("splash"),
         // v5.15: every length of Santa's sleigh group, the sprites' and the cords' (`SantaSleighTable`, the generator).
         "SANTA_" to setOf("santaSleigh"),
+        // v5.16: the Headless Horseman's group (`HorsemanTable`, its generator, the drawer and the pumpkins it drops), the
+        // scarecrow's own lengths, and the jack-o'-lantern's place by a front door, in the building's piece units.
+        "HORSEMAN_" to setOf("horseman"),
+        "HORSE_" to setOf("horseman"),
+        "RIDER_" to setOf("horseman"),
+        "REIN_" to setOf("horseman"),
+        "SCARECROW_" to setOf("scarecrow"),
+        "DOOR_ASIDE_" to setOf("building"),
         "DOLPHIN_" to setOf("dolphin"),
         "SAILBOAT_" to setOf("sailboat"),
         "FLOWER_" to setOf("flower"),
@@ -152,6 +162,10 @@ class UnitFrameTest {
      * `SpriteReachabilityTest` established after item 57.
      */
     private val overrides: Map<String, Pair<Set<String>, String>> = mapOf(
+        "DECORATION_BAND_UNITS" to (setOf("building") to
+            "HalloweenDecorationTable's narrowest band of the cobweb and the bat (v5.16), in the piece units of the house or the shop they hang on"),
+        "M_UNITS" to (setOf("scarecrow") to
+            "build_scarecrow.py's module (v5.16): the band every part of the scarecrow is drawn in multiples of, in its own units"),
         "VEHICLE_GROUND_Y_UNITS" to (setOf("car", "firetruck") to
             "the height the shadow is painted at, the same number in each vehicle's own frame: " +
             "drawCar and the fire engine both translate by it"),

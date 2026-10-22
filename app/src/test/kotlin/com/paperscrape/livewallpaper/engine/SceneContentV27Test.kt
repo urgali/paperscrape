@@ -66,7 +66,7 @@ class SceneContentV27Test {
         val flowered = plain.copy(flowersEnabled = true)
         assertEquals(plain.winterColorsEnabled, flowered.winterColorsEnabled)
         assertEquals(plain.fallColorsEnabled, flowered.fallColorsEnabled)
-        assertEquals(plain.christmasDecorationsEnabled, flowered.christmasDecorationsEnabled)
+        assertEquals(DecorationExclusion.christmasOn(plain), DecorationExclusion.christmasOn(flowered))
         assertEquals(plain.halloweenEnabled, flowered.halloweenEnabled)
     }
 

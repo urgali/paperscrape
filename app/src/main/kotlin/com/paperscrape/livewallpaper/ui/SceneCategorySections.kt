@@ -63,6 +63,7 @@ internal fun defaultDensityOf(category: ObjectCategory, forThemeId: String): Flo
         ObjectCategory.BUNNIES -> d.bunnies
         ObjectCategory.EASTER_EGGS -> d.easterEggs
         ObjectCategory.PUMPKINS -> d.pumpkins
+        ObjectCategory.SCARECROWS -> d.scarecrows
     }.density
 }
 
@@ -124,6 +125,11 @@ internal fun ObjectCategorySection(
      * towers' since the shops have their own (v5.11), Houses that the distant houses wear them too.
      */
     colourLine: String = "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
+    /**
+     * Whether the category has colours of the user's: not the scarecrows (v5.16), whose drawing is fixed art -- as the
+     * people's, which World & scene draws without this block.
+     */
+    showColours: Boolean = true,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showTitle) SectionTitle(title)
@@ -169,25 +175,27 @@ internal fun ObjectCategorySection(
         }
         afterDensity()
 
-        Text(
-            colourLine,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        DayNightColorPair(
-            dayLabel = "Day Color 1", nightLabel = "Night Color 1",
-            dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,
-            onEditDay = { onEditColor("$title - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
-            onEditNight = { onEditColor("$title - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
-            onModeChange = { scope.launch { prefs.setCategoryAutoMode1(category, it, forThemeId) } },
-        )
-        DayNightColorPair(
-            dayLabel = "Day Color 2", nightLabel = "Night Color 2",
-            dayColor = config.colorDay2, nightColor = config.colorNight2, mode = config.autoMode2,
-            onEditDay = { onEditColor("$title - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
-            onEditNight = { onEditColor("$title - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
-            onModeChange = { scope.launch { prefs.setCategoryAutoMode2(category, it, forThemeId) } },
-        )
+        if (showColours) {
+            Text(
+                colourLine,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            DayNightColorPair(
+                dayLabel = "Day Color 1", nightLabel = "Night Color 1",
+                dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,
+                onEditDay = { onEditColor("$title - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
+                onEditNight = { onEditColor("$title - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
+                onModeChange = { scope.launch { prefs.setCategoryAutoMode1(category, it, forThemeId) } },
+            )
+            DayNightColorPair(
+                dayLabel = "Day Color 2", nightLabel = "Night Color 2",
+                dayColor = config.colorDay2, nightColor = config.colorNight2, mode = config.autoMode2,
+                onEditDay = { onEditColor("$title - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
+                onEditNight = { onEditColor("$title - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
+                onModeChange = { scope.launch { prefs.setCategoryAutoMode2(category, it, forThemeId) } },
+            )
+        }
 
         // Also the palms, on the Trees page (v5.10E, inventory I-294): `WallpaperPrefs.resetCategory`.
         OutlinedButton(

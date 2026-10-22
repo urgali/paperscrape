@@ -229,7 +229,8 @@ class CustomThemeDataJsonTest {
             val restored = customThemeDataFromJsonString(data.toJsonString())
             val restoredEntry = restored.overrides.getValue(theme.id)
             assertThemesMatch(theme, restoredEntry.theme)
-            assertLayoutsMatch(entry.layout, restoredEntry.layout)
+            // As a saved theme holds it: without the scarecrows, which the catalogue lays again at the load (v5.16).
+            assertLayoutsMatch(entry.layout.asSaved(), restoredEntry.layout)
         }
     }
 
@@ -597,10 +598,10 @@ class CustomThemeDataJsonTest {
             if (christmas == null) json.remove("christmasDecorationsEnabled") else json.put("christmasDecorationsEnabled", christmas)
             return sceneCustomizationFromJson(json)
         }
-        org.junit.Assert.assertTrue("saved lit before the split: lights", parsed(winter = true, christmas = null).christmasDecorationsEnabled)
-        org.junit.Assert.assertFalse("saved unlit before the split: no lights", parsed(winter = false, christmas = null).christmasDecorationsEnabled)
-        org.junit.Assert.assertFalse("written since the split: its own flag", parsed(winter = true, christmas = false).christmasDecorationsEnabled)
-        org.junit.Assert.assertTrue("written since the split: its own flag", parsed(winter = false, christmas = true).christmasDecorationsEnabled)
+        org.junit.Assert.assertTrue("saved lit before the split: lights", parsed(winter = true, christmas = null).christmasBuildingLightsEnabled)
+        org.junit.Assert.assertFalse("saved unlit before the split: no lights", parsed(winter = false, christmas = null).christmasBuildingLightsEnabled)
+        org.junit.Assert.assertFalse("written since the split: its own flag", parsed(winter = true, christmas = false).christmasBuildingLightsEnabled)
+        org.junit.Assert.assertTrue("written since the split: its own flag", parsed(winter = false, christmas = true).christmasBuildingLightsEnabled)
     }
 
     /**

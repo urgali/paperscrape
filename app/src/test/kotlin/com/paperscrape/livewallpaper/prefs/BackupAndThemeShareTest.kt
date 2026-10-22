@@ -13,11 +13,13 @@ import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
+import com.paperscrape.livewallpaper.engine.asSaved
 import com.paperscrape.livewallpaper.engine.customThemeDataFromJsonString
 // aliased: this package has its own `toJsonString` for the two file formats.
 import com.paperscrape.livewallpaper.engine.toJsonString as themeDataToJsonString
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import com.paperscrape.livewallpaper.engine.withChristmasLights
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -84,7 +86,8 @@ class BackupAndThemeShareTest {
         id = id,
         name = name,
         theme = ThemeCatalog.byId(source).copy(id = id, displayName = name),
-        layout = SceneObjectCatalog.layoutFor(source, ThemeCatalog.byId(source).accentColor),
+        // As a theme is saved: without the scarecrows, which the catalogue lays again at the load (v5.16).
+        layout = SceneObjectCatalog.layoutFor(source, ThemeCatalog.byId(source).accentColor).asSaved(),
         customization = defaultCustomizationFor(source).copy(hillsVariation = 0.33f),
     )
 
@@ -422,7 +425,20 @@ class BackupAndThemeShareTest {
         assertTrue("these fields were not moved, so the round trip cannot see them go: $unmoved", unmoved.isEmpty())
         val share = ThemeShare.of("beach", "Everything", everything, "4.3", 0L)
         val back = (parseThemeShare(share.toJsonString()) as ThemeParseResult.Ok).share
+        // Every boolean moved puts the Halloween and the Christmas decorations on together, and the houses and the buildings
+        // off: with no house or shop to hang on, the Halloween decorations hold nothing (v5.16C, decisions 77 and 83), so the
+        // reader keeps every field as written.
         assertEquals("fields that did not survive: ${leavesDiffering(everything, back.customization, "customization")}", everything, back.customization)
+        // With the houses back, both hang, and no reader keeps the two on together (decision 77): Beach ships neither, so the
+        // Christmas ones stay and the Halloween ones come back off.
+        val withHouses = everything.copy(houses = everything.houses.copy(visible = true))
+        val backWithHouses = (parseThemeShare(ThemeShare.of("beach", "Everything", withHouses, "4.3", 0L).toJsonString()) as ThemeParseResult.Ok).share
+        val expected = withHouses.copy(halloweenDecorationsEnabled = false)
+        assertEquals("fields that did not survive: ${leavesDiffering(expected, backWithHouses.customization, "customization")}", expected, backWithHouses.customization)
+        // And the Halloween decorations' own field survives where the Christmas ones are off.
+        val halloweenSide = everything.withChristmasLights(false)
+        val backHalloween = (parseThemeShare(ThemeShare.of("beach", "Everything", halloweenSide, "4.3", 0L).toJsonString()) as ThemeParseResult.Ok).share
+        assertEquals("fields that did not survive: ${leavesDiffering(halloweenSide, backHalloween.customization, "customization")}", halloweenSide, backHalloween.customization)
     }
 
     /** A copy of [value] with every leaf moved to a different valid value, recursively. */

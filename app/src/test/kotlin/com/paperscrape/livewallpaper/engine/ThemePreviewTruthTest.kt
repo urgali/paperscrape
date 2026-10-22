@@ -122,6 +122,13 @@ class ThemePreviewTruthTest {
         // The wreath on a front door (v5.14C2): the one sprite of a building's Christmas decorations, its bulbs and star
         // being flat parts.
         "deco_wreath" to "DECORATIONS",
+        // v5.16: the Halloween decorations of a house or a shop, a family of their own; the Headless Horseman's pieces, one
+        // group as the sleigh's; and the scarecrow with the light of its head.
+        "deco_cobweb" to "HALLOWEEN_DECORATIONS",
+        "deco_bat" to "HALLOWEEN_DECORATIONS",
+        "deco_jack_o_lantern" to "HALLOWEEN_DECORATIONS",
+        "horseman_" to "HORSEMAN",
+        "scarecrow" to "SCARECROW",
         "restaurant_" to "RESTAURANT",
         // v5.13: the shop and the two stations, before `police_` -- the police car's livery -- which
         // would otherwise claim the police station's layers for the traffic.
@@ -219,17 +226,24 @@ class ThemePreviewTruthTest {
             add("BIRD", poolCount(c.birds.density, PaperRenderer.BIRD_POOL_SIZE, EffectId.BIRDS))
         }
         if (c.flowersEnabled) add("FLOWERS", SceneObjectRenderer.FLOWER_CLUMP_COUNT)
-        // All three `drawChristmasLights` call sites are inside a tree: the fir's, the leafy
-        // tree's and the palm's. No trees, no lights -- which is why this reads both flags.
-        if (c.christmasDecorationsEnabled && c.trees.visible) add("LIGHTS", 1)
+        // The scene's tree lights are all inside a tree: the fir's own (`drawFir`, *Christmas firs*), the leafy
+        // tree's and the palm's (`drawChristmasLights`, *Lights on the trees*). No trees, no lights -- which is why this
+        // reads both switches and the trees'.
+        if ((c.christmasTreeLightsEnabled || c.christmasFirsEnabled) && c.trees.visible) add("LIGHTS", 1)
         // Every building has a front door, and with the Christmas decorations on each carries its wreath (v5.14, decision
         // 67): the scene's buildings, the towers, the houses and the six among them, as counted above.
-        if (c.christmasDecorationsEnabled) {
+        if (c.christmasBuildingLightsEnabled) {
             val buildings = out.filterKeys { k -> k == "TOWER" || k.startsWith("HOUSE_") || Storefront.ALL.any { it.name == k } }.values.sum()
             add("DECORATIONS", buildings)
         }
+        // The Halloween decorations (v5.16) hang on the houses and the three shops, one set a building.
+        if (c.halloweenDecorationsEnabled) {
+            val decorated = setOf(Storefront.RESTAURANT.name, Storefront.BAR.name, Storefront.SHOP.name)
+            add("HALLOWEEN_DECORATIONS", out.filterKeys { k -> k.startsWith("HOUSE_") || k in decorated }.values.sum())
+        }
         if (theme.hasFireworks) add("FIREWORKS", 1)
         if (c.santaEnabled) add("SANTA", 1)
+        if (c.headlessHorsemanEnabled) add("HORSEMAN", 1)
         if (c.sun.visible) add("SUN", 1)
         if (c.moon.visible) add("MOON", 1)
         if (c.clouds.visible) add("CLOUDS", 1)
@@ -335,18 +349,18 @@ class ThemePreviewTruthTest {
                 (ThemeCatalog.byId("winter") to defaultCustomizationFor("winter").copy(palmsInsteadOfTrees = true)),
             // v5.10C2: the firs stay firs among the palms, wherever the Christmas layer stands them.
             "autumn with the Christmas lights and palms in place of its trees" to
-                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = true)),
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)),
             "christmas with palms, its woodland thinned to a scattering" to
                 (ThemeCatalog.byId("christmas") to defaultCustomizationFor("christmas").let {
                     it.copy(palmsInsteadOfTrees = true, trees = it.trees.copy(density = 0.2f))
                 }),
             // The wallpaper lights a palm too; until v5.10C the card's palm had no lights to show.
             "beach with the Christmas lights on" to
-                (beach to defaultCustomizationFor("beach").copy(christmasDecorationsEnabled = true)),
+                (beach to defaultCustomizationFor("beach").copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)),
             "beach with its sea turned off" to
                 (beach to defaultCustomizationFor("beach").let { it.copy(lake = it.lake.copy(visible = false)) }),
             "tundra with the Christmas decorations on" to
-                (tundra to defaultCustomizationFor("tundra").copy(christmasDecorationsEnabled = true)),
+                (tundra to defaultCustomizationFor("tundra").copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)),
             "tundra with the night birds its flock does not have" to
                 (tundra to defaultCustomizationFor("tundra").let { it.copy(birds = it.birds.copy(nightBirds = true)) }),
             "spring with no houses and no people" to
@@ -357,6 +371,26 @@ class ThemePreviewTruthTest {
                 (spring to defaultCustomizationFor("spring").let {
                     it.copy(fallColorsEnabled = true, pumpkins = it.pumpkins.copy(visible = true))
                 }),
+            // v5.16, the three switches *Christmas lights* became, each alone (the mid-round review: the trees' lights alone showed
+            // nothing on a card), and the Halloween theme's new things with Santa beside the Horseman.
+            "autumn with only the lights on the trees" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(christmasTreeLightsEnabled = true)),
+            "autumn with only the Christmas firs" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(christmasFirsEnabled = true)),
+            "autumn with only the lights on the buildings" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(christmasBuildingLightsEnabled = true)),
+            "autumn with the Halloween decorations, the scarecrows and the Horseman" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(
+                    halloweenDecorationsEnabled = true, headlessHorsemanEnabled = true,
+                    scarecrows = SceneCustomization.SCARECROWS_OFF.copy(visible = true, density = 0.5f),
+                )),
+            "sunset at its 19:00 with the Halloween decorations and the scarecrows" to
+                (ThemeCatalog.byId("sunset") to defaultCustomizationFor("sunset").copy(
+                    halloweenDecorationsEnabled = true,
+                    scarecrows = SceneCustomization.SCARECROWS_OFF.copy(visible = true, density = 0.5f),
+                )),
+            "halloween with Santa beside the Horseman" to
+                (ThemeCatalog.byId("halloween") to defaultCustomizationFor("halloween").copy(santaEnabled = true)),
             // v5.14: every building that keeps hours shut at the card's hour, its blinds and its shutter -- flat cards, the shutter's of the
             // door's own outline -- on the card.
             "autumn with the three groups' hours 13:00-20:00, every building that keeps hours shut" to
@@ -368,8 +402,15 @@ class ThemePreviewTruthTest {
         )
     }
 
+    /**
+     * Whether the card is drawn at night: the strip's choice, or the two themes whose subject is the night -- and since v5.16
+     * at every hour where Halloween's night sky by day is in force, whatever the strip asks, as the wallpaper.
+     */
+    private fun cardNight(theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): Boolean =
+        (forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)) || c.nightOverDayActive()
+
     private fun checkFamilies(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): List<String> {
-        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        val night = cardNight(theme, c, forceNight)
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
         val expected = sceneFamilies(theme, c, night)
         val actual = cardFamilies(scene)
@@ -524,7 +565,7 @@ class ThemePreviewTruthTest {
         for ((theme, base) in builtIns()) for (moonOn in listOf(true, false)) for (halloween in listOf(true, false)) {
             val c = base.copy(moon = base.moon.copy(visible = moonOn), halloweenEnabled = halloween)
             for (forceNight in listOf(null, true, false)) {
-                val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+                val night = cardNight(theme, c, forceNight)
                 val expected = moonOn && (night || halloween)
                 val actual = "MOON" in cardFamilies(ThemePreviewScenes.forTheme(theme, c, forceNight))
                 if (actual != expected) {
@@ -674,7 +715,7 @@ class ThemePreviewTruthTest {
      * `SunPositionCalculator.compute` gives for a clock hour, not a blend made up for a picture.
      */
     private fun checkLandscape(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): List<String> {
-        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        val night = cardNight(theme, c, forceNight)
         val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
         val phase = ThemePreviewScenes.cardPhase(theme, night)
@@ -794,7 +835,7 @@ class ThemePreviewTruthTest {
      * branches, the fir, snow caps, ribbons, faces -- which does not dim (item 123).
      */
     private fun checkObjectColours(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>? = null): List<String> {
-        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        val night = cardNight(theme, c, forceNight)
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
         val d = ThemePreviewScenes.cardPhase(theme, night).dayBlend
         val out = mutableListOf<String>()
@@ -832,12 +873,30 @@ class ThemePreviewTruthTest {
                 }
                 seen?.let { val k = if (house) "HOUSE_GLASS" else if (openness < 1f && d < 1f) "CLOSED_BUSINESS_GLASS" else "BUSINESS_GLASS"; it[k] = (it[k] ?: 0) + 1 }
             }
-            for (part in item.parts.filter { it.decoration }) {
+            for (part in item.parts.filter { it.decoration && familyOf(nameOf(it.resId)) == "HALLOWEEN_DECORATIONS" }) {
+                // The Halloween decorations (v5.16): only on a card whose wallpaper hangs them, fixed art; the door's candle lit
+                // as the wallpaper lights it at the card's moment, `(1 - dayBlend) * 255`, everything else at its full light.
+                val alpha = if (part.resId == HalloweenDecorationTable.PUMPKIN_LIGHT_RES) ((1f - d) * 255f).toInt().coerceIn(0, 255) else 255
+                if (!c.halloweenDecorationsEnabled) {
+                    out += "$label: R7 a Halloween decoration at x=%.0f on a card whose wallpaper hangs none".format(item.x)
+                } else if (part.tint != null || part.shade != SpriteBlitter.UNTINTED || part.alpha != alpha) {
+                    out += "$label: R7 a Halloween decoration at x=%.0f is tinted ${hex(part.tint)} / shaded ${hex(part.shade)} / alpha ${part.alpha}".format(item.x)
+                }
+                seen?.let { it["HALLOWEEN_DECORATION"] = (it["HALLOWEEN_DECORATION"] ?: 0) + 1 }
+            }
+            if (item.parts.any { it.resId == ScarecrowTable.RES }) {
+                // The scarecrow's candle (v5.16): lit as the wallpaper lights it, `(1 - dayBlend) * 255`, and absent by day.
+                val want = ((1f - d) * 255f).toInt().coerceIn(0, 255)
+                val got = item.parts.firstOrNull { it.resId == ScarecrowTable.LIGHT_RES }?.alpha ?: 0
+                if (got != want) out += "$label: R7 the scarecrow's candle at x=%.0f at alpha $got, the wallpaper's $want".format(item.x)
+                if (want in 1..254) seen?.let { it["SCARECROW_CANDLE_AT_DUSK"] = (it["SCARECROW_CANDLE_AT_DUSK"] ?: 0) + 1 }
+            }
+            for (part in item.parts.filter { it.decoration && familyOf(nameOf(it.resId)) != "HALLOWEEN_DECORATIONS" }) {
                 // The Christmas decorations (v5.14C2): only on a card whose wallpaper hangs them (where, and which colour each,
                 // `CardDecorationsTest`), in its own colours -- the lights' four, the star's gold -- which no hour dims, the
                 // wreath its own drawing untinted.
                 val allowed = SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS.toSet() + SceneObjectRenderer.STAR_GOLD
-                if (!c.christmasDecorationsEnabled) {
+                if (!c.christmasBuildingLightsEnabled) {
                     out += "$label: R7 a Christmas decoration at x=%.0f on a card whose wallpaper hangs none".format(item.x)
                 } else if (part.resId == R.drawable.deco_wreath) {
                     if (part.tint != null || part.shade != SpriteBlitter.UNTINTED) out += "$label: R7 a wreath at x=%.0f is tinted ${hex(part.tint)} / shaded ${hex(part.shade)}".format(item.x)
@@ -949,8 +1008,9 @@ class ThemePreviewTruthTest {
             fails += checkObjectColours("${theme.id} (forced night)", theme, c, true, seenAtNight)
             fails += checkObjectColours("${theme.id} (forced day)", theme, c, false)
         }
+        val seenAtTheirMoment = sortedMapOf<String, Int>()
         for ((label, pair) in custom()) {
-            fails += checkObjectColours(label, pair.first, pair.second, null)
+            fails += checkObjectColours(label, pair.first, pair.second, null, seenAtTheirMoment)
             fails += checkObjectColours("$label (forced night)", pair.first, pair.second, true, seenAtNight)
         }
         val (beach, edited) = editedNightColours()
@@ -983,9 +1043,11 @@ class ThemePreviewTruthTest {
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
-        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE")) {
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE", "HALLOWEEN_DECORATION")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
+        // And a scarecrow's candle at dusk, half lit (v5.16: Sunset's 19:00).
+        assertTrue("R7 never met a scarecrow's candle at dusk: $seenAtTheirMoment", (seenAtTheirMoment["SCARECROW_CANDLE_AT_DUSK"] ?: 0) > 0)
     }
 
     /**

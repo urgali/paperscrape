@@ -55,6 +55,14 @@ class FrameAllocationTest {
         val events: Boolean = false,
         /** From 0 to 1, the sleigh held in flight at that point of its crossing in every frame (v5.15); negative, as it flies. */
         val sleighHeld: Float = -1f,
+        /**
+         * The Headless Horseman set off at the start of the count, at the part of his crossing pumpkins fall from (v5.16):
+         * his pumpkins on fire come from a fixed pool, so even the frames that let one fall allocate nothing (inventory
+         * I-1025; in the prototype each drop was an object).
+         */
+        val horsemanFlying: Boolean = false,
+        /** Where the scene's clock starts (v5.16): 52 s puts the Halloween moon's laugh, at 66 s, in the counted frames. */
+        val startSeconds: Double = 0.0,
         val customise: (SceneCustomization) -> SceneCustomization = { it },
     )
 
@@ -177,7 +185,7 @@ class FrameAllocationTest {
         // v5.14: the Christmas decorations -- the fir A, the roofs' strings, the wreaths, the towers' stars -- by day and
         // on Autumn with the switch on at night; the distant houses' bulbs; a shut building's blinds and shutter by day.
         Scene("christmas-noon-decorations", "christmas", 12f, events = true),
-        Scene("autumn-christmas-lights-night", "autumn", 1f, customise = { it.copy(christmasDecorationsEnabled = true) }),
+        Scene("autumn-christmas-lights-night", "autumn", 1f, customise = { it.copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true) }),
         Scene("christmas-distant-houses-night", "christmas", 23f, events = true, customise = distantHouses),
         Scene("shut-by-day", "autumn", 12f, customise = shutAtNoon),
         // v5.15 (inventory I-934): the sleigh of v5.15 held in flight in every counted frame, by day and at night, so its
@@ -185,6 +193,15 @@ class FrameAllocationTest {
         // prototype's `Paint.alpha =` allocated two objects a frame there (inventory I-942).
         Scene("christmas-sleigh-noon", "christmas", 12f, events = true, sleighHeld = 0.5f),
         Scene("christmas-sleigh-night", "christmas", 1f, events = true, sleighHeld = 0.5f),
+        // v5.16: Halloween with what v5.16 added -- the cobwebs, the bats and the jack-o'-lanterns, the laughing moon laughing
+        // in the counted frames, the Horseman in flight dropping his pumpkins on fire --, under the blood rain at night with
+        // the scarecrows at their most (as the theme ships them, at 50 %, one is drawn in each counted frame; at 100 % six,
+        // every snowman's place the frame reaches holding one, as in the golden `halloween-scarecrows-and-snowmen`), and at noon with
+        // the night by day in force (the theme ships it on).
+        Scene("halloween-everything-night", "halloween", 22f, horsemanFlying = true, startSeconds = 52.0, customise = {
+            rain(it).copy(scarecrows = it.scarecrows.copy(visible = true, density = 1f))
+        }),
+        Scene("halloween-night-by-day-noon", "halloween", 12f, horsemanFlying = true, startSeconds = 52.0, customise = rain),
         Scene("everything-on-evening", "city", 21f, customise = everything),
         Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
         Scene(
@@ -232,18 +249,28 @@ class FrameAllocationTest {
             renderer.scrollSpeed = 0.15f
             renderer.holdSantaSleighForTest(scene.sleighHeld)
             val dayPhase = SunPositionCalculator.compute(hour24 = scene.hour)
-            var time = SceneTime(0.0)
+            var time = SceneTime(scene.startSeconds)
             repeat(WARM_UP_FRAMES) {
                 time += FRAME
                 renderer.draw(NothingCanvas, dayPhase, time, FRAME)
             }
+            if (scene.horsemanFlying) renderer.startHeadlessHorsemanFlightForTest()
+            val dropsBefore = renderer.horsemanPumpkinsFallingForTest()
+            var dropsSeen = 0
             val objects = allocationsDuring {
                 repeat(COUNTED_FRAMES) {
                     time += FRAME
                     renderer.draw(NothingCanvas, dayPhase, time, FRAME)
+                    // The most pumpkins in the air in any counted frame: the read allocates nothing (a count over the pool).
+                    // At the last frame alone the pool can be empty -- one lands up to 0.3 s before the next sets off.
+                    if (scene.horsemanFlying) dropsSeen = maxOf(dropsSeen, renderer.horsemanPumpkinsFallingForTest())
                 }
             }
-            val line = "${scene.name}: $objects objects over $COUNTED_FRAMES frames"
+            if (scene.horsemanFlying) {
+                assertTrue("${scene.name}: no pumpkin fell from the Horseman ($dropsBefore before, at most $dropsSeen in a frame)", dropsSeen > 0 || dropsBefore > 0)
+            }
+            val line = "${scene.name}: $objects objects over $COUNTED_FRAMES frames" +
+                if (scene.horsemanFlying) ", the Horseman's pumpkins in the air at most: $dropsSeen" else ""
             report.appendLine(line)
             Log.i(TAG, line)
             val allowed = if (scene.events) COUNTED_FRAMES / 10 else 0

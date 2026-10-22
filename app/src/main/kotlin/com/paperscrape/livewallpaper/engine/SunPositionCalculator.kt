@@ -61,7 +61,8 @@ object SunPositionCalculator {
          * phase, as a `Float`, moves several times a second, and near a new moon every frame; a new
          * object each time was an allocation a frame on the render thread. The cache writes the new
          * value into its own instance before the frame is drawn, so the frame still receives the
-         * moon as an input. Nothing else writes it.
+         * moon as an input. Nothing else writes it but the night by day's own copy (`PaperRenderer.nightOverDay`, v5.16),
+         * which takes the frame's value the same way.
          */
         var moonPhase: Float,
     )

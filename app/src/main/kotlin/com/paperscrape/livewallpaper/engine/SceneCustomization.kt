@@ -456,9 +456,14 @@ data class SceneCustomization(
     val fallColorsEnabled: Boolean = false,
     val winterColorsEnabled: Boolean = false,
     /**
-     * The Christmas decoration layer: lights on the trees and along the windowsills, a fir for one tree in three and,
-     * since v5.14, the bulbs along every roof, a wreath on every front door, a star on every tower and three bulbs
-     * on every distant house (`SceneObjectRenderer.drawDecorations`).
+     * *Lights on the buildings*, the first of the three Christmas switches (v5.16): the bulbs along every roof and the
+     * strings under the windowsills, a wreath on every front door, a star on every tower and three bulbs on every
+     * distant house (`SceneObjectRenderer.drawDecorations`, `drawWindowLights`, `PaperRenderer.drawDistantHouseLights`).
+     * Until v5.16 one switch, *Christmas lights*, did this, [christmasTreeLightsEnabled]'s and [christmasFirsEnabled]'s
+     * work together; the maintainer, 2026-10-21: *«interruttori per ogni cosa; lo stesso dobbiamo avere anche per
+     * natale»*. **It keeps that switch's stored name** (`christmasDecorationsEnabled` in every payload, the preference
+     * `christmas_decorations_enabled`), and the two new switches read it where they have no value of their own: a theme
+     * saved, archived, backed up or shared before v5.16 with *Christmas lights* on comes back with all three on.
      *
      * **Separate from [winterColorsEnabled], and deliberately so.** Christmas lights used to hang
      * off the winter flag, which made the two words synonyms: a plain snowy January scene could
@@ -472,9 +477,22 @@ data class SceneCustomization(
      * **Scope.** This governs the Christmas dressing that has no category of its own. Santa
      * ([santaEnabled]) and the presents ([gifts]) keep their own switches, because they already
      * had them and folding them in here would give one thing two controls that disagree. A theme's
-     * defaults set all three together; a user can still take any of them separately.
+     * defaults set them together; a user can still take any of them separately. And the Christmas
+     * decorations and the Halloween ones are never on together in a theme ([DecorationExclusion]).
      */
-    val christmasDecorationsEnabled: Boolean = false,
+    val christmasBuildingLightsEnabled: Boolean = false,
+    /**
+     * *Lights on the trees* (v5.16): the blinking lights on the leafy trees and the palms (`SceneObjectRenderer.drawTree`,
+     * `drawPalmTree`). Absent from data written before v5.16, where it reads as [christmasBuildingLightsEnabled] -- the
+     * one switch did both.
+     */
+    val christmasTreeLightsEnabled: Boolean = false,
+    /**
+     * *Christmas firs* (v5.16): one tree in three standing as the fir A, with its ten lights, its star and three presents at
+     * its foot (`SceneObjectRenderer.standsAsFir`, decision 66). Absent from data written before v5.16, where it reads as
+     * [christmasBuildingLightsEnabled] -- the one switch did all three.
+     */
+    val christmasFirsEnabled: Boolean = false,
     /**
      * Flowers on the open ground: on or off, and nothing else.
      *
@@ -550,7 +568,7 @@ data class SceneCustomization(
      * The Halloween presentation: a jack-o'-lantern moon, bare trees and palms, carved pumpkins.
      *
      * **A third independent statement, alongside [winterColorsEnabled] and
-     * [christmasDecorationsEnabled], and it implies neither.** The lesson v2.0 recorded about
+     * the Christmas decorations ([christmasBuildingLightsEnabled] and, since v5.16, its two siblings), and it implies neither.** The lesson v2.0 recorded about
      * winter and Christmas applies here in advance: a season and a decoration layer are different
      * things, and folding one into the other is what made "winter" and "Christmas" synonyms for a
      * whole release. Halloween is not a temperature and not a fortnight of fairy lights, so it
@@ -578,6 +596,39 @@ data class SceneCustomization(
      * it off returns the palette the user chose, untouched.
      */
     val horrorSkyEnabled: Boolean = false,
+    /**
+     * *Laughing moon* (v5.16): now and then the Halloween moon throws its face open and laughs, shaking with it
+     * ([LaughingMoon]). It is the carved moon's, so it needs [halloweenEnabled] and *Moon* on; with either
+     * off the switch is greyed or reads off with the reason, and the stored choice comes back with them (decision 40,
+     * `SettingsUiModel.laughingMoon`).
+     */
+    val laughingMoonEnabled: Boolean = false,
+    /**
+     * *Night sky by day* (v5.16, the maintainer's mode 3 of v5.16A): with the Halloween moon up, the whole scene is night
+     * at every hour -- the sky, the landscape and the town -- the moon full on the sun's path in its place; the shops
+     * and the windows keep the real hour (`PaperRenderer.nightOverDay`). It needs [halloweenEnabled] and *Moon*, as
+     * [laughingMoonEnabled] does. On as the Halloween theme ships: *«luna e cielo notte anche di giorno: va bene 3 ma deve
+     * diventare il nuovo default del tema halloween»* (2026-10-21).
+     */
+    val nightSkyByDayEnabled: Boolean = false,
+    /**
+     * *Halloween decorations* (v5.16, the set C of v5.16A): a cobweb at each end of the roof, a light violet bat every
+     * three points of it, and a jack-o'-lantern by the front door, lit at night -- on the houses and the three shops,
+     * open or shut (`SceneObjectRenderer.drawHalloweenDecorations`). Never on together with the Christmas decorations
+     * of a theme ([DecorationExclusion]).
+     */
+    val halloweenDecorationsEnabled: Boolean = false,
+    /**
+     * *Blood rain* (v5.16, the proposal 2 of v5.16A): while it rains -- the theme's rain or the forecast's -- the drops
+     * are red ([PaperRenderer.BLOOD_RAIN_NIGHT], [PaperRenderer.BLOOD_RAIN_DAY]) and twice as thick; the user's rain
+     * colours stay stored and come back with the switch off, as the sky's do under [horrorSkyEnabled]. Snow stays snow.
+     */
+    val bloodRainEnabled: Boolean = false,
+    /**
+     * *Headless Horseman* (v5.16, the drawing B of v5.16A): he gallops across the upper sky about once a minute, as Santa
+     * does, and pumpkins on fire fall from him (`HeadlessHorsemanEffect`). A plain per-theme switch, as [santaEnabled].
+     */
+    val headlessHorsemanEnabled: Boolean = false,
     // Previously hardcoded per-theme via SceneTheme.hasSantaSleigh with no user control at all --
     // aa asked for an actual toggle. Kept as a per-theme customization (not a global setting)
     // specifically so it fits the same defaultCustomizationFor() pattern every other per-theme
@@ -595,6 +646,20 @@ data class SceneCustomization(
     val bunnies: ObjectVariantConfig,
     val easterEggs: ObjectVariantConfig,
     val pumpkins: ObjectVariantConfig,
+    /**
+     * The scarecrows (v5.16, the drawing B of v5.16A): a scarecrow on its pole with a pointed black hat, an old patched
+     * coat and a carved pumpkin for a head, lit at night -- the maintainer's «wickedmen», *«spaventapasseri con cappello e
+     * vestiti vecchi e testa a forma di jack o lantern»* (2026-10-21) --, **in the snowmen's places**: the candidates
+     * `SceneObjectCatalog` lays for them are the snowmen's own, the same x and depth ([SceneObjectType.SCARECROW]),
+     * kept by a coin of their own ([keepCandidate]), and where a snowman is kept in the same place both stand, the
+     * scarecrow a little to one side.
+     *
+     * **Visibility and density only**, as [people]: the drawing is fixed art, so the four colours here are read by
+     * nothing and the settings show none. On in the Halloween theme as it ships, at 50 %, and off on every other; data
+     * written before v5.16 has none and reads as its theme's own (`sceneCustomizationFromJson`, `WallpaperPrefs`): on in the
+     * Halloween theme, off on every other and where the theme is not known.
+     */
+    val scarecrows: ObjectVariantConfig = SCARECROWS_OFF,
     // Not an "object" category (no visibility/density/color-variant shape) -- a single
     // theme-scoped float for how wavy the hill silhouette is. Reuses the exact same per-theme
     // pendingCustomization/save-to-theme machinery as everything else in this class, since it's
@@ -702,6 +767,22 @@ data class SceneCustomization(
     val rainbow: RainbowConfig = RainbowConfig(visible = false, opacity = 0.8f),
 ) {
     companion object {
+        /**
+         * The scarecrows as every theme but Halloween ships them, and as data written before v5.16 reads there (and where
+         * its theme is not known): off, at the 50 % a tap starts them at (the snowmen's default). The colours are never read
+         * ([scarecrows]).
+         *
+         * **Here, and before [DEFAULT], not a value of the file** (v5.16B, `FirstClassTouchedTest`): the constructor reads
+         * it for its default, and a value of the file is initialised with the file, whose own values read [DEFAULT] -- so
+         * the engine, touching this class first, built [DEFAULT], asked the file, and the file read the [DEFAULT] still
+         * being built: the build crashed on the BV6600 at the engine's first frame after an `install -r`.
+         */
+        val SCARECROWS_OFF = ObjectVariantConfig(
+            visible = false,
+            density = 0.5f,
+            colorDay1 = 0, colorNight1 = 0, colorDay2 = 0, colorNight2 = 0,
+        )
+
         val DEFAULT = SceneCustomization(
             houses = ObjectVariantConfig(
                 visible = true,
@@ -860,6 +941,92 @@ const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 const val DEFAULT_CARS_NIGHT_DENSITY = 1f
 
 /**
+ * Whether the night by day is in force (v5.16): *Night sky by day* on, with what it is drawn with -- the Halloween moon,
+ * so *Halloween* and *Moon* on. The renderer draws by it (`PaperRenderer.nightOverDay`) and the settings say so by it
+ * (`SettingsUiModel.nightSkyByDay`, and *Show Sun*, *Show Birds* and *Show Rainbow*, which it stops by day).
+ */
+fun SceneCustomization.nightOverDayActive(): Boolean = nightSkyByDayEnabled && halloweenEnabled && moon.visible
+
+/**
+ * The three switches *Christmas lights* became in v5.16, all [on] or all off: what *Christmas lights* on or off was, and
+ * what data written before v5.16 reads as.
+ */
+fun SceneCustomization.withChristmasLights(on: Boolean): SceneCustomization =
+    copy(christmasBuildingLightsEnabled = on, christmasTreeLightsEnabled = on, christmasFirsEnabled = on)
+
+/** Whether the Halloween moon laughs (v5.16): *Laughing moon* on, with the carved moon up -- *Halloween* and *Moon* on. */
+fun SceneCustomization.laughingMoonActive(): Boolean = laughingMoonEnabled && halloweenEnabled && moon.visible
+
+/**
+ * **The Halloween decorations and the Christmas ones are never on together in a theme** (v5.16): the maintainer,
+ * 2026-10-21, *«addobbi visibili: solo halloween o natale; vince il primo scelto e il secondo deve avere il toggle non
+ * attivabile con errore "è già acceso natale" o "è già acceso halloween"»*. The one statement of the rule, read by the
+ * settings (the switch of the side that is not on is greyed and says why: `SettingsUiModel`), by the stores' setters
+ * (a switch of one side is not turned on while the other's is: `WallpaperPrefs`), and by every reader of stored data
+ * ([resolved]: data that holds both on -- a theme file written by hand -- is read with one of them off).
+ *
+ * The Christmas side is the three switches *Christmas lights* became -- the lights on the buildings, the lights on the
+ * trees and the firs ([christmasOn]); the Halloween side, *Halloween decorations* ([halloweenOn]). **Each counts only while
+ * it has something to hang on** -- the trees' two while trees stand ([treesStand]), the buildings' lights while a house, a
+ * building or a house on the mountains does ([buildingLightsHang]), the Halloween decorations while a house or a shop does
+ * ([halloweenDecorationsHang]): with nothing there a switch reads off and locked (decision 40; the maintainer's *«A: grigi
+ * con la frase, come le palme (consigliata)»* and *«A: grigi con la frase, come gli abeti (consigliata)»*, 2026-10-22), so
+ * a switch that reads off holds the other side off neither; with them back, data that then holds both is read as any that
+ * does ([resolved]).
+ */
+object DecorationExclusion {
+
+    /** Whether any of the Christmas decorations the rule covers is on in [c], each only where it has something to hang on. */
+    fun christmasOn(c: SceneCustomization): Boolean =
+        (buildingLightsHang(c) && c.christmasBuildingLightsEnabled) ||
+            (treesStand(c) && (c.christmasTreeLightsEnabled || c.christmasFirsEnabled))
+
+    /**
+     * Whether any tree stands to carry the Christmas lights of the trees or to become a fir: *Show Trees* on and above 0 %
+     * (the palms are the trees' too, `SceneCustomization.configFor`).
+     */
+    fun treesStand(c: SceneCustomization): Boolean = c.trees.visible && c.trees.density > 0f
+
+    /** Whether the Halloween decorations are on in [c], while a house or a shop stands to carry them. */
+    fun halloweenOn(c: SceneCustomization): Boolean = halloweenDecorationsHang(c) && c.halloweenDecorationsEnabled
+
+    /**
+     * Whether a house or one of the three shops stands to carry the Halloween decorations (`HalloweenDecorations.decorates`):
+     * the houses on and above 0 %, or *Show Buildings* on -- the shops stand while it is, whatever the towers' amount.
+     */
+    fun halloweenDecorationsHang(c: SceneCustomization): Boolean =
+        (c.houses.visible && c.houses.density > 0f) || c.buildings.visible
+
+    /**
+     * Whether anything stands to carry the lights on the buildings: a house or a building, as [halloweenDecorationsHang], or a
+     * house on the mountains (its three bulbs: on, above 0 %, and a mountain to stand on).
+     */
+    fun buildingLightsHang(c: SceneCustomization): Boolean =
+        halloweenDecorationsHang(c) || (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))
+
+    /** Whether the Halloween decorations' switch can be turned on in [c]: not while a Christmas one is on. */
+    fun halloweenAllowed(c: SceneCustomization): Boolean = !christmasOn(c)
+
+    /** Whether a Christmas decoration's switch can be turned on in [c]: not while the Halloween decorations are on. */
+    fun christmasAllowed(c: SceneCustomization): Boolean = !halloweenOn(c)
+
+    /**
+     * [c] with at most one side on. Data the app writes never holds both (the setters refuse the second), so this
+     * changes nothing it reads -- only a payload written by hand, imported or restored, can hold both, and then the side
+     * the theme turns on as it ships stays on ([themeDefaults]: Halloween on the Halloween theme), and on every other
+     * theme the Christmas side, which is the older of the two.
+     */
+    fun resolved(c: SceneCustomization, themeDefaults: SceneCustomization): SceneCustomization {
+        if (!christmasOn(c) || !halloweenOn(c)) return c
+        return if (halloweenOn(themeDefaults) && !christmasOn(themeDefaults)) {
+            c.copy(christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false)
+        } else {
+            c.copy(halloweenDecorationsEnabled = false)
+        }
+    }
+}
+
+/**
  * Where the opening-hours editors start, the three groups' -- the towers', the shops' and the public buildings' --,
  * inert until their group's switch is on.
  *
@@ -940,6 +1107,28 @@ internal fun densityFraction(spec: StaticSceneObject): Double {
 private const val DENSITY_REFINE_CHANNEL = 134
 
 /**
+ * Which of the snowmen's places a scarecrow keeps (v5.16): **the prototype's own draw, the one photographed** -- the place's
+ * fraction (`NeighbourhoodComposer.stableFraction`, the per-instance hash) shifted by [SCARECROW_SALT], the choice B of row 3
+ * of v5.16A (*«il resto, si a tutte»*, 2026-10-21; its report: the place's fraction shifted by 0.618), so the scarecrows
+ * of the build stand in the places of the photographs the maintainer chose from. At 50 % each the snowmen and the
+ * scarecrows keep about half their places each, some of them both (where both stand, the scarecrow steps aside:
+ * `SceneObjectRenderer`). A fixed number per place, compared with the density: a density moved adds or removes
+ * scarecrows and moves none (`AI_PROJECT_RULES.md` 5.3).
+ */
+internal fun scarecrowFraction(spec: StaticSceneObject): Float =
+    NeighbourhoodComposer.stableFraction(spec.tileFractionX, spec.depthFraction, SCARECROW_SALT)
+
+/** The shift of [scarecrowFraction]: the one the prototype of v5.16A drew its scarecrows with. */
+private const val SCARECROW_SALT = 0.618f
+
+/**
+ * Whether a kept scarecrow [spec] stands aside (v5.16): where the snowman of its place stands too -- the same x and depth,
+ * the snowman's own keep -- both are drawn, the scarecrow a little to one side (`SceneObjectRenderer.SCARECROW_ASIDE_METRES`).
+ */
+fun SceneCustomization.scarecrowStandsAside(spec: StaticSceneObject, scheme: Int = DENSITY_SCHEME_FRACTION): Boolean =
+    spec.type == SceneObjectType.SCARECROW && keepCandidate(spec.copy(type = SceneObjectType.SNOWMAN), scheme)
+
+/**
  * How a layout's objects are thinned by density: [DENSITY_SCHEME_FRACTION] for every layout the
  * app generates and every theme saved since v5.8C, [DENSITY_SCHEME_GRID] for a saved theme written
  * before it.
@@ -970,6 +1159,7 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
     SceneObjectType.BUNNY -> bunnies
     SceneObjectType.EASTER_EGG -> easterEggs
     SceneObjectType.PUMPKIN -> pumpkins
+    SceneObjectType.SCARECROW -> scarecrows
     else -> null
 }
 
@@ -994,14 +1184,14 @@ fun SceneCustomization.palmsShown(layoutPlantsPalms: Boolean): Boolean =
  *    stay trees either way -- exactly the rule of v5.1 to v5.9;
  *  - on a layout that plants none, a tree slot is a palm while [palmsInsteadOfTrees] is on
  *    (v5.10C), and a tree otherwise -- **except a fir**: a slot that stands as a Christmas fir
- *    while the Christmas layer is on (`SceneObjectRenderer.standsAsFir`) stays a tree, and the
+ *    while *Christmas firs* is on (`SceneObjectRenderer.standsAsFir`) stays a tree, and the
  *    drawing makes it the fir it was (v5.10C2). The palms take the place of the ordinary trees
  *    only; the maintainer, 2026-10-03: *«le palme in natale devono sovrascrivere gli alberi
- *    normali, gli abeti sono del tema e tali devono rimanere»*. The Christmas layer puts firs on
+ *    normali, gli abeti sono del tema e tali devono rimanere»*. *Christmas firs* puts firs on
  *    any theme, so this holds wherever a fir stands, not on Christmas alone.
  *
  * Every other slot passes through untouched. On a layout that plants palms nothing about the firs
- * changes: its palm slots are palms whatever the Christmas layer says, as they always were, and a
+ * changes: its palm slots are palms whatever *Christmas firs* says, as they always were, and a
  * slot the switch turns back into a tree is a tree the drawing may make a fir, as it always did.
  *
  * **Applied once, on the way from the layout to the renderer's object list, rather than at the
@@ -1048,7 +1238,7 @@ fun SceneObjectLayout.hasPalmSlots(): Boolean =
 /**
  * Whether, with the Palms switch on, every tree this layout keeps under [c] would still stand as a
  * Christmas fir -- so the switch would put no palm anywhere (v5.10C2). The firs stay firs among the
- * palms ([palmSpeciesApplied]), and a wood thinned far enough under the Christmas layer can keep only
+ * palms ([palmSpeciesApplied]), and a wood thinned far enough under *Christmas firs* can keep only
  * fir slots: Christmas at 20 % keeps two trees, and both are firs. The settings ask this so the switch
  * does not read on over a scene with no palm in it (`AI_PROJECT_RULES.md` 8.7).
  *
@@ -1087,6 +1277,9 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENS
     ) {
         return true
     }
+    // The scarecrows stand in the snowmen's places, so by the snowmen's own fraction they would keep exactly the places
+    // the snowmen keep: a coin of their own decides which (v5.16, [scarecrowFraction]).
+    if (spec.type == SceneObjectType.SCARECROW) return scarecrowFraction(spec) < config.density
     // See [densityFraction] (v5.8C) and, for a theme saved before it, [DENSITY_SCHEME_GRID].
     return if (scheme == DENSITY_SCHEME_GRID) {
         stableFraction(spec, salt = 0f) < config.density
@@ -1389,7 +1582,9 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             // **Winter is not Christmas.** This theme is the plain season: snow, cold, no fairy
             // lights and no presents. It is the combination the two flags were split apart to
             // make expressible.
-            christmasDecorationsEnabled = false,
+            christmasBuildingLightsEnabled = false,
+            christmasTreeLightsEnabled = false,
+            christmasFirsEnabled = false,
             // A shade umbrella has no business standing in snow.
             parasols = base.parasols.copy(visible = false),
             snowmen = base.snowmen.copy(visible = true, density = 0.3f),
@@ -1403,7 +1598,10 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
         )
         "christmas" -> base.copy(
             winterColorsEnabled = true,
-            christmasDecorationsEnabled = true,
+            // The three switches *Christmas lights* became in v5.16, all on: the theme shows what it showed.
+            christmasBuildingLightsEnabled = true,
+            christmasTreeLightsEnabled = true,
+            christmasFirsEnabled = true,
             parasols = base.parasols.copy(visible = false),
             snowmen = base.snowmen.copy(visible = true, density = 0.5f),
             gifts = base.gifts.copy(visible = true, density = 0.4f),
@@ -1437,13 +1635,17 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
         // fireworks, a dusk-purple ground, and no shade umbrellas at a party after dark.
         "new_year" -> base.copy(
             winterColorsEnabled = true,
-            christmasDecorationsEnabled = false,
+            christmasBuildingLightsEnabled = false,
+            christmasTreeLightsEnabled = false,
+            christmasFirsEnabled = false,
             parasols = base.parasols.copy(visible = false),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
         "tundra" -> base.copy(
             winterColorsEnabled = true,
-            christmasDecorationsEnabled = false,
+            christmasBuildingLightsEnabled = false,
+            christmasTreeLightsEnabled = false,
+            christmasFirsEnabled = false,
             parasols = base.parasols.copy(visible = false),
             // Tundra is where trees stop. Not removed outright -- with the winter presentation on
             // they read as snow-laden conifers, and a treeless plain is emptier than it is
@@ -1482,6 +1684,16 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             horrorSkyEnabled = true,
             pumpkins = base.pumpkins.copy(visible = true, density = 0.5f),
             parasols = base.parasols.copy(visible = false),
+            // **Everything v5.16 added, on** (the maintainer's *«il resto, si a tutte»* to the table of v5.16A, with the
+            // night by day *«il nuovo default del tema halloween»*, 2026-10-21): the laughing moon, the night sky by day --
+            // so this theme is night at every hour --, the decorations, the blood rain, the Horseman and the scarecrows at
+            // the snowmen's 50 %. Every other theme ships them off.
+            laughingMoonEnabled = true,
+            nightSkyByDayEnabled = true,
+            halloweenDecorationsEnabled = true,
+            bloodRainEnabled = true,
+            headlessHorsemanEnabled = true,
+            scarecrows = base.scarecrows.copy(visible = true, density = 0.5f),
         )
         // Spring's own defaults, and they are mostly about what is *off*. No winter palette, no
         // fall palette, no Christmas layer, no Halloween: the season is defined here by the
@@ -1818,8 +2030,8 @@ private val SHOP_CANDIDATES: List<IntArray> = run {
  * [keepCandidate], so those are the only fields that can change which objects exist -- plus
  * [SceneCustomization.palmsEnabled] and [SceneCustomization.palmsInsteadOfTrees], which change
  * which *species* a kept tree slot is, and, **while palms stand in the trees' places**, the
- * Christmas layer ([SceneCustomization.christmasDecorationsEnabled]): there it decides which tree
- * slots stay trees to be drawn as firs (v5.10C2). Only there: with the palms off the fir is decided
+ * Christmas firs ([SceneCustomization.christmasFirsEnabled], the Christmas layer's until v5.16): there it decides
+ * which tree slots stay trees to be drawn as firs (v5.10C2). Only there: with the palms off the fir is decided
  * at the draw, the list does not move, and a Christmas toggle rebuilds nothing, as before.
  * [palmSpeciesApplied] resolves it once, when the runtime list is built, so a palms change that
  * did not rebuild that list never reached a running wallpaper: the switch showed "off" and the
@@ -1854,7 +2066,8 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         pumpkins.structurallyEquals(other.pumpkins) &&
         palmsEnabled == other.palmsEnabled &&
         palmsInsteadOfTrees == other.palmsInsteadOfTrees &&
-        (!palmsInsteadOfTrees || christmasDecorationsEnabled == other.christmasDecorationsEnabled)
+        scarecrows.structurallyEquals(other.scarecrows) &&
+        (!palmsInsteadOfTrees || christmasFirsEnabled == other.christmasFirsEnabled)
 
 /**
  * Whether two configs would produce the same set of rendered cars **at every hour** -- the two

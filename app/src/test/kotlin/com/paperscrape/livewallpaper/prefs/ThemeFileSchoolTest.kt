@@ -10,6 +10,7 @@ import com.paperscrape.livewallpaper.engine.SceneObjectType
 import com.paperscrape.livewallpaper.engine.SceneSpace
 import com.paperscrape.livewallpaper.engine.StaticSceneObject
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
+import com.paperscrape.livewallpaper.engine.asSaved
 import com.paperscrape.livewallpaper.engine.customThemeDataFromJsonString
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
 import com.paperscrape.livewallpaper.engine.keepCandidate
@@ -86,7 +87,8 @@ class ThemeFileSchoolTest {
     fun `on every built-in street an old file and an old saved theme end the same`() {
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
-            val street = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects
+            // As a theme is saved: without the scarecrows, which the catalogue lays again at the load (v5.16).
+            val street = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).asSaved().staticObjects
                 .filter { c.keepCandidate(it) }
                 .filterNot { isSchool(it) }
             val layout = SceneObjectLayout(staticObjects = street, cars = emptyList())

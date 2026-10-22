@@ -7,6 +7,7 @@ import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectRenderer
 import com.paperscrape.livewallpaper.engine.SceneObjectType
 import com.paperscrape.livewallpaper.engine.SceneSpace
+import com.paperscrape.livewallpaper.engine.Storefront
 import com.paperscrape.livewallpaper.engine.SwipeReport
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
@@ -23,7 +24,7 @@ import java.io.File
  *
  * Each line is held to the rule it describes, not to itself: the buildings' slider to
  * [keepCandidate], the cars' bottom to [CarSelection.countFor] and their switch to
- * [SceneObjectRenderer.drawsRoad], the birds' shares to [BirdsConfig.pickColor], the Christmas lights to
+ * [SceneObjectRenderer.drawsRoad], the birds' shares to [BirdsConfig.pickColor], the Christmas firs' line to
  * [SceneObjectRenderer.standsAsFir], *Swipe scroll* to what the wallpaper records ([SwipeReport]), and
  * the sliders that lock to the switch above them.
  */
@@ -168,25 +169,83 @@ class LinesSayWhatTheyDoTest {
         assertEquals("read, and written by its one setter", 2, Regex("""Keys\.SWIPE_REPORTED""").findAll(prefs).count())
     }
 
-    // ---------------------------------------------------------------- Christmas lights (I-224)
+    // ---------------------------------------------------------------- the Christmas switches (I-224; v5.16)
 
+    /**
+     * **One switch until v5.16, three since** (the maintainer, 2026-10-21: *«interruttori per ogni cosa; lo stesso dobbiamo
+     * avere anche per natale»*): each line says everything its own switch draws, and each switch is the one the renderer
+     * reads where it draws that.
+     */
     @Test
-    fun `Christmas lights says it makes firs and lights the sills, as the drawing does`() {
+    fun `each Christmas switch says what its own switch draws`() {
         val c = defaultCustomizationFor("autumn")
         val layout = SceneObjectCatalog.layoutFor("autumn", ThemeCatalog.byId("autumn").accentColor)
         val trees = layout.staticObjects.filter { it.type == SceneObjectType.TREE }
-        val lit = c.copy(christmasDecorationsEnabled = true)
-        assertTrue("with the lights on, some trees stand as firs", trees.any { SceneObjectRenderer.standsAsFir(it, lit) })
-        assertTrue("and none without", trees.none { SceneObjectRenderer.standsAsFir(it, c.copy(christmasDecorationsEnabled = false)) })
-        // v5.14: the roofs, the wreaths and the stars, which the drawing hangs on every building
-        // (`ChristmasDecorationsTest` holds the table to them).
+        assertTrue("with Christmas firs on, some trees stand as firs", trees.any { SceneObjectRenderer.standsAsFir(it, c.copy(christmasFirsEnabled = true)) })
+        assertTrue(
+            "and none without, whatever the lights say",
+            trees.none {
+                SceneObjectRenderer.standsAsFir(
+                    it,
+                    c.copy(christmasFirsEnabled = false, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true),
+                )
+            },
+        )
         for (word in listOf(
-            "lights on the trees", "windowsills", "one tree in three becomes a Christmas fir",
-            "along the roofs", "a wreath on every front door", "a star on every tower",
+            "along the roofs", "windowsills", "a wreath on every front door", "a star on every tower", "each house on the mountains",
         )) {
-            assertTrue("the line does not say '$word'", CHRISTMAS_LIGHTS_LINE.contains(word))
+            assertTrue("the buildings' line does not say '$word'", CHRISTMAS_BUILDING_LIGHTS_LINE.contains(word))
         }
-        assertTrue(source("ui/SeasonsScreen.kt").contains("supporting = CHRISTMAS_LIGHTS_LINE,"))
+        // And what it does not: Halloween strips the leafy trees, and the wallpaper hangs no light on the bare branches
+        // (`SceneObjectRenderer.drawTree` returns before them; v5.16B's final review).
+        for (word in listOf("lights on the trees", "palms", "none on the bare branches halloween leaves")) {
+            assertTrue("the trees' line does not say '$word'", CHRISTMAS_TREE_LIGHTS_LINE.lowercase().contains(word))
+        }
+        for (word in listOf("one tree in three becomes a Christmas fir", "its lights", "a star on top", "presents at its foot")) {
+            assertTrue("the firs' line does not say '$word'", CHRISTMAS_FIRS_LINE.lowercase().contains(word.lowercase()))
+        }
+        val renderer = source("engine/SceneObjectRenderer.kt")
+        assertTrue(renderer.contains("if (customization.christmasBuildingLightsEnabled) drawDecorations(canvas, r, elapsed, deal, family.kind)"))
+        assertEquals("the sills' strings too", 1, Regex("""if \(customization\.christmasBuildingLightsEnabled\) \{\s+ChristmasDecorations\.forEachSillString""").findAll(renderer).count())
+        assertEquals("the trees' and the palms' lights", 2, Regex("""if \(customization\.christmasTreeLightsEnabled\) \{""").findAll(renderer).count())
+        assertTrue(renderer.contains("fun drawsFirs(customization: SceneCustomization): Boolean = customization.christmasFirsEnabled"))
+        assertTrue("the distant houses' bulbs", source("engine/PaperRenderer.kt").contains("val christmas = sceneCustomization.christmasBuildingLightsEnabled"))
+        val seasons = source("ui/SeasonsScreen.kt")
+        for (line in listOf("CHRISTMAS_BUILDING_LIGHTS_LINE", "CHRISTMAS_TREE_LIGHTS_LINE", "CHRISTMAS_FIRS_LINE")) {
+            assertTrue("the page shows $line", seasons.contains("line = $line,"))
+        }
+    }
+
+    // ---------------------------------------------------------------- the Halloween switches (v5.16)
+
+    /**
+     * *Halloween* still does its four things and its line is the one approved on 2026-10-20; the six things v5.16 added --
+     * the scarecrows with their amount among them -- have a switch each (*«interruttori per ogni cosa»*, 2026-10-21), and each line says what the drawing does.
+     */
+    @Test
+    fun `each Halloween switch says what its own switch draws`() {
+        assertEquals(
+            "The moon with a carved face lit from inside, bare branches on the leafy trees, withered palms, and a face carved on every pumpkin",
+            HALLOWEEN_LINE,
+        )
+        assertTrue(LAUGHING_MOON_LINE.contains("About once a minute"))
+        assertEquals("once a minute", 60.0, com.paperscrape.livewallpaper.engine.LaughingMoon.EVERY_SECONDS, 0.0)
+        assertTrue(NIGHT_SKY_BY_DAY_LINE.contains("the Halloween moon takes the sun's place"))
+        assertTrue(NIGHT_SKY_BY_DAY_LINE.contains("The shops keep their real opening hours"))
+        for (word in listOf("Cobwebs at the ends of the roofs", "purple bats", "jack-o'-lantern by every front door", "lit at night", "houses and the shops", "open or shut")) {
+            assertTrue("the decorations' line does not say '$word'", HALLOWEEN_DECORATIONS_LINE.contains(word))
+        }
+        val decorates = com.paperscrape.livewallpaper.engine.HalloweenDecorations::decorates
+        assertTrue(decorates(com.paperscrape.livewallpaper.engine.WindowBuildingKind.HOUSE, null))
+        for (shop in listOf(Storefront.RESTAURANT, Storefront.BAR, Storefront.SHOP)) assertTrue("$shop", decorates(shop.family.kind, shop))
+        for (other in listOf(Storefront.SCHOOL, Storefront.FIRE_STATION, Storefront.POLICE_STATION)) assertFalse("$other", decorates(other.family.kind, other))
+        assertFalse("no tower", decorates(com.paperscrape.livewallpaper.engine.WindowBuildingKind.SKYSCRAPER, null))
+        assertTrue(SCARECROWS_LINE.contains("where the snowmen stand"))
+        assertTrue(HEADLESS_HORSEMAN_LINE.contains("about once a minute"))
+        assertTrue(HEADLESS_HORSEMAN_LINE.contains("pumpkins on fire"))
+        assertTrue(BLOOD_RAIN_LINE.contains("twice as thick"))
+        assertEquals(2f, com.paperscrape.livewallpaper.engine.PaperRenderer.BLOOD_RAIN_THICKER, 0f)
+        assertTrue(BLOOD_RAIN_LINE.contains("snow stays snow"))
     }
 
     // ---------------------------------------------------------------- Weather effects, the release page (I-225)
@@ -322,9 +381,11 @@ class LinesSayWhatTheyDoTest {
             assertTrue("the street no longer draws $sprite", objects.contains("R.drawable.$sprite"))
         }
         assertTrue(source("engine/PaperRenderer.kt").contains("R.drawable.moon_jack_o_lantern_light"))
+        // The row shows the line through its constant since v5.16 (the Halloween page names its lines there).
         val seasons = source("ui/SeasonsScreen.kt")
         val row = seasons.substring(seasons.indexOf("title = \"Halloween\",")).substringBefore("checked =")
-        val line = Regex("""supporting = "([^"]+)"""").find(row)!!.groupValues[1]
+        assertTrue(row.contains("supporting = HALLOWEEN_LINE,"))
+        val line = HALLOWEEN_LINE
         for (word in listOf("moon", "lit from inside", "bare branches on the leafy trees", "withered palms", "every pumpkin")) {
             assertTrue("the Halloween line no longer says '$word': $line", line.contains(word))
         }

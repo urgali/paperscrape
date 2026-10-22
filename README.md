@@ -46,17 +46,27 @@ moving on its own.
   turned on, in the houses' colours, on both sides of the mountains. (The umbrellas people carry follow the rain and have no switch
   of their own.)
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
-  pumpkins, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
-  roofs and trees. With Christmas lights on — as the Christmas theme starts — one tree in three is a
-  Christmas fir in tiers with lights and presents, and every building has a string of lights along its
-  roof and its windowsills, a wreath on its front door and, on a tower, a star; the gallery cards show
-  them too.
-- **Halloween**, and a **horror sky**, as two independent switches. The first carves a
-  jack-o'-lantern's face into the full moon, lit from inside, strips the trees to bare branches,
-  withers the palms and carves a face on every pumpkin; the second turns the
-  sky near-black with a hard orange horizon. The Halloween theme starts with both on;
-  either can be turned off afterwards, in any combination, and neither touches winter,
-  Christmas or the autumn palette.
+  pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
+  roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
+  on: **lights on the buildings** (a string along every roof and under the windowsills, a wreath on every
+  front door, a star on every tower and three lights on each distant house), **lights on the trees** and the palms, and **Christmas firs** (one
+  tree in three a fir in tiers with lights and presents); the gallery cards show them too. A theme has
+  either the Christmas decorations or the Halloween ones, never both: the first turned on stays, and the
+  other's switch says the first are on. A decoration with nothing to hang on — no tree for the trees'
+  lights and the firs, no house or building for the Halloween decorations, and none on the mountains
+  either for the buildings' lights — reads off, and its line says what to turn on.
+- **Halloween**, with a switch for each thing. *Halloween* carves a jack-o'-lantern's face into the
+  full moon, lit from inside, strips the trees to bare branches, withers the palms and carves a face on
+  every pumpkin; the **horror sky** turns the sky near-black with a hard orange horizon. Beside them:
+  the **laughing moon** (about once a minute the carved moon throws its face open and laughs), the
+  **night sky by day** (the whole scene stays night all day, the carved moon in the sun's place; the
+  shops keep their real hours), **Halloween decorations** (cobwebs, purple bats and a jack-o'-lantern lit at night
+  on the houses and the shops), **scarecrows** with a carved pumpkin for a head where the snowmen stand,
+  the **Headless Horseman** galloping across the sky about once a minute and dropping pumpkins on fire,
+  and **blood rain** (red, thicker drops when it rains; your rain colours come back when it is off). The
+  laughing moon and the night sky by day are the carved moon's, so they need *Halloween* and the moon on.
+  The Halloween theme starts with all of it on; every switch can be turned off afterwards, in any
+  combination, and none touches winter or the autumn palette.
 - **Parallax.** Swiping between home screens scrolls the world, with nearer things
   moving further than distant ones.
 - **Traffic and pedestrians.** Two lanes of cars, taxis, police cars and fire engines,
@@ -77,7 +87,8 @@ moving on its own.
   or the chosen provider needs a key it does not have, it says so and falls back to the
   theme's own weather rather than quietly asking the other service.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
-  on (the Christmas theme starts with it on), fireworks, lightning and birds.
+  on (the Christmas theme starts with it on); the Headless Horseman, the same way (the Halloween theme
+  starts with him on), and never in the sky with the sleigh when both are on; fireworks, lightning and birds.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   its lowest a single sporadic car — with a night amount of its own that the road fades to at
   dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
@@ -86,7 +97,7 @@ moving on its own.
   windows and the lamp by the door stay unlit — dark glass at night, like a house's unlit windows. The fire station and the police station never close, and houses are homes
   and are unaffected. All three switches are off by default. By day every lamp by a door is off.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
-  is always full, in the theme's moon colour — and shows the switch off and locked while that theme is showing, without
+  is always full, in the theme's moon colour — and shows the switch off and locked while Halloween is on, without
   overwriting what you chose.
 
 ---

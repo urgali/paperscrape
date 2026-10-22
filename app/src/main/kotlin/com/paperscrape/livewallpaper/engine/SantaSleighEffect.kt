@@ -71,6 +71,13 @@ class SantaSleighEffect {
     internal val giftsFalling: Int get() = fallingGifts.size
 
     /**
+     * Seconds until the sleigh is in the sky: 0 from the moment it sets off to the end of its crossing, out of sight past
+     * the edge of the screen; its countdown to the next flight while it waits. What the Headless Horseman reads to keep out of its way (v5.16,
+     * `HorsemanFlight.SKY_NEEDED_SECONDS`); read only: the sleigh's rhythm is its own and waits for nobody.
+     */
+    internal val secondsToFlight: Float get() = if (flying) 0f else maxOf(0f, timeUntilNextFlight)
+
+    /**
      * The group's geometry on this screen, in px (v5.15, [setGroupGeometry]): where a gift leaves the presents behind
      * Santa from the flight point (for a group flying left), the gifts' half side, and how far off each edge of the
      * screen a flight starts and ends -- the group's half width or [MIN_MARGIN_PX], whichever is more, so a larger

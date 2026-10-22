@@ -212,16 +212,25 @@ object GlGolden {
      * [SLEIGH_SWEEP_STEP_SECONDS] a frame (v5.15C2, inventory I-975): the reindeer go through their four poses and the
      * gifts fall, as on the phone -- with the clock still, a sweep drew two poses and no gift.
      */
-    fun countDrawCallsAcross(scene: GoldenScene, offsets: FloatArray, sleighInFlight: Boolean = false): Sweep = withContext { gl ->
+    fun countDrawCallsAcross(
+        scene: GoldenScene,
+        offsets: FloatArray,
+        sleighInFlight: Boolean = false,
+        horsemanInFlight: Boolean = false,
+    ): Sweep = withContext { gl ->
         val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
         scene.configure(renderer)
         if (sleighInFlight) renderer.holdSantaSleighForTest(0.5f)
+        // v5.16: the Headless Horseman set off at the part of his crossing his pumpkins fall from, the clock moving a pose a
+        // frame, so his four poses go by and his pumpkins on fire fall.
+        if (horsemanInFlight) renderer.startHeadlessHorsemanFlightForTest()
         renderer.swipeScrollEnabled = true
-        val step = if (sleighInFlight) SLEIGH_SWEEP_STEP_SECONDS else 0f
+        val step = if (sleighInFlight || horsemanInFlight) SLEIGH_SWEEP_STEP_SECONDS else 0f
         var clock = SceneTime(scene.sceneSeconds)
         val vertices = LongArray(offsets.size)
         val clocks = DoubleArray(offsets.size)
         val gifts = IntArray(offsets.size)
+        val pumpkins = IntArray(offsets.size)
         val calls = IntArray(offsets.size) { i ->
             renderer.homeScreenOffset = offsets[i]
             if (i > 0) clock += step
@@ -232,9 +241,10 @@ object GlGolden {
             GLES20.glFinish()
             vertices[i] = gl.drawnVertices
             gifts[i] = renderer.santaGiftsFallingForTest()
+            pumpkins[i] = renderer.horsemanPumpkinsFallingForTest()
             gl.drawCalls
         }
-        Sweep(calls, vertices, clocks, gifts)
+        Sweep(calls, vertices, clocks, gifts, pumpkins)
     }
 
     /** A sleigh sweep's step: a pose of the gallop (six a second), so its 60 frames go through every pose fifteen times. */
@@ -245,7 +255,14 @@ object GlGolden {
      * clock as the frame was given it, a `Double` as [SceneTime] keeps it (v5.15D: kept as a `Float` until then, a pose
      * worked out from it differed from the drawn one at 40 of 120 frames and reindeer).
      */
-    class Sweep(val calls: IntArray, val vertices: LongArray, val clocks: DoubleArray, val giftsFalling: IntArray)
+    class Sweep(
+        val calls: IntArray,
+        val vertices: LongArray,
+        val clocks: DoubleArray,
+        val giftsFalling: IntArray,
+        /** The Horseman's pumpkins falling at each frame (v5.16). */
+        val pumpkinsFalling: IntArray = IntArray(calls.size),
+    )
 
     /**
      * One frame of [draw] on the GPU backend, read back: for a test that sets one operation on both
@@ -262,7 +279,30 @@ object GlGolden {
     }
 
     /** What one context ended up holding after a sweep, and which of the sleigh's five pieces were among it (v5.15C2). */
-    data class Occupancy(val entries: Int, val standalone: Int, val rowsUsed: Int, val sleighPiecesHeld: Int = 0)
+    data class Occupancy(
+        val entries: Int,
+        val standalone: Int,
+        val rowsUsed: Int,
+        val sleighPiecesHeld: Int = 0,
+        /** Of the drawings v5.16 added to Halloween -- [HALLOWEEN_PIECES] -- how many the sweep's atlas holds. */
+        val halloweenPiecesHeld: Int = 0,
+    )
+
+    /**
+     * The drawings v5.16 added to Halloween (18): the Horseman's ten pieces (the horse and its legs in four poses, the
+     * rider, the cape), the laughing face and its light, the scarecrow and its light, the cobweb, the bat, the door's
+     * jack-o'-lantern and its light.
+     */
+    val HALLOWEEN_PIECES: IntArray
+        get() = HorsemanTable.HORSE_RES + HorsemanTable.LEGS_RES +
+            intArrayOf(
+                HorsemanTable.RIDER_RES, HorsemanTable.CAPE_RES,
+                com.paperscrape.livewallpaper.R.drawable.moon_jack_o_lantern_laugh,
+                com.paperscrape.livewallpaper.R.drawable.moon_jack_o_lantern_laugh_light,
+                ScarecrowTable.RES, ScarecrowTable.LIGHT_RES,
+                HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.BAT_RES,
+                HalloweenDecorationTable.PUMPKIN_RES, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
+            )
 
     /**
      * Draws one crowded frame of every theme in [themeIds] **in a single context**, and reports what
@@ -317,9 +357,41 @@ object GlGolden {
                 gl.endFrame()
             }
         }
+        // v5.16: Halloween as it ships with what v5.16 added, at night and at noon with the night by day: the scarecrows, the
+        // decorations, the moon laughing (the scene's clock at 66.5 s, in a laugh) and the Horseman in flight, four frames a
+        // pose apart so his horse's four poses are all in the atlas.
+        for (hour in listOf(22f, 12f)) {
+            val scene = GoldenScene(
+                name = "sweep-halloween-everything-${hour.toInt()}",
+                dayPhase = if (hour < 18f) GoldenScene.day(hour) else GoldenScene.night(hour),
+                themeId = "halloween",
+                sceneSeconds = 66.5,
+                customise = { base ->
+                    base.copy(
+                        people = base.people.copy(visible = true, density = 1f),
+                        peopleNightDensity = 1f,
+                        scarecrows = base.scarecrows.copy(visible = true, density = 1f),
+                    )
+                },
+            )
+            val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
+            scene.configure(renderer)
+            renderer.startHeadlessHorsemanFlightForTest()
+            var clock = SceneTime(scene.sceneSeconds)
+            repeat(4) { frame ->
+                if (frame > 0) clock += SLEIGH_SWEEP_STEP_SECONDS
+                gl.beginFrame()
+                renderer.draw(gl, scene.dayPhase, clock, if (frame > 0) SLEIGH_SWEEP_STEP_SECONDS else 0f)
+                gl.endFrame()
+            }
+        }
         GLES20.glFinish()
         val sleighPieces = intArrayOf(SantaSleighTable.SLEIGH_RES) + SantaSleighTable.DEER_RES
-        Occupancy(gl.uploadedEntries, gl.standaloneTextures, gl.atlasRowsUsed, sleighPieces.count { gl.holdsSprite(it) })
+        Occupancy(
+            gl.uploadedEntries, gl.standaloneTextures, gl.atlasRowsUsed,
+            sleighPieces.count { gl.holdsSprite(it) },
+            HALLOWEEN_PIECES.count { gl.holdsSprite(it) },
+        )
     }
 
     fun render(scene: GoldenScene): Result {

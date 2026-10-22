@@ -117,6 +117,8 @@ class BuildingRoofSnowTest {
         SceneSpace.SceneVariant.BUNNY to "an animal, not a structure",
         SceneSpace.SceneVariant.EASTER_EGG to "an Easter decoration; no theme shows it in winter",
         SceneSpace.SceneVariant.PUMPKIN to "a Halloween decoration; no theme shows it in winter",
+        // v5.16: the scarecrow, fixed art on a pole, as the pumpkin at its feet.
+        SceneSpace.SceneVariant.SCARECROW to "a Halloween decoration; no theme shows it in winter",
     )
 
     @Test
@@ -262,7 +264,7 @@ class BuildingRoofSnowTest {
         val customization = defaults.copy(
             winterColorsEnabled = winter,
             fallColorsEnabled = false,
-            christmasDecorationsEnabled = christmas,
+            christmasBuildingLightsEnabled = christmas, christmasTreeLightsEnabled = christmas, christmasFirsEnabled = christmas,
             halloweenEnabled = false,
             houses = defaults.houses.copy(visible = true, density = 1f),
             buildings = defaults.buildings.copy(visible = true, density = 1f),

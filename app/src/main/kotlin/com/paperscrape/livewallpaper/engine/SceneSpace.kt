@@ -526,7 +526,7 @@ object SceneSpace {
         TREE(9.479f, 118f),
 
         /**
-         * The Christmas fir that replaces one tree in three while the Christmas layer is on.
+         * The Christmas fir that replaces one tree in three while *Christmas firs* is on.
          *
          * **126 units at [TREE]'s own metres-per-unit, which is why it reads taller than a leafy
          * tree rather than shorter.** `variantFor` never returns FIR -- a fir is a *state* of a
@@ -717,6 +717,13 @@ object SceneSpace {
          * (shorter than a penguin) so it cannot drift back down.
          */
         PUMPKIN(1.0f, 42f),
+
+        /**
+         * A scarecrow on its pole (v5.16), the pole's foot to the tip of its hat: a person's 1.75 m on a pole and a hat,
+         * beside the snowman's 1.68 m whose places it shares (the maintainer, 2026-10-21, shown it beside the people and
+         * the snowmen: *«spaventapasseri ok»*). The units are the drawing's, written by `tools/assets/scarecrow`.
+         */
+        SCARECROW(ScarecrowTable.METRES_TALL, ScarecrowTable.UNITS_TALL),
         ;
 
         /** The scale this variant is drawn at when it stands on [REFERENCE_Y_FRACTION]. */
@@ -988,6 +995,8 @@ object SceneSpace {
         SceneObjectType.BUNNY -> 1.25f
         SceneObjectType.EASTER_EGG -> 1.1f
         SceneObjectType.PUMPKIN -> 1.2f
+        // Never in a payload written before the size table (v5.16): the snowman's, whose places it shares.
+        SceneObjectType.SCARECROW -> 1.3f
         SceneObjectType.CAR -> 1f
     }
 }

@@ -15,6 +15,9 @@ enum class SceneObjectType {
     // Standalone seasonal decorations, independent of any theme -- user-toggleable on any
     // theme via the "Seasons & decorations" screen (see SceneCustomization + SeasonsScreen).
     PUMPKIN,
+    // The scarecrows (v5.16): their candidates are the snowmen's places, laid by the catalogue and never saved in a
+    // theme's layout (see `SceneObjectLayout.toJson`): a build before v5.16 reads no type it does not know.
+    SCARECROW,
 }
 
 /**
@@ -1406,7 +1409,7 @@ object SceneObjectCatalog {
      * steps, where it is still the tree it was -- it stands at the theme's own density as it did, its
      * density draw is within [MOVE_DENSITY_SLACK] of its own, it wears the same one of its two colours and,
      * with the fall colours on, the same autumn tone ([SceneObjectRenderer.fallToneOf]), and it is a fir
-     * under the Christmas layer exactly when it was ([SceneObjectRenderer.isFirSeed]) -- and
+     * under *Christmas firs* exactly when it was ([SceneObjectRenderer.isFirSeed]) -- and
      * where no place is crossed by its trunk or covered past the rule because of it. A parasol moves to the
      * other side of its own house, at [PARASOL_SIDE_OFFSET] from it give or take a few thousandths so that
      * it keeps its density and its colour the same way. Then every place is measured again, in both species.
@@ -1974,13 +1977,24 @@ object SceneObjectCatalog {
      */
     private fun seasonalDecorationCandidates(themeId: String): List<StaticSceneObject> {
         val seed = themeId.hashCode()
-        return generateStaticCandidates(SceneObjectType.SNOWMAN, seed + 101, 0.45f..1.0f) +
+        val snowmen = generateStaticCandidates(SceneObjectType.SNOWMAN, seed + 101, 0.45f..1.0f)
+        return snowmen +
             generateStaticCandidates(SceneObjectType.GIFT, seed + 102, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.PENGUIN, seed + 104, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.BUNNY, seed + 105, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.EASTER_EGG, seed + 106, 0.45f..1.0f) +
-            generateStaticCandidates(SceneObjectType.PUMPKIN, seed + 107, 0.45f..1.0f)
+            generateStaticCandidates(SceneObjectType.PUMPKIN, seed + 107, 0.45f..1.0f) +
+            scarecrowsAt(snowmen)
     }
+
+    /**
+     * **The scarecrows stand in the snowmen's places** (v5.16; the maintainer, 2026-10-21: *«wickedmen devono avere
+     * stesso posizionamento»*): one candidate on each snowman candidate, the same x, depth and size variation, and only
+     * the type changed. Which of them stand is their own coin ([keepCandidate]); where the snowman of the place stands too,
+     * the renderer draws the scarecrow a little to one side ([SceneObjectRenderer.SCARECROW_ASIDE_METRES]).
+     */
+    internal fun scarecrowsAt(snowmen: List<StaticSceneObject>): List<StaticSceneObject> =
+        snowmen.map { it.copy(type = SceneObjectType.SCARECROW) }
 
     private operator fun SceneObjectLayout.plus(flavor: List<StaticSceneObject>): SceneObjectLayout =
         copy(staticObjects = staticObjects + flavor)

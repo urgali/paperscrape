@@ -1,0 +1,1101 @@
+{
+  "layout": {
+    "cars": [
+      {
+        "speedFraction": 0.07500000298023224,
+        "color": -2068422,
+        "laneYFraction": 0.8619999885559082,
+        "startDelaySeconds": 0.30000001192092896,
+        "reverse": false,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.06485507637262344,
+        "color": -2068422,
+        "laneYFraction": 0.8339999914169312,
+        "startDelaySeconds": 0.30000001192092896,
+        "reverse": true,
+        "type": "POLICE"
+      },
+      {
+        "speedFraction": 0.07500000298023224,
+        "color": -2068422,
+        "laneYFraction": 0.8619999885559082,
+        "startDelaySeconds": 0.6200000047683716,
+        "reverse": false,
+        "type": "FIRE_TRUCK"
+      },
+      {
+        "speedFraction": 0.06485507637262344,
+        "color": -2068422,
+        "laneYFraction": 0.8339999914169312,
+        "startDelaySeconds": 0.6200000047683716,
+        "reverse": true,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.07500000298023224,
+        "color": -2068422,
+        "laneYFraction": 0.8619999885559082,
+        "startDelaySeconds": 0.9399999976158142,
+        "reverse": false,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.06485507637262344,
+        "color": -2068422,
+        "laneYFraction": 0.8339999914169312,
+        "startDelaySeconds": 0.9399999976158142,
+        "reverse": true,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.07500000298023224,
+        "color": -2068422,
+        "laneYFraction": 0.8619999885559082,
+        "startDelaySeconds": 1.2599999904632568,
+        "reverse": false,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.06485507637262344,
+        "color": -2068422,
+        "laneYFraction": 0.8339999914169312,
+        "startDelaySeconds": 1.2599999904632568,
+        "reverse": true,
+        "type": "TAXI"
+      },
+      {
+        "speedFraction": 0.07500000298023224,
+        "color": -2068422,
+        "laneYFraction": 0.8619999885559082,
+        "startDelaySeconds": 1.5799999237060547,
+        "reverse": false,
+        "type": "PLAIN"
+      },
+      {
+        "speedFraction": 0.06485507637262344,
+        "color": -2068422,
+        "laneYFraction": 0.8339999914169312,
+        "startDelaySeconds": 1.5799999237060547,
+        "reverse": true,
+        "type": "PLAIN"
+      }
+    ],
+    "densityScheme": 2,
+    "staticObjects": [
+      {
+        "tileFractionX": 0.05295628309249878,
+        "silhouette": 1,
+        "scale": 0.9826762676239014,
+        "depthFraction": 0,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.16639375686645508,
+        "silhouette": 0,
+        "scale": 1.052922248840332,
+        "depthFraction": 0.08888889104127884,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.23214343190193176,
+        "silhouette": 1,
+        "scale": 0.9792602062225342,
+        "depthFraction": 0.17777778208255768,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.3701750338077545,
+        "silhouette": 0,
+        "scale": 0.9709591269493103,
+        "depthFraction": 0.2666666805744171,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.7200000286102295,
+        "silhouette": 0,
+        "scale": 1.0737351179122925,
+        "depthFraction": 0.35555556416511536,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.46000000834465027,
+        "silhouette": 0,
+        "scale": 1.0330543518066406,
+        "depthFraction": 0.444444477558136,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.6404668688774109,
+        "silhouette": 0,
+        "scale": 0.9988217949867249,
+        "depthFraction": 0.15000000596046448,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.8500000238418579,
+        "silhouette": 0,
+        "scale": 1.036285161972046,
+        "depthFraction": 0.6222222447395325,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.07999999821186066,
+        "silhouette": 0,
+        "scale": 1.0462672710418701,
+        "depthFraction": 0.7111111283302307,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.2800000011920929,
+        "silhouette": 1,
+        "scale": 0.9319038987159729,
+        "depthFraction": 0.800000011920929,
+        "type": "SKYSCRAPER"
+      },
+      {
+        "tileFractionX": 0.0375373400747776,
+        "silhouette": 7,
+        "scale": 1.0744597911834717,
+        "depthFraction": 0.2800000011920929,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.12888804078102112,
+        "silhouette": 6,
+        "scale": 0.9405272603034973,
+        "depthFraction": 0.6200000047683716,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.2839879095554352,
+        "silhouette": 8,
+        "scale": 0.9707786440849304,
+        "depthFraction": 0.32999998331069946,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.33845192193984985,
+        "silhouette": 9,
+        "scale": 0.9957112669944763,
+        "depthFraction": 0.7024999856948853,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.464175820350647,
+        "silhouette": 4,
+        "scale": 0.9573776125907898,
+        "depthFraction": 0.3799999952316284,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.5206937193870544,
+        "silhouette": 3,
+        "scale": 1.0574512481689453,
+        "depthFraction": 0.7849999666213989,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.6191186308860779,
+        "silhouette": 2,
+        "scale": 1.06210458278656,
+        "depthFraction": 0.4300000071525574,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.7600656747817993,
+        "silhouette": 0,
+        "scale": 0.9958789944648743,
+        "depthFraction": 0.8675000071525574,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.821475088596344,
+        "silhouette": 1,
+        "scale": 1.05925452709198,
+        "depthFraction": 0.47999998927116394,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.9289723038673401,
+        "silhouette": 5,
+        "scale": 0.9437391757965088,
+        "depthFraction": 0.949999988079071,
+        "type": "HOUSE"
+      },
+      {
+        "tileFractionX": 0.08230344206094742,
+        "silhouette": -1,
+        "scale": 0.9250979423522949,
+        "depthFraction": 0.18000000715255737,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.150909423828125,
+        "silhouette": -1,
+        "scale": 0.9527367353439331,
+        "depthFraction": 0.2711111307144165,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.2193766087293625,
+        "silhouette": -1,
+        "scale": 1.0692228078842163,
+        "depthFraction": 0.36222222447395325,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.3653598427772522,
+        "silhouette": -1,
+        "scale": 0.9364413022994995,
+        "depthFraction": 0.4533333480358124,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.5195144414901733,
+        "silhouette": -1,
+        "scale": 0.9688863158226013,
+        "depthFraction": 0.5444444417953491,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.5527933239936829,
+        "silhouette": -1,
+        "scale": 0.935742974281311,
+        "depthFraction": 0.635555624961853,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.6170323491096497,
+        "silhouette": -1,
+        "scale": 1.0038455724716187,
+        "depthFraction": 0.7266666889190674,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.6211103200912476,
+        "silhouette": -1,
+        "scale": 1.0771377086639404,
+        "depthFraction": 0.8177778124809265,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.9287557005882263,
+        "silhouette": -1,
+        "scale": 1.0697814226150513,
+        "depthFraction": 0.9088888764381409,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.9702196717262268,
+        "silhouette": -1,
+        "scale": 1.0586767196655273,
+        "depthFraction": 1,
+        "type": "TREE"
+      },
+      {
+        "tileFractionX": 0.09253734350204468,
+        "silhouette": -1,
+        "scale": 0.9695014953613281,
+        "depthFraction": 0.2800000011920929,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.07388804107904434,
+        "silhouette": -1,
+        "scale": 0.9962371587753296,
+        "depthFraction": 0.6200000047683716,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.33898791670799255,
+        "silhouette": -1,
+        "scale": 1.0075002908706665,
+        "depthFraction": 0.32999998331069946,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.2834519147872925,
+        "silhouette": -1,
+        "scale": 1.0781463384628296,
+        "depthFraction": 0.7024999856948853,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.5191758275032043,
+        "silhouette": -1,
+        "scale": 1.0643818378448486,
+        "depthFraction": 0.3799999952316284,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.46569371223449707,
+        "silhouette": -1,
+        "scale": 0.9366440176963806,
+        "depthFraction": 0.7849999666213989,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.6741186380386353,
+        "silhouette": -1,
+        "scale": 1.0476001501083374,
+        "depthFraction": 0.4300000071525574,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.7050656676292419,
+        "silhouette": -1,
+        "scale": 1.0308079719543457,
+        "depthFraction": 0.8675000071525574,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.8764750957489014,
+        "silhouette": -1,
+        "scale": 0.9304337501525879,
+        "depthFraction": 0.47999998927116394,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.8739722967147827,
+        "silhouette": -1,
+        "scale": 0.9492613077163696,
+        "depthFraction": 0.949999988079071,
+        "type": "PARASOL"
+      },
+      {
+        "tileFractionX": 0.05265086144208908,
+        "silhouette": -1,
+        "scale": 0.9808582067489624,
+        "depthFraction": 0.44999998807907104,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.16921526193618774,
+        "silhouette": -1,
+        "scale": 0.9416213035583496,
+        "depthFraction": 0.5111110806465149,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.2205745279788971,
+        "silhouette": -1,
+        "scale": 1.013756513595581,
+        "depthFraction": 0.5722222328186035,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.35383889079093933,
+        "silhouette": -1,
+        "scale": 1.010676383972168,
+        "depthFraction": 0.6333333253860474,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.4735353887081146,
+        "silhouette": -1,
+        "scale": 0.9321827292442322,
+        "depthFraction": 0.6944444179534912,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.572248101234436,
+        "silhouette": -1,
+        "scale": 0.9447656869888306,
+        "depthFraction": 0.7555555701255798,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.6657427549362183,
+        "silhouette": -1,
+        "scale": 1.0470147132873535,
+        "depthFraction": 0.8166666626930237,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.7765700817108154,
+        "silhouette": -1,
+        "scale": 0.9328271746635437,
+        "depthFraction": 0.8777778148651123,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.8173133730888367,
+        "silhouette": -1,
+        "scale": 0.9893689155578613,
+        "depthFraction": 0.9388889074325562,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.9351567625999451,
+        "silhouette": -1,
+        "scale": 1.0629935264587402,
+        "depthFraction": 1,
+        "type": "SNOWMAN"
+      },
+      {
+        "tileFractionX": 0.04603628069162369,
+        "silhouette": -1,
+        "scale": 1.0431464910507202,
+        "depthFraction": 0.44999998807907104,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.12026047706604004,
+        "silhouette": -1,
+        "scale": 0.9753285646438599,
+        "depthFraction": 0.5111110806465149,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.24146895110607147,
+        "silhouette": -1,
+        "scale": 0.9209250211715698,
+        "depthFraction": 0.5722222328186035,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.37036922574043274,
+        "silhouette": -1,
+        "scale": 1.0643572807312012,
+        "depthFraction": 0.6333333253860474,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.41731566190719604,
+        "silhouette": -1,
+        "scale": 1.0527244806289673,
+        "depthFraction": 0.6944444179534912,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.5241022109985352,
+        "silhouette": -1,
+        "scale": 1.0761054754257202,
+        "depthFraction": 0.7555555701255798,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.6347638964653015,
+        "silhouette": -1,
+        "scale": 1.010841727256775,
+        "depthFraction": 0.8166666626930237,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.7473355531692505,
+        "silhouette": -1,
+        "scale": 0.9796003699302673,
+        "depthFraction": 0.8777778148651123,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.856150209903717,
+        "silhouette": -1,
+        "scale": 0.9586480259895325,
+        "depthFraction": 0.9388889074325562,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.9464815258979797,
+        "silhouette": -1,
+        "scale": 0.9405081868171692,
+        "depthFraction": 1,
+        "type": "GIFT"
+      },
+      {
+        "tileFractionX": 0.06008842960000038,
+        "silhouette": -1,
+        "scale": 1.0557498931884766,
+        "depthFraction": 0.44999998807907104,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.12462615221738815,
+        "silhouette": -1,
+        "scale": 1.0007281303405762,
+        "depthFraction": 0.5111110806465149,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.269785612821579,
+        "silhouette": -1,
+        "scale": 0.9936970472335815,
+        "depthFraction": 0.5722222328186035,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.3698563277721405,
+        "silhouette": -1,
+        "scale": 0.9245089292526245,
+        "depthFraction": 0.6333333253860474,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.4652864933013916,
+        "silhouette": -1,
+        "scale": 0.9296594858169556,
+        "depthFraction": 0.6944444179534912,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.555851399898529,
+        "silhouette": -1,
+        "scale": 0.9338914155960083,
+        "depthFraction": 0.7555555701255798,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.6788012981414795,
+        "silhouette": -1,
+        "scale": 0.9853671193122864,
+        "depthFraction": 0.8166666626930237,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.7421965003013611,
+        "silhouette": -1,
+        "scale": 1.0217002630233765,
+        "depthFraction": 0.8777778148651123,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.8191601634025574,
+        "silhouette": -1,
+        "scale": 1.0519222021102905,
+        "depthFraction": 0.9388889074325562,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.9639957547187805,
+        "silhouette": -1,
+        "scale": 1.0472602844238281,
+        "depthFraction": 1,
+        "type": "PENGUIN"
+      },
+      {
+        "tileFractionX": 0.08444131910800934,
+        "silhouette": -1,
+        "scale": 1.0255682468414307,
+        "depthFraction": 0.44999998807907104,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.12706495821475983,
+        "silhouette": -1,
+        "scale": 1.035162329673767,
+        "depthFraction": 0.5111110806465149,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.22849838435649872,
+        "silhouette": -1,
+        "scale": 1.0109634399414062,
+        "depthFraction": 0.5722222328186035,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.36438366770744324,
+        "silhouette": -1,
+        "scale": 1.0189142227172852,
+        "depthFraction": 0.6333333253860474,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.4476836621761322,
+        "silhouette": -1,
+        "scale": 0.9878578782081604,
+        "depthFraction": 0.6944444179534912,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.537095308303833,
+        "silhouette": -1,
+        "scale": 0.9734852910041809,
+        "depthFraction": 0.7555555701255798,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.6228051781654358,
+        "silhouette": -1,
+        "scale": 1.0155725479125977,
+        "depthFraction": 0.8166666626930237,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.7446801066398621,
+        "silhouette": -1,
+        "scale": 0.938746452331543,
+        "depthFraction": 0.8777778148651123,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.8471085429191589,
+        "silhouette": -1,
+        "scale": 0.997787356376648,
+        "depthFraction": 0.9388889074325562,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.9306446313858032,
+        "silhouette": -1,
+        "scale": 1.0500646829605103,
+        "depthFraction": 1,
+        "type": "BUNNY"
+      },
+      {
+        "tileFractionX": 0.06262523680925369,
+        "silhouette": -1,
+        "scale": 0.9232706427574158,
+        "depthFraction": 0.44999998807907104,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.15240204334259033,
+        "silhouette": -1,
+        "scale": 0.9825471043586731,
+        "depthFraction": 0.5111110806465149,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.27273792028427124,
+        "silhouette": -1,
+        "scale": 1.0639864206314087,
+        "depthFraction": 0.5722222328186035,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.3242948651313782,
+        "silhouette": -1,
+        "scale": 1.0769243240356445,
+        "depthFraction": 0.6333333253860474,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.4845195710659027,
+        "silhouette": -1,
+        "scale": 0.9448203444480896,
+        "depthFraction": 0.6944444179534912,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.5481501221656799,
+        "silhouette": -1,
+        "scale": 1.0326520204544067,
+        "depthFraction": 0.7555555701255798,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.6562380790710449,
+        "silhouette": -1,
+        "scale": 0.9676997065544128,
+        "depthFraction": 0.8166666626930237,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.7588388919830322,
+        "silhouette": -1,
+        "scale": 0.9434359669685364,
+        "depthFraction": 0.8777778148651123,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.8424150347709656,
+        "silhouette": -1,
+        "scale": 1.0266802310943604,
+        "depthFraction": 0.9388889074325562,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.9646998643875122,
+        "silhouette": -1,
+        "scale": 1.0380672216415405,
+        "depthFraction": 1,
+        "type": "EASTER_EGG"
+      },
+      {
+        "tileFractionX": 0.0213528610765934,
+        "silhouette": -1,
+        "scale": 0.993086040019989,
+        "depthFraction": 0.44999998807907104,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.15014250576496124,
+        "silhouette": -1,
+        "scale": 0.9770203828811646,
+        "depthFraction": 0.5111110806465149,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.22707512974739075,
+        "silhouette": -1,
+        "scale": 0.9218775033950806,
+        "depthFraction": 0.5722222328186035,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.33632200956344604,
+        "silhouette": -1,
+        "scale": 0.9713326692581177,
+        "depthFraction": 0.6333333253860474,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.4668489694595337,
+        "silhouette": -1,
+        "scale": 0.9626964926719666,
+        "depthFraction": 0.6944444179534912,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.5625483393669128,
+        "silhouette": -1,
+        "scale": 1.072108507156372,
+        "depthFraction": 0.7555555701255798,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.6377114653587341,
+        "silhouette": -1,
+        "scale": 1.0373412370681763,
+        "depthFraction": 0.8166666626930237,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.7634475231170654,
+        "silhouette": -1,
+        "scale": 1.0270105600357056,
+        "depthFraction": 0.8777778148651123,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.8178549408912659,
+        "silhouette": -1,
+        "scale": 0.9223942756652832,
+        "depthFraction": 0.9388889074325562,
+        "type": "PUMPKIN"
+      },
+      {
+        "tileFractionX": 0.9280862808227539,
+        "silhouette": -1,
+        "scale": 1.0558875799179077,
+        "depthFraction": 1,
+        "type": "PUMPKIN"
+      }
+    ]
+  },
+  "exportedAtMillis": 1761030000000,
+  "schemaVersion": 1,
+  "customization": {
+    "hillsColorDay": -3572931,
+    "hillsAutoMode": "manual",
+    "snowmen": {
+      "colorDay2": -1379334,
+      "visible": false,
+      "colorDay1": -525572,
+      "density": 0.5,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -5327688,
+      "colorNight2": -6576208
+    },
+    "shopHoursEnabled": false,
+    "trees": {
+      "colorDay2": -12607893,
+      "visible": true,
+      "colorDay1": -7691684,
+      "density": 0.6499999761581421,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -12629462,
+      "colorNight2": -14398924
+    },
+    "towerCloseHour": 20,
+    "precipitation": {
+      "intensity": 0.5,
+      "visible": false,
+      "rainColorDay": -8408096,
+      "snowColorDay": -1,
+      "rainAutoMode": "manual",
+      "snowAutoMode": "manual",
+      "snowColorNight": -4668208,
+      "thunderstorm": false,
+      "type": "RAIN",
+      "rainColorNight": -12624776
+    },
+    "pumpkins": {
+      "colorDay2": -3053025,
+      "visible": true,
+      "colorDay1": -1540050,
+      "density": 0.3499999940395355,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -6530529,
+      "colorNight2": -7715051
+    },
+    "santaEnabled": true,
+    "parasols": {
+      "colorDay2": -525572,
+      "visible": false,
+      "colorDay1": -36797,
+      "density": 0.6499999761581421,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -4894674,
+      "colorNight2": -5327688
+    },
+    "houses": {
+      "colorDay2": -1452345,
+      "visible": true,
+      "colorDay1": -792880,
+      "density": 0.6499999761581421,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -9740462,
+      "colorNight2": -10728891
+    },
+    "businessCloseHour": 20,
+    "towerOpenHour": 9,
+    "gifts": {
+      "colorDay2": -11563073,
+      "visible": false,
+      "colorDay1": -4111301,
+      "density": 0.5,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -8770778,
+      "colorNight2": -13410691
+    },
+    "sky": {
+      "sunCloudHeight": 0.41999998688697815,
+      "colorDayLow": -1645880,
+      "colorNightLow": -14474706,
+      "autoModeLow": "manual",
+      "colorSunsetLow": -1527460,
+      "colorDayHigh": -6307111,
+      "autoModeHigh": "manual",
+      "colorSunriseLow": -599640,
+      "colorNightHigh": -15394785
+    },
+    "halloweenEnabled": true,
+    "publicHoursEnabled": false,
+    "businessOpenHour": 9,
+    "horrorSkyEnabled": false,
+    "hillsColorNight": -12963290,
+    "carsNightDensity": 1,
+    "bunnies": {
+      "colorDay2": -1518140,
+      "visible": false,
+      "colorDay1": -528410,
+      "density": 0.5,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -5265508,
+      "colorNight2": -6517897
+    },
+    "cars": {
+      "colorDay2": -9459492,
+      "visible": true,
+      "colorDay1": -874918,
+      "density": 1,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -4889315,
+      "colorNight2": -12751980
+    },
+    "rainbow": {
+      "visible": false,
+      "opacity": 0.800000011920929
+    },
+    "moon": {
+      "visible": true,
+      "color": -1448744,
+      "realisticPhases": true
+    },
+    "peopleNightDensity": 1,
+    "hillsVariation": 1,
+    "buildings": {
+      "colorDay2": -2314118,
+      "visible": true,
+      "colorDay1": -6664646,
+      "density": 0.6499999761581421,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -11522263,
+      "colorNight2": -9544890
+    },
+    "penguins": {
+      "colorDay2": -12960185,
+      "visible": false,
+      "colorDay1": -13749960,
+      "density": 0.5,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -15066080,
+      "colorNight2": -14473685
+    },
+    "shops": {
+      "colorDay2": -1452345,
+      "visible": true,
+      "colorDay1": -792880,
+      "density": 1,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -9740462,
+      "colorNight2": -10728891
+    },
+    "easterEggs": {
+      "colorDay2": -5842712,
+      "visible": false,
+      "colorDay1": -1530172,
+      "density": 0.5,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -6526334,
+      "colorNight2": -9792608
+    },
+    "mountainsFront": {
+      "visible": true,
+      "density": 0.5,
+      "autoMode": "manual",
+      "colorDay": -11751556,
+      "colorNight": -5651784
+    },
+    "lake": {
+      "visible": false,
+      "sailboatsDensity": 0.30000001192092896,
+      "dolphinsDensity": 0.30000001192092896,
+      "sailboatsVisible": true,
+      "autoMode": "manual",
+      "colorDay": -13653800,
+      "dolphinsVisible": true,
+      "colorNight": -14726564,
+      "height": 0.33000001311302185
+    },
+    "snowPiles": 0,
+    "publicCloseHour": 20,
+    "clouds": {
+      "visible": true,
+      "density": 0.4000000059604645,
+      "autoMode": "manual",
+      "colorDay": -1,
+      "colorNight": -11905688
+    },
+    "birds": {
+      "visible": true,
+      "density": 0.5,
+      "nightBirds": false,
+      "colors": [
+        {
+          "color": -1,
+          "weight": 0.4000000059604645
+        },
+        {
+          "color": -13749700,
+          "weight": 0.30000001192092896
+        },
+        {
+          "color": -1550769,
+          "weight": 0.15000000596046448
+        },
+        {
+          "color": -11563073,
+          "weight": 0.15000000596046448
+        }
+      ]
+    },
+    "sun": {
+      "visible": true,
+      "color": -9056
+    },
+    "businessHoursEnabled": false,
+    "palmsInsteadOfTrees": false,
+    "publics": {
+      "colorDay2": -4015920,
+      "visible": true,
+      "colorDay1": -5258543,
+      "density": 1,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": -12168354,
+      "colorNight2": -11186848
+    },
+    "fallColorsEnabled": true,
+    "shopCloseHour": 20,
+    "leafPiles": 0,
+    "shopOpenHour": 9,
+    "mountainsBack": {
+      "visible": true,
+      "density": 0.5,
+      "autoMode": "manual",
+      "colorDay": -12677272,
+      "colorNight": -7362916
+    },
+    "publicOpenHour": 9,
+    "stars": {
+      "visible": true,
+      "density": 1
+    },
+    "people": {
+      "colorDay2": 0,
+      "visible": true,
+      "colorDay1": 0,
+      "density": 1,
+      "autoMode2": "manual",
+      "autoMode1": "manual",
+      "colorNight1": 0,
+      "colorNight2": 0
+    },
+    "winterColorsEnabled": false,
+    "palmsEnabled": true,
+    "towerHoursEnabled": false,
+    "flowersEnabled": false,
+    "distantHouses": {
+      "visible": false,
+      "density": 0.5
+    },
+    "christmasDecorationsEnabled": true
+  },
+  "kind": "paperscrape-theme",
+  "name": "Autumn with the lights",
+  "sourceThemeId": "autumn",
+  "theme": {
+    "hillColorsNight": [
+      -12963290,
+      -13883872,
+      -14804458
+    ],
+    "skyDay": [
+      -6307111,
+      -1645880
+    ],
+    "displayName": "Autumn",
+    "skyDusk": [
+      -4889315,
+      -1527460
+    ],
+    "accentColor": -2068422,
+    "hasSantaSleigh": false,
+    "hillColorsDay": [
+      -3572931,
+      -6137046,
+      -8764638
+    ],
+    "sunColor": -9056,
+    "skyNight": [
+      -15394785,
+      -14474706
+    ],
+    "moonColor": -1448744,
+    "hasFireworks": false,
+    "skyDawn": [
+      -1727398,
+      -599640
+    ],
+    "id": "autumn",
+    "starColor": -2336
+  },
+  "appVersionName": "5.15"
+}

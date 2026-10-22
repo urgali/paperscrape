@@ -37,6 +37,10 @@ pip install -r requirements.txt
 python3 -m paperscrape_assets probe  # must report matches_expected: true
 ```
 
+The toolchain those pins name: **resvg_py 0.4.0** (the rasteriser), **Pillow 13.0.0** and **numpy 2.4.4**, on the
+system's Python (3.14.8 on the machine of the 5.16). Add `-B` to every `python3` command of this file, the `probe`
+above included (`python3 -B …`), so no `__pycache__` is left in the tree.
+
 There is no installed `paperscrape-assets` command: every command below is
 `python3 -m paperscrape_assets <command>`, run from `tools/assets` in that environment
 (`paperscrape-assets` is only the name its `--help` and the reports it writes print).
@@ -101,9 +105,12 @@ build_occluder_table.py   writes engine/SpriteOccluderTable.kt (above)
 buildings/                the neighbourhood generator and its budget report
 fir/                      the Christmas fir's generator (v5.14)
 sleigh/                   Santa's sleigh and reindeer's generator (v5.15)
-moon/                     the Halloween moon's generator (v5.15)
+moon/                     the Halloween moon's generator (v5.15) and its laughing face's (v5.16)
 notification/             the update notification's small icon's generator (v5.15)
-papercut.py               the paper-cutout geometry the sleigh's and the moon's generators share (cut edges, under-papers, the 3-px grid)
+horseman/                 the Headless Horseman's generator (v5.16)
+scarecrow/                the Halloween scarecrow's generator (v5.16)
+halloween/                the Halloween decorations' generator: cobweb, bat, jack-o'-lantern (v5.16)
+papercut.py               the paper-cutout geometry the sleigh's, the moon's and the Halloween generators share (cut edges, under-papers, the 3-px grid)
 concepts/                 the drawing scripts of the people, the lake and the sky, beside their proposals
 ```
 
@@ -138,6 +145,42 @@ notification's icon into `drawable`):
   the rim everywhere -- no yellow nearer a cut's edge than 2 px of the BV6600's wallpaper --, every piece and cut and the
   paper between two cuts 2 px or more on the gallery card; the grin's teeth no test measures (the generator's docstring says how
   long they are: the first, 1.8 to 2.1 px on the card, is the maintainer's choice of 2026-10-20).
+- **The laughing Halloween moon.** `python3 moon/build_jack_moon_laugh.py --res` draws, on `build_jack_moon.py`'s moon and
+  with its rules, the face the moon shows for a moment when it laughs -- its eyes squeezed into two arches, the grin thrown
+  open, the moon's own nose -- as `moon_jack_o_lantern_laugh` (a mask) and `moon_jack_o_lantern_laugh_light` (fixed art,
+  its orange rim the moon's own, trimmed to the face); it writes no table, and prints where the light blits from the moon's
+  centre, `PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X`/`_Y`. Every cut and the paper between two cuts 11 px of the 240 or
+  more (2 px on the gallery card), and no cut leaving a piece of its own: the arches' ends are cut square (the drawing first
+  shown, in v5.16A, ended an arch in a point that left a cut of 1 px apart). `--check`; `tests/test_jack_moon_laugh.py` measures all of it,
+  the rim and the light's origin against `PaperRenderer`'s.
+- **The Headless Horseman.** `python3 horseman/build_horseman.py --res` draws the horse without its legs and its legs, each
+  in the four poses of the gallop, the rider with the pumpkin he holds up, and his cape (`horseman_horse_0..3`,
+  `horseman_legs_0..3`, `horseman_rider`, `horseman_cape`, fixed art, `PART_LOCAL`), and writes `engine/HorsemanTable.kt`
+  (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent,
+  the rider's height and the size, and `HORSEMAN_BAND_UNITS`, the narrowest band).
+  **Sized as Santa is**: the rider, from the top of his collar to the bottom of his boot, 1.3 pedestrians (about 49 px on
+  the BV6600, 1.235 px a unit), so every band is drawn `round(2 / px a unit x 1.25, 2)` = 2.02 units or more and the reins
+  2.5 px or more. `--check`; `--two-px` composes the group crisp in `HeadlessHorsemanDrawer`'s order -- the cape swung,
+  the horse and the rider bobbing against each other, the reins included -- at the moments of a stride and lists every
+  piece under 2 px; `--rider-to-pedestrian R --out DIR` (or `--group-to-pedestrian G`) writes the whole set drawn for
+  another size, its bands thickened for it, with its numbers and its 2 px report, into DIR and nothing into the tree.
+  `tests/test_horseman.py` reads the order and the motion off the drawer and holds every piece of every colour 2 px at
+  the moments of a stride that show every pose, bob and swing at its ends, the reins, the points the renderer hangs things on, the pumpkin's face and the rider's height.
+- **The Halloween scarecrow.** `python3 scarecrow/build_scarecrow.py --res` draws `scarecrow` (on its pole, the pole's foot
+  its bottom centre, `CONTENT_BOTTOM_CENTRE` as the snowman's) and `scarecrow_light` (the candle in the face's cuts, laid
+  over it at night), and writes `engine/ScarecrowTable.kt` (where both blit from the pole's foot, the drawing's height in
+  units, the 2.4 m it reads as, and `SCARECROW_BAND_UNITS`). Every band 4.5 units, 2.2 px on the BV6600 where a scarecrow stands
+  farthest (a snowman's place, 0.45 deep, at the smallest size roll: 27.4 px tall, 0.481 px a unit). `--check`,
+  `--two-px` (by day and at night); `tests/test_scarecrow.py` reads that place off the Kotlin sources.
+- **The Halloween decorations.** `python3 halloween/build_halloween_deco.py --res` draws the set C of the houses and the
+  shops -- `deco_cobweb` (a roof's left corner; the renderer mirrors it at the right), `deco_bat` (light violet `#8A5BB8`),
+  `deco_jack_o_lantern` and `deco_jack_o_lantern_light` (its candle at night), fixed art on the buildings' piece units --
+  and writes `engine/HalloweenDecorationTable.kt` (where each blits from the point it hangs from or stands on, and
+  `DECORATION_BAND_UNITS`). Every band 2.59 units, 2.1 px on the BV6600 at the farthest house of the built-in streets (0.28 deep, the
+  smallest size roll: 0.812 px a piece unit; the farthest of the places among the houses draws at 0.884 px a piece unit, and the decorations hang on no
+  tower); the bat's two ears, points of its one paper, are narrower. `--check`, `--two-px`;
+  `tests/test_halloween_decorations.py` reads that house off the Kotlin sources and holds the cobweb's threads' width,
+  which a square test cannot see across the diagonal.
 - **The update notification's small icon.** `python3 notification/build_glyph.py` writes `res/drawable/ic_stat_update.xml`,
   a vector drawable -- not a PNG, so it has no entry in `sources/sprites.json` -- with every gap and band 2 px or more at
   17 and 24 dp on the BV6600 (density 2); `--check`, `--preview DIR`, `tests/test_glyph.py`.

@@ -69,6 +69,9 @@ class PrecipitationContrastTest {
     /** The largest CIELab distance the correction is measured to carry the theme's own rain. */
     private val WORST_COLOUR_SHIFT = 16.19f
 
+    /** And the blood rain's (v5.16): darker, so further on the darkest skies (measured by the seal of v5.16, 2026-10-22). */
+    private val BLOOD_WORST_COLOUR_SHIFT = 20.55f
+
     // ------------------------------------------------------------------ what the scene paints
 
     /** One (theme, clock hour, weather) situation, with everything a drop meets in it. */
@@ -344,6 +347,63 @@ class PrecipitationContrastTest {
                 .format(WORST_COLOUR_SHIFT),
             WORST_COLOUR_SHIFT, worstShift, 0.5f,
         )
+    }
+
+    /**
+     * **The blood rain is carried off every sky by the same rule** (v5.16, *Blood rain*: the maintainer's proposal 2 of
+     * v5.16A, *«il resto, si a tutte»*, 2026-10-21). While its switch is on, the drops' colour is the red pair
+     * ([PaperRenderer.BLOOD_RAIN_NIGHT], [PaperRenderer.BLOOD_RAIN_DAY]) in place of the theme's -- the user's colours
+     * stay stored -- and it goes through the same [PrecipitationContrast.standOffFromSky] over every theme, hour, weather
+     * and height of this sweep: it clears the gap everywhere and stays red, the red over the green and the blue by 40 or
+     * more. The red is darker than the theme's blue, so on the darkest skies it takes the correction more often and further
+     * than the theme's own rain: at most [BLOOD_WORST_COLOUR_SHIFT] of CIELab against the rain's [WORST_COLOUR_SHIFT] --
+     * pinned as a fact, as the rain's is, so a change that carries it further is judged as a change to how it looks.
+     */
+    @Test
+    fun `the blood rain clears the gap on every sky, and stays red`() {
+        val sits = situations()
+        val gap = PaperRenderer.PRECIPITATION_MIN_LUMA_GAP
+        val needed = gap * 255f / PaperRenderer.RAIN_ALPHA
+        var touched = 0
+        var worstShift = 0f
+        for (s in sits) {
+            val drop = blendARGB(PaperRenderer.BLOOD_RAIN_NIGHT, PaperRenderer.BLOOD_RAIN_DAY, s.blend)
+            val corrected = drawnFor(drop, s, needed)
+            if (corrected != drop) touched++
+            worstShift = maxOf(worstShift, dE(corrected, drop))
+            for (h in heights) {
+                val after = seenGap(corrected, s.skyAt(h), PaperRenderer.RAIN_ALPHA)
+                assertTrue(
+                    "the blood rain is only %.2f of luma clear of the sky at %s, height %.2f".format(after, s.label, h),
+                    after >= gap - 1.1f,
+                )
+            }
+            val r = (corrected shr 16) and 0xFF
+            val g = (corrected shr 8) and 0xFF
+            val b = corrected and 0xFF
+            assertTrue("the blood rain is no longer red at %s: #%06X".format(s.label, corrected and 0xFFFFFF), r > g + 40 && r > b + 40)
+        }
+        assertTrue("the correction reaches %d of %d situations".format(touched, sits.size), touched < sits.size / 2)
+        assertEquals(
+            "the largest colour the correction carries the red has moved from the %.2f it was measured at (the rain's %.2f)"
+                .format(BLOOD_WORST_COLOUR_SHIFT, WORST_COLOUR_SHIFT),
+            BLOOD_WORST_COLOUR_SHIFT, worstShift, 0.5f,
+        )
+    }
+
+    @Test
+    fun `the renderer draws the blood rain in place of the theme's colours, twice as thick, and gives them back`() {
+        val source = File(repoRoot(), "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperRenderer.kt").readText()
+        val body = source.substringAfter("private fun drawPrecipitation(").substringBefore("\n    }")
+        assertTrue(body.contains("val blood = isRain && sceneCustomization.bloodRainEnabled"))
+        assertTrue(body.contains("blendColor(BLOOD_RAIN_NIGHT, BLOOD_RAIN_DAY, dayPhase.dayBlend)"))
+        assertTrue("twice as thick", body.contains("RAIN_STROKE_WIDTH_METRES * metrePx * (if (blood) BLOOD_RAIN_THICKER else 1f)"))
+        assertEquals(2f, PaperRenderer.BLOOD_RAIN_THICKER, 0f)
+        // The user's rain colours are never written by the switch: no setter of the rain's colours reads it.
+        val prefs = File(repoRoot(), "app/src/main/kotlin/com/paperscrape/livewallpaper/prefs/WallpaperPrefs.kt").readText()
+        val setter = prefs.substringAfter("suspend fun setBloodRainEnabled(").substringBefore("\n\n")
+        assertTrue(setter.contains("setFlag(Keys.BLOOD_RAIN_ENABLED, enabled, forThemeId)"))
+        assertTrue("snow stays snow", body.substringBefore("val blood").contains("isRain") && !body.contains("blood && !isRain"))
     }
 
     /**

@@ -253,9 +253,23 @@ fun carObjectFromJson(json: JSONObject): CarObject = CarObject(
     type = runCatching { CarType.valueOf(json.optString("type", "PLAIN")) }.getOrDefault(CarType.PLAIN),
 )
 
+/**
+ * **The layout as a saved theme, a theme file or a backup holds it: without the scarecrows** (v5.16). Their places are the
+ * snowmen's, which the catalogue lays again under every layout it loads (`SceneObjectCatalog.layoutFor` adds the seasonal
+ * candidates to a saved one as to a built-in, from the theme's own id): a built-in saved over itself ("Replace with
+ * current") keeps them where they stood; a theme saved under a new name, or imported, stands them in the places its own id
+ * gives, as it does its snowmen, gifts and the rest of the seasonal decorations. And a build before v5.16 reading the type
+ * would refuse the whole layout. What is saved and what is read back are then the same list: [toJson] writes this, and a
+ * theme saved or shared is built from it.
+ */
+fun SceneObjectLayout.asSaved(): SceneObjectLayout =
+    if (staticObjects.none { it.type == SceneObjectType.SCARECROW }) this
+    else copy(staticObjects = staticObjects.filter { it.type != SceneObjectType.SCARECROW })
+
 fun SceneObjectLayout.toJson(): JSONObject = JSONObject().apply {
-    // A place the loader moved is written where the theme stored it (v5.13B2, [SceneObjectLayout.placesAsSaved]).
-    put("staticObjects", JSONArray(staticObjects.map { (placesAsSaved[it] ?: it).toJson() }))
+    // A place the loader moved is written where the theme stored it (v5.13B2, [SceneObjectLayout.placesAsSaved]); the
+    // scarecrows are not written ([asSaved]).
+    put("staticObjects", JSONArray(asSaved().staticObjects.map { (placesAsSaved[it] ?: it).toJson() }))
     put("cars", JSONArray(cars.map { it.toJson() }))
     // Which density rule thinned these objects (v5.8C). Additive: a payload without it was
     // written before the key existed, by an app that thinned with the grid.
@@ -381,6 +395,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("bunnies", bunnies.toJson())
     put("easterEggs", easterEggs.toJson())
     put("pumpkins", pumpkins.toJson())
+    put("scarecrows", scarecrows.toJson())
     put("hillsVariation", hillsVariation.toDouble())
     put("snowPiles", snowPiles.toDouble())
     put("leafPiles", leafPiles.toDouble())
@@ -459,12 +474,21 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     })
     put("fallColorsEnabled", fallColorsEnabled)
     put("winterColorsEnabled", winterColorsEnabled)
-    put("christmasDecorationsEnabled", christmasDecorationsEnabled)
+    // *Lights on the buildings* keeps the name *Christmas lights* was stored under (v5.16): a build before it reads its
+    // one switch from there.
+    put("christmasDecorationsEnabled", christmasBuildingLightsEnabled)
+    put("christmasTreeLightsEnabled", christmasTreeLightsEnabled)
+    put("christmasFirsEnabled", christmasFirsEnabled)
     put("flowersEnabled", flowersEnabled)
     put("palmsEnabled", palmsEnabled)
     put("palmsInsteadOfTrees", palmsInsteadOfTrees)
     put("halloweenEnabled", halloweenEnabled)
     put("horrorSkyEnabled", horrorSkyEnabled)
+    put("laughingMoonEnabled", laughingMoonEnabled)
+    put("nightSkyByDayEnabled", nightSkyByDayEnabled)
+    put("halloweenDecorationsEnabled", halloweenDecorationsEnabled)
+    put("bloodRainEnabled", bloodRainEnabled)
+    put("headlessHorsemanEnabled", headlessHorsemanEnabled)
     put("santaEnabled", santaEnabled)
 }
 
@@ -477,6 +501,27 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
 fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): SceneCustomization {
     val defaults = SceneCustomization.DEFAULT
     if (json == null) return defaults
+    // What the switches v5.16 added read as where a payload has none (every payload written before v5.16): the theme's
+    // own starting value when the theme is known -- an archived Halloween edit of 5.15 gets the Halloween theme's new
+    // switches on, as a Halloween nobody edited does --, and off otherwise.
+    val since516 = theme?.let { defaultCustomizationFor(it.id, it) } ?: defaults
+    // *Lights on the buildings* is *Christmas lights*' stored field (see below); the two other Christmas switches read it
+    // where they have no field of their own: whoever had *Christmas lights* on finds all three on.
+    val christmasLights = if (json.has("christmasDecorationsEnabled")) {
+        json.optBoolean("christmasDecorationsEnabled", defaults.christmasBuildingLightsEnabled)
+    } else {
+        json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled)
+    }
+    val christmasTreeLights = json.optBoolean("christmasTreeLightsEnabled", christmasLights)
+    val christmasFirs = json.optBoolean("christmasFirsEnabled", christmasLights)
+    // The Halloween decorations of a payload without them: the theme's starting value -- but off where the Christmas
+    // decorations are on, which came first ([DecorationExclusion]): a Halloween theme lit for Christmas in 5.15 keeps its
+    // lights.
+    val halloweenDecorations = if (json.has("halloweenDecorationsEnabled")) {
+        json.optBoolean("halloweenDecorationsEnabled", false)
+    } else {
+        since516.halloweenDecorationsEnabled && !(christmasLights || christmasTreeLights || christmasFirs)
+    }
     val buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings
     val shops = json.optJSONObject("shops")?.let { objectVariantConfigFromJson(it, buildings) } ?: buildings
     val shopHoursEnabled = json.optBoolean("shopHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.shopHoursEnabled))
@@ -543,6 +588,8 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
         bunnies = json.optJSONObject("bunnies")?.let { objectVariantConfigFromJson(it, defaults.bunnies) } ?: defaults.bunnies,
         easterEggs = json.optJSONObject("easterEggs")?.let { objectVariantConfigFromJson(it, defaults.easterEggs) } ?: defaults.easterEggs,
         pumpkins = json.optJSONObject("pumpkins")?.let { objectVariantConfigFromJson(it, defaults.pumpkins) } ?: defaults.pumpkins,
+        scarecrows = json.optJSONObject("scarecrows")?.let { objectVariantConfigFromJson(it, since516.scarecrows) }
+            ?: since516.scarecrows,
         hillsVariation = json.optFinite("hillsVariation", defaults.hillsVariation),
         snowPiles = json.optFinite("snowPiles", defaults.snowPiles),
         leafPiles = json.optFinite("leafPiles", defaults.leafPiles),
@@ -681,11 +728,9 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
         // with the winter presentation on showed them and gets them back, one saved with it off
         // showed none and gets none. Until v5.8C this fell back to [SceneCustomization.DEFAULT]
         // (off), so a Christmas theme saved lit came back dark (v5.8B comment audit).
-        christmasDecorationsEnabled = if (json.has("christmasDecorationsEnabled")) {
-            json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled)
-        } else {
-            json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled)
-        },
+        christmasBuildingLightsEnabled = christmasLights,
+        christmasTreeLightsEnabled = christmasTreeLights,
+        christmasFirsEnabled = christmasFirs,
         flowersEnabled = json.optBoolean("flowersEnabled", defaults.flowersEnabled),
         // Absent from every payload written before v5.1, and the default it falls back to is
         // `true` precisely so that a Beach or Desert theme saved before then keeps its palms
@@ -699,8 +744,13 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
         palmsInsteadOfTrees = json.optBoolean("palmsInsteadOfTrees", defaults.palmsInsteadOfTrees),
         halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
         horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
+        laughingMoonEnabled = json.optBoolean("laughingMoonEnabled", since516.laughingMoonEnabled),
+        nightSkyByDayEnabled = json.optBoolean("nightSkyByDayEnabled", since516.nightSkyByDayEnabled),
+        halloweenDecorationsEnabled = halloweenDecorations,
+        bloodRainEnabled = json.optBoolean("bloodRainEnabled", since516.bloodRainEnabled),
+        headlessHorsemanEnabled = json.optBoolean("headlessHorsemanEnabled", since516.headlessHorsemanEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),
-    )
+    ).let { DecorationExclusion.resolved(it, since516) }
 }
 
 fun CustomThemeEntry.toJson(): JSONObject = JSONObject().apply {
@@ -874,7 +924,7 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // v5.6 split the shop band into three and put a school in the middle third; a street saved
     // before that has a restaurant and a bar and nothing in the middle third, so the school never
     // appears however the sliders are set. The maintainer's decision of 2026-09-21 is that these
-    // streets get it (*"voglio che prendano la scuola"*).
+    // streets get it (*«voglio che prendano la scuola»*).
     //
     // **It adds; it does not move.** See [SceneObjectCatalog.missingSchoolFor] for why a saved
     // street has nothing that could be promoted without taking a building the user can see off

@@ -29,7 +29,7 @@ import org.junit.Test
  * The wallpaper is held to the same table on the BV6600 (`ChristmasDecorationsDrawnTest`: the wreaths, the roof's
  * bulbs, the towers' stars, how many strings a building carries and where, the distant houses' bulbs and their colours),
  * so the two hang them by the same rule at the same points of a building. (The card's buildings are dealt from positions
- * picked for the picture, `ThemePreviewScenes.PreviewIdentity`, not the wallpaper's street: the same rule, other buildings.) All twelve built-ins with *Christmas lights* on, by day and at night, open and with every building that
+ * picked for the picture, `ThemePreviewScenes.PreviewIdentity`, not the wallpaper's street: the same rule, other buildings.) All twelve built-ins with *Lights on the buildings* on (*Christmas lights* until v5.16) and the Halloween decorations off, by day and at night, open and with every building that
  * keeps hours shut (decorations are lit open or shut). None with the switch off. The factors and the sizes the decorations
  * come to on the BV6600's gallery card are printed (`CARD_DECORATION_PX`).
  */
@@ -157,7 +157,8 @@ class CardDecorationsTest {
         val factors = sortedMapOf<String, MutableSet<Float>>()
         val pxPerUnit = GALLERY_CARD_PX / ThemePreviewScene.WIDTH_UNITS
         for (theme in ThemeCatalog.ALL) for (shut in listOf(false, true)) for (night in listOf(false, true)) {
-            val base = defaultCustomizationFor(theme.id).copy(christmasDecorationsEnabled = true)
+            // The Christmas lights on, and so the Halloween decorations off: the two never hang together (v5.16, decision 77).
+            val base = defaultCustomizationFor(theme.id).copy(christmasBuildingLightsEnabled = true, halloweenDecorationsEnabled = false)
             val c0 = if (!shut) base else base.copy(
                 shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 14f,
                 publicHoursEnabled = true, publicOpenHour = 13f, publicCloseHour = 14f,
@@ -291,7 +292,7 @@ class CardDecorationsTest {
     fun `no card hangs a decoration while the switch is off`() {
         for (theme in ThemeCatalog.ALL) for (night in listOf(false, true)) {
             val c = defaultCustomizationFor(theme.id).let {
-                it.copy(christmasDecorationsEnabled = false, distantHouses = DistantHousesConfig(true, 1f))
+                it.copy(christmasBuildingLightsEnabled = false, halloweenDecorationsEnabled = false, distantHouses = DistantHousesConfig(true, 1f))
             }
             val scene = ThemePreviewScenes.forTheme(theme, c, night)
             val all = (scene.items + scene.backdrop + scene.ground + scene.peaks.flatMap { it.houses }).flatMap { it.parts }
@@ -300,6 +301,102 @@ class CardDecorationsTest {
         // And on: Christmas as it ships draws them.
         val xmas = ThemePreviewScenes.forTheme(ThemeCatalog.byId("christmas"), defaultCustomizationFor("christmas"))
         assertTrue(xmas.items.flatMap { it.parts }.count { it.decoration } > 20)
+    }
+
+    /**
+     * **The Halloween decorations on the card** (v5.16, the set C of v5.16A, *«C ragnatele e pipistrelli»*, 2026-10-21): on the card's houses
+     * and its restaurant, bar and shop, none on a tower, the school or a station; where the wallpaper hangs them, worked out
+     * here from the table -- a cobweb at each end of the top piece's roofline, the right one mirrored, a bat on every third
+     * point of it from the third to the third from the end, a jack-o'-lantern 7 units to the left of every front door, its
+     * candle lit as the wallpaper lights it at the card's moment (none by day) -- and drawn the same number of times their
+     * size, never less, so the narrowest band, the cobweb's threads and the
+     * bat's ([HalloweenDecorationTable.DECORATION_BAND_UNITS]), keeps 2 px on the BV6600's gallery card, and no more where
+     * they had to grow. All twelve built-ins with the switch on (and the Christmas lights off: the two never hang together),
+     * by day and at night.
+     */
+    @Test
+    fun `the card's houses and shops wear the wallpaper's Halloween decorations, in its places, and keep 2 px`() {
+        assertEquals("the gallery's scale is the card's", GALLERY_CARD_PX / ThemePreviewScene.WIDTH_UNITS, ThemePreviewScenes.GALLERY_PX_PER_UNIT, 0f)
+        val halloween = setOf(
+            HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.BAT_RES,
+            HalloweenDecorationTable.PUMPKIN_RES, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
+        )
+        var decorated = 0
+        var bare = 0
+        var dayCards = 0
+        var nightCards = 0
+        var smallest = Float.MAX_VALUE
+        for (theme in ThemeCatalog.ALL) for (night in listOf(false, true)) {
+            val c = defaultCustomizationFor(theme.id).withChristmasLights(false).copy(halloweenDecorationsEnabled = true)
+            val scene = ThemePreviewScenes.forTheme(theme, c, night)
+            val where = "${theme.id}${if (night) " night" else ""}"
+            // The candle's light: the wallpaper's `(1 - dayBlend) * 255` at the card's moment (night with the night by day on).
+            val lit = ((1f - ThemePreviewScenes.cardPhase(theme, night || c.nightOverDayActive()).dayBlend) * 255f).toInt().coerceIn(0, 255)
+            for (item in scene.items) {
+                val buildingParts = item.parts.filter { !it.isFlat && it.resId in buildingSprites }
+                if (buildingParts.isEmpty()) continue
+                val drawn = buildingParts.map { Triple(it.resId, it.ox, it.oy) }
+                val deal = NeighbourhoodComposer.Deal()
+                val id = identitiesOn(item).firstOrNull { id ->
+                    NeighbourhoodComposer.deal(id.family, id.tileX, id.depth, deal)
+                    paper(deal, c.winterColorsEnabled) == drawn
+                }
+                assertTrue("$where: a card building at x=${item.x} is no deal of the card's identities", id != null)
+                NeighbourhoodComposer.deal(id!!.family, id.tileX, id.depth, deal)
+                val storefront = Storefront.ALL.firstOrNull { it.family === id.family }
+                val wears = id.family.kind == WindowBuildingKind.HOUSE ||
+                    storefront == Storefront.RESTAURANT || storefront == Storefront.BAR || storefront == Storefront.SHOP
+                val got = item.parts.filter { it.decoration && it.resId in halloween }
+                if (!wears) {
+                    assertTrue("$where: Halloween decorations on a ${storefront ?: id.family.kind} at x=${item.x}", got.isEmpty())
+                    bare++
+                    continue
+                }
+                val f = got.first().scale
+                for (part in got) assertEquals("$where: every decoration of a building the same size", f, part.scale, 0f)
+                val top = deal[deal.size - 1]
+                val xs = top.piece.roofX
+                val ys = top.piece.roofY
+                val want = buildList {
+                    add(Triple(HalloweenDecorationTable.WEB_RES, xs[0] + HalloweenDecorationTable.WEB_X * f, top.baseY + ys[0] + HalloweenDecorationTable.WEB_Y * f))
+                    add(Triple(HalloweenDecorationTable.WEB_RES, xs[xs.size - 1] - HalloweenDecorationTable.WEB_X * f, top.baseY + ys[xs.size - 1] + HalloweenDecorationTable.WEB_Y * f))
+                    var i = 2
+                    while (i <= xs.size - 3) {
+                        add(Triple(HalloweenDecorationTable.BAT_RES, xs[i] + HalloweenDecorationTable.BAT_X * f, top.baseY + ys[i] + HalloweenDecorationTable.BAT_Y * f))
+                        i += 3
+                    }
+                    for (n in 0 until deal.size) {
+                        val door = deal[n].piece.door ?: continue
+                        val x = door.x - 7f
+                        val y = deal[n].baseY + door.y + door.h
+                        add(Triple(HalloweenDecorationTable.PUMPKIN_RES, x + HalloweenDecorationTable.PUMPKIN_X * f, y + HalloweenDecorationTable.PUMPKIN_Y * f))
+                        if (lit > 0) add(Triple(HalloweenDecorationTable.PUMPKIN_LIGHT_RES, x + HalloweenDecorationTable.PUMPKIN_LIGHT_X * f, y + HalloweenDecorationTable.PUMPKIN_LIGHT_Y * f))
+                    }
+                }
+                val gotPlaces = got.map { Triple(it.resId, it.ox, it.oy) }
+                assertEquals("$where: the Halloween decorations of the card's building at x=${item.x}", want.size, gotPlaces.size)
+                for ((a, b) in want.zip(gotPlaces)) {
+                    assertTrue("$where: a decoration at $b where the wallpaper hangs it at $a",
+                        a.first == b.first && kotlin.math.abs(a.second - b.second) < 1e-3f && kotlin.math.abs(a.third - b.third) < 1e-3f)
+                }
+                assertEquals("$where: only the right cobweb is mirrored", listOf(false, true), got.filter { it.resId == HalloweenDecorationTable.WEB_RES }.map { it.mirrored })
+                for (part in got) {
+                    val want = if (part.resId == HalloweenDecorationTable.PUMPKIN_LIGHT_RES) lit else 255
+                    assertTrue("$where: a Halloween decoration tinted, or at alpha ${part.alpha} for $want", part.tint == null && part.alpha == want)
+                }
+                if (lit == 0) dayCards++ else nightCards++
+                // The card's pixels a unit of the building: its scale on the card times the gallery's (the 310 px it is measured by).
+                val band = HalloweenDecorationTable.DECORATION_BAND_UNITS * f * item.scale * ThemePreviewScenes.GALLERY_PX_PER_UNIT
+                assertTrue("$where: a band of %.2f px on the card's building at x=${item.x}".format(band), band >= 2f - 1e-3f)
+                if (f > 1f + 1e-6f) assertEquals("$where: decorations grown more than they had to", 2f, band, 1e-3f)
+                smallest = minOf(smallest, band)
+                decorated++
+            }
+        }
+        println("CardDecorationsTest: $decorated card buildings wear the Halloween decorations, $bare do not; the narrowest band %.2f px".format(smallest))
+        assertTrue("no decorated building on a card", decorated > 0)
+        assertTrue("both a day card, the candles out, and a night card: $dayCards, $nightCards", dayCards > 0 && nightCards > 0)
+        assertTrue("no building left bare on a card", bare > 0)
     }
 
     /** Both sides take the places from the one sequence: the wallpaper's draw functions and the card's builder, read. */
@@ -322,6 +419,13 @@ class CardDecorationsTest {
         )) {
             assertTrue("the card no longer calls $call", card.contains(call))
         }
+        // And the Halloween ones (v5.16), on the same buildings.
+        for (call in listOf("HalloweenDecorations.forEachCobweb(deal)", "HalloweenDecorations.forEachBat(deal)", "HalloweenDecorations.forEachDoorPumpkin(deal)")) {
+            assertTrue("the wallpaper no longer calls $call", objects.contains(call))
+            assertTrue("the card no longer calls $call", card.contains(call))
+        }
+        assertTrue(objects.contains("HalloweenDecorations.decorates(family.kind, storefront)"))
+        assertTrue(card.contains("HalloweenDecorations.decorates(family.kind, storefront)"))
     }
 
     private fun sourceRoot(): File {

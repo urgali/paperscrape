@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
  * `ChristmasDecorationsTest` takes the towers' factor from its constant, and no golden turns the Christmas lights on, so a
  * wreath moved off its door, or every decoration drawn at the houses' size on a tower, passed every test.
  *
- * The frame of every built-in theme with *Christmas lights* on, at one in the morning, is drawn on a canvas that draws
+ * The frame of every built-in theme with *Lights on the buildings* on (*Christmas lights* until v5.16), at one in the morning, is drawn on a canvas that draws
  * nothing and records the transform calls: a building is drawn in a frame of its own (`canvas.save()`, its scale), its
  * pieces each in a frame under it (`SpriteBlitter`'s), its wreath in a frame under it too (translated to the wreath's
  * centre, scaled by the decorations' factor), and its bulbs straight into it ([SceneCanvas.drawDisc]). A building is
@@ -162,7 +162,7 @@ class ChristmasDecorationsDrawnTest {
         for (theme in ThemeCatalog.ALL) {
             val scene = GoldenScene(
                 name = "decorations", dayPhase = GoldenScene.night(1f), themeId = theme.id,
-                customise = { it.copy(christmasDecorationsEnabled = true, distantHouses = DistantHousesConfig(true, 1f)) },
+                customise = { it.copy(christmasBuildingLightsEnabled = true, distantHouses = DistantHousesConfig(true, 1f)) },
             )
             val renderer = PaperRenderer(GlGolden.WIDTH, GlGolden.HEIGHT, context)
             scene.configure(renderer)

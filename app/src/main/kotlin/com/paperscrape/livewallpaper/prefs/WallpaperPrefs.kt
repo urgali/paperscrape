@@ -25,6 +25,7 @@ import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
+import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.DistantHousesConfig
 import com.paperscrape.livewallpaper.engine.LakeConfig
 import com.paperscrape.livewallpaper.engine.BirdsConfig
@@ -293,14 +294,17 @@ enum class ObjectCategory {
     // category because the storage is generic; nothing reads People's.
     PEOPLE,
     SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
+    // The scarecrows (v5.16): visibility and density only, as PEOPLE -- their drawing is fixed art, and nothing reads
+    // their colour keys. A store written before v5.16 has none: they read as the theme's own (off but on Halloween).
+    SCARECROWS,
     ;
 
     companion object {
         /**
-         * The six categories Seasons & decorations shows, each behind its season: what its "Reset
+         * The seven categories Seasons & decorations shows, each behind its season: what its "Reset
          * decorations to defaults" resets ([WallpaperPrefs.resetDecorations]), and nothing else.
          */
-        val DECORATIONS: List<ObjectCategory> = listOf(SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS)
+        val DECORATIONS: List<ObjectCategory> = listOf(SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS, SCARECROWS)
     }
 }
 
@@ -541,7 +545,14 @@ class WallpaperPrefs internal constructor(
         val RAINBOW_OPACITY = floatPreferencesKey("rainbow_opacity")
         val FALL_COLORS_ENABLED = booleanPreferencesKey("fall_colors_enabled")
         val WINTER_COLORS_ENABLED = booleanPreferencesKey("winter_colors_enabled")
+        /**
+         * *Lights on the buildings* since v5.16, *Christmas lights* before: the key keeps its name, and the two switches the
+         * one became read it where they have no key of their own ([CHRISTMAS_TREE_LIGHTS_ENABLED], [CHRISTMAS_FIRS_ENABLED]).
+         */
         val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
+        /** *Lights on the trees* and *Christmas firs* (v5.16). Absent, each reads [CHRISTMAS_DECORATIONS_ENABLED]. */
+        val CHRISTMAS_TREE_LIGHTS_ENABLED = booleanPreferencesKey("christmas_tree_lights_enabled")
+        val CHRISTMAS_FIRS_ENABLED = booleanPreferencesKey("christmas_firs_enabled")
         val FLOWERS_ENABLED = booleanPreferencesKey("flowers_enabled")
         val PALMS_ENABLED = booleanPreferencesKey("palms_enabled")
         /**
@@ -553,6 +564,17 @@ class WallpaperPrefs internal constructor(
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
+
+        /**
+         * The Halloween switches v5.16 added. Absent from every store written before, where each reads as the theme's own:
+         * on in the Halloween theme, off in every other -- and the decorations off where the Christmas ones are on, which
+         * came first (`DecorationExclusion`).
+         */
+        val LAUGHING_MOON_ENABLED = booleanPreferencesKey("laughing_moon_enabled")
+        val NIGHT_SKY_BY_DAY_ENABLED = booleanPreferencesKey("night_sky_by_day_enabled")
+        val HALLOWEEN_DECORATIONS_ENABLED = booleanPreferencesKey("halloween_decorations_enabled")
+        val BLOOD_RAIN_ENABLED = booleanPreferencesKey("blood_rain_enabled")
+        val HEADLESS_HORSEMAN_ENABLED = booleanPreferencesKey("headless_horseman_enabled")
 
         /** The distant houses on the mountains (v5.11). Absent reads off, at 50 %. */
         val DISTANT_HOUSES_VISIBLE = booleanPreferencesKey("distant_houses_visible")
@@ -660,6 +682,16 @@ class WallpaperPrefs internal constructor(
         // The public buildings' (v5.13): their keys, or -- in a store written before -- the shops' hours,
         // which the school kept until then, and the theme's defaults once this build has written the space.
         val publicsKnown = prefs[Keys.SCRATCH_KNOWS_PUBLICS] == true
+        // The three switches *Christmas lights* became (v5.16): its key is the first's, and the other two read it where
+        // they have none -- whoever had the lights on finds all three on.
+        val christmasLights = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED]
+        val christmasBuildingLights = christmasLights ?: defaults.christmasBuildingLightsEnabled
+        val christmasTreeLights = prefs[Keys.CHRISTMAS_TREE_LIGHTS_ENABLED] ?: christmasLights ?: defaults.christmasTreeLightsEnabled
+        val christmasFirs = prefs[Keys.CHRISTMAS_FIRS_ENABLED] ?: christmasLights ?: defaults.christmasFirsEnabled
+        // Without a key of their own, the Halloween decorations are the theme's -- and off where the Christmas ones are
+        // on, which came first (`DecorationExclusion`).
+        val halloweenDecorations = prefs[Keys.HALLOWEEN_DECORATIONS_ENABLED]
+            ?: (defaults.halloweenDecorationsEnabled && !(christmasBuildingLights || christmasTreeLights || christmasFirs))
         return SceneCustomization(
             houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
             buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, towersDrawnIn(prefs, defaults.buildings)),
@@ -695,6 +727,7 @@ class WallpaperPrefs internal constructor(
             bunnies = readVariantConfig(prefs, ObjectCategory.BUNNIES, defaults.bunnies),
             easterEggs = readVariantConfig(prefs, ObjectCategory.EASTER_EGGS, defaults.easterEggs),
             pumpkins = readVariantConfig(prefs, ObjectCategory.PUMPKINS, defaults.pumpkins),
+            scarecrows = readVariantConfig(prefs, ObjectCategory.SCARECROWS, defaults.scarecrows),
             hillsVariation = prefs[Keys.HILLS_VARIATION] ?: defaults.hillsVariation,
             snowPiles = prefs[Keys.SNOW_PILES] ?: defaults.snowPiles,
             leafPiles = prefs[Keys.LEAF_PILES] ?: defaults.leafPiles,
@@ -791,14 +824,21 @@ class WallpaperPrefs internal constructor(
             ),
             fallColorsEnabled = prefs[Keys.FALL_COLORS_ENABLED] ?: defaults.fallColorsEnabled,
             winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
-            christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
+            christmasBuildingLightsEnabled = christmasBuildingLights,
+            christmasTreeLightsEnabled = christmasTreeLights,
+            christmasFirsEnabled = christmasFirs,
             flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
             palmsEnabled = prefs[Keys.PALMS_ENABLED] ?: defaults.palmsEnabled,
             palmsInsteadOfTrees = prefs[Keys.PALMS_INSTEAD_OF_TREES] ?: defaults.palmsInsteadOfTrees,
             halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
             horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
+            laughingMoonEnabled = prefs[Keys.LAUGHING_MOON_ENABLED] ?: defaults.laughingMoonEnabled,
+            nightSkyByDayEnabled = prefs[Keys.NIGHT_SKY_BY_DAY_ENABLED] ?: defaults.nightSkyByDayEnabled,
+            halloweenDecorationsEnabled = halloweenDecorations,
+            bloodRainEnabled = prefs[Keys.BLOOD_RAIN_ENABLED] ?: defaults.bloodRainEnabled,
+            headlessHorsemanEnabled = prefs[Keys.HEADLESS_HORSEMAN_ENABLED] ?: defaults.headlessHorsemanEnabled,
             santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
-        )
+        ).let { DecorationExclusion.resolved(it, defaults) }
     }
 
     /**
@@ -920,6 +960,7 @@ class WallpaperPrefs internal constructor(
         variant(ObjectCategory.BUNNIES, c.bunnies)
         variant(ObjectCategory.EASTER_EGGS, c.easterEggs)
         variant(ObjectCategory.PUMPKINS, c.pumpkins)
+        variant(ObjectCategory.SCARECROWS, c.scarecrows)
         this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
         this[Keys.CARS_NIGHT_DENSITY] = c.carsNightDensity
         this[Keys.SHOP_HOURS_ENABLED] = c.shopHoursEnabled
@@ -1001,12 +1042,19 @@ class WallpaperPrefs internal constructor(
         this[Keys.RAINBOW_OPACITY] = c.rainbow.opacity
         this[Keys.FALL_COLORS_ENABLED] = c.fallColorsEnabled
         this[Keys.WINTER_COLORS_ENABLED] = c.winterColorsEnabled
-        this[Keys.CHRISTMAS_DECORATIONS_ENABLED] = c.christmasDecorationsEnabled
+        this[Keys.CHRISTMAS_DECORATIONS_ENABLED] = c.christmasBuildingLightsEnabled
+        this[Keys.CHRISTMAS_TREE_LIGHTS_ENABLED] = c.christmasTreeLightsEnabled
+        this[Keys.CHRISTMAS_FIRS_ENABLED] = c.christmasFirsEnabled
         this[Keys.FLOWERS_ENABLED] = c.flowersEnabled
         this[Keys.PALMS_ENABLED] = c.palmsEnabled
         this[Keys.PALMS_INSTEAD_OF_TREES] = c.palmsInsteadOfTrees
         this[Keys.HALLOWEEN_ENABLED] = c.halloweenEnabled
         this[Keys.HORROR_SKY_ENABLED] = c.horrorSkyEnabled
+        this[Keys.LAUGHING_MOON_ENABLED] = c.laughingMoonEnabled
+        this[Keys.NIGHT_SKY_BY_DAY_ENABLED] = c.nightSkyByDayEnabled
+        this[Keys.HALLOWEEN_DECORATIONS_ENABLED] = c.halloweenDecorationsEnabled
+        this[Keys.BLOOD_RAIN_ENABLED] = c.bloodRainEnabled
+        this[Keys.HEADLESS_HORSEMAN_ENABLED] = c.headlessHorsemanEnabled
         this[Keys.SANTA_ENABLED] = c.santaEnabled
     }
 
@@ -1677,15 +1725,77 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * The Christmas decoration layer.
+     * *Lights on the buildings*, *Lights on the trees* and *Christmas firs* (v5.16), the three switches *Christmas lights*
+     * became.
      *
      * **Independent of both seasonal palettes, unlike them of each other.** Fall Colors and Winter
      * Colors are two readings of the same leaves and cannot both be true; Christmas lights are
      * hung *on top of* whatever the trees look like, so this clears nothing and nothing clears it.
+     * **But none turns on while the theme's Halloween decorations are on** ([DecorationExclusion]: the first on wins;
+     * the settings grey the switch and say why): a refused tap changes no switch.
      */
-    suspend fun setChristmasDecorationsEnabled(enabled: Boolean, forThemeId: String) =
+    suspend fun setChristmasBuildingLightsEnabled(enabled: Boolean, forThemeId: String) =
+        setChristmasDecoration(Keys.CHRISTMAS_DECORATIONS_ENABLED, enabled, forThemeId)
+
+    suspend fun setChristmasTreeLightsEnabled(enabled: Boolean, forThemeId: String) =
+        setChristmasDecoration(Keys.CHRISTMAS_TREE_LIGHTS_ENABLED, enabled, forThemeId)
+
+    suspend fun setChristmasFirsEnabled(enabled: Boolean, forThemeId: String) =
+        setChristmasDecoration(Keys.CHRISTMAS_FIRS_ENABLED, enabled, forThemeId)
+
+    /**
+     * One of the three, **with the other two written as they read now** (v5.16B; the mid-round review): a store without
+     * the two newer keys reads them from the first's, the one *Christmas lights* had ([readFlatCustomization]), so writing
+     * that key alone moved all three -- *Lights on the buildings* turned off took the trees' lights and the firs with it,
+     * turned on on a theme without them it lit them too. And the Halloween decorations as they read now, which without a
+     * key of their own follow the Christmas ones and would turn on by themselves when the last of these goes off.
+     *
+     * The scratch space is the theme's from [ensureFreshPendingTheme] on, so it is stamped so before a refusal returns:
+     * until then a refused tap on another theme than the one last edited left that theme's look marked as the other's.
+     */
+    private suspend fun setChristmasDecoration(key: Preferences.Key<Boolean>, enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
-            it[Keys.CHRISTMAS_DECORATIONS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+            val now = readFlatCustomization(it, forThemeId)
+            if (enabled && !DecorationExclusion.christmasAllowed(now)) return@editDurably
+            it[Keys.CHRISTMAS_DECORATIONS_ENABLED] = now.christmasBuildingLightsEnabled
+            it[Keys.CHRISTMAS_TREE_LIGHTS_ENABLED] = now.christmasTreeLightsEnabled
+            it[Keys.CHRISTMAS_FIRS_ENABLED] = now.christmasFirsEnabled
+            it[Keys.HALLOWEEN_DECORATIONS_ENABLED] = now.halloweenDecorationsEnabled
+            it[key] = enabled
+        }
+
+    /**
+     * *Halloween decorations* (v5.16): the cobwebs, the bats and the jack-o'-lanterns of the houses and the shops. Not turned
+     * on while any of the theme's Christmas decorations is ([DecorationExclusion]): a refused tap changes no switch, and
+     * the scratch space is stamped as the theme's before it returns, as in [setChristmasDecoration].
+     */
+    suspend fun setHalloweenDecorationsEnabled(enabled: Boolean, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+            if (enabled && !DecorationExclusion.halloweenAllowed(readFlatCustomization(it, forThemeId))) return@editDurably
+            it[Keys.HALLOWEEN_DECORATIONS_ENABLED] = enabled
+        }
+
+    /** *Laughing moon* (v5.16). Stored as chosen: what it needs to show is the settings' to say (`SettingsUiModel`). */
+    suspend fun setLaughingMoonEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.LAUGHING_MOON_ENABLED, enabled, forThemeId)
+
+    /** *Night sky by day* (v5.16). Stored as chosen, as [setLaughingMoonEnabled]. */
+    suspend fun setNightSkyByDayEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.NIGHT_SKY_BY_DAY_ENABLED, enabled, forThemeId)
+
+    /** *Blood rain* (v5.16). */
+    suspend fun setBloodRainEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.BLOOD_RAIN_ENABLED, enabled, forThemeId)
+
+    /** *Headless Horseman* (v5.16), a plain per-theme switch as [setSantaEnabled]. */
+    suspend fun setHeadlessHorsemanEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.HEADLESS_HORSEMAN_ENABLED, enabled, forThemeId)
+
+    private suspend fun setFlag(key: Preferences.Key<Boolean>, enabled: Boolean, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[key] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -1752,9 +1862,10 @@ class WallpaperPrefs internal constructor(
     /**
      * **"Reset decorations to defaults"**, everything Seasons & decorations shows, in one write (v5.10E,
      * inventory I-214 and I-294, the maintainer's *sì* of 2026-09-30 to row 10 and of 2026-10-04 to
-     * I-294): the seasonal palette and the snow and leaf piles under it, the six decorations with their
-     * densities and colours ([ObjectCategory.DECORATIONS]), and the switches -- Christmas lights, Santa,
-     * Halloween, the horror sky, the flowers -- back to the theme's own, on [forThemeId] only.
+     * I-294): the seasonal palette and the snow and leaf piles under it, the seven decorations with their
+     * densities and colours ([ObjectCategory.DECORATIONS], the scarecrows since v5.16), and the switches -- the three
+     * Christmas lights' (v5.16), Santa, Halloween and the five v5.16 added beside it, the horror sky, the flowers -- back
+     * to the theme's own, on [forThemeId] only.
      *
      * **Removed, not set false**: a reset means "forget what I chose", and the theme's own default may
      * be on (Winter, Christmas, New Year and Autumn turn their palettes on, Christmas its Santa).
@@ -1773,10 +1884,17 @@ class WallpaperPrefs internal constructor(
         prefs.remove(Keys.SNOW_PILES)
         prefs.remove(Keys.LEAF_PILES)
         prefs.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
+        prefs.remove(Keys.CHRISTMAS_TREE_LIGHTS_ENABLED)
+        prefs.remove(Keys.CHRISTMAS_FIRS_ENABLED)
         prefs.remove(Keys.SANTA_ENABLED)
         prefs.remove(Keys.FLOWERS_ENABLED)
         prefs.remove(Keys.HALLOWEEN_ENABLED)
         prefs.remove(Keys.HORROR_SKY_ENABLED)
+        prefs.remove(Keys.LAUGHING_MOON_ENABLED)
+        prefs.remove(Keys.NIGHT_SKY_BY_DAY_ENABLED)
+        prefs.remove(Keys.HALLOWEEN_DECORATIONS_ENABLED)
+        prefs.remove(Keys.BLOOD_RAIN_ENABLED)
+        prefs.remove(Keys.HEADLESS_HORSEMAN_ENABLED)
         prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
     }
 
@@ -1984,6 +2102,8 @@ class WallpaperPrefs internal constructor(
         remove(Keys.FALL_COLORS_ENABLED)
         remove(Keys.WINTER_COLORS_ENABLED)
         remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
+        remove(Keys.CHRISTMAS_TREE_LIGHTS_ENABLED)
+        remove(Keys.CHRISTMAS_FIRS_ENABLED)
         remove(Keys.FLOWERS_ENABLED)
         // The palms switch is per-theme scratch state like every flag around it -- written by a
         // `forThemeId` setter, read by `readFlatCustomization`, archived and restored with the
@@ -1995,6 +2115,11 @@ class WallpaperPrefs internal constructor(
         remove(Keys.PALMS_INSTEAD_OF_TREES)
         remove(Keys.HALLOWEEN_ENABLED)
         remove(Keys.HORROR_SKY_ENABLED)
+        remove(Keys.LAUGHING_MOON_ENABLED)
+        remove(Keys.NIGHT_SKY_BY_DAY_ENABLED)
+        remove(Keys.HALLOWEEN_DECORATIONS_ENABLED)
+        remove(Keys.BLOOD_RAIN_ENABLED)
+        remove(Keys.HEADLESS_HORSEMAN_ENABLED)
         remove(Keys.SANTA_ENABLED)
     }
 

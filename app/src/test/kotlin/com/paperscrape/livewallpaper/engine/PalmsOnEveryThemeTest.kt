@@ -80,7 +80,7 @@ class PalmsOnEveryThemeTest {
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
             val trees = layout.staticObjects.count { it.type == SceneObjectType.TREE }
             assertTrue("${theme.id} should have trees to begin with", trees > 0)
-            val on = drawn(layout, defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = false))
+            val on = drawn(layout, defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasFirsEnabled = false))
             assertEquals("${theme.id} kept a broadleaf tree", 0, on.count { it.type == SceneObjectType.TREE })
             assertEquals("${theme.id}: one palm for every tree", trees, on.count { it.type == SceneObjectType.PALM_TREE })
             for ((before, after) in layout.staticObjects.zip(on)) {

@@ -279,7 +279,12 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # reindeer in four poses (`santa_reindeer_0`..`3`), written by `tools/assets/sleigh/build_sleigh.py` -- in place of
         # the two it had (`santa_sleigh_scene`, `santa_sleigh_trot`); and the Halloween moon's light behind its face
         # (`moon_jack_o_lantern_light`, `tools/assets/moon/build_jack_moon.py`) is a source of its own beside the moon's.
-        self.assertEqual(111, len(self.results))
+        # v5.16: +18, the Halloween drawings, an SVG each: the Headless Horseman's ten pieces (`horseman_horse_0`..`3`,
+        # `horseman_legs_0`..`3`, `horseman_rider`, `horseman_cape`, `tools/assets/horseman/build_horseman.py`), the
+        # scarecrow and its light (`scarecrow/build_scarecrow.py`), the decorations' four (`deco_cobweb`, `deco_bat`,
+        # `deco_jack_o_lantern` and its light, `halloween/build_halloween_deco.py`) and the laughing moon and its light
+        # (`moon/build_jack_moon_laugh.py`).
+        self.assertEqual(129, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

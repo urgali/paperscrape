@@ -192,11 +192,12 @@ private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: Spri
         } else if (part.discRadius > 0f) {
             // A Christmas bulb (v5.14C2): a disc, as the wallpaper's preview draws one -- a circle on a Canvas.
             blitter.drawDisc(target, part.ox, part.oy, part.discRadius, part.tint ?: continue, part.alpha)
-        } else if (part.scale != 1f) {
-            // A sprite drawn larger than its size from its origin: a wreath (v5.14C2), scaled as `drawWreath` scales it.
+        } else if (part.scale != 1f || part.mirrored) {
+            // A sprite drawn larger than its size from its origin: a wreath (v5.14C2), scaled as `drawWreath` scales it;
+            // or mirrored about it, a roof's right-hand cobweb (v5.16).
             target.save()
             target.translate(part.ox, part.oy)
-            target.scale(part.scale, part.scale)
+            target.scale(if (part.mirrored) -part.scale else part.scale, part.scale)
             blitter.draw(target, part.resId, 0f, 0f, SpriteScale.SCENE_UNITS, part.alpha, part.shade)
             target.restore()
         } else if (part.tint != null) {

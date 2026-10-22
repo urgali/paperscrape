@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.weather
 
+import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
@@ -139,7 +140,7 @@ class SnowPathTest {
         // A theme that has not opted into winter stays out of it while it snows.
         val summerScene = defaultCustomizationFor("beach")
         assertFalse("live snow must not dress the buildings", summerScene.winterColorsEnabled)
-        assertFalse("nor bring the Christmas layer", summerScene.christmasDecorationsEnabled)
+        assertFalse("nor bring the Christmas layer", DecorationExclusion.christmasOn(summerScene))
     }
 
     /**
@@ -173,12 +174,12 @@ class SnowPathTest {
     @Test
     fun `Christmas is independent of both winter and the forecast`() {
         val christmas = defaultCustomizationFor("christmas")
-        assertTrue(christmas.christmasDecorationsEnabled)
+        assertTrue((christmas.christmasBuildingLightsEnabled && christmas.christmasTreeLightsEnabled && christmas.christmasFirsEnabled))
 
         // Winter without Christmas, and the reverse, are both expressible.
         val winterOnly = SceneCustomization.DEFAULT.copy(winterColorsEnabled = true)
-        assertFalse(winterOnly.christmasDecorationsEnabled)
-        val christmasOnly = SceneCustomization.DEFAULT.copy(christmasDecorationsEnabled = true)
+        assertFalse(DecorationExclusion.christmasOn(winterOnly))
+        val christmasOnly = SceneCustomization.DEFAULT.copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)
         assertFalse(christmasOnly.winterColorsEnabled)
     }
 

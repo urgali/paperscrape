@@ -35,7 +35,7 @@ class HalloweenAndSplashTest {
         halloweenEnabled = halloween,
         horrorSkyEnabled = horrorSky,
         winterColorsEnabled = winter,
-        christmasDecorationsEnabled = christmas,
+        christmasBuildingLightsEnabled = christmas, christmasTreeLightsEnabled = christmas, christmasFirsEnabled = christmas,
         fallColorsEnabled = fall,
     )
 
@@ -78,7 +78,7 @@ class HalloweenAndSplashTest {
     fun `the halloween theme leaves winter and christmas alone`() {
         val defaults = defaultCustomizationFor("halloween")
         assertFalse("bare branches are not a snowfall", defaults.winterColorsEnabled)
-        assertFalse("October is not December", defaults.christmasDecorationsEnabled)
+        assertFalse("October is not December", DecorationExclusion.christmasOn(defaults))
         assertFalse("bare branches are not autumn leaves", defaults.fallColorsEnabled)
         assertFalse(defaults.santaEnabled)
     }
@@ -104,7 +104,7 @@ class HalloweenAndSplashTest {
         val plain = customization()
         val spooky = customization(halloween = true, horrorSky = true)
         assertEquals(plain.winterColorsEnabled, spooky.winterColorsEnabled)
-        assertEquals(plain.christmasDecorationsEnabled, spooky.christmasDecorationsEnabled)
+        assertEquals(DecorationExclusion.christmasOn(plain), DecorationExclusion.christmasOn(spooky))
         assertEquals(plain.fallColorsEnabled, spooky.fallColorsEnabled)
         assertEquals(plain.santaEnabled, spooky.santaEnabled)
     }
@@ -114,7 +114,7 @@ class HalloweenAndSplashTest {
         val both = customization(halloween = true, winter = true, christmas = true)
         assertTrue(both.halloweenEnabled)
         assertTrue("a snowy Halloween is a scene somebody might want", both.winterColorsEnabled)
-        assertTrue(both.christmasDecorationsEnabled)
+        assertTrue((both.christmasBuildingLightsEnabled && both.christmasTreeLightsEnabled && both.christmasFirsEnabled))
     }
 
     @Test

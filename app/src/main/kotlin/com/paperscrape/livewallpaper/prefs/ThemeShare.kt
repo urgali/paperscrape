@@ -2,6 +2,7 @@ package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.addMissingSchool
+import com.paperscrape.livewallpaper.engine.asSaved
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
@@ -84,7 +85,8 @@ data class ThemeShare(
                 sourceThemeId = sourceThemeId,
                 name = name,
                 theme = theme,
-                layout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor),
+                // Without the scarecrows, which the importer's catalogue lays again (v5.16, [asSaved]).
+                layout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor).asSaved(),
                 customization = customization,
             )
         }

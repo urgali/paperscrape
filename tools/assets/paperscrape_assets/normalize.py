@@ -229,7 +229,16 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         )
         for name in (
             "sun_body", "moon_full", "moon_half", "moon_gibbous", "moon_crescent", "moon_jack_o_lantern",
+            "moon_jack_o_lantern_laugh",
         )
+    ),
+    Exclusion(
+        "moon_jack_o_lantern_laugh_light",
+        "The light inside the laughing Halloween moon's face (v5.16): moon/build_jack_moon_laugh.py trims it to its content "
+        "with a guard pixel on every side, rounded up to the 3-px grid, and writes the origin it blits at from the moon's "
+        "centre (PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X/Y, which tests/test_jack_moon_laugh.py compares with it), so "
+        "there is nothing to crop here and the generator owns its canvas. It is not one of the moon's phases: it does not "
+        "share their 240-px canvas, nor that of moon_jack_o_lantern_light, the other face's light.",
     ),
     Exclusion(
         "sun_glow",

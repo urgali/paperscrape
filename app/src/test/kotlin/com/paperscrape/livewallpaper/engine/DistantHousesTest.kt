@@ -473,7 +473,7 @@ class DistantHousesTest {
             val c0 = defaultCustomizationFor(theme.id)
             val c = c0.copy(
                 distantHouses = DistantHousesConfig(true, amount),
-                christmasDecorationsEnabled = true,
+                christmasBuildingLightsEnabled = true,
                 mountainsBack = c0.mountainsBack.copy(visible = true, density = maxOf(c0.mountainsBack.density, 0.5f)),
                 mountainsFront = c0.mountainsFront.copy(visible = true, density = maxOf(c0.mountainsFront.density, 0.5f)),
             )

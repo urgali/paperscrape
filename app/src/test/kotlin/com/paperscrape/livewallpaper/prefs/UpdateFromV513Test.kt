@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.prefs
 
+import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.SceneSpace
 import com.paperscrape.livewallpaper.engine.Storefront
 import com.paperscrape.livewallpaper.engine.StorefrontStreet
@@ -45,7 +46,7 @@ class UpdateFromV513Test {
         assertFalse(s.liveWeatherEnabled)
         assertFalse(s.automaticUpdateCheckEnabled)
         val autumn = backup.themeCustomizations.getValue("autumn")
-        assertTrue(autumn.christmasDecorationsEnabled)
+        assertTrue((autumn.christmasBuildingLightsEnabled && autumn.christmasTreeLightsEnabled && autumn.christmasFirsEnabled))
         assertTrue(autumn.distantHouses.visible)
         assertEquals(0.5f, autumn.distantHouses.density, 0f)
         assertTrue(autumn.shopHoursEnabled && autumn.towerHoursEnabled && autumn.publicHoursEnabled)
@@ -53,7 +54,7 @@ class UpdateFromV513Test {
             autumn.shopOpenHour, autumn.shopCloseHour, autumn.towerOpenHour, autumn.towerCloseHour,
             autumn.publicOpenHour, autumn.publicCloseHour,
         ))
-        assertFalse("turned off, it stays off", backup.themeCustomizations.getValue("christmas").christmasDecorationsEnabled)
+        assertFalse("turned off, it stays off", DecorationExclusion.christmasOn(backup.themeCustomizations.getValue("christmas")))
         assertEquals(setOf("autumn"), backup.customThemeData.overrides.keys)
         assertEquals(listOf("custom:1"), backup.customThemeData.customThemes.map { it.id })
         // Every one of the settings the 5.13 wrote comes back as written (v5.14C: the six above alone left fifteen out):
@@ -101,8 +102,8 @@ class UpdateFromV513Test {
     @Test
     fun `the store the 5_13 saved reads back, and every street shows the buildings the 5_13 dealt in its first round`() {
         val store = customThemeDataFromJsonString(resource("store-saved-by-v5.13.json"))
-        assertTrue(store.overrides.getValue("autumn").customization.christmasDecorationsEnabled)
-        assertFalse(store.customThemes.single { it.id == "custom:1" }.customization.christmasDecorationsEnabled)
+        assertTrue((store.overrides.getValue("autumn").customization.christmasBuildingLightsEnabled && store.overrides.getValue("autumn").customization.christmasTreeLightsEnabled && store.overrides.getValue("autumn").customization.christmasFirsEnabled))
+        assertFalse(DecorationExclusion.christmasOn(store.customThemes.single { it.id == "custom:1" }.customization))
         var checked = 0
         for (line in resource("street-dealt-by-v5.13.txt").lines()) {
             if (line.isBlank() || line.startsWith("#")) continue
@@ -122,7 +123,7 @@ class UpdateFromV513Test {
         val parsed = parseThemeShare(resource("theme-shared-by-v5.13.json"))
         assertTrue("$parsed", parsed is ThemeParseResult.Ok)
         val c = (parsed as ThemeParseResult.Ok).share.customization
-        assertTrue(c.christmasDecorationsEnabled)
+        assertTrue((c.christmasBuildingLightsEnabled && c.christmasTreeLightsEnabled && c.christmasFirsEnabled))
         assertTrue(c.shopHoursEnabled && c.towerHoursEnabled && c.publicHoursEnabled)
         assertEquals(0.5f, c.distantHouses.density, 0f)
     }

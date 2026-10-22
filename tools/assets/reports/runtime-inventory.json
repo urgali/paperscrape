@@ -831,6 +831,42 @@
     },
     {
       "content_band_centre_x": [
+        0.5056643625192012,
+        0.5
+      ],
+      "content_band_coverage": [
+        0.6919642857142857,
+        0.25297619047619047
+      ],
+      "content_bbox": [
+        2,
+        2,
+        58,
+        26
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.4724702380952381,
+      "content_height": 24,
+      "content_row_max": 0.9642857142857143,
+      "content_width": 56,
+      "decoded_bytes": 6480,
+      "distinct_colour_count": 33,
+      "file_bytes": 873,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 27,
+      "mode": "RGBA",
+      "name": "deco_bat",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "1cbf553a448b7e64b404f7010692fec649aea1b4c184c4241d7edba865fa0c70",
+      "sha256": "2deadf9fcb512a23f6b67c34c419f852ab6dc9a52fb1fd58743398050a2fcbb5",
+      "transparent_padding_bytes": 1104,
+      "transparent_padding_fraction": 0.17037037037037037,
+      "width": 60
+    },
+    {
+      "content_band_centre_x": [
         0.5,
         0.5
       ],
@@ -864,6 +900,114 @@
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
       "width": 24
+    },
+    {
+      "content_band_centre_x": [
+        0.4402874642039927,
+        0.33931925154768255
+      ],
+      "content_band_coverage": [
+        0.722969023962595,
+        0.4129943502824859
+      ],
+      "content_bbox": [
+        2,
+        2,
+        61,
+        61
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.5653547831083022,
+      "content_height": 59,
+      "content_row_max": 1.0,
+      "content_width": 59,
+      "decoded_bytes": 15876,
+      "distinct_colour_count": 40,
+      "file_bytes": 1190,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 63,
+      "mode": "RGBA",
+      "name": "deco_cobweb",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "16a66da24b0774fc69e26d880d77d83d7b840e25688c764b2091e17ed9a8ac5c",
+      "sha256": "56da00667c73dc8f266ac6f73a17298f91be44a1bdfe197d3cc0806b37c54846",
+      "transparent_padding_bytes": 1952,
+      "transparent_padding_fraction": 0.12295288485764676,
+      "width": 63
+    },
+    {
+      "content_band_centre_x": [
+        0.5034375547381328,
+        0.5008329366968111
+      ],
+      "content_band_coverage": [
+        0.5361570247933884,
+        0.7892561983471075
+      ],
+      "content_bbox": [
+        2,
+        2,
+        46,
+        46
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6627066115702479,
+      "content_height": 44,
+      "content_row_max": 1.0,
+      "content_width": 44,
+      "decoded_bytes": 9216,
+      "distinct_colour_count": 54,
+      "file_bytes": 1025,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 48,
+      "mode": "RGBA",
+      "name": "deco_jack_o_lantern",
+      "on_grid": true,
+      "opaque_rgb_count": 20,
+      "pixels_sha256": "3baa5cc8eeb10098d24740df7067b7b2b4ffc916d565558175bfc53581b13f17",
+      "sha256": "18b206341ee014da28308f3e111d7b855fe8544b67b9b4fdf881743c391bbbd9",
+      "transparent_padding_bytes": 1472,
+      "transparent_padding_fraction": 0.1597222222222222,
+      "width": 48
+    },
+    {
+      "content_band_centre_x": [
+        0.5017281105990784,
+        0.5018836648583485
+      ],
+      "content_band_coverage": [
+        0.4258241758241758,
+        0.6510989010989011
+      ],
+      "content_bbox": [
+        1,
+        0,
+        29,
+        26
+      ],
+      "content_column_max": 0.7307692307692307,
+      "content_coverage": 0.5384615384615384,
+      "content_height": 26,
+      "content_row_max": 0.9642857142857143,
+      "content_width": 28,
+      "decoded_bytes": 3240,
+      "distinct_colour_count": 18,
+      "file_bytes": 341,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 27,
+      "mode": "RGBA",
+      "name": "deco_jack_o_lantern_light",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "2d072739c26354431cb072c76f1a13f2732ee9bc86a8bdb7f0ae9a2e3fc39585",
+      "sha256": "f663bada03d1ece7dada4a67ed86163993dfcb734f9660d0cdc11b4be90779de",
+      "transparent_padding_bytes": 328,
+      "transparent_padding_fraction": 0.10123456790123457,
+      "width": 30
     },
     {
       "content_band_centre_x": [
@@ -1548,6 +1692,366 @@
       "transparent_padding_bytes": 2240,
       "transparent_padding_fraction": 0.1440329218106996,
       "width": 108
+    },
+    {
+      "content_band_centre_x": [
+        0.4483276668083298,
+        0.5162820512820513
+      ],
+      "content_band_coverage": [
+        0.7843333333333333,
+        0.598
+      ],
+      "content_bbox": [
+        0,
+        1,
+        100,
+        61
+      ],
+      "content_column_max": 0.9833333333333333,
+      "content_coverage": 0.6911666666666667,
+      "content_height": 60,
+      "content_row_max": 0.96,
+      "content_width": 100,
+      "decoded_bytes": 25704,
+      "distinct_colour_count": 119,
+      "file_bytes": 1813,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 63,
+      "mode": "RGBA",
+      "name": "horseman_cape",
+      "on_grid": true,
+      "opaque_rgb_count": 37,
+      "pixels_sha256": "18237a2b4c17a07af7bd7ba215b1a28679e780fbe0f687575977135039552b45",
+      "sha256": "ab34322cefae6b0b18e38049a020fc4ac3a75c74e1707ef35cc9dbf98e1279bc",
+      "transparent_padding_bytes": 1704,
+      "transparent_padding_fraction": 0.06629318394024276,
+      "width": 102
+    },
+    {
+      "content_band_centre_x": [
+        0.2836979769085364,
+        0.5659910210674246
+      ],
+      "content_band_coverage": [
+        0.27615511551155114,
+        0.6317967862360007
+      ],
+      "content_bbox": [
+        1,
+        2,
+        203,
+        123
+      ],
+      "content_column_max": 0.7768595041322314,
+      "content_coverage": 0.45544554455445546,
+      "content_height": 121,
+      "content_row_max": 0.7722772277227723,
+      "content_width": 202,
+      "decoded_bytes": 100368,
+      "distinct_colour_count": 339,
+      "file_bytes": 5936,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 123,
+      "mode": "RGBA",
+      "name": "horseman_horse_0",
+      "on_grid": true,
+      "opaque_rgb_count": 186,
+      "pixels_sha256": "1b860d804c59a0ef0f9d8685597496db4b7018f5bdf39fd73c71157d2288e57b",
+      "sha256": "5eac07ee1e086002e9d4e39836d07e0110f521d4ab3187eee87e8ad2a4188ceb",
+      "transparent_padding_bytes": 2600,
+      "transparent_padding_fraction": 0.025904670811413996,
+      "width": 204
+    },
+    {
+      "content_band_centre_x": [
+        0.24973482186658888,
+        0.5653023842299844
+      ],
+      "content_band_coverage": [
+        0.24184414134162877,
+        0.6345791457286433
+      ],
+      "content_bbox": [
+        1,
+        2,
+        200,
+        129
+      ],
+      "content_column_max": 0.8110236220472441,
+      "content_coverage": 0.4397578443398093,
+      "content_height": 127,
+      "content_row_max": 0.7386934673366834,
+      "content_width": 199,
+      "decoded_bytes": 103716,
+      "distinct_colour_count": 311,
+      "file_bytes": 5762,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 129,
+      "mode": "RGBA",
+      "name": "horseman_horse_1",
+      "on_grid": true,
+      "opaque_rgb_count": 158,
+      "pixels_sha256": "cb93128f48d8a8a2581e0a3b0a628bd54631d39272ff45329caadabfdee43669",
+      "sha256": "c82d297c5e5c757dc23a6bb3c9fd3cd02e618e8de9e0a0f53e1dcbffc062d8c2",
+      "transparent_padding_bytes": 2624,
+      "transparent_padding_fraction": 0.025299857302634118,
+      "width": 201
+    },
+    {
+      "content_band_centre_x": [
+        0.24763721852329446,
+        0.5614419984152487
+      ],
+      "content_band_coverage": [
+        0.23061143984220908,
+        0.6361305361305362
+      ],
+      "content_bbox": [
+        1,
+        2,
+        196,
+        133
+      ],
+      "content_column_max": 0.8549618320610687,
+      "content_coverage": 0.4349187707966334,
+      "content_height": 131,
+      "content_row_max": 0.7435897435897436,
+      "content_width": 195,
+      "decoded_bytes": 106920,
+      "distinct_colour_count": 315,
+      "file_bytes": 5802,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 135,
+      "mode": "RGBA",
+      "name": "horseman_horse_2",
+      "on_grid": true,
+      "opaque_rgb_count": 155,
+      "pixels_sha256": "dce252ca35dfa09c64197d0673d638b4c5ca482e0d144a85e408d69f582a4025",
+      "sha256": "7bf9aa119acce4fb9d35d493073489c4205dcb828d030843a265667f979dec78",
+      "transparent_padding_bytes": 4740,
+      "transparent_padding_fraction": 0.044332210998877665,
+      "width": 198
+    },
+    {
+      "content_band_centre_x": [
+        0.24979381959632047,
+        0.5650615334778167
+      ],
+      "content_band_coverage": [
+        0.2400893355667225,
+        0.6370131909547738
+      ],
+      "content_bbox": [
+        1,
+        0,
+        200,
+        127
+      ],
+      "content_column_max": 0.8110236220472441,
+      "content_coverage": 0.44011395560479566,
+      "content_height": 127,
+      "content_row_max": 0.7386934673366834,
+      "content_width": 199,
+      "decoded_bytes": 103716,
+      "distinct_colour_count": 337,
+      "file_bytes": 5906,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 129,
+      "mode": "RGBA",
+      "name": "horseman_horse_3",
+      "on_grid": true,
+      "opaque_rgb_count": 175,
+      "pixels_sha256": "d65f5e6cc8dda8fb166728f63458fbac9b437d893b01185d52b8860c94b5c29c",
+      "sha256": "15b1422d7ec2683d647baa4371cab82b71bbded5ac0994afcb17d7a960946d6d",
+      "transparent_padding_bytes": 2624,
+      "transparent_padding_fraction": 0.025299857302634118,
+      "width": 201
+    },
+    {
+      "content_band_centre_x": [
+        0.5699618435585901,
+        0.47824139005765937
+      ],
+      "content_band_coverage": [
+        0.2789049919484702,
+        0.3864734299516908
+      ],
+      "content_bbox": [
+        1,
+        0,
+        208,
+        61
+      ],
+      "content_column_max": 0.6721311475409836,
+      "content_coverage": 0.33357091945830364,
+      "content_height": 61,
+      "content_row_max": 0.5748792270531401,
+      "content_width": 207,
+      "decoded_bytes": 52920,
+      "distinct_colour_count": 145,
+      "file_bytes": 2978,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 63,
+      "mode": "RGBA",
+      "name": "horseman_legs_0",
+      "on_grid": true,
+      "opaque_rgb_count": 41,
+      "pixels_sha256": "c8218586b10f7fa29e1dce3c0dc3db569eb30e431f5a9a57539aa0fd3a2e6e2c",
+      "sha256": "44a9c257a67492268f7159a9a34f1bba241e9da2a515c102cc450cef2af03606",
+      "transparent_padding_bytes": 2412,
+      "transparent_padding_fraction": 0.04557823129251701,
+      "width": 210
+    },
+    {
+      "content_band_centre_x": [
+        0.5097510235329361,
+        0.5135191156149239
+      ],
+      "content_band_coverage": [
+        0.42326007326007326,
+        0.29874776386404295
+      ],
+      "content_bbox": [
+        2,
+        2,
+        132,
+        87
+      ],
+      "content_column_max": 0.9764705882352941,
+      "content_coverage": 0.36027149321266966,
+      "content_height": 85,
+      "content_row_max": 0.5461538461538461,
+      "content_width": 130,
+      "decoded_bytes": 45936,
+      "distinct_colour_count": 141,
+      "file_bytes": 2890,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 87,
+      "mode": "RGBA",
+      "name": "horseman_legs_1",
+      "on_grid": true,
+      "opaque_rgb_count": 37,
+      "pixels_sha256": "164c1e031b4f1ecf311053e05cbc90f0d1889673bc88697cec85c21155e0422a",
+      "sha256": "7beeb31d6f8a92112f74f900f45fb0cdd6b7bc21467015abc9a67510c79ca559",
+      "transparent_padding_bytes": 1736,
+      "transparent_padding_fraction": 0.03779171020550331,
+      "width": 132
+    },
+    {
+      "content_band_centre_x": [
+        0.498033909680306,
+        0.516063505767801
+      ],
+      "content_band_coverage": [
+        0.505653883972468,
+        0.45353982300884954
+      ],
+      "content_bbox": [
+        0,
+        0,
+        113,
+        72
+      ],
+      "content_column_max": 0.8055555555555556,
+      "content_coverage": 0.4795968534906588,
+      "content_height": 72,
+      "content_row_max": 0.5929203539823009,
+      "content_width": 113,
+      "decoded_bytes": 32832,
+      "distinct_colour_count": 122,
+      "file_bytes": 2513,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 72,
+      "mode": "RGBA",
+      "name": "horseman_legs_2",
+      "on_grid": true,
+      "opaque_rgb_count": 37,
+      "pixels_sha256": "2835d41b2480177b3410253ed83ede7f46efdb33840910ed94001a9e5d114581",
+      "sha256": "7cd1781faf3b10d0a7f89bb82d87bd1a6e987bb5e338855f93e046f34f4131d4",
+      "transparent_padding_bytes": 288,
+      "transparent_padding_fraction": 0.008771929824561403,
+      "width": 114
+    },
+    {
+      "content_band_centre_x": [
+        0.47989438323796507,
+        0.4757890589357555
+      ],
+      "content_band_coverage": [
+        0.36503928170594835,
+        0.2505611672278339
+      ],
+      "content_bbox": [
+        0,
+        2,
+        162,
+        90
+      ],
+      "content_column_max": 0.8522727272727273,
+      "content_coverage": 0.30780022446689115,
+      "content_height": 88,
+      "content_row_max": 0.5185185185185185,
+      "content_width": 162,
+      "decoded_bytes": 58320,
+      "distinct_colour_count": 142,
+      "file_bytes": 3353,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 90,
+      "mode": "RGBA",
+      "name": "horseman_legs_3",
+      "on_grid": true,
+      "opaque_rgb_count": 33,
+      "pixels_sha256": "b68a1c110f682bf5c3d169d256dc27a8db6b27b4f10da714816bda9cdde08e0d",
+      "sha256": "370c2c3e05e0e4be9b9420ce126fbec7039cd71cd909196d4766a5e6da8d4116",
+      "transparent_padding_bytes": 1296,
+      "transparent_padding_fraction": 0.022222222222222223,
+      "width": 162
+    },
+    {
+      "content_band_centre_x": [
+        0.6566238038277512,
+        0.45807279491974445
+      ],
+      "content_band_coverage": [
+        0.3298611111111111,
+        0.45012626262626265
+      ],
+      "content_bbox": [
+        0,
+        0,
+        96,
+        198
+      ],
+      "content_column_max": 0.8181818181818182,
+      "content_coverage": 0.38999368686868685,
+      "content_height": 198,
+      "content_row_max": 0.7395833333333334,
+      "content_width": 96,
+      "decoded_bytes": 76032,
+      "distinct_colour_count": 393,
+      "file_bytes": 5173,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 198,
+      "mode": "RGBA",
+      "name": "horseman_rider",
+      "on_grid": true,
+      "opaque_rgb_count": 174,
+      "pixels_sha256": "b0fca3a0966bc875547df8ad8fb221ff10d2915e82af3783071d8bb54fde3c56",
+      "sha256": "001d3d0d4b4f96e656a44de90e50f5e27de66e9e9eff575367e2c68339f33d6c",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 96
     },
     {
       "content_band_centre_x": [
@@ -3456,6 +3960,78 @@
       "transparent_padding_bytes": 67992,
       "transparent_padding_fraction": 0.29510416666666667,
       "width": 240
+    },
+    {
+      "content_band_centre_x": [
+        0.5059715389609405,
+        0.5011002706579069
+      ],
+      "content_band_coverage": [
+        0.7111881188118812,
+        0.5034800509753946
+      ],
+      "content_bbox": [
+        19,
+        19,
+        221,
+        220
+      ],
+      "content_column_max": 0.8109452736318408,
+      "content_coverage": 0.6068173981577262,
+      "content_height": 201,
+      "content_row_max": 0.9900990099009901,
+      "content_width": 202,
+      "decoded_bytes": 230400,
+      "distinct_colour_count": 58,
+      "file_bytes": 6291,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 240,
+      "mode": "RGBA",
+      "name": "moon_jack_o_lantern_laugh",
+      "on_grid": true,
+      "opaque_rgb_count": 18,
+      "pixels_sha256": "44861bcdd4346665f21b52df0530a412616032bb5f2ed995398e9b887a6f8181",
+      "sha256": "8f43e0378f82fec4feeba47cdc2838c3cd832a8fb8bf11338950d73643ee5183",
+      "transparent_padding_bytes": 67992,
+      "transparent_padding_fraction": 0.29510416666666667,
+      "width": 240
+    },
+    {
+      "content_band_centre_x": [
+        0.4992736579966796,
+        0.49618073545561575
+      ],
+      "content_band_coverage": [
+        0.20640039692384024,
+        0.6768791863061275
+      ],
+      "content_bbox": [
+        1,
+        1,
+        140,
+        117
+      ],
+      "content_column_max": 0.6293103448275862,
+      "content_coverage": 0.4416397916149839,
+      "content_height": 116,
+      "content_row_max": 0.9064748201438849,
+      "content_width": 139,
+      "decoded_bytes": 67680,
+      "distinct_colour_count": 129,
+      "file_bytes": 4932,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 120,
+      "mode": "RGBA",
+      "name": "moon_jack_o_lantern_laugh_light",
+      "on_grid": true,
+      "opaque_rgb_count": 74,
+      "pixels_sha256": "57d6b7667dead6a2cef7a4e61ec5fbadb87359939be5ba2583dc2bf61227abfb",
+      "sha256": "269d416b232dbd0ab8d9ff67e04ad811816327616e7a106aa4e7f3e01419745b",
+      "transparent_padding_bytes": 3184,
+      "transparent_padding_fraction": 0.047044917257683214,
+      "width": 141
     },
     {
       "content_band_centre_x": [
@@ -14436,6 +15012,78 @@
       "transparent_padding_bytes": 7184,
       "transparent_padding_fraction": 0.035194983343131495,
       "width": 243
+    },
+    {
+      "content_band_centre_x": [
+        0.5061224489795918,
+        0.5007762924820643
+      ],
+      "content_band_coverage": [
+        0.42845786963434024,
+        0.5022784412319296
+      ],
+      "content_bbox": [
+        1,
+        0,
+        149,
+        171
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.46558400505768927,
+      "content_height": 171,
+      "content_row_max": 1.0,
+      "content_width": 148,
+      "decoded_bytes": 102600,
+      "distinct_colour_count": 282,
+      "file_bytes": 4672,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 171,
+      "mode": "RGBA",
+      "name": "scarecrow",
+      "on_grid": true,
+      "opaque_rgb_count": 108,
+      "pixels_sha256": "8197d8db3b305d17d9a4e3a50799e19350cdd2ca767f1d6c18cc80ec2f0fba90",
+      "sha256": "d395b2374ecb6015d848a3669da4f1ea746fe1325496280790d54a82352e2bfc",
+      "transparent_padding_bytes": 1368,
+      "transparent_padding_fraction": 0.013333333333333334,
+      "width": 150
+    },
+    {
+      "content_band_centre_x": [
+        0.49757754560710227,
+        0.5024308994327902
+      ],
+      "content_band_coverage": [
+        0.4775112443778111,
+        0.5502873563218391
+      ],
+      "content_bbox": [
+        1,
+        0,
+        59,
+        47
+      ],
+      "content_column_max": 0.723404255319149,
+      "content_coverage": 0.5146735143066764,
+      "content_height": 47,
+      "content_row_max": 0.896551724137931,
+      "content_width": 58,
+      "decoded_bytes": 11520,
+      "distinct_colour_count": 33,
+      "file_bytes": 731,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 48,
+      "mode": "RGBA",
+      "name": "scarecrow_light",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "2ee5bf1ae1a9feaa85979340b2545f0d8ae1980b4f03ffdcdcb96f6cd4022c2a",
+      "sha256": "dc404b539c2fd4b4453ad883e16973f51da45d08768a023e988af307fa6bdc1a",
+      "transparent_padding_bytes": 616,
+      "transparent_padding_fraction": 0.05347222222222222,
+      "width": 60
     },
     {
       "content_band_centre_x": [

@@ -34,7 +34,7 @@ class FirsAmongThePalmsTest {
         var palms = 0
         for (theme in palmless) {
             val layout = layoutOf(theme)
-            val c = defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = true)
+            val c = defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasFirsEnabled = true)
             var firsHere = 0
             for ((before, after) in layout.staticObjects.zip(drawn(layout, c))) {
                 when {
@@ -60,7 +60,7 @@ class FirsAmongThePalmsTest {
     fun `with the Christmas layer off there is no fir to keep, and every tree is a palm`() {
         for (theme in palmless) {
             val layout = layoutOf(theme)
-            val c = defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = false)
+            val c = defaultCustomizationFor(theme.id).copy(palmsInsteadOfTrees = true, christmasFirsEnabled = false)
             assertEquals("${theme.id} kept a tree with no fir to stand as", 0, drawn(layout, c).count { it.type == SceneObjectType.TREE })
         }
     }
@@ -70,8 +70,8 @@ class FirsAmongThePalmsTest {
         var trees = 0
         var firs = 0
         for (theme in palmless) {
-            val lit = defaultCustomizationFor(theme.id).copy(christmasDecorationsEnabled = true)
-            val unlit = lit.copy(christmasDecorationsEnabled = false)
+            val lit = defaultCustomizationFor(theme.id).copy(christmasFirsEnabled = true)
+            val unlit = lit.copy(christmasFirsEnabled = false)
             for (spec in layoutOf(theme).staticObjects) {
                 assertFalse("no fir without the Christmas layer", SceneObjectRenderer.standsAsFir(spec, unlit))
                 if (spec.type != SceneObjectType.TREE) {
@@ -106,7 +106,7 @@ class FirsAmongThePalmsTest {
         }
         var firs = 0
         for (theme in ThemeCatalog.ALL) {
-            val lit = defaultCustomizationFor(theme.id).copy(christmasDecorationsEnabled = true)
+            val lit = defaultCustomizationFor(theme.id).copy(christmasFirsEnabled = true)
             for (spec in layoutOf(theme).staticObjects.filter { it.type == SceneObjectType.TREE }) {
                 assertEquals("${theme.id}: the fir at ${spec.tileFractionX} moved", firBefore(spec), SceneObjectRenderer.standsAsFir(spec, lit))
                 if (firBefore(spec)) firs++
@@ -122,9 +122,9 @@ class FirsAmongThePalmsTest {
         val thinned = christmas.copy(trees = christmas.trees.copy(density = 0.2f))
         assertFalse("Christmas as it ships has palms to stand", christmasLayout.keepsOnlyFirsUnderPalms(christmas))
         assertTrue("Christmas at 20 % keeps only firs", christmasLayout.keepsOnlyFirsUnderPalms(thinned))
-        assertFalse("no lights, no firs", christmasLayout.keepsOnlyFirsUnderPalms(thinned.copy(christmasDecorationsEnabled = false)))
+        assertFalse("no lights, no firs", christmasLayout.keepsOnlyFirsUnderPalms(thinned.copy(christmasFirsEnabled = false)))
         assertFalse("no trees is the trees' own reason", christmasLayout.keepsOnlyFirsUnderPalms(thinned.copy(trees = thinned.trees.copy(visible = false))))
-        val beach = defaultCustomizationFor("beach").let { it.copy(christmasDecorationsEnabled = true, trees = it.trees.copy(density = 0.2f)) }
+        val beach = defaultCustomizationFor("beach").let { it.copy(christmasFirsEnabled = true, trees = it.trees.copy(density = 0.2f)) }
         assertFalse("Beach's palm slots are palms whatever the layer says", layoutOf(ThemeCatalog.byId("beach")).keepsOnlyFirsUnderPalms(beach))
         // It is the scene's own answer: on every theme and every tenth of the density, "only firs" is
         // exactly a scene with the switch on that keeps trees and stands no palm.
@@ -132,7 +132,7 @@ class FirsAmongThePalmsTest {
             val layout = layoutOf(theme)
             for (tenth in 1..10) {
                 val c = defaultCustomizationFor(theme.id).let {
-                    it.copy(christmasDecorationsEnabled = true, palmsEnabled = true, palmsInsteadOfTrees = true, trees = it.trees.copy(density = tenth / 10f))
+                    it.copy(christmasFirsEnabled = true, palmsEnabled = true, palmsInsteadOfTrees = true, trees = it.trees.copy(density = tenth / 10f))
                 }
                 val kept = layout.staticObjects.filter { c.keepCandidate(it, layout.densityScheme) }
                     .map { c.palmSpeciesApplied(it, layout.hasPalmSlots()) }
@@ -152,12 +152,12 @@ class FirsAmongThePalmsTest {
                 val c = defaultCustomizationFor(id).copy(palmsEnabled = palmsEnabled, palmsInsteadOfTrees = other)
                 assertEquals(
                     "$id, palms $palmsEnabled: the Christmas layer moved a species",
-                    drawn(layout, c.copy(christmasDecorationsEnabled = false)),
-                    drawn(layout, c.copy(christmasDecorationsEnabled = true)),
+                    drawn(layout, c.copy(christmasFirsEnabled = false)),
+                    drawn(layout, c.copy(christmasFirsEnabled = true)),
                 )
             }
             // Their palm slots stay palms under the lights, as they did through v5.10C.
-            val lit = defaultCustomizationFor(id).copy(christmasDecorationsEnabled = true)
+            val lit = defaultCustomizationFor(id).copy(christmasFirsEnabled = true)
             assertEquals(0, drawn(layout, lit).count { it.type == SceneObjectType.TREE })
         }
     }
@@ -169,20 +169,20 @@ class FirsAmongThePalmsTest {
         // Christmas, and a theme that is not Christmas with its lights on: a fir and a palm.
         for ((label, scene) in listOf(
             "christmas with palms" to card("christmas") { it.copy(palmsInsteadOfTrees = true) },
-            "autumn with the lights and palms" to card("autumn") { it.copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = true) },
+            "autumn with the lights and palms" to card("autumn") { it.copy(palmsInsteadOfTrees = true, christmasFirsEnabled = true) },
         )) {
             assertTrue("$label: the fir is gone", scene.contains(R.drawable.tree_fir))
             assertTrue("$label: no palm", scene.contains(R.drawable.palmtree_trunk))
             assertFalse("$label: a broadleaf tree left", scene.contains(R.drawable.tree_canopy))
         }
         // No lights, no fir.
-        val autumn = card("autumn") { it.copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = false) }
+        val autumn = card("autumn") { it.copy(palmsInsteadOfTrees = true, christmasFirsEnabled = false) }
         assertFalse(autumn.contains(R.drawable.tree_fir))
         // Beach under the lights: its palms, no fir, as before; with its palms off, its fir, as before.
-        val beach = card("beach") { it.copy(christmasDecorationsEnabled = true) }
+        val beach = card("beach") { it.copy(christmasFirsEnabled = true) }
         assertFalse("Beach's palms grew a fir", beach.contains(R.drawable.tree_fir))
         assertTrue(beach.contains(R.drawable.palmtree_trunk))
-        val beachOaks = card("beach") { it.copy(christmasDecorationsEnabled = true, palmsEnabled = false) }
+        val beachOaks = card("beach") { it.copy(christmasFirsEnabled = true, palmsEnabled = false) }
         assertTrue(beachOaks.contains(R.drawable.tree_fir))
         assertFalse(beachOaks.contains(R.drawable.palmtree_trunk))
     }

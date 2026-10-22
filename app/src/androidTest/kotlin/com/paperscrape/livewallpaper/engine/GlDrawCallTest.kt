@@ -142,8 +142,8 @@ class GlDrawCallTest {
 
     /**
      * **And a Christmas street** (v5.14): the roofs' strings, the wreaths, the towers' stars, the sill strings, the fir
-     * A's lights, the trees' -- Christmas as a fresh install leaves it, and Autumn and Winter with *Christmas lights*
-     * on -- by day and at one in the morning, with the theme's snow and the night's stars, swept across three tiles of
+     * A's lights, the trees' -- Christmas as a fresh install leaves it, and Autumn and Winter with the three Christmas
+     * switches on (*Christmas lights* until v5.16) -- by day and at one in the morning, with the theme's snow and the night's stars, swept across three tiles of
      * the street as above: one draw everywhere. And with everything on (the people at their most, the distant houses at
      * 50 % with their bulbs, the three groups' hours 13:00-20:00 so every building that keeps hours is shut, blinds and
      * shutters -- the fire and the police station never close), by day
@@ -188,6 +188,72 @@ class GlDrawCallTest {
         println("GlDrawCallTest Christmas: " + seen.joinToString(" | "))
     }
 
+    /**
+     * **Halloween with everything v5.16 added is still one draw where the 5.15 drew it in one** (v5.16): the theme as it
+     * ships -- the scarecrows, the cobwebs, the bats and the jack-o'-lanterns, the laughing moon, the night by day -- with the
+     * people at their most and the Headless Horseman in flight through his four poses dropping his pumpkins on fire, at
+     * 22:00 and at noon (night, by the night by day), and once more with Santa's sleigh flying too. Swept along the street
+     * and the clock, as the Christmas street above. **Under heavy rain** the 5.15 already drew two batches, the drops being
+     * hairlines; the blood rain is the same drops thicker, so it must take the same draws as the theme's own rain at every
+     * position -- which is what is asserted there.
+     */
+    @Test
+    fun aHalloweenStreetWithItsNewThingsIsStillASingleDrawCall() {
+        val tile = 2f / PaperRenderer.HILL_PARALLAX
+        val offsets = FloatArray(60) { 3f * tile * it / 60 }
+        val seen = mutableListOf<String>()
+        val most: (SceneCustomization) -> SceneCustomization = { base ->
+            base.copy(
+                people = base.people.copy(visible = true, density = 1f),
+                peopleNightDensity = 1f,
+                scarecrows = base.scarecrows.copy(visible = true, density = 1f),
+                pumpkins = base.pumpkins.copy(visible = true, density = 1f),
+                distantHouses = DistantHousesConfig(visible = true, density = 1f),
+            )
+        }
+        for (hour in listOf(22f, 12f)) for (santa in listOf(false, true)) {
+            val scene = GoldenScene(
+                name = "halloween-most-${hour.toInt()}" + if (santa) "-sleigh" else "",
+                dayPhase = if (hour < 18f) GoldenScene.day(hour) else GoldenScene.night(hour),
+                themeId = "halloween",
+                sceneSeconds = 66.5,
+                customise = { base -> most(base).copy(santaEnabled = santa) },
+            )
+            val sweep = GlGolden.countDrawCallsAcross(scene, offsets, sleighInFlight = santa, horsemanInFlight = true)
+            seen += "${scene.name}: swept ${sweep.calls.min()}..${sweep.calls.max()} draws, at most ${sweep.vertices.max()} vertices, " +
+                "at most ${sweep.pumpkinsFalling.max()} pumpkins falling"
+            assertTrue("${scene.name} swept across the street: ${sweep.calls.toList()}", sweep.calls.all { it == 1 })
+            assertTrue("${scene.name}: no pumpkin fell in the sweep", sweep.pumpkinsFalling.max() > 0)
+            val poses = sweep.clocks.map { t -> SceneTime(t).frameIndex(HeadlessHorsemanDrawer.POSES_PER_SECOND, 0f, 4) }.toSet()
+            assertEquals("${scene.name}: the horse's poses the sweep's clock went through", setOf(0, 1, 2, 3), poses)
+        }
+        // Heavy rain, the theme's and the blood's: the same draws at every position.
+        for (hour in listOf(22f, 12f)) {
+            val rainy: (Boolean) -> GoldenScene = { blood ->
+                GoldenScene(
+                    name = "halloween-rain-${hour.toInt()}-" + if (blood) "blood" else "theme",
+                    dayPhase = if (hour < 18f) GoldenScene.day(hour) else GoldenScene.night(hour),
+                    themeId = "halloween",
+                    sceneSeconds = 66.5,
+                    customise = { base ->
+                        most(base).copy(
+                            bloodRainEnabled = blood,
+                            precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.RAIN, intensity = 1f),
+                        )
+                    },
+                )
+            }
+            // The clock still (no flyer held): the two sweeps draw the same street at the same moments, the rain alone apart.
+            val theme = GlGolden.countDrawCallsAcross(rainy(false), offsets)
+            val blood = GlGolden.countDrawCallsAcross(rainy(true), offsets)
+            seen += "halloween-rain-${hour.toInt()}: the theme's rain ${theme.calls.min()}..${theme.calls.max()} draws " +
+                "(at most ${theme.vertices.max()} vertices), the blood rain ${blood.calls.min()}..${blood.calls.max()} " +
+                "(at most ${blood.vertices.max()})"
+            assertEquals("the blood rain takes the theme rain's draws at every position", theme.calls.toList(), blood.calls.toList())
+        }
+        println("GlDrawCallTest Halloween: " + seen.joinToString(" | "))
+    }
+
     private fun christmas(): List<GoldenScene> {
         val asInstalled = listOf("christmas", "autumn", "winter").flatMap { theme ->
             listOf(12f to GoldenScene.day(12f), 1f to GoldenScene.night(1f)).map { (hour, phase) ->
@@ -195,7 +261,7 @@ class GlDrawCallTest {
                     name = "christmas-lights-$theme-${hour.toInt()}",
                     dayPhase = phase,
                     themeId = theme,
-                    customise = { base -> base.copy(christmasDecorationsEnabled = true) },
+                    customise = { base -> base.copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true) },
                 )
             }
         }
@@ -207,7 +273,7 @@ class GlDrawCallTest {
                     themeId = theme,
                     customise = { base ->
                         base.copy(
-                            christmasDecorationsEnabled = true,
+                            christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true,
                             people = base.people.copy(visible = true, density = 1f),
                             peopleNightDensity = 1f,
                             distantHouses = DistantHousesConfig(visible = true, density = 0.5f),
@@ -226,7 +292,7 @@ class GlDrawCallTest {
                 themeId = theme,
                 customise = { base ->
                     base.copy(
-                        christmasDecorationsEnabled = true,
+                        christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true,
                         people = base.people.copy(visible = true, density = 1f),
                         peopleNightDensity = 1f,
                         distantHouses = DistantHousesConfig(visible = true, density = 1f),

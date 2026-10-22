@@ -101,8 +101,10 @@ class CardShutterTest {
             for (forceNight in listOf(false, true)) {
                 val c = shut(defaultCustomizationFor(theme.id))
                 val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
-                val night = 1f - ThemePreviewScenes.cardPhase(theme, forceNight).dayBlend
-                val hour = ThemePreviewScenes.cardHour(theme, forceNight)
+                // The card's moment: night at every hour while Halloween's night sky by day is in force (v5.16, decision 82).
+                val atNight = forceNight || c.nightOverDayActive()
+                val night = 1f - ThemePreviewScenes.cardPhase(theme, atNight).dayBlend
+                val hour = ThemePreviewScenes.cardHour(theme, atNight)
                 for (item in scene.items + scene.backdrop + scene.ground) {
                     val ids = item.parts.map { it.resId }.toSet()
                     val owners = doorPieces.filter { ids.containsAll(it.res) }

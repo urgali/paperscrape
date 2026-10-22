@@ -100,7 +100,10 @@ class CardHouseLightsTest {
     @Test
     fun `a day card lights nothing, as before`() {
         for (theme in ThemeCatalog.ALL) {
-            val scene = ThemePreviewScenes.forTheme(theme, defaultCustomizationFor(theme.id), forceNight = false)
+            val c = defaultCustomizationFor(theme.id)
+            // Halloween's "day" is night while its night sky by day is in force (v5.16, decision 82): its card too.
+            if (c.nightOverDayActive()) continue
+            val scene = ThemePreviewScenes.forTheme(theme, c, forceNight = false)
             if (ThemePreviewScenes.cardPhase(theme, false).dayBlend < 1f) continue
             assertEquals("${theme.id}", 0, scene.items.sumOf { item -> item.parts.count { it.rectWidth > 0f } })
         }

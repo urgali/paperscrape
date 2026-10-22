@@ -52,15 +52,15 @@ class BuiltInThemeCoherenceTest {
         // full winter presentation whether you wanted one or not.
         val winter = defaults("winter")
         assertTrue("Winter must present as winter", winter.winterColorsEnabled)
-        assertFalse("Winter must not be Christmas", winter.christmasDecorationsEnabled)
+        assertFalse("Winter must not be Christmas", DecorationExclusion.christmasOn(winter))
 
         val christmas = defaults("christmas")
         assertTrue("Christmas is in winter", christmas.winterColorsEnabled)
-        assertTrue("Christmas must have its decorations", christmas.christmasDecorationsEnabled)
+        assertTrue("Christmas must have its decorations", (christmas.christmasBuildingLightsEnabled && christmas.christmasTreeLightsEnabled && christmas.christmasFirsEnabled))
 
         val newYear = defaults("new_year")
         assertTrue("New Year is in winter", newYear.winterColorsEnabled)
-        assertFalse("New Year is not a second Christmas", newYear.christmasDecorationsEnabled)
+        assertFalse("New Year is not a second Christmas", DecorationExclusion.christmasOn(newYear))
     }
 
     @Test
@@ -68,16 +68,16 @@ class BuiltInThemeCoherenceTest {
         // All four combinations have to be reachable, because each is a scene somebody might
         // want. Asserted on the data class rather than through a theme, since the themes only
         // happen to use three of the four.
-        val none = SceneCustomization.DEFAULT.copy(winterColorsEnabled = false, christmasDecorationsEnabled = false)
-        val winterOnly = SceneCustomization.DEFAULT.copy(winterColorsEnabled = true, christmasDecorationsEnabled = false)
-        val christmasOnly = SceneCustomization.DEFAULT.copy(winterColorsEnabled = false, christmasDecorationsEnabled = true)
-        val both = SceneCustomization.DEFAULT.copy(winterColorsEnabled = true, christmasDecorationsEnabled = true)
+        val none = SceneCustomization.DEFAULT.copy(winterColorsEnabled = false, christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false)
+        val winterOnly = SceneCustomization.DEFAULT.copy(winterColorsEnabled = true, christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false)
+        val christmasOnly = SceneCustomization.DEFAULT.copy(winterColorsEnabled = false, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)
+        val both = SceneCustomization.DEFAULT.copy(winterColorsEnabled = true, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)
 
-        assertFalse(none.winterColorsEnabled); assertFalse(none.christmasDecorationsEnabled)
-        assertTrue(winterOnly.winterColorsEnabled); assertFalse(winterOnly.christmasDecorationsEnabled)
+        assertFalse(none.winterColorsEnabled); assertFalse(DecorationExclusion.christmasOn(none))
+        assertTrue(winterOnly.winterColorsEnabled); assertFalse(DecorationExclusion.christmasOn(winterOnly))
         assertFalse("Christmas must not switch winter on", christmasOnly.winterColorsEnabled)
-        assertTrue(christmasOnly.christmasDecorationsEnabled)
-        assertTrue(both.winterColorsEnabled); assertTrue(both.christmasDecorationsEnabled)
+        assertTrue((christmasOnly.christmasBuildingLightsEnabled && christmasOnly.christmasTreeLightsEnabled && christmasOnly.christmasFirsEnabled))
+        assertTrue(both.winterColorsEnabled); assertTrue((both.christmasBuildingLightsEnabled && both.christmasTreeLightsEnabled && both.christmasFirsEnabled))
     }
 
     @Test
@@ -87,10 +87,10 @@ class BuiltInThemeCoherenceTest {
         // including autumn, which is unusual but not contradictory.
         val autumnWithLights = SceneCustomization.DEFAULT.copy(
             fallColorsEnabled = true,
-            christmasDecorationsEnabled = true,
+            christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true,
         )
         assertTrue(autumnWithLights.fallColorsEnabled)
-        assertTrue(autumnWithLights.christmasDecorationsEnabled)
+        assertTrue((autumnWithLights.christmasBuildingLightsEnabled && autumnWithLights.christmasTreeLightsEnabled && autumnWithLights.christmasFirsEnabled))
     }
 
     @Test
@@ -98,7 +98,7 @@ class BuiltInThemeCoherenceTest {
         ThemeCatalog.ALL.filter { it.id != "christmas" }.forEach { theme ->
             assertFalse(
                 "${theme.id} should not hang Christmas lights",
-                defaults(theme.id).christmasDecorationsEnabled,
+                DecorationExclusion.christmasOn(defaults(theme.id)),
             )
         }
     }
@@ -183,6 +183,47 @@ class BuiltInThemeCoherenceTest {
         }
         pumpkinThemes.forEach { id ->
             assertTrue("$id should have pumpkins", defaults(id).pumpkins.visible)
+        }
+    }
+
+    /**
+     * **Where the snowmen stand as each theme ships, on all twelve** (v5.16, inventory I-1028: the test below names the warm
+     * themes and the three that snow, and left Halloween, Autumn, Spring and New Year unpinned) -- and the scarecrows that
+     * share their places: on Halloween alone, at the snowmen's 50 % (*«il resto, si a tutte»*, 2026-10-21).
+     */
+    @Test
+    fun `the snowmen and the scarecrows stand where each theme ships them, on every theme`() {
+        val snowmen = mapOf("winter" to 0.3f, "christmas" to 0.5f, "tundra" to 0.3f)
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaults(theme.id)
+            val density = snowmen[theme.id]
+            assertEquals("${theme.id}'s snowmen", density != null, c.snowmen.visible)
+            if (density != null) assertEquals("${theme.id}'s snowmen", density, c.snowmen.density, 0f)
+            assertEquals("${theme.id}'s scarecrows", theme.id == "halloween", c.scarecrows.visible)
+            assertEquals("${theme.id}'s scarecrows at 50 %", 0.5f, c.scarecrows.density, 0f)
+        }
+    }
+
+    /**
+     * **Everything v5.16 added to Halloween is on as the Halloween theme ships and off on every other** (*«il resto, si a
+     * tutte»* and, for the night by day, *«deve diventare il nuovo default del tema halloween»*, 2026-10-21); and the
+     * Christmas decorations, three switches since v5.16, ship together on Christmas alone, so no theme ships both sides.
+     */
+    @Test
+    fun `the Halloween theme ships every new switch on, no other theme any, and none ships both decorations`() {
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaults(theme.id)
+            val halloween = theme.id == "halloween"
+            assertEquals(theme.id, halloween, c.laughingMoonEnabled)
+            assertEquals(theme.id, halloween, c.nightSkyByDayEnabled)
+            assertEquals(theme.id, halloween, c.halloweenDecorationsEnabled)
+            assertEquals(theme.id, halloween, c.bloodRainEnabled)
+            assertEquals(theme.id, halloween, c.headlessHorsemanEnabled)
+            val christmas = theme.id == "christmas"
+            assertEquals(theme.id, christmas, c.christmasBuildingLightsEnabled)
+            assertEquals(theme.id, christmas, c.christmasTreeLightsEnabled)
+            assertEquals(theme.id, christmas, c.christmasFirsEnabled)
+            assertFalse("${theme.id} ships both", DecorationExclusion.christmasOn(c) && DecorationExclusion.halloweenOn(c))
         }
     }
 

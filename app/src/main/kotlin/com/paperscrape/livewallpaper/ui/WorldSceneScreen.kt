@@ -155,7 +155,7 @@ internal fun WorldSceneScreen(
         SettingsGroup {
             SettingsNavigationRow(
                 title = "Sun and moon",
-                supporting = onOffSummary(customization.sun.visible, "Sun") + ", " +
+                supporting = onOffSummary(SettingsUiModel.showSun(customization).shownOn, "Sun") + ", " +
                     onOffSummary(customization.moon.visible, "moon").lowercase(),
                 icon = Icons.Outlined.WbSunny,
                 onClick = { activeSection = "sunmoon" },
@@ -199,7 +199,7 @@ internal fun WorldSceneScreen(
                 supporting = if (customization.rainbow.visible && customization.rainbow.opacity <= 0f) {
                     NONE_AT_ZERO_SUMMARY
                 } else {
-                    onOffSummary(customization.rainbow.visible, "Rainbow")
+                    onOffSummary(SettingsUiModel.showRainbow(customization).shownOn, "Rainbow")
                 },
                 icon = Icons.Outlined.Filter,
                 onClick = { activeSection = "rainbow" },
@@ -322,7 +322,11 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Birds",
-                supporting = amountSummary(customization.birds.visible, customization.birds.density),
+                supporting = if (SettingsUiModel.showBirds(customization).interactive) {
+                    amountSummary(customization.birds.visible, customization.birds.density)
+                } else {
+                    onOffSummary(false, "Birds")
+                },
                 icon = Icons.Filled.Air,
                 onClick = { activeSection = "birds" },
             )
@@ -413,8 +417,8 @@ internal fun WorldSceneScreen(
             //
             // Named by **season**, not by object, and deliberately. `resetAllCategories` removes
             // every customization key this theme has, which on the decorations side is more than
-            // the six `ObjectCategory` values -- it also takes `halloweenEnabled`,
-            // `horrorSkyEnabled`, `christmasDecorationsEnabled`, `santaEnabled`, `flowersEnabled`
+            // the seven `ObjectCategory` values -- it also takes `halloweenEnabled`,
+            // `horrorSkyEnabled`, the three Christmas switches, the five Halloween ones of v5.16, `santaEnabled`, `flowersEnabled`
             // and the two palette flags -- and the two fields of the Palms switch, which since
             // v5.10C2 is on this screen's Trees page and so is "everything on this screen".
             // (`palmsEnabled` only since v5.8: until then `clearAllThemeCustomizationKeys` skipped
@@ -570,9 +574,13 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Sun and moon", onBack) {
         SectionTitle("Sun")
+        // With Halloween's night sky by day the sun is never up (v5.16, inventory I-1027): off and locked, the line says
+        // why, the stored choice kept ([SettingsUiModel.showSun], decision 40).
+        val sun = SettingsUiModel.showSun(customization)
         SettingSwitchRow(
-            title = "Show Sun", subtitle = "",
-            checked = customization.sun.visible,
+            title = "Show Sun", subtitle = if (sun.interactive) "" else SettingsUiModel.NIGHT_BY_DAY_LOCK_LINE,
+            checked = sun.shownOn,
+            enabled = sun.interactive,
             onCheckedChange = { scope.launch { prefs.setSunVisible(it, forThemeId) } },
         )
         ColorSwatchRow("Sun Color", customization.sun.color) {
@@ -883,9 +891,17 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
     val rainbow = customization.rainbow
     SettingsFormSubScreen("Rainbow", onBack) {
         val shown = SettingsUiModel.amountSwitch(rainbow.visible, rainbow.opacity)
+        // A daylight thing: never shown while Halloween's night sky by day keeps the scene night (v5.16).
+        val byDay = SettingsUiModel.showRainbow(customization)
         SettingSwitchRow(
-            title = "Show Rainbow", subtitle = if (shown.noneAtZero) "None at 0% opacity - tap to bring it back" else "",
-            checked = shown.shownOn,
+            title = "Show Rainbow",
+            subtitle = when {
+                !byDay.interactive -> SettingsUiModel.NIGHT_BY_DAY_LOCK_LINE
+                shown.noneAtZero -> "None at 0% opacity - tap to bring it back"
+                else -> ""
+            },
+            checked = byDay.shownOn,
+            enabled = byDay.interactive,
             onCheckedChange = { wanted ->
                 scope.applyAmountTap(
                     SettingsUiModel.amountTap(wanted, rainbow.opacity, defaultCustomizationFor(forThemeId).rainbow.opacity),
@@ -1276,14 +1292,14 @@ private fun TreesSubScreen(
                     title = "Palms",
                     subtitle = if (!palms.interactive && palmsOnlyFirs) {
                         "Every tree left at this density is a Christmas fir, and the firs stay. Raise the " +
-                            "density above or turn the Christmas lights off; your choice is kept until then."
+                            "density above or turn the Christmas firs off; your choice is kept until then."
                     } else if (!palms.interactive) {
                         "Needs Show Trees above: palms stand where the trees do. Your choice is kept until then."
                     } else if (themeHasPalms) {
                         "Palm trees are this theme's own trees. Turn them off and it draws the same " +
                             "broadleaf trees as everywhere else - same places, same number, so the shore " +
                             "does not go bare."
-                    } else if (customization.christmasDecorationsEnabled) {
+                    } else if (customization.christmasFirsEnabled) {
                         "Palm trees in place of this theme's trees - same places, same number. " +
                             "The Christmas firs stay firs."
                     } else {
@@ -1414,9 +1430,18 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Birds", onBack) {
         val birds = SettingsUiModel.amountSwitch(customization.birds.visible, customization.birds.density)
+        // With Halloween's night sky by day only night birds fly (v5.16): off and locked unless Night Birds is on, which
+        // stays a switch -- it is the way out.
+        val byDay = SettingsUiModel.showBirds(customization)
         SettingSwitchRow(
-            title = "Show Birds", subtitle = if (birds.noneAtZero) NONE_AT_ZERO_LINE else "",
-            checked = birds.shownOn,
+            title = "Show Birds",
+            subtitle = when {
+                !byDay.interactive -> SettingsUiModel.NIGHT_BY_DAY_BIRDS_LINE
+                birds.noneAtZero -> NONE_AT_ZERO_LINE
+                else -> ""
+            },
+            checked = byDay.shownOn,
+            enabled = byDay.interactive,
             onCheckedChange = { wanted ->
                 scope.applyAmountTap(
                     SettingsUiModel.amountTap(wanted, customization.birds.density, defaultCustomizationFor(forThemeId).birds.density),

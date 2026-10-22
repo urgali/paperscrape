@@ -18,7 +18,7 @@ import java.io.File
  * (v5.14) are held to it too. The smallest of each is printed (`DECORATION_2PX`). The sill strings' cord is not:
  * it was 1.1 units before and is left as it was (inventory I-718).
  *
- * And the table carries what the line under *Christmas lights* promises: a roofline on every building's top piece
+ * And the table carries what the line under *Lights on the buildings* promises (*Christmas lights*' until v5.16): a roofline on every building's top piece
  * and on every distant house, a front door on every building. And the wreath's drawing (`deco_wreath`, a blit since
  * the batch ran out of room for it drawn as shapes) is the geometry the renderer's constants say, which the two
  * rules above and `DoorShutterTest`'s *the wreath hangs inside the door* are measured on.

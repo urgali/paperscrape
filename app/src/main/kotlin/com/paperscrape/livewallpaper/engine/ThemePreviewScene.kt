@@ -47,6 +47,8 @@ data class PreviewSprite(
     val discRadius: Float = 0f,
     val scale: Float = 1f,
     val decoration: Boolean = false,
+    /** A sprite drawn mirrored left to right about its origin, at [scale]: the right-hand cobweb of a roof (v5.16). */
+    val mirrored: Boolean = false,
 ) {
     /** A flat card -- a rectangle, an outline or a disc -- and not a sprite. */
     val isFlat: Boolean get() = rectWidth > 0f || outline != null || discRadius > 0f
@@ -293,6 +295,21 @@ object ThemePreviewScenes {
     const val SLEIGH_CARD_WIDTH = 51f
 
     /**
+     * Where the card's Headless Horseman flies when Santa's sleigh is on the card too (v5.16): lower on the sky's right,
+     * under the far cloud and clear of the Halloween moon, where the two groups do not cover each other.
+     */
+    const val HORSEMAN_CARD_X_BESIDE_SANTA = 194f
+    const val HORSEMAN_CARD_Y_BESIDE_SANTA = 60f
+
+    /**
+     * The card's scarecrow (v5.16): at the Easter eggs' third point, between the pumpkins, at their scale -- its drawing
+     * brought to a snowman's height in units ([scarecrow]), so on the card a little shorter than the snowmen, which stand at
+     * 0.56 and 0.50: the card of v5.16A's `sCard=1` the maintainer was shown, kept so.
+     */
+    const val SCARECROW_CARD_X = 92f
+    const val SCARECROW_CARD_SCALE = 0.46f
+
+    /**
      * The clock hours the card shows, on the default day `SunPositionCalculator.compute` assumes
      * (sunrise 06:00, sunset 20:00).
      *
@@ -356,8 +373,11 @@ object ThemePreviewScenes {
         val winter = c.winterColorsEnabled
         val halloween = c.halloweenEnabled
         // Night for the two themes whose subject *is* the night: the fireworks theme and the
-        // horror sky. Everything else reads its day palette, which is what a gallery is for.
-        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        // horror sky. Everything else reads its day palette, which is what a gallery is for -- but a theme with
+        // Halloween's night sky by day in force (v5.16) is night at every hour on the wallpaper, and so on its card,
+        // and on the World & scene strip's "Day" too (until the mid-round review of v5.16B the strip's "Day" drew a
+        // day the wallpaper never shows).
+        val night = (forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)) || c.nightOverDayActive()
         // Every colour below that the wallpaper blends between day and night is blended here on
         // this one number, so the card is one moment of the wallpaper's day and not a mixture.
         val phase = cardPhase(theme, night)
@@ -567,9 +587,9 @@ object ThemePreviewScenes {
                     CardTree.FIR -> fir(snow = winter, shade = c.trees.nightShadeAt(0, dayBlend))
                     CardTree.PALM -> palmTree(
                         dead = halloween, frost = winter, shade = c.trees.nightShadeAt(0, dayBlend),
-                        lights = c.christmasDecorationsEnabled,
+                        lights = c.christmasTreeLightsEnabled,
                     )
-                    CardTree.TREE -> tree(leaf, winter = winter, halloween = halloween)
+                    CardTree.TREE -> tree(leaf, winter = winter, halloween = halloween, lights = c.christmasTreeLightsEnabled)
                 }
                 items += PreviewItem(
                     x,
@@ -651,6 +671,12 @@ object ThemePreviewScenes {
             groundItems += PreviewItem(204f, ROW_GROUND, 0.50f, pumpkin(c.pumpkins.colorAt(1, dayBlend), carved = halloween))
             groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.48f, pumpkin(c.pumpkins.colorAt(0, dayBlend), carved = halloween))
         }
+        // **One scarecrow between the pumpkins** (v5.16; the maintainer's choice of v5.16A, *«il resto, si a tutte»*, 2026-10-21: in the
+        // snowmen's two points they stood over the pumpkins and hid them), at the Easter eggs' third point and scale; its
+        // pumpkin lit by the card's night, as the wallpaper's.
+        if (drawn(c.scarecrows.visible, c.scarecrows.density)) {
+            groundItems += PreviewItem(SCARECROW_CARD_X, ROW_GROUND, SCARECROW_CARD_SCALE, scarecrow(((1f - dayBlend) * 255f).toInt().coerceIn(0, 255)))
+        }
         // Parasols are deliberately absent. The renderer draws them procedurally -- there is no
         // parasol sprite in the library -- and standing in a differently-shaped sprite would be a
         // preview showing something the scene does not contain, which is the one thing this file
@@ -711,6 +737,32 @@ object ThemePreviewScenes {
                 ),
             )
         }
+        // The Headless Horseman (v5.16), for the sleigh's reason: a flyby its switch puts on the scene. Still, in the
+        // first pose of his gallop, facing left, as `HeadlessHorsemanDrawer` lays his pieces (`HorsemanTable`), the reins
+        // left out as the sleigh's cords are; in the sleigh's point of the sky, or -- where Santa is on too -- lower on its
+        // right, so the two do not cover each other; drawn at the sleigh's card scale times the wallpaper's ratio of the two
+        // groups' scales ([HeadlessHorsemanScale.toSleighScale]), so the two keep their sizes against each other.
+        if (c.headlessHorsemanEnabled) {
+            val mid = HeadlessHorsemanDrawer.MIDDLE
+            val pose = 0
+            val seatX = HorsemanTable.SEAT_X[pose]
+            val seatY = HorsemanTable.SEAT_Y[pose]
+            backdrop += PreviewItem(
+                if (c.santaEnabled) HORSEMAN_CARD_X_BESIDE_SANTA else 142f,
+                if (c.santaEnabled) HORSEMAN_CARD_Y_BESIDE_SANTA else 52f,
+                SLEIGH_CARD_WIDTH / (SantaSleighTable.RIGHT - SantaSleighTable.LEFT) * HeadlessHorsemanScale.toSleighScale,
+                listOf(
+                    PreviewSprite(
+                        HorsemanTable.CAPE_RES,
+                        seatX + HorsemanTable.SHOULDER_X + HorsemanTable.CAPE_X - mid,
+                        seatY + HorsemanTable.SHOULDER_Y + HorsemanTable.CAPE_Y,
+                    ),
+                    PreviewSprite(HorsemanTable.LEGS_RES[pose], HorsemanTable.LEGS_X[pose] - mid, HorsemanTable.LEGS_Y[pose]),
+                    PreviewSprite(HorsemanTable.HORSE_RES[pose], HorsemanTable.HORSE_X[pose] - mid, HorsemanTable.HORSE_Y[pose]),
+                    PreviewSprite(HorsemanTable.RIDER_RES, seatX + HorsemanTable.RIDER_X - mid, seatY + HorsemanTable.RIDER_Y),
+                ),
+            )
+        }
 
         // --- weather --------------------------------------------------------------------------
         if (drawn(c.precipitation.visible, c.precipitation.intensity)) {
@@ -726,8 +778,13 @@ object ThemePreviewScenes {
             val colour = if (snow) {
                 blendRgb(c.precipitation.snowColorNight, c.precipitation.snowColorDay, dayBlend)
             } else {
+                // The blood rain's red in place of the rain's colours while it is on (v5.16), off the sky by the same rule.
                 cardRainColour(
-                    blendRgb(c.precipitation.rainColorNight, c.precipitation.rainColorDay, dayBlend),
+                    if (c.bloodRainEnabled) {
+                        blendRgb(PaperRenderer.BLOOD_RAIN_NIGHT, PaperRenderer.BLOOD_RAIN_DAY, dayBlend)
+                    } else {
+                        blendRgb(c.precipitation.rainColorNight, c.precipitation.rainColorDay, dayBlend)
+                    },
                     skyTop,
                     skyBottom,
                 )
@@ -932,7 +989,7 @@ object ThemePreviewScenes {
             // Its three bulbs (v5.14C2), as the wallpaper hangs them ([ChristmasDecorations.forEachDistantHouseBulb]) -- the
             // share of the house they are on the BV6600's wallpaper ([CARD_DISTANT_BULB_SHARE]), still and lit as the wallpaper's
             // -- and, as the buildings' decorations ([decorations]), drawn large enough to be 2 px on the gallery card: 1.46 times.
-            if (c.christmasDecorationsEnabled) {
+            if (c.christmasBuildingLightsEnabled) {
                 val radius = CARD_DISTANT_BULB_SHARE * piece.height / 2f
                 val px = 2f * radius * (CARD_HOUSE_UNITS_TALL / piece.height) * GALLERY_PX_PER_UNIT
                 val drawn = radius * maxOf(1f, CARD_DECORATION_MIN_PX / px)
@@ -1176,7 +1233,12 @@ object ThemePreviewScenes {
             }
         }
         if (family.kind != WindowBuildingKind.HOUSE && openness < 1f) shut(parts, deal, family.kind, night)
-        if (c.christmasDecorationsEnabled) decorations(parts, deal, family.kind, SceneObjectRenderer.idleSeedOf(spec), itemScale)
+        if (c.christmasBuildingLightsEnabled) decorations(parts, deal, family.kind, SceneObjectRenderer.idleSeedOf(spec), itemScale)
+        // The Halloween decorations (v5.16), on the card's houses and shops where the wallpaper hangs them
+        // ([HalloweenDecorations]), still, the jack-o'-lanterns lit as the wallpaper lights them at the card's moment.
+        if (c.halloweenDecorationsEnabled && HalloweenDecorations.decorates(family.kind, storefront)) {
+            halloweenDecorations(parts, deal, itemScale, night)
+        }
         return parts
     }
 
@@ -1238,6 +1300,50 @@ object ThemePreviewScenes {
     }
 
     /**
+     * The card's Halloween decorations of a house or a shop (v5.16): the cobwebs, the bats and the jack-o'-lantern by the
+     * front door, from the sequences the wallpaper hangs them by ([HalloweenDecorations]), still -- the bats unswung --, the
+     * candle lit by the [night] as the wallpaper's (`SceneObjectRenderer.drawHalloweenDecorations`: none by day; until the
+     * mid-round review of v5.16B the card lit it by day too), drawn [cardHalloweenFactor] times their size, so the cobweb's
+     * threads and the bat keep 2 px on the BV6600's gallery card.
+     */
+    private fun halloweenDecorations(
+        parts: MutableList<PreviewSprite>,
+        deal: NeighbourhoodComposer.Deal,
+        itemScale: Float,
+        night: Float,
+    ) {
+        val s = cardHalloweenFactor(itemScale)
+        val lit = (night * 255f).toInt().coerceIn(0, 255)
+        HalloweenDecorations.forEachCobweb(deal) { x, y, mirror ->
+            // The right one is the left one's drawing mirrored, from its corner: [PreviewSprite.mirrored] draws it to the
+            // left of its origin.
+            parts += PreviewSprite(
+                HalloweenDecorationTable.WEB_RES, x + HalloweenDecorationTable.WEB_X * s * mirror, y + HalloweenDecorationTable.WEB_Y * s,
+                scale = s, decoration = true, mirrored = mirror < 0f,
+            )
+        }
+        HalloweenDecorations.forEachBat(deal) { _, x, y ->
+            parts += PreviewSprite(
+                HalloweenDecorationTable.BAT_RES, x + HalloweenDecorationTable.BAT_X * s, y + HalloweenDecorationTable.BAT_Y * s,
+                scale = s, decoration = true,
+            )
+        }
+        HalloweenDecorations.forEachDoorPumpkin(deal) { x, y ->
+            parts += PreviewSprite(
+                HalloweenDecorationTable.PUMPKIN_RES, x + HalloweenDecorationTable.PUMPKIN_X * s, y + HalloweenDecorationTable.PUMPKIN_Y * s,
+                scale = s, decoration = true,
+            )
+            if (lit > 0) {
+                parts += PreviewSprite(
+                    HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
+                    x + HalloweenDecorationTable.PUMPKIN_LIGHT_X * s, y + HalloweenDecorationTable.PUMPKIN_LIGHT_Y * s,
+                    alpha = lit, scale = s, decoration = true,
+                )
+            }
+        }
+    }
+
+    /**
      * How many times its size the card draws a decoration of a building of [kind] drawn at [itemScale] card units a unit:
      * enough for its smallest decoration -- the wreath's bow, 2.8 units across (a tower's half as large again), or a string's
      * bulb, 3 units, where it has [strings] -- to be [CARD_DECORATION_MIN_PX] on the BV6600's gallery card, and never less
@@ -1249,6 +1355,14 @@ object ThemePreviewScenes {
         val smallest = if (strings) minOf(bow, 2f * SceneObjectRenderer.CHRISTMAS_LIGHT_BULB_RADIUS_UNITS) else bow
         return maxOf(1f, CARD_DECORATION_MIN_PX / (smallest * itemScale * GALLERY_PX_PER_UNIT))
     }
+
+    /**
+     * How many times its size the card draws a building's Halloween decorations at [itemScale] card units a unit (v5.16):
+     * enough for their narrowest band -- the cobweb's threads and the bat, [HalloweenDecorationTable.DECORATION_BAND_UNITS]
+     * -- to be [CARD_DECORATION_MIN_PX] on the BV6600's gallery card, and never less than their size.
+     */
+    internal fun cardHalloweenFactor(itemScale: Float): Float =
+        maxOf(1f, CARD_DECORATION_MIN_PX / (HalloweenDecorationTable.DECORATION_BAND_UNITS * itemScale * GALLERY_PX_PER_UNIT))
 
     /** The two pixels every drawn detail is held to. */
     internal const val CARD_DECORATION_MIN_PX = 2f
@@ -1346,7 +1460,7 @@ object ThemePreviewScenes {
      * right and 2 down from where the wallpaper puts it. The renderer's numbers are unchanged; the
      * preview now takes them from the same place instead of restating them.
      */
-    private fun tree(leaf: Int, winter: Boolean, halloween: Boolean): List<PreviewSprite> {
+    private fun tree(leaf: Int, winter: Boolean, halloween: Boolean, lights: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(
             PreviewSprite(R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y),
         )
@@ -1367,8 +1481,25 @@ object ThemePreviewScenes {
                 TreeSpriteLayout.FLAT_SNOWCAP_X, TreeSpriteLayout.FLAT_SNOWCAP_Y,
             )
         }
+        // *Lights on the trees* (v5.16): the wallpaper's lights at three of its six points of the crown
+        // ([SceneObjectRenderer.CHRISTMAS_LIGHT_X]), as sparkles in the lights' colours, as the card's fir hangs its baubles.
+        // Until the mid-round review of v5.16B the card's leafy tree had none, so the switch alone showed nothing on a card.
+        if (lights) {
+            for (i in TREE_CARD_LIGHTS) {
+                val x = SceneObjectRenderer.CHRISTMAS_LIGHT_X[i] * SceneObjectRenderer.TREE_LIGHTS_RADIUS_X
+                val y = TreeSpriteLayout.CANOPY_LIFT_Y + SceneObjectRenderer.TREE_LIGHTS_CENTRE_Y +
+                    SceneObjectRenderer.CHRISTMAS_LIGHT_Y[i] * SceneObjectRenderer.TREE_LIGHTS_RADIUS_Y
+                parts += PreviewSprite(
+                    R.drawable.star_sparkle, x - SPARKLE_INK_X, y - SPARKLE_INK_Y,
+                    SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS[i % SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS.size], alpha = 220,
+                )
+            }
+        }
         return parts
     }
+
+    /** Which of the wallpaper's six lights of a crown the card's leafy tree shows: upper left, the middle, the right. */
+    private val TREE_CARD_LIGHTS = intArrayOf(1, 2, 4)
 
     /** What the card stands on its tree row, left to right. */
     private enum class CardTree { TREE, FIR, PALM }
@@ -1377,8 +1508,8 @@ object ThemePreviewScenes {
      * The card's trees: two, whatever the density, and one where the woodland is a scattering -- a
      * third has no place on the row that does not stand in front of a shop.
      *
-     * **As before v5.10C2, except under palms in the trees' places with the Christmas layer on.** The
-     * palms are the switch's (`palmsShown`), and Christmas is the layer that puts firs among the trees,
+     * **As before v5.10C2, except under palms in the trees' places with *Christmas firs* on.** The
+     * palms are the switch's (`palmsShown`), and *Christmas firs* is the switch that puts firs among the trees,
      * and the only one: a sparse wood is not a reason for a fir (v5.8E, V3-48). So with the palms the
      * card shows palms, and without them a fir first under the layer.
      *
@@ -1507,6 +1638,21 @@ object ThemePreviewScenes {
         PreviewSprite(R.drawable.gift_box, -20f, -30f, c),
         PreviewSprite(R.drawable.gift_ribbon, -20f, -40f),
     )
+
+    /**
+     * A scarecrow (v5.16), its drawing brought to a snowman's height in the snowman's units -- the card's one stands between
+     * the pumpkins at their scale, [SCARECROW_CARD_SCALE] --, its pumpkin's candle lit as the wallpaper's, by the card's
+     * night ([lit], `(1 - dayBlend) * 255`: at Sunset's 19:00 a little; until v5.16B's final review only on a night card).
+     */
+    private fun scarecrow(lit: Int): List<PreviewSprite> {
+        val k = SceneSpace.SceneVariant.SNOWMAN.spriteUnitsTall / ScarecrowTable.UNITS_TALL
+        return buildList {
+            add(PreviewSprite(ScarecrowTable.RES, ScarecrowTable.X * k, ScarecrowTable.Y * k, scale = k))
+            if (lit > 0) {
+                add(PreviewSprite(ScarecrowTable.LIGHT_RES, ScarecrowTable.LIGHT_X * k, ScarecrowTable.LIGHT_Y * k, alpha = lit, scale = k))
+            }
+        }
+    }
 
     /**
      * The pumpkin as [SceneObjectRenderer.drawPumpkin] builds it: the tinted body, the carved face

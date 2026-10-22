@@ -155,7 +155,7 @@ class VehicleOccupantScaleTest {
             // Summer, so the faces are the uncovered ones. A winter hat and scarf cover most of a
             // walking figure's face and the measurement would be about headwear.
             winterColorsEnabled = false,
-            christmasDecorationsEnabled = false,
+            christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false,
         )
         val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val target = CanvasSceneTarget()

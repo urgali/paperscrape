@@ -318,6 +318,71 @@ class SceneGoldenTest {
     )
 
     /**
+     * **Halloween as it ships since v5.16, at night, laughing and under the blood rain** (the maintainer's choices of
+     * v5.16A and its table, 2026-10-21): the cobwebs, the bats and the jack-o'-lanterns on the houses and the shops (the
+     * scarecrows, at the theme's 50 %, stand none in this stretch of the street: [halloweenScarecrowsBesideTheSnowmen] holds
+     * them), the moon at the moment of a laugh -- the scene's clock at 66.5 s, half
+     * a second into the laugh of the 66th second ([LaughingMoon]) -- and the rain red and thick. The clouds off, as in
+     * [halloweenMoon], so the moon is in the frame; the rain from the theme's own weather turned on. The Headless Horseman is
+     * not in it: a flight's height and direction are drawn from an unseeded `Random`, as the sleigh's, so a frame with him
+     * would not be a function of its inputs; his drawing is held where it can be -- `GlAtlasOccupancyTest`,
+     * `GlDrawCallTest`, `FrameAllocationTest` and `tools/assets/tests/test_horseman.py`.
+     */
+    @Test
+    fun halloweenAsItShipsAtNight() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "halloween-as-it-ships-night",
+            dayPhase = GoldenScene.night(),
+            themeId = "halloween",
+            sceneSeconds = 66.5,
+            customise = {
+                it.copy(
+                    clouds = it.clouds.copy(visible = false),
+                    precipitation = it.precipitation.copy(visible = true, type = PrecipitationType.RAIN, intensity = 0.6f),
+                )
+            },
+        ),
+    )
+
+    /**
+     * **The scarecrows in the snowmen's places, and aside where a snowman stands too** (v5.16, the choice B of v5.16A's rows
+     * 3 and 4): Halloween at night, the snowmen and the scarecrows both at 100 %, so every place of the tile holds both --
+     * the scarecrow 1.27 m to the snowman's right, the pumpkin of the place at its feet. As it ships, at 50 % each, no
+     * scarecrow stands in the golden's stretch of the street, so this one is where their drawing, size and place are held.
+     */
+    @Test
+    fun halloweenScarecrowsBesideTheSnowmen() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "halloween-scarecrows-and-snowmen",
+            dayPhase = GoldenScene.night(),
+            themeId = "halloween",
+            customise = {
+                it.copy(
+                    clouds = it.clouds.copy(visible = false),
+                    snowmen = it.snowmen.copy(visible = true, density = 1f),
+                    scarecrows = it.scarecrows.copy(visible = true, density = 1f),
+                )
+            },
+        ),
+    )
+
+    /**
+     * **And at noon, which since v5.16 is night on the Halloween theme** (the night sky by day, on as it ships: *«deve
+     * diventare il nuovo default del tema halloween»*, 2026-10-21): the whole scene at night, the carved moon at the top of
+     * the sun's path, the windows lit -- and the opening hours the clock's noon. The clouds off so the moon is in the frame;
+     * the moon still (120 s is between two laughs).
+     */
+    @Test
+    fun halloweenAtNoonIsNight() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "halloween-night-by-day",
+            dayPhase = GoldenScene.day(12f),
+            themeId = "halloween",
+            customise = { it.copy(clouds = it.clouds.copy(visible = false)) },
+        ),
+    )
+
+    /**
      * **One bird, drawn the way the shipped build draws it, big enough to read which way it faces.**
      *
      * `DESIGN_NOTES.md` §14 requires a sprite with a facing to be judged in both directions. In

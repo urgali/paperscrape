@@ -58,7 +58,7 @@ class PalmsSwitchOnTheTreesPageTest {
     @Test
     fun `the home line counts no palm as a decoration`() {
         val none = SceneCustomization.DEFAULT.copy(
-            christmasDecorationsEnabled = false, santaEnabled = false, halloweenEnabled = false,
+            christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false, santaEnabled = false, halloweenEnabled = false,
             horrorSkyEnabled = false, flowersEnabled = false,
         )
         for (c in listOf(

@@ -201,7 +201,7 @@ class DiscAgreementTest {
 
     /**
      * **And the snow, the stars and the lights are discs**: Winter at one in the morning with its snow, its stars, the
-     * *Christmas lights* and the distant houses on (with their three bulbs each), then with each of the four off in turn --
+     * three Christmas switches (*Christmas lights* until v5.16) and the distant houses on (with their three bulbs each), then with each of the four off in turn --
      * each one off takes discs out of the frame and not a single circle, so none of them is drawn as a circle any more (a
      * fan of 24 vertices or more on the GPU), and each draws some (v5.14C: the distant houses, off as Winter ships, were
      * not in it).
@@ -209,11 +209,11 @@ class DiscAgreementTest {
     @Test
     fun theSnowTheStarsAndTheLightsAreDiscs() {
         val houses = { c: SceneCustomization -> c.copy(distantHouses = c.distantHouses.copy(visible = true, density = 1f)) }
-        val all = count("winter") { houses(it).copy(christmasDecorationsEnabled = true) }
-        val noSnow = count("winter") { houses(it).copy(christmasDecorationsEnabled = true, precipitation = it.precipitation.copy(visible = false)) }
-        val noStars = count("winter") { houses(it).copy(christmasDecorationsEnabled = true, stars = it.stars.copy(visible = false)) }
-        val noLights = count("winter") { houses(it).copy(christmasDecorationsEnabled = false) }
-        val noHouses = count("winter") { it.copy(christmasDecorationsEnabled = true) }
+        val all = count("winter") { houses(it).copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true) }
+        val noSnow = count("winter") { houses(it).copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true, precipitation = it.precipitation.copy(visible = false)) }
+        val noStars = count("winter") { houses(it).copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true, stars = it.stars.copy(visible = false)) }
+        val noLights = count("winter") { houses(it).copy(christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false) }
+        val noHouses = count("winter") { it.copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true) }
         println(
             "DiscAgreementTest Winter at 1:00: ${all.discs} discs and ${all.circles} circles; without the snow ${noSnow.discs} / ${noSnow.circles}, " +
                 "without the stars ${noStars.discs} / ${noStars.circles}, without the lights ${noLights.discs} / ${noLights.circles}, " +

@@ -27,8 +27,8 @@ package com.paperscrape.livewallpaper.engine
  *    rolling it per walker, which fixed a street that had *no* umbrella at all.
  *
  * Both are gone. The instruction is that in the rain every pedestrian who walks carries one, and
- * the uniform is accepted: *"l'ombrello, in caso di pioggia (sia fixed che in live weather) lo
- * devono avere tutti i pedoni che camminano"*. They were decisions and not defects, which is why
+ * the uniform is accepted, the maintainer's rule of v5.4: *«l'ombrello, in caso di pioggia (sia fixed che in live
+ * weather) lo devono avere tutti i pedoni che camminano»*. They were decisions and not defects, which is why
  * they are recorded here rather than argued with -- but nothing below still implements them, and
  * this paragraph is the only place they are still described.
  *

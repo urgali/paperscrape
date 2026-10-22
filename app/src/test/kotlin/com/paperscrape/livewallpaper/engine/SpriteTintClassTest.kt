@@ -99,6 +99,8 @@ class SpriteTintClassTest {
         // same theme colour -- since v5.15 the theme's moon colour, as every moon's, where it was an
         // orange fixed for every theme -- with the face cut out of it rather than painted on.
         "moon_jack_o_lantern",
+        // v5.16: its laughing face, the same disc under the same colour, drawn in its place a moment a minute.
+        "moon_jack_o_lantern_laugh",
         // v4.28. The umbrella's canopy is tinted per pedestrian from `PedestrianCarry.PALETTE`, so
         // one drawing serves every colour on the street; the wave's two masks are tinted per frame
         // from the water under them, which is the whole of `WaveTint` -- a wave with a colour of its
@@ -195,6 +197,14 @@ class SpriteTintClassTest {
         // inside the Halloween moon's carved face, laid over the tinted moon untinted.
         "santa_sleigh", "santa_reindeer_0", "santa_reindeer_1", "santa_reindeer_2", "santa_reindeer_3",
         "moon_jack_o_lantern_light",
+        // v5.16: the Headless Horseman's pieces, fixed art drawn as by day at night too, as the sleigh's; the scarecrow and
+        // the light of its carved head; the Halloween decorations -- the cobweb, the bat, the jack-o'-lantern and its
+        // light --; and the light inside the laughing moon's face.
+        "horseman_horse_0", "horseman_horse_1", "horseman_horse_2", "horseman_horse_3",
+        "horseman_legs_0", "horseman_legs_1", "horseman_legs_2", "horseman_legs_3", "horseman_rider", "horseman_cape",
+        "scarecrow", "scarecrow_light",
+        "deco_cobweb", "deco_bat", "deco_jack_o_lantern", "deco_jack_o_lantern_light",
+        "moon_jack_o_lantern_laugh_light",
         "rainbow_arc", "lightning_bolt", "firework",
     )
 

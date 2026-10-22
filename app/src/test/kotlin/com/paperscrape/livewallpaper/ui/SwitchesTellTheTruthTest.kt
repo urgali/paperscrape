@@ -220,7 +220,7 @@ class SwitchesTellTheTruthTest {
     @Test
     fun `the decorations counted on are the ones drawn`() {
         val none = SceneCustomization.DEFAULT.copy(
-            christmasDecorationsEnabled = false, santaEnabled = false, halloweenEnabled = false,
+            christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false, santaEnabled = false, halloweenEnabled = false,
             horrorSkyEnabled = false, flowersEnabled = false,
         )
         assertEquals(0, SettingsUiModel.decorationsOn(none))

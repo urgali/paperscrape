@@ -35,6 +35,8 @@ class SceneCustomizationStructureTest {
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(density = c.bunnies.density / 2f + 0.1f)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(density = c.easterEggs.density / 2f + 0.1f)) },
         "pumpkins" to { c -> c.copy(pumpkins = c.pumpkins.copy(density = c.pumpkins.density / 2f + 0.1f)) },
+        // The scarecrows joined in v5.16, for visibility and density: their drawing is fixed art.
+        "scarecrows" to { c -> c.copy(scarecrows = c.scarecrows.copy(density = c.scarecrows.density / 2f + 0.1f)) },
     )
 
     /** Every category, with a mutation that flips only its visibility. */
@@ -51,6 +53,7 @@ class SceneCustomizationStructureTest {
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(visible = !c.bunnies.visible)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(visible = !c.easterEggs.visible)) },
         "pumpkins" to { c -> c.copy(pumpkins = c.pumpkins.copy(visible = !c.pumpkins.visible)) },
+        "scarecrows" to { c -> c.copy(scarecrows = c.scarecrows.copy(visible = !c.scarecrows.visible)) },
     )
 
     /** Colour-only mutations, which must never count as structural. */
@@ -66,6 +69,7 @@ class SceneCustomizationStructureTest {
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(colorDay1 = c.bunnies.colorDay1 xor 0x00FFFFFF)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(colorDay1 = c.easterEggs.colorDay1 xor 0x00FFFFFF)) },
         "pumpkins" to { c -> c.copy(pumpkins = c.pumpkins.copy(colorDay1 = c.pumpkins.colorDay1 xor 0x00FFFFFF)) },
+        "scarecrows" to { c -> c.copy(scarecrows = c.scarecrows.copy(colorDay1 = c.scarecrows.colorDay1 xor 0x00FFFFFF)) },
         "shops" to { c -> c.copy(shops = c.shops.copy(colorDay2 = c.shops.colorDay2 xor 0x00FFFFFF)) },
         "publics" to { c -> c.copy(publics = c.publics.copy(colorNight1 = c.publics.colorNight1 xor 0x00FFFFFF)) },
     )
@@ -210,13 +214,13 @@ class SceneCustomizationStructureTest {
     @Test
     fun `the Christmas layer is structural only while palms stand in the trees' places`() {
         // v5.10C2: with palms in the trees' places a fir stays a tree (`palmSpeciesApplied`), and which
-        // slots are firs is the Christmas layer's -- so turning the lights on or off over such a scene
+        // slots are firs is *Christmas firs*' (the Christmas layer's until v5.16) -- so turning it on or off over such a scene
         // changes which slots are palms, and has to rebuild the list, or the firs would come and go only
         // when something else rebuilt it. Without those palms the fir is decided at the draw and the
         // layer must not rebuild anything: nothing changes for a scene that has no palm in a tree slot.
         for (palms in listOf(false, true)) {
             val start = base.copy(palmsInsteadOfTrees = palms)
-            val lit = start.copy(christmasDecorationsEnabled = !start.christmasDecorationsEnabled)
+            val lit = start.copy(christmasFirsEnabled = !start.christmasFirsEnabled)
             assertEquals("palms in place of trees $palms", !palms, start.staticStructurallyEquals(lit))
             assertEquals(!palms, lit.staticStructurallyEquals(start))
             assertTrue("the lights must not restart cars", start.carsStructurallyEquals(lit))
@@ -262,14 +266,16 @@ class SceneCustomizationStructureTest {
         // staticStructurallyEquals/carsStructurallyEquals, changing its density would silently
         // fail to rebuild the scene. Counting the fields by reflection makes that impossible to
         // miss: this test fails until the comparison and the mutation lists above are updated.
+        // The instance's fields: the companion's constants (`SCARECROWS_OFF`, v5.16) are static fields of the class too.
         val configFields = SceneCustomization::class.java.declaredFields
-            .filter { it.type == ObjectVariantConfig::class.java }
+            .filter { it.type == ObjectVariantConfig::class.java && !java.lang.reflect.Modifier.isStatic(it.modifiers) }
             .map { it.name }
         assertEquals(
             "SceneCustomization has ObjectVariantConfig fields not covered here: $configFields",
             // 13 until v2.7 removed the balloons outright -- category, sprites, toggle and all; 13
-            // again since v5.11 brought the shops' colours, 14 since v5.13 brought the public buildings'.
-            14,
+            // again since v5.11 brought the shops' colours, 14 since v5.13 brought the public buildings', 15 since v5.16
+            // brought the scarecrows.
+            15,
             configFields.size,
         )
         assertEquals(
@@ -301,8 +307,8 @@ class SceneCustomizationStructureTest {
         val palms = "palms" to { c: SceneCustomization -> c.copy(palmsEnabled = !c.palmsEnabled) }
         val palmsForTrees = "palms in place of trees" to { c: SceneCustomization -> c.copy(palmsInsteadOfTrees = !c.palmsInsteadOfTrees) }
         val nightCars = "cars at night" to { c: SceneCustomization -> c.copy(carsNightDensity = c.carsNightDensity / 2f + 0.1f) }
-        // v5.10C2: the Christmas layer decides which tree slots stay firs among the palms.
-        val lights = "Christmas lights" to { c: SceneCustomization -> c.copy(christmasDecorationsEnabled = !c.christmasDecorationsEnabled) }
+        // v5.10C2: *Christmas firs* (the Christmas layer until v5.16) decides which tree slots stay firs among the palms.
+        val lights = "Christmas firs" to { c: SceneCustomization -> c.copy(christmasFirsEnabled = !c.christmasFirsEnabled) }
         val mutations = densityMutations + visibilityMutations + colourMutations + palms + palmsForTrees + nightCars + lights
         var equalStatic = 0
         var equalCars = 0

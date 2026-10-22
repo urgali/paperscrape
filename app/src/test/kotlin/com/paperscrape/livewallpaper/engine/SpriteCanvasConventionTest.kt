@@ -57,6 +57,9 @@ class SpriteCanvasConventionTest {
         "moon_gibbous",
         "moon_half",
         "moon_jack_o_lantern",
+        // v5.16. The laughing face is the carved moon's disc on the moons' 240-px canvas, blitted at the moons' origin, so its
+        // margin is the same registration.
+        "moon_jack_o_lantern_laugh",
         // v4.17. The carved face is drawn on `pumpkin_body`'s canvas at `pumpkin_body`'s origin so
         // the two register exactly; the eyes and the grin sit well inside the fruit, so the margin
         // around them is the body it is cut into and is as load-bearing as any anchor here.
@@ -134,7 +137,9 @@ class SpriteCanvasConventionTest {
             // edge -- whether a given pose's ink reaches a side is where its cut happens to fall, and it moves
             // with any redraw; the Halloween moon's light (`moon/build_jack_moon.py`) keeps a guard pixel on
             // every side it trims (ARCHITECTURE.md §5, "The transparent margin is part of the drawing"). Their
-            // origins are the generators', derived with their drawings.
+            // origins are the generators', derived with their drawings. v5.16's pieces are trimmed the same ways:
+            // the Headless Horseman's, the scarecrow's and the Halloween decorations' on the grid, the laughing
+            // moon's light with its guard pixel.
             val isGridTrimmed = name.matches(GRID_TRIMMED)
             val loadBearing = name in marginIsLoadBearing || isRegionMask || isGridTrimmed
             if (!touches && !loadBearing) unexpected += name
@@ -183,7 +188,10 @@ class SpriteCanvasConventionTest {
         // 463 in v5.14: the fir's star, a piece of its own, the Christmas bulb (`deco_bulb`) and the wreath (`deco_wreath`).
         // 467 in v5.15: Santa's sleigh, two sprites (`santa_sleigh_scene` and `santa_sleigh_trot`), became five (the sleigh
         // and the reindeer's four poses), and the Halloween moon gained its light (`moon_jack_o_lantern_light`).
-        assertEquals("467 sprites are expected", 467, all.size)
+        // 485 in v5.16: the Headless Horseman (his horse's and its legs' four poses, the rider, the cape: 10), the scarecrow
+        // and its light (2), the Halloween decorations (the cobweb, the bat, the jack-o'-lantern and its light: 4) and the
+        // laughing moon's face and light (2).
+        assertEquals("485 sprites are expected", 485, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -235,7 +243,10 @@ class SpriteCanvasConventionTest {
         // 245 in v5.15: the old sleigh's two frames reached their left edge; of the five pieces that replace them, three of
         // the reindeer's poses reach an edge of the canvas their units trim them to and the sleigh and the first pose
         // do not, and the moon's light keeps its guard pixel -- the generated pieces' exemption above.
-        assertEquals("245 of them reach a canvas edge", 245, touching)
+        // 257 in v5.16: of the eighteen new pieces, twelve reach an edge of the canvas their units trim them to -- the
+        // Horseman's rider, cape and seven of his horse's and legs' poses, the scarecrow and its light, the jack-o'-lantern's
+        // light -- and the other six keep the grid's or the guard pixel's margin, or the moons' canvas (the laughing face).
+        assertEquals("257 of them reach a canvas edge", 257, touching)
     }
 
     private companion object {
@@ -264,7 +275,10 @@ class SpriteCanvasConventionTest {
         val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar|school|shop|fire_station|police_station)_(.*_)?(fx|mw|mg)""")
 
         /** v5.15's generated pieces trimmed on the grid, or with a guard pixel: see the exemption where it is read. */
-        val GRID_TRIMMED = Regex("""santa_sleigh|santa_reindeer_\d|moon_jack_o_lantern_light""")
+        val GRID_TRIMMED = Regex(
+            """santa_sleigh|santa_reindeer_\d|moon_jack_o_lantern_light|moon_jack_o_lantern_laugh_light|""" +
+                """horseman_(horse_\d|legs_\d|rider|cape)|scarecrow|scarecrow_light|deco_(cobweb|bat|jack_o_lantern|jack_o_lantern_light)""",
+        )
 
         /**
          * A v5.6F vehicle sheet: a body's paper, a body's glass, or the appliance's.
@@ -294,7 +308,8 @@ class SpriteCanvasConventionTest {
      * **The grid-trimmed pieces' exemption, held to what it says** (v5.15C2, inventory I-975): the exemption above takes
      * them out of both checks, so a margin grown past the grid's would pass there. The sleigh's five pieces keep 0 to 2 px
      * between their ink and the unit's edge on every side; the moon's light keeps its guard pixel at its left and top and
-     * 1 to 3 px at its right and bottom, where its box was rounded up to the grid.
+     * 1 to 3 px at its right and bottom, where its box was rounded up to the grid. And v5.16's: the Horseman's ten, the
+     * scarecrow's two and the Halloween decorations' four as the sleigh's, the laughing moon's light as the other one.
      */
     @Test
     fun `the grid-trimmed pieces keep only the grid's margin`() {
@@ -304,7 +319,7 @@ class SpriteCanvasConventionTest {
             if (!name.matches(GRID_TRIMMED)) continue
             seen += name
             val (left, top, right, bottom) = margins(ImageIO.read(file))
-            if (name == "moon_jack_o_lantern_light") {
+            if (name == "moon_jack_o_lantern_light" || name == "moon_jack_o_lantern_laugh_light") {
                 assertEquals("$name left: its guard pixel", 1, left)
                 assertEquals("$name top: its guard pixel", 1, top)
                 assertTrue("$name right: $right", right in 1..3)
@@ -315,7 +330,7 @@ class SpriteCanvasConventionTest {
                 }
             }
         }
-        assertEquals(6, seen.size)
+        assertEquals(23, seen.size)
     }
 
     /** Transparent columns and rows between the ink and each edge: left, top, right, bottom. */

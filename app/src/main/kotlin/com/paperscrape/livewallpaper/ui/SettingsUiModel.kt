@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
+import com.paperscrape.livewallpaper.engine.DecorationExclusion
+import com.paperscrape.livewallpaper.engine.nightOverDayActive
 import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.engine.StorefrontGroup
 import com.paperscrape.livewallpaper.engine.palmsShown
@@ -236,6 +238,37 @@ data class MoonPhasesUiState(
     val interactive: Boolean,
     val overriddenByHalloween: Boolean,
     val needsMoon: Boolean = false,
+)
+
+/**
+ * *Laughing moon* or *Night sky by day* (v5.16, [SettingsUiModel.laughingMoon], [SettingsUiModel.nightSkyByDay]): the
+ * [DependentSwitchUiState] rule, with what holds it named -- [needsHalloween] while *Halloween* is off, else [needsMoon]
+ * while *Moon* is.
+ */
+data class HalloweenMoonSwitchUiState(
+    val shownOn: Boolean,
+    val interactive: Boolean,
+    val needsHalloween: Boolean,
+    val needsMoon: Boolean,
+)
+
+/**
+ * A decoration switch of one side of the Halloween/Christmas rule (v5.16, `DecorationExclusion`): [shownOn] its stored
+ * value, [interactive] unless the other side is on and this one is off -- then [blockedByTheOther], greyed, and its line
+ * says the other's are already on.
+ */
+data class ExclusiveSwitchUiState(
+    val shownOn: Boolean,
+    val interactive: Boolean,
+    val blockedByTheOther: Boolean,
+    /**
+     * Nothing stands to carry it -- no tree for *Lights on the trees* or *Christmas firs*, no house or building for *Lights
+     * on the buildings* or *Halloween decorations* --: off and locked, the stored choice kept, and the line says what to
+     * turn on ([needsLine]).
+     */
+    val needsSomethingToHangOn: Boolean,
+    /** What the line under it says while [needsSomethingToHangOn]; null otherwise. */
+    val needsLine: String?,
 )
 
 /**
@@ -574,6 +607,118 @@ object SettingsUiModel {
         )
 
     /**
+     * *Laughing moon* and *Night sky by day* (v5.16): both are the Halloween moon's -- the carved face laughing, the carved
+     * moon kept up all day -- so each is off and locked while *Halloween* or *Moon* is off, the stored choice kept
+     * ([dependentSwitch], the rule of [moonPhases]); [needsHalloween] says which line the row owes (Halloween first).
+     */
+    fun laughingMoon(c: com.paperscrape.livewallpaper.engine.SceneCustomization): HalloweenMoonSwitchUiState =
+        halloweenMoonSwitch(c.laughingMoonEnabled, c)
+
+    fun nightSkyByDay(c: com.paperscrape.livewallpaper.engine.SceneCustomization): HalloweenMoonSwitchUiState =
+        halloweenMoonSwitch(c.nightSkyByDayEnabled, c)
+
+    private fun halloweenMoonSwitch(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization) =
+        HalloweenMoonSwitchUiState(
+            shownOn = stored && c.halloweenEnabled && c.moon.visible,
+            interactive = c.halloweenEnabled && c.moon.visible,
+            needsHalloween = !c.halloweenEnabled,
+            needsMoon = c.halloweenEnabled && !c.moon.visible,
+        )
+
+    /**
+     * *Show Sun*, *Show Birds* and *Show Rainbow* while the night by day is in force (v5.16,
+     * [com.paperscrape.livewallpaper.engine.nightOverDayActive]): the scene is night at every hour, so the sun is never
+     * up, the birds fly only as night birds and the rainbow, a daylight thing, never shows -- *Show Sun* and *Show Rainbow*
+     * off and locked, *Show Birds* as [showBirds] says, the stored choice kept, and each line says why (decision 40;
+     * inventory I-1027).
+     */
+    fun showSun(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState =
+        dependentSwitch(c.sun.visible, available = !c.nightOverDayActive())
+
+    /**
+     * *Show Birds*, as its amount shows it ([amountSwitch]): locked by the night by day while the birds are on and *Night
+     * Birds* off -- the birds would fly and the night by day keeps them down, and *Night Birds*, available while the birds are
+     * on, is the way out. With the birds off it stays a switch: locked too, it and *Night Birds* ("Needs Show Birds above")
+     * would each wait for the other (v5.16B's final review).
+     */
+    fun showBirds(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState {
+        val stored = amountSwitch(c.birds.visible, c.birds.density).shownOn
+        return dependentSwitch(stored, available = !c.nightOverDayActive() || c.birds.nightBirds || !stored)
+    }
+
+    /** *Show Rainbow*, as its opacity shows it ([amountSwitch]). */
+    fun showRainbow(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState =
+        dependentSwitch(amountSwitch(c.rainbow.visible, c.rainbow.opacity).shownOn, available = !c.nightOverDayActive())
+
+    /** The line under a switch [showSun], [showBirds] or [showRainbow] locked: what holds it, and where it is set. */
+    const val NIGHT_BY_DAY_LOCK_LINE =
+        "Halloween's night sky by day is on, so it is night all day. Turn it off in Seasons & decorations, Halloween, " +
+            "to set this; your choice is kept until then."
+
+    /** The line under *Show Birds* locked by the night by day: the night birds are the way they fly. */
+    const val NIGHT_BY_DAY_BIRDS_LINE =
+        "Halloween's night sky by day is on, so it is night all day: turn Night Birds on below to see them, or turn " +
+            "the night sky by day off in Seasons & decorations, Halloween. Your choice is kept until then."
+
+    /**
+     * *Halloween decorations* and the three Christmas ones are never on together in a theme (v5.16,
+     * [DecorationExclusion], the maintainer's *«vince il primo scelto e il secondo deve avere il toggle non attivabile con
+     * errore»*, 2026-10-21): a switch of the side that is off is greyed while the other side is on, and its line says the
+     * other's are already on. One that is on stays a switch that can be turned off.
+     */
+    fun halloweenDecorations(c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
+        if (DecorationExclusion.halloweenDecorationsHang(c)) exclusive(c.halloweenDecorationsEnabled, DecorationExclusion.halloweenAllowed(c))
+        else nothingToHangOn(NEEDS_HOUSES_LINE)
+
+    fun christmasDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
+        exclusive(stored, DecorationExclusion.christmasAllowed(c))
+
+    /**
+     * *Lights on the buildings* (v5.16): as [christmasDecoration] while a house, a building or a house on the mountains
+     * stands to carry them, and off and locked while none does, the stored choice kept (decision 40, the maintainer's *«A:
+     * grigi con la frase, come gli abeti (consigliata)»*, 2026-10-22). So does [halloweenDecorations] with no house or shop.
+     */
+    fun christmasBuildingDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
+        if (DecorationExclusion.buildingLightsHang(c)) christmasDecoration(stored, c) else nothingToHangOn(NEEDS_BUILDINGS_LINE)
+
+    /**
+     * *Lights on the trees* or *Christmas firs* (v5.16): as [christmasDecoration] while trees stand, and **off and locked
+     * while none does** -- *Show Trees* off or at 0 % --, the stored choice kept and back with the trees (decision 40, the
+     * maintainer's *«A: grigi con la frase, come le palme (consigliata)»*, 2026-10-22; *Palms*, the same rule on the Trees
+     * page). Its line says what is missing ([NEEDS_TREES_LINE]).
+     */
+    fun christmasTreeDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
+        if (DecorationExclusion.treesStand(c)) christmasDecoration(stored, c) else nothingToHangOn(NEEDS_TREES_LINE)
+
+    private fun nothingToHangOn(line: String) =
+        ExclusiveSwitchUiState(shownOn = false, interactive = false, blockedByTheOther = false, needsSomethingToHangOn = true, needsLine = line)
+
+    private fun exclusive(stored: Boolean, allowed: Boolean) = ExclusiveSwitchUiState(
+        shownOn = stored, interactive = stored || allowed, blockedByTheOther = !stored && !allowed,
+        needsSomethingToHangOn = false, needsLine = null,
+    )
+
+    /** The line under *Halloween decorations* while a Christmas decoration is on (v5.16, [halloweenDecorations]). */
+    const val CHRISTMAS_ALREADY_ON_LINE =
+        "Christmas decorations are already on. Turn them off in Christmas to hang these."
+
+    /** The line under a Christmas decoration while the Halloween decorations are on (v5.16, [christmasDecoration]). */
+    const val HALLOWEEN_ALREADY_ON_LINE =
+        "Halloween decorations are already on. Turn them off in Halloween to use this."
+
+    /** The line under *Lights on the trees* or *Christmas firs* while no tree stands (v5.16, [christmasTreeDecoration]). */
+    const val NEEDS_TREES_LINE =
+        "Needs Show Trees on in World & scene. Your choice is kept until then."
+
+    /** The line under *Halloween decorations* while no house or shop stands (v5.16, [halloweenDecorations]). */
+    const val NEEDS_HOUSES_LINE =
+        "Needs the houses or the buildings on in World & scene. Your choice is kept until then."
+
+    /** The line under *Lights on the buildings* while nothing stands to carry them (v5.16, [christmasBuildingDecoration]). */
+    const val NEEDS_BUILDINGS_LINE =
+        "Needs the houses, the buildings or the distant houses on in World & scene. Your choice is kept until then."
+
+    /**
      * What a tap on the Live Weather switch does. Every state leads somewhere, so the switch always
      * accepts a tap; the stored flag is turned on with the step that puts right what holds it, so the
      * choice is made once and shows the moment nothing is missing any more.
@@ -600,7 +745,7 @@ object SettingsUiModel {
      * until v5.10C; the other ten could not, until their palms could be switched on.
      *
      * **And only while a palm would stand** (v5.10C2): the Christmas firs stay firs among the palms, so
-     * a wood thinned under the Christmas layer can keep nothing but firs ([onlyFirsWouldStand], which is
+     * a wood thinned under *Christmas firs* can keep nothing but firs ([onlyFirsWouldStand], which is
      * `SceneObjectLayout.keepsOnlyFirsUnderPalms` of the theme's layout). Off and locked then too, the
      * same rule: the switch would put no palm anywhere.
      */
@@ -903,11 +1048,19 @@ object SettingsUiModel {
      */
     fun decorationsOn(c: com.paperscrape.livewallpaper.engine.SceneCustomization): Int =
         listOf(
-            c.christmasDecorationsEnabled,
+            c.christmasBuildingLightsEnabled,
+            c.christmasTreeLightsEnabled,
+            c.christmasFirsEnabled,
             c.santaEnabled,
             c.halloweenEnabled,
+            laughingMoon(c).shownOn,
+            nightSkyByDay(c).shownOn,
+            c.halloweenDecorationsEnabled,
+            c.bloodRainEnabled,
+            c.headlessHorsemanEnabled,
             c.horrorSkyEnabled,
             c.flowersEnabled,
+            amountSwitch(c.scarecrows.visible, c.scarecrows.density).shownOn,
             amountSwitch(c.snowmen.visible, c.snowmen.density).shownOn,
             amountSwitch(c.gifts.visible, c.gifts.density).shownOn,
             amountSwitch(c.penguins.visible, c.penguins.density).shownOn,

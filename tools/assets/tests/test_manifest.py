@@ -54,8 +54,11 @@ def _reached_only_by_lookup(name: str) -> bool:
     The person set is chosen from `PeopleLayerTable`'s tables (`WALK`, `CARRY`, `WINDOW`,
     `CAR`) by kind, season and frame; the moons by phase; the sleigh and its reindeer by
     `SantaSleighTable` (v5.15: the sleigh's resource and the four poses' are the table's, which
-    `build_sleigh.py` writes). None of them is ever named literally at a blit, so there is
-    nothing to attribute -- which is why they are excused here rather than counted as agreeing.
+    `build_sleigh.py` writes); the scarecrow by `ScarecrowTable` (v5.16, which
+    `scarecrow/build_scarecrow.py` writes: its `X`/`Y` are its anchor, the pole's foot, and
+    `tests/test_scarecrow.py` holds that they are). None of them is ever named literally at a blit,
+    so there is nothing to attribute -- which is why they are excused here rather than counted as
+    agreeing.
 
     The three `road_*` sprites used to be a different case with the same symptom:
     nothing blitted them at all. **v4.20 deleted them**, along with `house_window`,
@@ -68,6 +71,7 @@ def _reached_only_by_lookup(name: str) -> bool:
         or name.startswith("moon_")
         or name == "santa_sleigh"
         or name.startswith("santa_reindeer_")
+        or name == "scarecrow"
     )
 
 
@@ -454,6 +458,12 @@ class ShippedSourcesTest(unittest.TestCase):
                 # its drawings: the sleigh's resource is the table's constant and each reindeer's pose its
                 # array's entry (`DEER_RES[pose]`, caught by the "[" below). Named by a table, as above.
                 or site.expression == "SantaSleighTable.SLEIGH_RES"
+                # v5.16: the Headless Horseman, the scarecrow and the Halloween decorations are drawn from the tables their
+                # generators write beside their drawings (`HorsemanTable`, `ScarecrowTable`, `HalloweenDecorationTable`):
+                # each resource is the table's constant, and `HeadlessHorsemanDrawer.piece` blits whichever of the table's
+                # resources its caller passes it (`res`: the pose's legs and horse, the rider). Named by a table, as above.
+                or site.expression.startswith(("HorsemanTable.", "ScarecrowTable.", "HalloweenDecorationTable."))
+                or (site.expression == "res" and site.file.endswith("HeadlessHorsemanDrawer.kt"))
                 or site.expression == "drawable"
                 or "R.drawable." in site.expression
                 or "[" in site.expression,

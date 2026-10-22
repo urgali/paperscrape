@@ -26,8 +26,13 @@ import org.junit.Test
  */
 class PreviewPrecipitationColourTest {
 
-    private fun precipitationDots(themeId: String, type: PrecipitationType, forceNight: Boolean? = null): Set<Int> {
-        val base = defaultCustomizationFor(themeId)
+    private fun precipitationDots(
+        themeId: String,
+        type: PrecipitationType,
+        forceNight: Boolean? = null,
+        tweak: (SceneCustomization) -> SceneCustomization = { it },
+    ): Set<Int> {
+        val base = tweak(defaultCustomizationFor(themeId))
         val c = base.copy(precipitation = base.precipitation.copy(visible = true, type = type, intensity = 1f))
         val scene = ThemePreviewScenes.forTheme(ThemeCatalog.byId(themeId), c, forceNight = forceNight)
         // The precipitation is the only front layer of small dots; the falling leaves are larger.
@@ -47,19 +52,28 @@ class PreviewPrecipitationColourTest {
 
     /**
      * New Year's Eve's night rain is already far from its night sky and is drawn exactly; Halloween's
-     * is the brightness of the orange at the bottom of its sky and is carried off it.
+     * is the brightness of the orange at the bottom of its sky and is carried off it. Halloween ships
+     * *Blood rain* on since v5.16, so its own rain colours are read with that switch off, and as it
+     * ships its card rains the blood's night red, carried off the sky by the same rule.
      */
     @Test
     fun `rain on a night card is the theme's night rain, carried off the card's sky`() {
         assertEquals("new_year rain", setOf(custom("new_year").rainColorNight), precipitationDots("new_year", PrecipitationType.RAIN))
-        val card = card("halloween", PrecipitationType.RAIN)
-        val drawn = precipitationDots("halloween", PrecipitationType.RAIN).single()
+        val noBlood: (SceneCustomization) -> SceneCustomization = { it.copy(bloodRainEnabled = false) }
+        val card = card("halloween", PrecipitationType.RAIN, tweak = noBlood)
+        val drawn = precipitationDots("halloween", PrecipitationType.RAIN, tweak = noBlood).single()
         assertEquals(
             "halloween rain",
             ThemePreviewScenes.cardRainColour(custom("halloween").rainColorNight, card.skyTop, card.skyBottom),
             drawn,
         )
         assertTrue("halloween's night rain had to move", drawn != custom("halloween").rainColorNight)
+        val shipped = card("halloween", PrecipitationType.RAIN)
+        assertEquals(
+            "halloween's blood rain",
+            setOf(ThemePreviewScenes.cardRainColour(PaperRenderer.BLOOD_RAIN_NIGHT, shipped.skyTop, shipped.skyBottom)),
+            precipitationDots("halloween", PrecipitationType.RAIN),
+        )
     }
 
     @Test
@@ -141,8 +155,13 @@ class PreviewPrecipitationColourTest {
         }
     }
 
-    private fun card(themeId: String, type: PrecipitationType, forceNight: Boolean? = null): ThemePreviewScene {
-        val base = defaultCustomizationFor(themeId)
+    private fun card(
+        themeId: String,
+        type: PrecipitationType,
+        forceNight: Boolean? = null,
+        tweak: (SceneCustomization) -> SceneCustomization = { it },
+    ): ThemePreviewScene {
+        val base = tweak(defaultCustomizationFor(themeId))
         val c = base.copy(precipitation = base.precipitation.copy(visible = true, type = type, intensity = 1f))
         return ThemePreviewScenes.forTheme(ThemeCatalog.byId(themeId), c, forceNight = forceNight)
     }

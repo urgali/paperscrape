@@ -15,10 +15,10 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Verdict | Sprites |
 |---|---|
-| `PIXEL_IDENTICAL` | 111 |
+| `PIXEL_IDENTICAL` | 129 |
 | `EDGE_EQUIVALENT` | 0 |
 | `DIVERGENT` | 0 |
-| **compared** | **111** |
+| **compared** | **129** |
 
 **Nothing is elided from the record.** `fidelity.json`, written beside this file by the
 same run, carries every sprite with every measured column, and every gap with its own
@@ -29,7 +29,7 @@ list of rows saying so one at a time is the same evidence, at two hundred times 
 
 ## Sprites that are not `PIXEL_IDENTICAL`
 
-**None.** All 111 compared sprites reconstruct pixel for pixel, so every
+**None.** All 129 compared sprites reconstruct pixel for pixel, so every
 column of the table that would appear here is zero by definition. It is listed in
 `fidelity.json` if you need to see it.
 

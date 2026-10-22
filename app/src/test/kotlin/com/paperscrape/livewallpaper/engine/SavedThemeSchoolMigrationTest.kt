@@ -30,7 +30,7 @@ class SavedThemeSchoolMigrationTest {
     /** A built-in's street as a user saves it at its defaults, school taken out: the pre-v5.6 shape. */
     private fun streetWithoutSchool(themeId: String): List<StaticSceneObject> {
         val c = defaultCustomizationFor(themeId)
-        return SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects
+        return SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).asSaved().staticObjects
             .filter { c.keepCandidate(it) }
             .filterNot { isSchool(it) }
     }
@@ -84,7 +84,8 @@ class SavedThemeSchoolMigrationTest {
     fun `a street that already has its school is left exactly as it was`() {
         for (themeId in themes) {
             val c = defaultCustomizationFor(themeId)
-            val street = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects.filter { c.keepCandidate(it) }
+            // As a theme is saved: without the scarecrows, which the catalogue lays again at the load (v5.16).
+            val street = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).asSaved().staticObjects.filter { c.keepCandidate(it) }
             assertEquals("$themeId: a v5.6 street was changed", street, loaded(savedAtFour(street)))
         }
     }

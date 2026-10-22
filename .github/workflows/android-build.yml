@@ -215,7 +215,7 @@ jobs:
         # (free for public repos). A checksum alone only proves "this file matches what I have a
         # hash for" -- it doesn't prove *who* produced it. Anyone can verify the download with:
         #   gh attestation verify PaperScrape-<tag>.apk --repo ${{ github.repository }}
-        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: app/build/outputs/apk/release/${{ steps.artifact.outputs.artifact }}
 

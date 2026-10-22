@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 467 |
-| Unique contents | 467 |
-| Bytes on disk | 1394.7 KB |
-| Decoded `ARGB_8888` | 47.98 MB |
-| Of which transparent padding | 18.85 MB (39 %) |
+| Files | 485 |
+| Unique contents | 485 |
+| Bytes on disk | 1455.4 KB |
+| Decoded `ARGB_8888` | 49.14 MB |
+| Of which transparent padding | 18.95 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -55,7 +55,11 @@ from the shipped PNGs; nothing is copied from documentation.
 | `car_window_estate` | 267x81 | RGBA | 1,1,266,80 | 3 % | 3 | yes |
 | `car_window_saloon` | 183x81 | RGBA | 1,1,181,80 | 4 % | 3 | yes |
 | `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
+| `deco_bat` | 60x27 | RGBA | 2,2,58,26 | 17 % | 1 | yes |
 | `deco_bulb` | 24x24 | RGBA | 0,0,24,24 | 0 % | 1 | yes |
+| `deco_cobweb` | 63x63 | RGBA | 2,2,61,61 | 12 % | 1 | yes |
+| `deco_jack_o_lantern` | 48x48 | RGBA | 2,2,46,46 | 16 % | 20 | yes |
+| `deco_jack_o_lantern_light` | 30x27 | RGBA | 1,0,29,26 | 10 % | 1 | yes |
 | `deco_wreath` | 30x30 | RGBA | 1,1,29,30 | 10 % | 11 | yes |
 | `dolphin_body` | 342x171 | RGBA | 1,3,342,171 | 2 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
@@ -75,6 +79,16 @@ from the shipped PNGs; nothing is copied from documentation.
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
 | `ground_flowers_bloom` | 108x36 | RGBA | 4,4,108,36 | 14 % | 120 | yes |
 | `ground_flowers_dry` | 108x36 | RGBA | 4,4,108,36 | 14 % | 147 | yes |
+| `horseman_cape` | 102x63 | RGBA | 0,1,100,61 | 7 % | 37 | yes |
+| `horseman_horse_0` | 204x123 | RGBA | 1,2,203,123 | 3 % | 186 | yes |
+| `horseman_horse_1` | 201x129 | RGBA | 1,2,200,129 | 3 % | 158 | yes |
+| `horseman_horse_2` | 198x135 | RGBA | 1,2,196,133 | 4 % | 155 | yes |
+| `horseman_horse_3` | 201x129 | RGBA | 1,0,200,127 | 3 % | 175 | yes |
+| `horseman_legs_0` | 210x63 | RGBA | 1,0,208,61 | 5 % | 41 | yes |
+| `horseman_legs_1` | 132x87 | RGBA | 2,2,132,87 | 4 % | 37 | yes |
+| `horseman_legs_2` | 114x72 | RGBA | 0,0,113,72 | 1 % | 37 | yes |
+| `horseman_legs_3` | 162x90 | RGBA | 0,2,162,90 | 2 % | 33 | yes |
+| `horseman_rider` | 96x198 | RGBA | 0,0,96,198 | 0 % | 174 | yes |
 | `house_distant_chalet_fx` | 93x75 | RGBA | 0,2,93,73 | 5 % | 24 | yes |
 | `house_distant_chalet_mg` | 57x42 | RGBA | 2,1,57,40 | 10 % | 1 | yes |
 | `house_distant_chalet_mw` | 93x75 | RGBA | 0,2,93,73 | 5 % | 1 | yes |
@@ -128,6 +142,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `moon_gibbous` | 240x240 | RGBA | 65,21,220,219 | 47 % | 18 | yes |
 | `moon_half` | 240x240 | RGBA | 118,21,218,219 | 66 % | 18 | yes |
 | `moon_jack_o_lantern` | 240x240 | RGBA | 19,19,221,220 | 30 % | 18 | yes |
+| `moon_jack_o_lantern_laugh` | 240x240 | RGBA | 19,19,221,220 | 30 % | 18 | yes |
+| `moon_jack_o_lantern_laugh_light` | 141x120 | RGBA | 1,1,140,117 | 5 % | 74 | yes |
 | `moon_jack_o_lantern_light` | 135x102 | RGBA | 1,1,133,101 | 4 % | 67 | yes |
 | `palmtree_fronds` | 168x144 | RGBA | 8,11,165,130 | 23 % | 224 | yes |
 | `palmtree_fronds_dead` | 168x144 | RGBA | 26,44,150,144 | 49 % | 220 | yes |
@@ -433,6 +449,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `santa_reindeer_2` | 126x135 | RGBA | 1,1,126,134 | 2 % | 251 | yes |
 | `santa_reindeer_3` | 129x135 | RGBA | 2,0,129,133 | 3 % | 273 | yes |
 | `santa_sleigh` | 243x210 | RGBA | 2,2,241,208 | 4 % | 545 | yes |
+| `scarecrow` | 150x171 | RGBA | 1,0,149,171 | 1 % | 108 | yes |
+| `scarecrow_light` | 60x48 | RGBA | 1,0,59,47 | 5 % | 1 | yes |
 | `school_fx` | 330x231 | RGBA | 1,0,328,230 | 1 % | 516 | yes |
 | `school_mg` | 294x114 | RGBA | 2,2,292,112 | 5 % | 1 | yes |
 | `school_mw` | 330x228 | RGBA | 1,0,328,228 | 1 % | 1 | yes |

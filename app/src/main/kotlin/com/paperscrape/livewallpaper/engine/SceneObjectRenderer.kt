@@ -74,6 +74,12 @@ private class StaticRuntime(val spec: StaticSceneObject) {
      * building's, whichever place it stands in. Null for every object of the layout.
      */
     var storefront: Storefront? = null
+
+    /**
+     * For a scarecrow (v5.16), whether the snowman of its place stands too: then it is drawn
+     * [SceneObjectRenderer.SCARECROW_ASIDE_METRES] to the side, so the two stand side by side. Set when the list is built.
+     */
+    var scarecrowAside = false
 }
 
 private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
@@ -249,6 +255,8 @@ class SceneObjectRenderer(
             StaticRuntime(customization.palmSpeciesApplied(spec, layoutPlantsPalms)).also { r ->
                 // A place among the houses keeps its rank across the tile: the street deals its building.
                 r.place = places.indexOfFirst { it === spec }
+                // A scarecrow in a place whose snowman stands too steps aside (v5.16): both are seen.
+                r.scarecrowAside = customization.scarecrowStandsAside(spec, layout.densityScheme)
             }
         }
         .let(::plantedAndSorted)
@@ -423,6 +431,21 @@ class SceneObjectRenderer(
         /** The radius of a bulb on a string -- the sills' and the roofs' -- in units: [drawBulb]. */
         const val CHRISTMAS_LIGHT_BULB_RADIUS_UNITS = 1.5f
 
+        /** How far a Halloween bat swings on its thread, in degrees either way, and how fast (v5.16). */
+        const val BAT_SWING_DEGREES = 6f
+        const val BAT_SWING_RATE = 1.3f
+
+        /**
+         * How far to the right of its snowman a scarecrow stands where both are kept (v5.16, the maintainer's choice of
+         * v5.16A, *«il resto, si a tutte»*, 2026-10-21: the places are the snowmen's, and where both stand both are seen): 1.27 m, the
+         * snowman's arm and the scarecrow's half way apart. In the scarecrow's own units, [SCARECROW_ASIDE_UNITS].
+         */
+        const val SCARECROW_ASIDE_METRES = 1.27f
+        val SCARECROW_ASIDE_UNITS: Float = SCARECROW_ASIDE_METRES / (ScarecrowTable.METRES_TALL / ScarecrowTable.UNITS_TALL)
+
+        /** Half the width of a scarecrow's ground shadow, in its units: about its pole and its boots. */
+        const val SCARECROW_SHADOW_HALF_UNITS = 14f
+
         /** The Christmas lights' four colours, the trees', the strings' and the distant houses' (`PaperRenderer`). */
         internal val CHRISTMAS_LIGHT_COLOURS = intArrayOf(
             0xFFE8564F.toInt(), 0xFFFFD54F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt(),
@@ -498,17 +521,17 @@ class SceneObjectRenderer(
             layout.cars.isNotEmpty() && customization.cars.visible
 
         /**
-         * Whether any tree of the scene may stand as a fir: only with the Christmas decorations on
-         * (which third of the trees then does is [standsAsFir]'s hash). The gallery card asks this
+         * Whether any tree of the scene may stand as a fir: only with *Christmas firs* on (v5.16; the Christmas
+         * decorations' one switch until then -- which third of the trees then does is [standsAsFir]'s hash). The gallery card asks this
          * before it draws a fir, and `ThemePreviewTruthTest` holds the card to it (v5.8E, V3-48:
          * the card used to draw one for a sparse wood too, so Tundra's showed a fir its wallpaper
          * never draws).
          */
-        fun drawsFirs(customization: SceneCustomization): Boolean = customization.christmasDecorationsEnabled
+        fun drawsFirs(customization: SceneCustomization): Boolean = customization.christmasFirsEnabled
 
         /**
          * Whether this slot stands as a Christmas fir under [customization]: a tree slot, the
-         * Christmas layer on ([drawsFirs]), and one of the third of the trees its position picks
+         * *Christmas firs* on ([drawsFirs]), and one of the third of the trees its position picks
          * ([isFirSeed]). The drawing asks the same two questions per frame, on the seed its runtime
          * already holds ([standsAsFir] of a runtime); this form is for the one place that has to
          * know before there is a runtime -- [SceneCustomization.palmSpeciesApplied], which since
@@ -625,6 +648,7 @@ class SceneObjectRenderer(
             SceneObjectType.BUNNY -> SceneSpace.SceneVariant.BUNNY
             SceneObjectType.EASTER_EGG -> SceneSpace.SceneVariant.EASTER_EGG
             SceneObjectType.PUMPKIN -> SceneSpace.SceneVariant.PUMPKIN
+            SceneObjectType.SCARECROW -> SceneSpace.SceneVariant.SCARECROW
             // Cars are drawn by drawCar, from their lane, and never reach drawStaticObject.
             SceneObjectType.CAR -> SceneSpace.SceneVariant.HOUSE_SMALL
         }
@@ -1362,6 +1386,18 @@ class SceneObjectRenderer(
 
         /** Radius of one blinking light on a winter tree, in local units. */
         const val CHRISTMAS_LIGHT_RADIUS_UNITS = 2.6f
+
+        /**
+         * Where a tree's lights sit, in a unit disc ([drawChristmasLights]); internal since v5.16 so the gallery card's
+         * leafy tree hangs its own at the same points (`ThemePreviewScenes`, *Lights on the trees*).
+         */
+        internal val CHRISTMAS_LIGHT_X = floatArrayOf(-0.80f, -0.34f, 0.06f, 0.40f, 0.78f, -0.06f)
+        internal val CHRISTMAS_LIGHT_Y = floatArrayOf(0.10f, -0.52f, 0.46f, -0.52f, 0.14f, -0.08f)
+
+        /** The leafy tree's foliage the lights are scattered across, in the canopy's lifted space ([drawTree]). */
+        const val TREE_LIGHTS_CENTRE_Y = -47f
+        const val TREE_LIGHTS_RADIUS_X = 38f
+        const val TREE_LIGHTS_RADIUS_Y = 24f
 
         /**
          * Conservative upper bound on how far, in local units, any static scene object extends
@@ -2822,6 +2858,7 @@ class SceneObjectRenderer(
             SceneSpace.SceneVariant.BUNNY -> drawBunny(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.EASTER_EGG -> drawEasterEgg(canvas, r, dayBlend)
             SceneSpace.SceneVariant.PUMPKIN -> drawPumpkin(canvas, r, dayBlend)
+            SceneSpace.SceneVariant.SCARECROW -> drawScarecrow(canvas, r, elapsed, dayBlend)
         }
         canvas.restore()
     }
@@ -2884,6 +2921,48 @@ class SceneObjectRenderer(
         }
         ChristmasDecorations.star(deal, kind) { cx, cy, outer, inner -> drawStar(canvas, cx, cy, outer, inner) }
         ChristmasDecorations.forEachWreath(deal, kind) { cx, cy, k -> drawWreath(canvas, cx, cy, k) }
+    }
+
+    /**
+     * The Halloween decorations of a house or a shop (v5.16, [HalloweenDecorations]): a cobweb at each end of the roof --
+     * the right one mirrored --, a bat every three points of the roofline swinging a little on its thread, and a
+     * jack-o'-lantern by the front door, its candle lit as the night comes ([night] 0..1, the light's alpha). All three
+     * fixed art (`tools/assets/halloween/build_halloween_deco.py`, [HalloweenDecorationTable]), every band 2 px or more on
+     * the BV6600 where a house or a shop stands farthest; drawn on the building's own piece units, as the Christmas ones.
+     * Nothing allocated.
+     */
+    private fun drawHalloweenDecorations(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        elapsed: SceneTime,
+        deal: NeighbourhoodComposer.Deal,
+        night: Float,
+    ) {
+        HalloweenDecorations.forEachCobweb(deal) { x, y, mirror ->
+            canvas.save()
+            canvas.translate(x, y)
+            if (mirror < 0f) canvas.scale(-1f, 1f)
+            drawSprite(canvas, HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.WEB_X, HalloweenDecorationTable.WEB_Y)
+            canvas.restore()
+        }
+        HalloweenDecorations.forEachBat(deal) { i, x, y ->
+            canvas.save()
+            canvas.translate(x, y)
+            canvas.rotate(elapsed.sinAt(BAT_SWING_RATE, r.idleSeed * 3f + i) * BAT_SWING_DEGREES)
+            drawSprite(canvas, HalloweenDecorationTable.BAT_RES, HalloweenDecorationTable.BAT_X, HalloweenDecorationTable.BAT_Y)
+            canvas.restore()
+        }
+        val lit = (night * 255f).toInt().coerceIn(0, 255)
+        HalloweenDecorations.forEachDoorPumpkin(deal) { x, y ->
+            drawSprite(canvas, HalloweenDecorationTable.PUMPKIN_RES, x + HalloweenDecorationTable.PUMPKIN_X, y + HalloweenDecorationTable.PUMPKIN_Y)
+            if (lit > 0) {
+                sprites.draw(
+                    canvas, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
+                    x + HalloweenDecorationTable.PUMPKIN_LIGHT_X, y + HalloweenDecorationTable.PUMPKIN_LIGHT_Y,
+                    SpriteScale.SCENE_UNITS, lit,
+                )
+            }
+        }
     }
 
     /** How much larger a decoration, a blind's rail and a shutter's slats are drawn on a building of [kind]: see [drawDecorations]. */
@@ -3154,18 +3233,23 @@ class SceneObjectRenderer(
         if (family.kind != WindowBuildingKind.HOUSE && businessOpenness < 1f) {
             drawShut(canvas, deal, family.kind, 1f - businessOpenness, night)
         }
-        // The Christmas decorations (v5.14), lit whether the building is open or shut: a string of bulbs along
-        // the roofline of its top piece, the wreath on its front door, a star on a tower's top ([drawDecorations]);
-        // and the strings under the sills, below.
-        if (customization.christmasDecorationsEnabled) drawDecorations(canvas, r, elapsed, deal, family.kind)
+        // The Christmas decorations (v5.14; *Lights on the buildings* since v5.16), lit whether the building is open or
+        // shut: a string of bulbs along the roofline of its top piece, the wreath on its front door, a star on a tower's
+        // top ([drawDecorations]); and the strings under the sills, below.
+        if (customization.christmasBuildingLightsEnabled) drawDecorations(canvas, r, elapsed, deal, family.kind)
         // Christmas strings hang from the sills the pieces declare, spread over the whole
         // building rather than over one piece, so a tall house does not light its ground floor
         // and nothing else; three in four of a building with more than four, the same ones for good
         // ([ChristmasDecorations.forEachSillString], the gallery card's sequence too).
-        if (customization.christmasDecorationsEnabled) {
+        if (customization.christmasBuildingLightsEnabled) {
             ChristmasDecorations.forEachSillString(deal, r.idleSeed) { x, sillY, width ->
                 drawWindowLights(canvas, r, elapsed, x, sillY, width)
             }
+        }
+        // The Halloween decorations (v5.16), on a house and the three shops, lit whether the shop is open or shut:
+        // never with the Christmas ones above, which the settings keep apart (`DecorationExclusion`).
+        if (customization.halloweenDecorationsEnabled && HalloweenDecorations.decorates(family.kind, storefront)) {
+            drawHalloweenDecorations(canvas, r, elapsed, deal, night)
         }
         val smokes = ChimneySmoke.smokes(customization)
         for (index in 0 until deal.size) {
@@ -3422,7 +3506,7 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Whether this tree stands as a Christmas fir: the Christmas layer on, and one tree in three by
+     * Whether this tree stands as a Christmas fir: *Christmas firs* on, and one tree in three by
      * its own seed ([isFirSeed]). Called only from [drawTree], so the slot is a tree; the companion's
      * [standsAsFir] of a spec is the same rule, asked before the runtime exists.
      */
@@ -3557,10 +3641,11 @@ class SceneObjectRenderer(
         // (-50,-80)..(51,-14) in this lifted space, so its centre is (0.5,-47) and its half
         // extents are 50.5 x 33. The radii below are inset from those for the cushion's scalloped
         // rim, which pulls the silhouette in all along its edge, and for the light's own radius.
-        // The Christmas layer, not the winter one. These hung off `winterColorsEnabled`, which
-        // made a plain snowy January impossible: every winter tree came with fairy lights.
-        if (customization.christmasDecorationsEnabled) {
-            drawChristmasLights(canvas, r, elapsed, centerY = -47f, radiusX = 38f, radiusY = 24f)
+        // A Christmas decoration, not a winter one. These hung off `winterColorsEnabled`, which
+        // made a plain snowy January impossible: every winter tree came with fairy lights. Since v5.16 their own
+        // switch, *Lights on the trees*.
+        if (customization.christmasTreeLightsEnabled) {
+            drawChristmasLights(canvas, r, elapsed, centerY = TREE_LIGHTS_CENTRE_Y, radiusX = TREE_LIGHTS_RADIUS_X, radiusY = TREE_LIGHTS_RADIUS_Y)
         }
         canvas.restore()
     }
@@ -3580,7 +3665,7 @@ class SceneObjectRenderer(
      * it -- so every call allocated an int array, an array of six boxed `Pair<Float, Float>`, a
      * second array for the mapped result and a `List` wrapper, and boxed fourteen floats on the
      * way. The function runs once per tree and once per palm, for every wrap-tile copy of each,
-     * on every frame the Christmas layer is on. Nothing in it depends on the object being drawn,
+     * on every frame *Lights on the trees* is on. Nothing in it depends on the object being drawn,
      * so it is constant data that was being rebuilt in the render loop.
      *
      * Kept as two parallel `FloatArray`s rather than an array of points, because an array of
@@ -3601,8 +3686,8 @@ class SceneObjectRenderer(
      * measured half-width and half-height gets lights inside it by construction, whatever shape
      * that foliage is next redrawn to.
      */
-    private val christmasLightX = floatArrayOf(-0.80f, -0.34f, 0.06f, 0.40f, 0.78f, -0.06f)
-    private val christmasLightY = floatArrayOf(0.10f, -0.52f, 0.46f, -0.52f, 0.14f, -0.08f)
+    private val christmasLightX = CHRISTMAS_LIGHT_X
+    private val christmasLightY = CHRISTMAS_LIGHT_Y
 
     /**
      * Scatters blinking lights across an ellipse of foliage centred on ([centerY]) in whatever
@@ -3681,6 +3766,23 @@ class SceneObjectRenderer(
         canvas.drawLine(-14f, -30f, -32f, -40f, strokePaint)
         canvas.drawLine(14f, -30f, 30f, -36f, strokePaint)
         strokePaint.strokeWidth = 2.5f
+        canvas.restore()
+    }
+
+    /**
+     * A scarecrow on its pole (v5.16, the drawing B of v5.16A, `tools/assets/scarecrow/build_scarecrow.py`): fixed art, so
+     * not darkened at night (the maintainer's rule of 2026-09-15 for fixed art), and swaying as the snowman does, about the
+     * foot of its pole. The candle in its pumpkin lights as the night comes: the light's alpha is how much night it is. In
+     * the place of a snowman that stands too it is drawn [SCARECROW_ASIDE_METRES] to the right ([StaticRuntime.scarecrowAside]).
+     */
+    private fun drawScarecrow(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
+        if (r.scarecrowAside) canvas.translate(SCARECROW_ASIDE_UNITS, 0f)
+        drawGroundShadow(canvas, SCARECROW_SHADOW_HALF_UNITS)
+        canvas.save()
+        canvas.rotate(elapsed.sinAt(1.4f, r.idleSeed) * 2f)
+        drawSprite(canvas, ScarecrowTable.RES, ScarecrowTable.X, ScarecrowTable.Y)
+        val lit = ((1f - dayBlend).coerceIn(0f, 1f) * 255f).toInt()
+        if (lit > 0) sprites.draw(canvas, ScarecrowTable.LIGHT_RES, ScarecrowTable.LIGHT_X, ScarecrowTable.LIGHT_Y, SpriteScale.SCENE_UNITS, lit)
         canvas.restore()
     }
 
@@ -3790,7 +3892,7 @@ class SceneObjectRenderer(
             else ->
                 drawShadedSprite(canvas, R.drawable.palmtree_fronds, crownX, crownY, light)
         }
-        if (customization.christmasDecorationsEnabled) {
+        if (customization.christmasTreeLightsEnabled) {
             // Same derivation as the leafy tree's, from the crown's own content: the 56x48-unit
             // canvas blitted at (-21,-82) spans (-21,-82)..(35,-34), so its centre is (7,-58) and
             // its half extents are 28 x 24. **The centre is no longer over the trunk**, which is

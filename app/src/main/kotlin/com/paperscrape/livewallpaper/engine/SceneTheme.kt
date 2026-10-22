@@ -198,7 +198,8 @@ object ThemeCatalog {
     )
 
     /**
-     * Halloween. The one theme whose defaults switch the two Halloween flags on for the user.
+     * Halloween. The one theme whose defaults switch the two Halloween flags on for the user -- and, since v5.16, every
+     * switch v5.16 added (the night by day among them) and the scarecrows at 50 %.
      *
      * Its own palette is a late-October dusk -- bruised violet overhead, a low amber horizon --
      * and it stands on its own without either flag, because the flags stay user-editable after the

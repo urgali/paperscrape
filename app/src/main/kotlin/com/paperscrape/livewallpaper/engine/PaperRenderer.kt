@@ -18,7 +18,7 @@ import kotlin.random.Random
  *    to be three; see `layerCount`).
  *
  * The renderer keeps state between frames: the scroll accumulator, the cloud-cover fade, the
- * lightning timer, the wave slots and the firework and sleigh effects, plus caches -- the star
+ * lightning timer, the wave slots, the firework, sleigh and Headless Horseman effects and the night by day's phase, plus caches -- the star
  * field (generated once per screen size and star density, so stars don't jump around every
  * frame) and the hill silhouettes.
  *
@@ -329,6 +329,48 @@ class PaperRenderer(
 
     /** How many gifts are falling from the sleigh now: for the GL sweeps that hold it in flight (v5.15C2). */
     internal fun santaGiftsFallingForTest(): Int = santaSleighEffect.giftsFalling
+
+    /** The Headless Horseman's flight and his falling pumpkins (v5.16, [HeadlessHorsemanEffect]). */
+    private val headlessHorsemanEffect = HeadlessHorsemanEffect()
+
+    /** The Headless Horseman, drawn from his pieces (v5.16). */
+    private val headlessHorsemanDrawer = HeadlessHorsemanDrawer(sprites)
+
+    /** The Horseman's scale on this screen ([HeadlessHorsemanScale.pxPerUnit]) and the height it was worked out for. */
+    private var horsemanPxPerUnit = 0f
+    private var horsemanGeometryHeight = -1
+
+    /** A flight of the Horseman set off now, dropping pumpkins at once (v5.16): see [HorsemanFlight.startForTest]. */
+    internal fun startHeadlessHorsemanFlightForTest() {
+        headlessHorsemanEffect.flight.startForTest(screenHeight.toFloat())
+    }
+
+    /** How many pumpkins are falling from the Horseman now (v5.16), for the tests that sweep him in flight. */
+    internal fun horsemanPumpkinsFallingForTest(): Int = headlessHorsemanEffect.dropsFalling
+
+    /**
+     * The night by day (v5.16, [nightOverDayActive]): the phase every layer is drawn with while it is in force, made from
+     * the frame's own -- full night (`dayBlend` 0, no sun), the moon on the sun's path ([SunPositionCalculator.DayPhase.celestialX],
+     * `celestialY`) and the clock's hour ([SunPositionCalculator.DayPhase.hour24]: the opening hours and the windows keep it).
+     * One instance a phase the engine gives (it gives a new one when the hour moves, once a minute), so a frame makes none.
+     */
+    private var nightOverDaySource: SunPositionCalculator.DayPhase? = null
+    private var nightOverDayPhase: SunPositionCalculator.DayPhase? = null
+
+    /** The phase a frame is drawn with: [phase] itself, or -- while the night by day is in force and it is not night -- the night over it. */
+    internal fun nightOverDay(phase: SunPositionCalculator.DayPhase): SunPositionCalculator.DayPhase {
+        if (!sceneCustomization.nightOverDayActive()) return phase
+        if (phase.dayBlend <= 0f && !phase.isSunVisible) return phase
+        val cached = nightOverDayPhase
+        if (cached != null && nightOverDaySource === phase) {
+            cached.moonPhase = phase.moonPhase
+            return cached
+        }
+        val night = NightOverDay.of(phase)
+        nightOverDaySource = phase
+        nightOverDayPhase = night
+        return night
+    }
 
     /**
      * Keeps [objectRenderer] in step with the active theme and configuration.
@@ -892,6 +934,29 @@ class PaperRenderer(
         const val HALLOWEEN_LIGHT_ORIGIN_Y = -42f
 
         /**
+         * The same for the laughing face's light (v5.16), `moon_jack_o_lantern_laugh_light`, which
+         * `tools/assets/moon/build_jack_moon_laugh.py` trims to its face; `tests/test_jack_moon_laugh.py` compares.
+         */
+        const val HALLOWEEN_LAUGH_LIGHT_ORIGIN_X = -70f
+        const val HALLOWEEN_LAUGH_LIGHT_ORIGIN_Y = -45f
+
+        /**
+         * Half the width of a pumpkin falling from the Headless Horseman, in the group's units (v5.16): the sleigh's gift's
+         * [SANTA_GIFT_HALF_UNITS], 9 units across.
+         */
+        const val HORSEMAN_PUMPKIN_HALF_UNITS = 4.5f
+
+        /**
+         * The blood rain's colours (v5.16, the proposal 2 of v5.16A): a night and a day red, blended on the hour as every
+         * colour of the scene, in place of the rain's colours while *Blood rain* is on; then carried off the sky by
+         * [PRECIPITATION_MIN_LUMA_GAP] as the rain's own are. And its drops [BLOOD_RAIN_THICKER] times as thick: at the
+         * rain's own width (about 1.2 px on the BV6600) the red does not read on a dark sky.
+         */
+        const val BLOOD_RAIN_NIGHT = 0xFFB8142A.toInt()
+        const val BLOOD_RAIN_DAY = 0xFFD41C2C.toInt()
+        const val BLOOD_RAIN_THICKER = 2f
+
+        /**
          * The horror sky's four corners: near-black overhead, hard orange at the horizon.
          *
          * Flat paper colours, not a photographic gradient -- the orange is one saturated tone and
@@ -1407,9 +1472,16 @@ class PaperRenderer(
         canvas.restore()
     }
 
-    /** The canvas and clock of the frame being drawn, for the two effect lambdas below; null between frames. */
+    /** The canvas and clock of the frame being drawn, for the three effect lambdas below; null between frames. */
     private var effectCanvas: SceneCanvas? = null
     private var effectElapsed = SceneTime(0.0)
+
+    /** The frame's scene clock, for what is drawn before the effects and moves on it: the moon's laugh (v5.16). */
+    private var frameTime = SceneTime(0.0)
+
+    /** Whether the Halloween moon shows its laughing face this frame, and how far it is shaking ([LaughingMoon], v5.16). */
+    private var laughingNow = false
+    private var moonShakeDegrees = 0f
 
     /** Built once: see the comment where the effects are drawn. */
     private val drawFireworkBurst = FireworkEffect.BurstBlit { x, y, burstScale, alpha ->
@@ -1444,6 +1516,24 @@ class PaperRenderer(
         if (canvas != null) santaSleighDrawer.draw(canvas, x, y, dir, alpha, effectElapsed, sleighPxPerUnit)
     }
 
+    /** Built once, as [drawSleigh]: the Headless Horseman from his pieces at this screen's scale (v5.16). */
+    private val drawHorseman = HeadlessHorsemanEffect.RiderBlit { x, y, dir, alpha ->
+        val canvas = effectCanvas
+        if (canvas != null) headlessHorsemanDrawer.draw(canvas, x, y, dir, alpha, effectElapsed, horsemanPxPerUnit)
+    }
+
+    /** The Horseman's scale, his pumpkins and his margins for this screen's height (v5.16); nothing when it has not changed. */
+    private fun updateHorsemanGeometry() {
+        if (horsemanGeometryHeight == screenHeight) return
+        horsemanGeometryHeight = screenHeight
+        val sc = HeadlessHorsemanScale.pxPerUnit(screenHeight.toFloat())
+        horsemanPxPerUnit = sc
+        headlessHorsemanEffect.setGroupGeometry(
+            dropHalf = HORSEMAN_PUMPKIN_HALF_UNITS * sc,
+            groupHalfWidth = headlessHorsemanDrawer.halfWidthPx(sc),
+        )
+    }
+
     /** The sleigh's scale, its gifts and its margins for this screen's height (v5.15); nothing when it has not changed. */
     private fun updateSleighGeometry() {
         if (sleighGeometryHeight == screenHeight) return
@@ -1458,7 +1548,11 @@ class PaperRenderer(
         )
     }
 
-    fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
+    fun draw(canvas: SceneCanvas, framePhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
+        // Halloween's night sky by day (v5.16): while it is in force every layer below is drawn at night, the sky, the
+        // landscape and the town, and the opening hours keep the clock's hour ([nightOverDay]).
+        val dayPhase = nightOverDay(framePhase)
+        frameTime = elapsedSeconds
         updateWeatherPredicates(deltaSeconds)
         // One direction only, per explicit request -- scrollProgress advances one unit (a screen
         // width at parallax 1.0) every ~25 s at scrollSpeed=1.0, and each layer moves that times
@@ -1573,7 +1667,7 @@ class PaperRenderer(
 
         val fireworksEnabled = theme.hasFireworks && dayPhase.dayBlend < 0.35f
         fireworkEffect.update(deltaSeconds, fireworksEnabled, screenWidth.toFloat(), screenHeight.toFloat())
-        // The two effects draw through member lambdas reading [effectCanvas] and [effectElapsed],
+        // The three effects (the fireworks, the sleigh, the Horseman) draw through member lambdas reading [effectCanvas] and [effectElapsed],
         // not through lambdas written here: a lambda that captures `canvas` is a new object on
         // every frame, which AI_PROJECT_RULES 5.1 forbids on the frame path (v5.8C; v5.8B audit).
         effectCanvas = canvas
@@ -1583,6 +1677,15 @@ class PaperRenderer(
         updateSleighGeometry()
         santaSleighEffect.update(deltaSeconds, sceneCustomization.santaEnabled, screenWidth.toFloat(), screenHeight.toFloat())
         santaSleighEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat(), drawSleigh)
+        // The Headless Horseman (v5.16), the sleigh's way: his own switch, his own flights, by night as by day -- and, the
+        // sleigh updated first, he keeps out of its way: a turn waits while the sleigh is in the sky or due (I-1048, I-1068).
+        updateHorsemanGeometry()
+        val sleighDueIn = if (sceneCustomization.santaEnabled) santaSleighEffect.secondsToFlight else Float.POSITIVE_INFINITY
+        headlessHorsemanEffect.update(
+            deltaSeconds, sceneCustomization.headlessHorsemanEnabled, sleighDueIn,
+            screenWidth.toFloat(), screenHeight.toFloat(),
+        )
+        headlessHorsemanEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat(), drawHorseman)
         effectCanvas = null
 
         // Precipitation and its lightning flash are the closest things in the whole scene --
@@ -1778,7 +1881,13 @@ class PaperRenderer(
         val horizonY = screenHeight * 0.62f
         val riseHeight = screenHeight * sceneCustomization.sky.sunCloudHeight
             .coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
-        val cy = horizonY - dayPhase.celestialY * riseHeight
+        var cy = horizonY - dayPhase.celestialY * riseHeight
+        // The Halloween moon laughing (v5.16, [LaughingMoon]): it hops a little as it laughs; its glow goes with it, the
+        // lake's light reads its x, which the laugh does not move.
+        val laughing = !isSun && sceneCustomization.laughingMoonActive() && LaughingMoon.laughing(frameTime)
+        laughingNow = laughing && LaughingMoon.faceOpen(frameTime)
+        moonShakeDegrees = if (laughing) LaughingMoon.shakeDegrees(frameTime) else 0f
+        if (laughing) cy += LaughingMoon.hop(frameTime) * screenWidth * CELESTIAL_RADIUS_FRACTION * 2f
         celestialShownNow = true
         celestialIsSunNow = isSun
         celestialCxNow = cx
@@ -1885,22 +1994,34 @@ class PaperRenderer(
         if (sceneCustomization.halloweenEnabled) {
             canvas.save()
             canvas.translate(cx, cy)
+            // Laughing (v5.16, [LaughingMoon]): the open face, and the moon shaking with it.
+            if (moonShakeDegrees != 0f) canvas.rotate(moonShakeDegrees)
             canvas.scale(s, s)
             sprites.drawTinted(
                 canvas,
-                R.drawable.moon_jack_o_lantern,
+                if (laughingNow) R.drawable.moon_jack_o_lantern_laugh else R.drawable.moon_jack_o_lantern,
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_SCALE,
                 litColor,
             )
-            sprites.draw(
-                canvas,
-                R.drawable.moon_jack_o_lantern_light,
-                HALLOWEEN_LIGHT_ORIGIN_X,
-                HALLOWEEN_LIGHT_ORIGIN_Y,
-                CELESTIAL_DISC_SCALE,
-            )
+            if (laughingNow) {
+                sprites.draw(
+                    canvas,
+                    R.drawable.moon_jack_o_lantern_laugh_light,
+                    HALLOWEEN_LAUGH_LIGHT_ORIGIN_X,
+                    HALLOWEEN_LAUGH_LIGHT_ORIGIN_Y,
+                    CELESTIAL_DISC_SCALE,
+                )
+            } else {
+                sprites.draw(
+                    canvas,
+                    R.drawable.moon_jack_o_lantern_light,
+                    HALLOWEEN_LIGHT_ORIGIN_X,
+                    HALLOWEEN_LIGHT_ORIGIN_Y,
+                    CELESTIAL_DISC_SCALE,
+                )
+            }
             canvas.restore()
             return
         }
@@ -2342,8 +2463,13 @@ class PaperRenderer(
         }
         // The theme's own colour, which is what the user picked and what the correction below
         // starts from. It is never replaced -- only carried far enough from the sky's brightness
-        // to be seen, and no further. See [PRECIPITATION_MIN_LUMA_GAP].
-        val themeColour = if (isRain) {
+        // to be seen, and no further. See [PRECIPITATION_MIN_LUMA_GAP]. **Except under *Blood rain*** (v5.16): the rain
+        // is red while it is on -- the user's colours stay stored and are back the moment it is off, as the sky's are
+        // under the horror sky -- carried off the sky by the same rule. Snow stays snow.
+        val blood = isRain && sceneCustomization.bloodRainEnabled
+        val themeColour = if (blood) {
+            blendColor(BLOOD_RAIN_NIGHT, BLOOD_RAIN_DAY, dayPhase.dayBlend)
+        } else if (isRain) {
             blendColor(precip.rainColorNight, precip.rainColorDay, dayPhase.dayBlend)
         } else {
             blendColor(precip.snowColorNight, precip.snowColorDay, dayPhase.dayBlend)
@@ -2401,7 +2527,8 @@ class PaperRenderer(
         // paint's alpha byte, rewritten per drop, made of it when it was a circle.
         if (isRain) {
             precipPaint.style = Paint.Style.STROKE
-            precipPaint.strokeWidth = RAIN_STROKE_WIDTH_METRES * metrePx
+            // The blood rain's drops are twice as thick (v5.16, [BLOOD_RAIN_THICKER]); as many, as long, as fast.
+            precipPaint.strokeWidth = RAIN_STROKE_WIDTH_METRES * metrePx * (if (blood) BLOOD_RAIN_THICKER else 1f)
             precipPaint.strokeCap = Paint.Cap.ROUND
         }
         val snowColour = precipPaint.color or 0xFF000000.toInt()
@@ -2898,7 +3025,7 @@ class PaperRenderer(
         val halfWidth = width / 2f
         val night = (1f - dayBlend).coerceIn(0f, 1f)
         val winter = sceneCustomization.winterColorsEnabled
-        val christmas = sceneCustomization.christmasDecorationsEnabled
+        val christmas = sceneCustomization.christmasBuildingLightsEnabled
         val standing = DistantHouses.standingMask(seed, config.density, leftFirst, hidden)
         for (slot in DistantHouses.SLOTS.indices) {
             if (standing and (1 shl slot) == 0) continue

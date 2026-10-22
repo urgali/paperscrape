@@ -45,6 +45,7 @@ import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
+import com.paperscrape.livewallpaper.engine.asSaved
 import com.paperscrape.livewallpaper.engine.keepCandidate
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -660,7 +661,8 @@ internal fun snapshotEntry(
         // A place the loader moved on a saved street is saved where that theme stored it (v5.13B2): the copy
         // keeps its buildings' colours and people, and its next load moves the place the same way.
         placesAsSaved = rawLayout.placesAsSaved,
-    )
+    // Without the scarecrows, which the catalogue lays again when the theme is loaded (v5.16, [asSaved]).
+    ).asSaved()
     return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)
 }
 
