@@ -5,7 +5,7 @@ package com.paperscrape.livewallpaper.engine
  * changes.
  *
  * The wallpaper asks for the day phase once a frame. Its inputs are the scene's hour, which
- * [SunPositionCalculator.currentHour24] holds for a whole minute, today's sunrise and sunset, which
+ * the engine's hour (`PaperWallpaperService.sceneHourNow`) holds for a whole minute, today's sunrise and sunset, which
  * change a few times a day, and the moon's phase, which as a `Float` moves several times a second.
  * Until v5.10B every frame computed a new [SunPositionCalculator.DayPhase] from scratch: one object a
  * frame on the render thread (v5.10A). Here a change of the hour or of the sun's times computes a new

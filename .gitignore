@@ -42,15 +42,15 @@ tools/assets/buildings/out/
 
 # Internal working documents — they belong to the delivery ZIP, not to this repository.
 # Machine setup and session notes, the standing brief, the design reasoning, the
-# release-by-release internal history, the plan of unapproved work, the closed backlogs and
-# the internal delivery reports. They are the working record between the maintainer and
-# whoever is doing the work, and nothing in them is written for a reader of this repository.
+# release-by-release internal history and the plan of the work. They are the working record
+# between the maintainer and whoever is doing the work, and nothing in them is written for a
+# reader of this repository.
 #
 # READ THIS BEFORE ADDING A NAME HERE. A line in this file only stops a path that is *not
 # already tracked*: a path already in the index needs one `git rm -r --cached`, and only the
-# index can say which paths are tracked. The rule and its three steps are AI_PROJECT_RULES.md
-# section 10.3. `BACKLOG_*.md` and `release-verification/` no longer exist in the tree; their
-# lines stay so that a working copy still holding the old files cannot publish them.
+# index can say which paths are tracked. `BACKLOG_*.md`, `docs/` and `release-verification/` no
+# longer exist in the tree; their lines stay so that a working copy still holding the old files
+# cannot publish them.
 CLAUDE.md
 AI_PROJECT_RULES.md
 DESIGN_NOTES.md

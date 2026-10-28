@@ -4,37 +4,37 @@
 
     <!-- Live Weather -->
     <string name="live_weather_title">Live Weather</string>
-    <!-- v5.10D: the theme's own cloud and rain controls are not drawn while the forecast drives them
-         (inventory I-220); "read-only" was the greyed switches that could read off over the forecast's
-         clouds. -->
-    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While on, this theme\'s own Clouds and Rain and snow screens leave those to the forecast; their colours stay yours.</string>
+    <!-- The theme's own cloud and rain controls are not drawn while the forecast drives the sky
+         (SettingsUiModel.forecastOwnsTheWeatherControls): not while the switch is merely on;
+         with no forecast yet, or none to be had, the theme's own weather shows and so do its controls. -->
+    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While the forecast drives the sky, this theme\'s own Clouds and Rain and snow screens leave those to it; their colours stay yours.</string>
     <string name="live_weather_needs_location">Pick a location above first - GPS, Network or Custom - so it knows where to check the weather for.</string>
     <string name="live_weather_fallback_notice">Location unavailable — showing this theme\'s own weather instead.</string>
 
     <!-- Updates -->
-    <!-- "When I open PaperScrape" since v5.10C (the maintainer's decision of 2026-09-30): "automatically"
-         read like a check that runs by itself, and what this switch does on its own is check when
-         these settings open. -->
+    <!-- "When I open PaperScrape": what this switch does on its own is check when these settings
+         open. "Automatically" would read like a check that runs by itself, which this switch alone
+         never starts. -->
     <string name="settings_auto_update_check_title">Check for updates when I open PaperScrape</string>
     <!-- Only the settings-screen check is this switch's own. The check every three hours needs the
          notification switch below as well (UpdateCheckJobs.runOnce): its only job is to feed that
-         notification. Until v5.8 this line promised that check alone; until v5.15 the check ran only
-         while the wallpaper was on screen, and the line said so. -->
+         notification. So this line promises the check at opening, and sends whoever wants the other
+         one to the switch below. -->
     <string name="settings_auto_update_check_subtitle">When on, PaperScrape asks GitHub for a newer release each time you open these settings. To also hear about one when these settings are closed, turn on the notification below. Off by default; the button below always works.</string>
 
-    <!-- The second switch (v5.7D). A row of its own rather than a new meaning for the one above:
+    <!-- The second switch is a row of its own rather than a new meaning for the one above:
          somebody who turned that one on asked for a prompt inside the app, and quietly turning
          that into a notification would be changing what a control they already set means. -->
     <string name="settings_update_notify_title">Notify me about new versions</string>
-    <!-- v5.15, the maintainer's choices of 2026-10-19 (the notification «A», the check «S»): the house
-         at the top is the notification's own icon (ic_stat_update), and the phone's job scheduler checks
-         every three hours (the cadence of 2026-09-30), with the screen off and any wallpaper. "About" and
-         "may make it wait longer": the phone chooses when inside the period, and holds it longer with the
-         screen off for long (UpdateCheckSchedule). -->
+    <!-- The house at the top is the notification's own icon, ic_stat_update
+         (DESIGN_NOTES.md §12, decision 71), and the phone's job scheduler checks every three hours, with
+         the screen off and any wallpaper (decision 72). "About" and "may make it wait longer": the phone
+         chooses when inside the period, and holds it longer with the screen off for long
+         (UpdateCheckSchedule). -->
     <string name="settings_update_notify_subtitle">Shows a small house icon at the top of the screen and a notification in the shade when a newer release appears. No sound and no pop-up. It checks about every three hours, with the screen off and with another wallpaper too; to save battery your phone may make it wait longer.</string>
     <string name="settings_update_notify_needs_check">Needs \"Check for updates when I open PaperScrape\" above: PaperScrape checks on its own only while that is on too. Your choice here is kept until then.</string>
-    <!-- v5.10C: the switch is on only when a notification can really arrive, and each line below says
-         what is missing and what the tap does about it (UpdateNotificationPolicy.notifyRow). -->
+    <!-- The switch reads on only when a notification can really arrive (DESIGN_NOTES.md §12, decision 40),
+         and each line below says what is missing and what the tap does about it (UpdateNotificationPolicy.notifyRow). -->
     <string name="settings_update_notify_blocked">Your phone is not letting PaperScrape show notifications, so nothing would appear. Tap to open the phone\'s page for them.</string>
     <string name="settings_update_notify_blocked_ask">Your phone is not letting PaperScrape show notifications, so nothing would appear. Tap to allow them.</string>
     <string name="settings_update_notify_refused">Notifications were not allowed, so nothing would appear. Tap to allow them.</string>

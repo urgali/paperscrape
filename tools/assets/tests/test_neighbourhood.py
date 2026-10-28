@@ -2,17 +2,14 @@
 
 `build_neighbourhood.py` draws the nine building families and writes four things that have to
 agree: the PNGs, the Kotlin table, the registry entries and the budget. These are the checks that
-the drawing itself is sound -- the ones that used to live in Kotlin against a flat facade and
-cannot any more, because what they were checking is now decided where the piece is drawn.
+the drawing itself is sound, made here because what they check is decided where the piece is drawn.
 
-`SkyscraperCanopyTest` is the one that moved. It read `skyscraper_canopy.png` off the shipped set
-and asserted the rc2 criterion -- *zero frontage pixels outside the building's side edges, and the
-base on the ground line, not straddling it* -- against `SkyscraperSpriteLayout`'s constants. The
-tower has no canopy sprite any more: its canopy is a card of the first tier, declared with
-`host="t1"`, and the generator refuses to render a card that leaves its host face. So the
-criterion is checked here, on the declaration, for **every** card of every piece rather than for
-one sprite of one building -- and the second case below is the one that matters, because a check
-that cannot fail asserts nothing.
+The containment criterion -- *zero frontage pixels outside the building's side edges, and the
+base on the ground line, not straddling it* -- is one of them. The tower's canopy is a card of its
+first tier, declared with `host="t1"`, and the generator refuses to render a card that leaves its
+host face. So the criterion is checked here, on the declaration, for **every** card of every piece
+rather than for one sprite of one building -- and the second case below is the one that matters,
+because a check that cannot fail asserts nothing.
 
 Run from `tools/assets/`:
 
@@ -33,6 +30,7 @@ sys.path.insert(0, str(TOOL_ROOT / "buildings"))
 import core  # noqa: E402
 from core import ContainmentError  # noqa: E402
 from names import production  # noqa: E402
+from paperscrape_assets import raster  # noqa: E402
 
 REPO_ROOT = TOOL_ROOT.parent.parent
 RUNTIME_DIR = REPO_ROOT / "app/src/main/res/drawable-nodpi"
@@ -41,7 +39,7 @@ REGISTRY_PATH = TOOL_ROOT / "sources/sprites.json"
 
 def every_group():
     """Every `Group` of every piece of every family, built fresh -- the tower's three heights and
-    the distant houses (v5.11) included, which belong to no option list of their own."""
+    the distant houses included, which belong to no option list of their own."""
     from build_neighbourhood import families, extras
     groups = []
     pieces = [piece for building in families().values() for slot in building.slots
@@ -97,12 +95,19 @@ class ContainmentTest(unittest.TestCase):
 class ShippedSetTest(unittest.TestCase):
     """What the generator writes is what the app ships."""
 
+    @classmethod
+    def setUpClass(cls):
+        from build_neighbourhood import families, extras
+        from core import build_concept
+        cls.out = TOOL_ROOT / "buildings" / "out"
+        _table, _pieces, cls.files = build_concept("mix", families(), cls.out, extras())
+
     def setUp(self):
         self.shipped = {p.stem for p in RUNTIME_DIR.glob("*.png")}
         self.registry = {s["name"] for s in json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))["sprites"]}
 
     def test_no_shipped_sprite_carries_a_concept_round_name(self):
-        """`k1_` and `k2_` name a proposal round, not a drawing.
+        """`k1_` and `k2_` name a concept, not a drawing.
 
         They are the generator's own names for the two concepts the mix was assembled from, and
         `names.production` exists to keep them out of the shipped set. A `k1_*` in
@@ -112,31 +117,45 @@ class ShippedSetTest(unittest.TestCase):
         self.assertEqual([], stray)
 
     def test_no_shipped_sprite_carries_a_capture_suffix(self):
-        """`_q1` is the capture builds' suffix, which let a concept's PNGs sit beside the shipped
+        """`_q1` is the capture builds' suffix, which lets a concept's PNGs sit beside the shipped
         ones in one `res` directory. Nothing in a delivery may carry it."""
         stray = sorted(n for n in self.shipped if n.endswith(("_q1", "_q2", "_q3")))
         self.assertEqual([], stray)
 
     def test_every_piece_of_the_table_ships_and_is_declared(self):
-        from build_neighbourhood import families, extras
-        from core import build_concept
-        out = TOOL_ROOT / "buildings" / "out"
-        _table, _pieces, files = build_concept("mix", families(), out, extras())
-        for name in sorted(files):
+        for name in sorted(self.files):
             shipped = production(name)
             with self.subTest(sprite=shipped):
                 self.assertIn(shipped, self.shipped, f"{shipped} is in the table but not in res/")
                 self.assertIn(shipped, self.registry, f"{shipped} ships but has no registry entry")
 
+    def test_every_shipped_piece_is_the_generators_drawing_pixel_for_pixel(self):
+        """The drawing, not only the name: every piece the generator draws is the shipped PNG pixel
+        for pixel (`raster.same_output`: the same size, every channel equal).
+
+        The other checks hold the name and the canvas only: a colour changed in `buildings/vocab.py`
+        and the generator run without `--res` leave the old drawings in `res/`, with the Kotlin
+        table and the budget unchanged (the same canvases), and every other test and `validate` green.
+        """
+        png_dir = self.out / "mix" / "png"
+        for name in sorted(self.files):
+            shipped = production(name)
+            with self.subTest(sprite=shipped):
+                self.assertTrue(
+                    raster.same_output(RUNTIME_DIR / f"{shipped}.png", (png_dir / f"{name}.png").read_bytes()),
+                    f"{shipped}.png is not the drawing build_neighbourhood.py makes: run it with --res",
+                )
+
 
 class IdentityDetailTest(unittest.TestCase):
-    """v5.13: every part that says what the shop or a station is measures 2.4 units or more.
+    """Every part that says what the shop or a station is measures 2.4 units or more
+    (`DESIGN_NOTES.md` §12, decision 61).
 
     Each of the six buildings among the houses can stand in any of the five places of the street, and
     the farthest draws a unit at 0.89 px or more on the BV6600 (`StorefrontDetailTest` measures every
     place of every built-in street), so 2.4 units are two pixels there. The numbers the drawings are
     made with are asserted here, and a card that would be thinner is caught by reading the cards: every
-    card of the three new buildings narrower than 2.4 units in either direction is a detail that would
+    card of the shop and the two stations narrower than 2.4 units in either direction is a detail that would
     fall under two pixels, unless it is the shared vocabulary (`_is_vocabulary`)."""
 
     def test_the_floor_is_the_one_the_far_place_needs(self):
@@ -161,9 +180,8 @@ class IdentityDetailTest(unittest.TestCase):
         self.assertEqual([], thin)
 
     def test_the_school_eraser_and_the_bar_emblem_are_the_floor_too(self):
-        """The two identity parts of the buildings of before that v5.13 brought to the floor with the three new
-        ones: the school pencil's eraser (2.2 units until v5.13), measured along the pencil, and the corner
-        bar's red emblem, measured across."""
+        """Two identity parts of the other buildings held to the same floor: the school pencil's eraser,
+        measured along the pencil, and the corner bar's red emblem, measured across."""
         import math
         import civic
         import school
@@ -234,7 +252,7 @@ def _is_vocabulary(fill, w, h):
     the module docstring of `civic.py` says so. Recognised by shape and colour, not by name: a dot of
     1.8 units, or a band at least ten units long in the sills' or the steps' colour. A long band in any
     other colour is an identity part and is held to the floor: the garage doors' panel lines, the
-    engine's bumper, the light bar's base (until v5.13C the length alone let those through)."""
+    engine's bumper, the light bar's base."""
     if abs(w - 1.8) < 0.3 and abs(h - 1.8) < 0.3:
         return True
     return max(w, h) >= 10.0 and fill in (core.CREAM, core.STONE)
@@ -242,9 +260,9 @@ def _is_vocabulary(fill, w, h):
 
 
 class ChristmasPlacesTest(unittest.TestCase):
-    """Where the Christmas decorations hang and the shutter comes down (v5.14), as the generator declares them.
+    """Where the Christmas decorations hang and the shutter comes down, as the generator declares them.
 
-    `build_neighbourhood.py` writes into `NeighbourhoodTable.kt`, beside the sills it always wrote, each top piece's
+    `build_neighbourhood.py` writes into `NeighbourhoodTable.kt`, beside the sills, each top piece's
     roofline and highest point and each piece's front door -- the door's box, the outline its card was cut to and
     its shadow paper's offset -- off the drawing itself (`core.roofline_and_top`, `vocab.door`, `vocab.glass_door`).
     These hold that what the table says is what the generator draws today, and that it is on the drawing."""
@@ -267,8 +285,8 @@ class ChristmasPlacesTest(unittest.TestCase):
                                                  "`python3 -m buildings.build_neighbourhood --res`")
 
     def test_every_building_has_one_front_door_on_its_ground_piece(self):
-        # One: no piece but a ground piece has a door, where the engine would hang a second wreath (v5.14C) -- the
-        # generator already refuses two doors in one piece.
+        # One: no piece but a ground piece has a door, where the engine would hang a second wreath -- the
+        # generator itself refuses two doors in one piece.
         for name in sorted(set(self.pieces) - self.grounds):
             with self.subTest(piece=name):
                 self.assertIsNone(self.pieces[name]["door"], f"{name} is not a ground piece and has a front door")
@@ -303,7 +321,7 @@ class ChristmasPlacesTest(unittest.TestCase):
                 gaps = [(a, b) for a, b in zip(roof, roof[1:]) if math.hypot(b[0] - a[0], b[1] - a[1]) > 2 * core.ROOF_BULB_SPACING]
                 self.assertLessEqual(len(gaps), 1, f"{name}: {gaps}")
                 self.assertIn(name, ("fire_station", "k1_roof_turret_b") if gaps else (name,), f"{name}: a gap {gaps}")
-                # About six units apart (v5.14C: until then any step between 1 and 12 units passed): every step but the
+                # About six units apart: every step but the
                 # one across the sky between half the spacing -- two bulbs either side of a step of the outline -- and
                 # half as much again as the spacing, the length shared out evenly (7.7 on the tall distant house).
                 for step in steps:

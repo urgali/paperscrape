@@ -10,21 +10,19 @@ import org.junit.Test
  *
  * The claims are made against distributions over many seeds rather than against a single lucky
  * one. A generator can technically reach every tone while still being heavily biased, and a
- * single-seed test would pass against exactly the kind of hard-coded table v4.1 exists to remove.
+ * single-seed test would pass against a hard-coded table.
  *
- * ### What this file is about since v4.30, and what it is no longer about
+ * ### The base, and what a figure wears
  *
- * `Pedestrian.skinIndex` is the **base** of a walker's tone and no longer the whole of it: the
+ * `Pedestrian.skinIndex` is the **base** of a walker's tone, not the whole of it: the
  * renderer rotates it by the walker's crossing (`PeopleColours.toneIndex`), so the street re-deals
- * itself as it goes. Everything below is still true and still worth holding — a stratified deal
+ * itself as it goes. Everything below holds the base -- a stratified deal
  * that reaches every tone without bias is exactly what makes a rotation of it worth having, because
  * a rotation is a bijection and cannot improve a deal that was already poor.
  *
- * **`the dealt base does not depend on the clock` says what it tests.** It was called `skin does
- * not depend on the clock`, which asserted the opposite of the product while staying green: it
- * says the *deal* is not a function of the wall clock, a statement about reproducibility that is
- * still true, and not what the wallpaper draws -- since v4.30 the tone a figure wears *does* move
- * with the clock, deliberately, and `PeopleColoursTest` is where that lives.
+ * **`the dealt base does not depend on the clock` says what it tests**: the *deal* is not a function
+ * of the wall clock, a statement about reproducibility, and not what the wallpaper draws -- the tone a
+ * figure wears *does* move with the clock, deliberately, and `PeopleColoursTest` is where that lives.
  */
 class SkinToneTest {
 
@@ -36,7 +34,7 @@ class SkinToneTest {
 
     private fun seeds(n: Int) = (0 until n).map { "theme-$it".hashCode() }
 
-    // ------------------------------------------------------------- 1. count
+    // ---------------------------------------------------------------- count
 
     @Test
     fun `there is more than one skin tone`() {
@@ -44,11 +42,11 @@ class SkinToneTest {
             "SKIN_TONE_COUNT is ${PedestrianPopulation.SKIN_TONE_COUNT}",
             PedestrianPopulation.SKIN_TONE_COUNT > 1,
         )
-        // The brief asked for at least three real variants per character.
+        // At least three real skin variants per character.
         assertTrue(PedestrianPopulation.SKIN_TONE_COUNT >= 3)
     }
 
-    // ------------------------------------------------- 2, 10. determinism
+    // ------------------------------------------------------- determinism
 
     @Test
     fun `the same seed gives the same person the same skin`() {
@@ -67,14 +65,14 @@ class SkinToneTest {
     fun `the dealt base does not depend on the clock`() {
         // The deal is reproducible; what the figure *wears* is the deal rotated by its crossing,
         // and that does move with the clock. See this class's own doc.
-        // Not "call, sleep 5 ms, call again", which a rule reading the clock by the second passes
-        // (v5.8B): the file that deals the base names no clock ([ClockFreeSource]).
+        // Not "call, sleep 5 ms, call again", which a rule reading the clock by the second passes:
+        // the file that deals the base names no clock ([ClockFreeSource]).
         assertEquals(emptyList<String>(), ClockFreeSource.clockReadsIn("engine/PedestrianPopulation.kt"))
         val before = build(4242).map { it.skinIndex }
         assertEquals(before, build(4242).map { it.skinIndex })
     }
 
-    // ------------------------------------------------ 3, 4. reachability
+    // ------------------------------------------------------ reachability
 
     @Test
     fun `every skin tone is reachable, and no tone dominates`() {
@@ -101,7 +99,7 @@ class SkinToneTest {
         assertTrue("the leading figure was always tone $firstPersonTones", firstPersonTones.size > 1)
     }
 
-    // -------------------------------------------- 5. direction independence
+    // ----------------------------------------------- direction independence
 
     @Test
     fun `every skin tone is reachable in both directions`() {
@@ -139,7 +137,7 @@ class SkinToneTest {
         }
     }
 
-    // ------------------------------------------ 6. age and sex independence
+    // --------------------------------------------- age and sex independence
 
     @Test
     fun `every skin tone is reachable for adults, children, males and females`() {
@@ -203,7 +201,7 @@ class SkinToneTest {
         assertTrue("an adult and a child always shared a skin tone", found)
     }
 
-    // --------------------------------------------- 7. group independence
+    // ------------------------------------------------ group independence
 
     @Test
     fun `two members of one group can have different skins`() {
@@ -240,7 +238,7 @@ class SkinToneTest {
         for ((size, tones) in bySize) assertEquals("groups of $size", all, tones)
     }
 
-    // -------------------------------------------- 8. window independence
+    // ----------------------------------------------- window independence
 
     @Test
     fun `window occupants use every skin tone, in every building kind`() {
@@ -252,8 +250,8 @@ class SkinToneTest {
                     val buildingSeed = b * 100_003
                     for (w in 0 until 8) {
                         if (WindowOccupants.isOccupied(seed, buildingSeed, w, 8, kind)) {
-                            // The kind is passed since v5.6F: it reaches the occupant now, and a
-                            // sweep that dropped it would be asserting about a house four times.
+                            // The kind is passed: it reaches the occupant, and a sweep that
+                            // dropped it would be asserting about a house four times.
                             tones += WindowOccupants.occupantAt(seed, buildingSeed, w, kind).skinIndex
                         }
                     }
@@ -300,7 +298,7 @@ class SkinToneTest {
         }
     }
 
-    // ---------------------------------------- 11. mutation: skinIndex ignored
+    // -------------------------------------------- mutation: skinIndex ignored
 
     /**
      * The regression this whole suite exists for: somebody drops the tone and always draws 0.

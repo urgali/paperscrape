@@ -3,21 +3,20 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * The Halloween decorations of the houses and the shops (v5.16), in the building's piece units: where each piece blits
- * from the point it hangs from or stands on ([HalloweenDecorations] says where those are). **Generated** by
+ * The Halloween decorations of the houses and the shops (one cobweb a roof, no bat), in the building's piece
+ * units: where each piece blits from the point it hangs from or stands on ([HalloweenDecorations] says where those are).
+ * **Generated** by
  * `tools/assets/halloween/build_halloween_deco.py` from the geometry it draws the SVGs with; edit that script, not this
  * file.
  */
 internal object HalloweenDecorationTable {
-    /** The cobweb in the left corner of a roof, from the corner it hangs in (mirrored at the right corner). */
+    /**
+     * The cobweb in the left corner of a roof, from the corner it hangs in (mirrored in the right corner): a white mask,
+     * tinted as the walls choose ([HalloweenDecorations.webTintAt]; at rest, [HalloweenDecorations.webTintOn]).
+     */
     val WEB_RES = R.drawable.deco_cobweb
     const val WEB_X = -2.00f
     const val WEB_Y = -2.00f
-
-    /** The bat, from the point of the roofline it hangs from by its feet. */
-    val BAT_RES = R.drawable.deco_bat
-    const val BAT_X = -10.00f
-    const val BAT_Y = -1.00f
 
     /** The jack-o'-lantern by a front door, from its bottom's middle, where it stands. */
     val PUMPKIN_RES = R.drawable.deco_jack_o_lantern

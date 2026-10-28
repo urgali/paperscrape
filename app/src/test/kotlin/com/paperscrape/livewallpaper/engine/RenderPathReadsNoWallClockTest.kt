@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -10,20 +11,20 @@ import java.io.File
  *
  * `PaperRenderer` composes a frame and `SceneObjectRenderer` draws the objects in it, and
  * everything they need is handed to them --- the size, the theme, the customisation, the scene
- * clock, the day phase. Until v5.4G one line was not: `drawMoonWithPhase` called
- * `SunPositionCalculator.moonPhase()`, whose default argument is `System.currentTimeMillis()`, and
- * the moon in a golden frame was therefore chosen by the phone rather than by the scene. The
- * goldens `night` and `shops-closed-night` passed at 19:02 and failed by 17 and 39 pixels at 22:25
- * on the same build, because the real moon had crossed from crescent to half.
+ * clock, the day phase. A `drawMoonWithPhase` that called `SunPositionCalculator.moonPhase()`,
+ * whose default argument is `System.currentTimeMillis()`, would draw the moon in a golden frame
+ * chosen by the phone rather than by the scene: the goldens `night` and `shops-closed-night` would
+ * pass at 19:02 and fail by 17 and 39 pixels at 22:25 on the same build, because the real moon
+ * crosses from crescent to half.
  *
- * ### The render path, and why these files (v5.9B, inventory I-45)
+ * ### The render path, and why these files
  *
- * Until v5.9B this read the two renderers and nothing else, while the frame is drawn by more than
- * two files: the colours come from `SkyGradient`, `SceneColour` and `DayNightColor`, the geometry
- * from `SceneSpace`, the effects from `FireworkEffect` and `SantaSleighEffect`, the pixels from
- * `CanvasSceneTarget`, `GlSceneTarget`, `SpriteBlitter`, `SpriteCache` and the GL texture cache. A
- * clock read in any of those reaches a golden exactly as the moon's did, and this test could not
- * see it. So the render path is now **every Kotlin file of the `engine` package** -- which is where
+ * The frame is drawn by more than the two renderers: the colours come from `SkyGradient`,
+ * `SceneColour` and `DayNightColor`, the geometry from `SceneSpace`, the effects from
+ * `FireworkEffect` and `SantaSleighEffect`, the pixels from `CanvasSceneTarget`, `GlSceneTarget`,
+ * `SpriteBlitter`, `SpriteCache` and the GL texture cache. A clock read in any of those reaches a
+ * golden exactly as the moon's would, and a scan of the two renderers alone could not see it. So
+ * the render path is **every Kotlin file of the `engine` package** -- which is where
  * everything that composes or draws a frame lives, and where the scene model the renderers read
  * lives too -- **plus `ui/ThemePreview.kt`**, the one UI file that paints a scene (the gallery and
  * settings cards, from `ThemePreviewScene`, which is in `engine`). Asked of the tree, not listed:
@@ -34,8 +35,8 @@ import java.io.File
  * answer in -- the wallpaper service, which is where this app is allowed to read a clock, and the two
  * calendars it asks for today's theme and today's sunrise. Each carries its reason, and each has to
  * still read a clock or the entry is stale and fails. And inside `SunPositionCalculator`, which the
- * renderers do use (`DayPhase`, `compute`), the two functions that are clocks -- [doors] -- are cut
- * out of the scan, and no render-path file may call them.
+ * renderers do use (`DayPhase`, `compute`), the one function that is a clock, `moonPhase` -- [doors] --
+ * is cut out of the scan, and no render-path file may call it.
  *
  * ### Why this exists beside the behavioural check
  *
@@ -71,7 +72,6 @@ class RenderPathReadsNoWallClockTest {
         "Instant.now",
         "Calendar.getInstance",
         "SunPositionCalculator.moonPhase(",
-        "SunPositionCalculator.currentHour24(",
     )
 
     /** The engine files that are not on the render path, and why. Checked in both directions. */
@@ -91,7 +91,7 @@ class RenderPathReadsNoWallClockTest {
 
     /** The functions inside the render path that are clocks: cut out of the scan, and never called from it. */
     private val doors = mapOf(
-        "SunPositionCalculator.kt" to listOf("fun currentHour24(", "fun moonPhase("),
+        "SunPositionCalculator.kt" to listOf("fun moonPhase("),
     )
 
     /** And the boundary files' own entry points, which no render-path file may call either. */
@@ -151,7 +151,28 @@ class RenderPathReadsNoWallClockTest {
     }
 
     /**
-     * **The rule bites, on a file the old two-file list could not see.** The scan is run over a copy
+     * **The calculator keeps one clock, the moon's.** The hour a frame is drawn at is worked out by the wallpaper
+     * service from its own reading of the clock (`SolarDaySchedule.sceneHour`, on the offset of its sun times) and
+     * handed in. A function here that answered the hour from the clock would be one more door for a render-path file
+     * to open: it fails here by its name, and, with no door declared for it, its clock read fails the scan above.
+     */
+    @Test
+    fun theCalculatorHasNoClockButTheMoons() {
+        val functions = SunPositionCalculator::class.java.declaredMethods.map { it.name }.toSet()
+        assertTrue("moonPhase is the door this class declares", "moonPhase" in functions)
+        assertFalse(
+            "SunPositionCalculator answers the hour from the clock again: the frame's hour is the service's " +
+                "(SolarDaySchedule.sceneHour), handed in",
+            "currentHour24" in functions,
+        )
+        assertFalse(
+            "SunPositionCalculator has its own hour of an instant again, beside SolarDaySchedule.sceneHour's, which the app reads",
+            "hourAt" in functions,
+        )
+    }
+
+    /**
+     * **The rule bites, on a file outside the two renderers.** The scan is run over a copy
      * of `SkyGradient.kt` with one clock read planted in it, and must find it on its line.
      */
     @Test

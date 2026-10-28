@@ -20,19 +20,15 @@ import org.junit.Test
  *
  * ### Why a fuzzer and not more example documents
  *
- * The v5.3B security audit found that the promise was broken, and it found it by *breaking* the
- * documents rather than by reading the code. A 129-byte backup with `"colorDay1":"nope"` closed the
- * app: `engine/CustomThemeData.kt` read four of its dozens of colours with `getInt`, which throws
- * on a present-but-wrong value, where every sibling colour used `optInt`, which does not. Four
- * lines out of step with a dozen others is exactly the kind of thing example-based tests miss --
- * every example anybody thought to write had an integer there.
+ * A break in that promise is found by *breaking* the documents, not by reading the code. A colour read
+ * with `getInt`, which throws on a present-but-wrong value (a backup with `"colorDay1":"nope"`), among
+ * siblings read with `optInt`, which does not, is a line out of step with a dozen others: exactly the
+ * kind of thing example-based tests miss, because every example anybody thinks to write has an
+ * integer there.
  *
- * **And it needs no attacker.** The audit found it by flipping one character at random, which is
- * what a half-finished download or an ageing SD card does. A backup is the thing you reach for
- * when something has *already* gone wrong; it is the worst possible moment for the app to vanish.
- *
- * So the defect is fixed *and* the check that found it stays: `BACKLOG` policy after v5.3B is that
- * a defect found by a new check earns that check a place in the suite.
+ * **And it needs no attacker.** One character flipped at random is what a half-finished download
+ * or an ageing SD card does. A backup is the thing you reach for when something has *already* gone
+ * wrong; it is the worst possible moment for the app to vanish.
  *
  * ### What it does
  *
@@ -43,21 +39,18 @@ import org.junit.Test
  * and ±`1e300`. Every escaping `Throwable` is counted and its first signature recorded under
  * `build/reports/fuzz/`.
  *
- * ### Accepted means writable (v5.8)
+ * ### Accepted means writable
  *
- * "Never throws" was checked only up to the parser's `return`, and that is not where the app died.
- * The v5.7 assessment closed the app on the BV6600 with a **173-byte backup** whose one house had
- * `"scale":1e300`: finite as a `Double`, so the finiteness check let it through, infinite as the
- * `Float` it became, so the import's own staging copy -- `CustomThemeData.toJsonString` -- threw
- * `Forbidden numeric value: Infinity` a line later, outside any catch. So every document a parser
- * accepts is now also **written back** here, the way the import is about to, and a throw there
- * counts exactly like a throw in the parser. `1e300` joined the mutations, and the assessment's own
- * file is pinned by name below.
+ * "Never throws" holds past the parser's `return`. A **173-byte backup** whose one house has
+ * `"scale":1e300` is finite as a `Double`, so a finiteness check lets it through, and infinite as the
+ * `Float` it becomes, so the import's own staging copy -- `CustomThemeData.toJsonString` -- would
+ * throw `Forbidden numeric value: Infinity` a line later, outside any catch. So every document a
+ * parser accepts is also **written back** here, the way the import is about to, and a throw there
+ * counts exactly like a throw in the parser. `1e300` is among the mutations, and that file is pinned
+ * by name below.
  *
- * **And adding the value was not enough.** With the fix reverted, the structural pass still came
- * back green: it reaches a number three objects deep about once in fifty thousand mutations, which
- * is also why it had never found this. The numeric pass walks every leaf instead, and with the fix
- * reverted it goes red (`consegna_v5_8a/registri`, mutation M3).
+ * **And the value among the mutations is not enough**: the structural pass reaches a number three
+ * objects deep about once in fifty thousand mutations. The numeric pass walks every leaf instead.
  *
  * ### The mutation control is not optional
  *
@@ -67,9 +60,8 @@ import org.junit.Test
  * silently, the two above are worthless.
  *
  * A note on the classpath: `org.json:json` is a unit-test-only dependency (see
- * `app/build.gradle.kts`) and Android's own implementation is Harmony-derived, not identical. The
- * audit confirmed this particular defect on the device with an instrumented test before fixing it;
- * for the general "never throws" shape the two implementations agree, and the JVM is where 60 000
+ * `app/build.gradle.kts`) and Android's own implementation is Harmony-derived, not identical. For
+ * the general "never throws" shape the two implementations agree, and the JVM is where 60 000
  * parses in a few seconds are affordable.
  */
 class ImportParserFuzzTest {
@@ -93,8 +85,8 @@ class ImportParserFuzzTest {
             10 -> JSONArray(listOf(1, 2, 3))
             11 -> "x".repeat(4096)
             12 -> true
-            // Finite as a Double, infinite as a Float: the value the v5.7 assessment's 173-byte
-            // backup carried, and the one no other mutation here produces.
+            // Finite as a Double, infinite as a Float: the value the 173-byte backup below
+            // carries, and the one no other mutation here produces.
             13 -> 1e300
             else -> when (node) {
                 is JSONObject -> {
@@ -125,7 +117,7 @@ class ImportParserFuzzTest {
      * Throws [mutations] at [parse] and returns how many `Throwable`s escaped.
      *
      * The seed is fixed so a failure is reproducible: a run that reports an escape can be replayed
-     * exactly, which is how the original 129-byte document was minimised.
+     * exactly, and its document minimised.
      */
     private fun fuzz(name: String, valid: String, parse: (String) -> Any): Int {
         val rnd = Random(SEED)
@@ -192,13 +184,12 @@ class ImportParserFuzzTest {
             }
         }
 
-        // 3. every number in the document, replaced in turn by every hostile number (v5.8).
+        // 3. every number in the document, replaced in turn by every hostile number.
         //
         // The structural pass above replaces a node *or* descends into it, one level at a time, so
         // a number three objects deep -- a house's density in a theme's customization -- is reached
-        // about once in fifty thousand mutations. That is how `"scale":1e300` went unfound: this
-        // fuzzer was already running when a 173-byte file closed the app. Walking the leaves makes
-        // reaching every number certain rather than likely.
+        // about once in fifty thousand mutations. Walking the leaves makes reaching every number
+        // certain rather than likely.
         var numbers = 0
         for (path in numericLeaves(JSONObject(valid))) {
             for (hostile in HOSTILE_NUMBERS) {
@@ -308,7 +299,7 @@ class ImportParserFuzzTest {
 
     @Test
     fun `the assessment's 173-byte backup is taken without closing the app`() {
-        // Byte for byte the file of assessment v5.7, registri/strumenti/prova_import_A_backup.json.
+        // Byte for byte a 173-byte backup whose one house has a scale of 1e300.
         val raw = "{\"kind\":\"paperscrape-app-backup\",\"schemaVersion\":1,\"settings\":{}," +
             "\"customThemeSchemaVersion\":1,\"customThemes\":[{\"layout\":{\"staticObjects\":" +
             "[{\"type\":\"HOUSE\",\"scale\":1e300}]}}]}"
@@ -319,14 +310,14 @@ class ImportParserFuzzTest {
 
     @Test
     fun `a backup's own numbers fall back when they are not finite`() {
-        // The five settings numbers were read raw until v5.8: accepted, stored, and then refused by
-        // every export. They take the default now, as every number in the theme half already did.
+        // The five settings numbers take the default when they are not finite, as every number in
+        // the theme half does: read raw, they would be accepted, stored, and then refused by every
+        // export.
         //
         // Numbers, not the strings "NaN" and "Infinity". Measured: this classpath's reference
         // org.json answers `optDouble` on the string "NaN" with the default, where Android's reads
-        // it as NaN (see BCK-03 in CustomThemeData.kt) -- so a string here would pass on the JVM
-        // with the fix reverted, and did (mutation M4). ±1e300 is a number to both, and infinite
-        // only once it is a Float.
+        // it as NaN (see `requireFinite` in CustomThemeData.kt) -- so a string here would pass on the JVM
+        // without the fallback. ±1e300 is a number to both, and infinite only once it is a Float.
         val raw = validBackup().let { JSONObject(it) }.apply {
             getJSONObject("settings").apply {
                 put("fixedHour", 1e300)

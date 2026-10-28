@@ -7,6 +7,7 @@ import android.opengl.Matrix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.nio.ShortBuffer
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -15,75 +16,38 @@ import kotlin.math.sin
 /**
  * The OpenGL ES 2.0 backend: the same [SceneCanvas] operations, turned into triangles.
  *
- * ## Coordinate space
+ * **Coordinates** are the `Canvas` ones -- pixels, top-left origin, Y down -- so every coordinate, sprite
+ * origin and depth constant of the scene means the same on both backends. **The transform**
+ * (`save`/`translate`/`scale`/`rotate`, [SceneTransform]) is applied on the CPU as vertices are written: a
+ * matrix uniform would end the batch at every `save()`, and the scene changes transform far more often than
+ * texture.
  *
- * The projection is an orthographic matrix mapping `(0,0)` to the top-left of the surface and
- * `(width, height)` to the bottom-right — pixels, with Y increasing downwards, exactly the space
- * `Canvas` works in. That is the single most load-bearing decision in this class: it means every
- * coordinate, sprite origin, depth constant and historical divisor in the scene keeps its existing
- * value and its existing meaning. A world space in normalised units would have required rescaling
- * all of them, and a sprite whose origin is only correct together with its scale convention is
- * precisely how defect D-1 happened.
+ * **The batch**: vertices go into one interleaved buffer, each triangle names its three corners by index, and
+ * one `glDrawElements` draws it. A quad's and a circle fan's shared points are written once ([putVertex],
+ * [tri]): a quad is 6 corners and 4 vertices, a fan of n slices 3n and n + 2; a wedge, a shape and the
+ * gradient rectangle write a vertex per corner. The batch is cut on the corners ([MAX_VERTICES],
+ * [ensureRoom]), which the written vertices never exceed, and flushed when the bound texture changes. Every
+ * sprite and the flat-fill white pixel share one [GlTextureAtlas], so sprites and solid shapes interleave in
+ * one draw; only a standalone texture ends a batch.
  *
- * ## Transform stack
- *
- * `save`/`restore`/`translate`/`scale`/`rotate` maintain a 2x3 affine transform in a flat
- * `FloatArray` stack, and vertices are transformed on the CPU as they are emitted. The alternative —
- * a model matrix uniform per transform change — would end a batch at every `save()`, and the scene
- * changes transform far more often than it changes texture.
- *
- * ## Batching
- *
- * Vertices accumulate into one interleaved buffer and are flushed when the bound texture changes or
- * the buffer fills. Because flat fills sample a 1x1 white texture rather than using a second shader,
- * a run of solid shapes between two sprites does not split the batch — and a long run of the same
- * sprite (the star field's sparkles) or of flat fills (the rain) shares one draw call until the
- * buffer fills; full-intensity rain alone overflows it (see [MAX_VERTICES]).
- *
- * Since v4.29 every sprite and the flat-fill white pixel share one [GlTextureAtlas], so a scene
- * object alternating sprites and flat parts no longer flushes between them; only a standalone
- * texture — the twelve-theme census finds none — still ends a batch.
- *
- * ## Curve tessellation
- *
- * Circles, ovals, arcs and wedges are tessellated at a segment count derived from their radius *in
- * device pixels* — the local radius scaled by the current transform — so a shape drawn inside a
- * `canvas.scale(1/3)` sprite transform is not tessellated as though it were three times larger.
- *
- * ## Allocation
- *
- * Nothing here allocates per frame. The vertex buffer, the transform stack and every matrix are
- * allocated once in the constructor; primitive generation writes into them in place.
- *
- * ## Work done once rather than per vertex (v5.10B)
- *
- * A point shared by two triangles -- a quad's diagonal, a fan's centre and its previous rim point --
- * is mapped through [transform] once and written as many times as it is used ([mappedVertex]), where
- * it used to be mapped once per use; the circle slices' `cos` and `sin` come from [CircleTable]; a
- * hill column wholly off the surface is not emitted. **Each of these is the same float, or no sample,
- * so the frame is the same frame**: mapping the same inputs gives the same float, the table holds the
- * loop's own values bit for bit, and a triangle that covers no sample of the surface draws nothing.
- * Measured on the BV6600 against v5.9 in alternated runs (v5.10A, trial variant `geom`): -12 % of a core
- * at noon and -15 % at midnight, with the golden frames identical to the byte.
+ * **Curves** get a segment count from their radius in device pixels, so a shape inside a `scale(1/3)` sprite
+ * transform is not tessellated as if three times larger. **Nothing allocates per frame.** A shared point is
+ * mapped once, [CircleTable] holds the loop's own `cos` and `sin` bit for bit, and a hill column off the
+ * surface is not emitted: the same floats, or no sample, so the same frame.
  */
 internal class GlSceneTarget : SceneCanvas {
 
     private val program = GlSpriteProgram()
     private val textures = GlTextureCache()
 
-    /**
-     * What the texture cache is holding, for the measurements a release has to report.
-     *
-     * Read-only and never consulted by the draw path. See [GlTextureCache.standaloneCount] for why
-     * the second of these three numbers is the one that matters.
-     */
+    /** What the texture cache holds, for the measurements; never read by the draw path. */
     val uploadedEntries: Int get() = textures.size
 
     val standaloneTextures: Int get() = textures.standaloneCount
 
     val atlasRowsUsed: Int get() = textures.atlasRowsUsed
 
-    /** Whether the texture cache holds [resId] at some level (the GL sweeps' check, v5.15C2). */
+    /** Whether the texture cache holds [resId] at some level, for the GL sweeps. */
     fun holdsSprite(resId: Int): Boolean = textures.holds(resId)
 
     private val vertexData = FloatArray(MAX_VERTICES * GlSpriteProgram.FLOATS_PER_VERTEX)
@@ -92,8 +56,17 @@ internal class GlSceneTarget : SceneCanvas {
         .order(ByteOrder.nativeOrder())
         .asFloatBuffer()
 
+    /** Vertices written into [vertexData] since the last flush; [writeIndex] is where the next one goes. */
     private var vertexCount = 0
     private var writeIndex = 0
+
+    /** The batch's triangles, three vertex indices each; [indexCount] counts the corners. Under [MAX_VERTICES], a short. */
+    private val indexData = ShortArray(MAX_VERTICES)
+    private var indexCount = 0
+    private val indexBuffer: ShortBuffer = ByteBuffer
+        .allocateDirect(MAX_VERTICES * 2)
+        .order(ByteOrder.nativeOrder())
+        .asShortBuffer()
     private var boundTexture = 0
 
     /** Registry index of the 1x1 white pixel, or -1 before it has been packed. */
@@ -111,9 +84,8 @@ internal class GlSceneTarget : SceneCanvas {
     private var surfaceHeight = 0
 
     /**
-     * True once the program and the white pixel are built; false before that, after a lost or
-     * released context, or when either failed -- the render thread then rebuilds, and falls back
-     * only when that fails, rather than drawing nothing forever.
+     * True once the program and the white pixel are built; false otherwise, and the render thread then
+     * rebuilds, falling back only when that fails, rather than drawing nothing forever.
      */
     var isUsable = false
         private set
@@ -133,8 +105,7 @@ internal class GlSceneTarget : SceneCanvas {
         GLES20.glDisable(GLES20.GL_DEPTH_TEST)
         GLES20.glDisable(GLES20.GL_CULL_FACE)
         GLES20.glEnable(GLES20.GL_BLEND)
-        // Premultiplied source. See GlSpriteProgram for why this pairing is not interchangeable
-        // with the GL_SRC_ALPHA form.
+        // Premultiplied source; GlSpriteProgram says why the GL_SRC_ALPHA form would not do.
         GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         return true
     }
@@ -157,6 +128,7 @@ internal class GlSceneTarget : SceneCanvas {
         boundTexture = 0
         vertexCount = 0
         writeIndex = 0
+        indexCount = 0
         isUsable = false
     }
 
@@ -172,37 +144,25 @@ internal class GlSceneTarget : SceneCanvas {
     }
 
     /**
-     * Drops every uploaded sprite texture in response to memory pressure.
-     *
-     * Each is re-uploaded from [SpriteCache] on next use, so this costs a re-upload and never a
-     * missing sprite. Called only from the render thread.
+     * The trim of a wallpaper that is drawing ([MemoryPressurePolicy.gpuTrimFor]): the standalone textures go (uploaded
+     * again from [SpriteCache] on next use); the atlas page stays, since the next frame would re-create it at once,
+     * upload every sprite again and give nothing back. Render thread only, context current.
      */
     fun trimTextures() {
         flush()
-        textures.clear()
+        textures.clearStandalone()
         boundTexture = 0
-        // The white pixel lives in the atlas, so it goes with everything else and has to be the
-        // first thing packed back in — both because flat geometry cannot be drawn without it, and
-        // because being first is what keeps it in the atlas rather than pushed out to a texture of
-        // its own once the atlas fills.
-        //
-        // **The result is not optional.** Dropping it left `isUsable` true with `whiteTexture` at
-        // 0, so every flat fill afterwards bound texture zero and drew black, with nothing able to
-        // repair it. Reporting the failure the same way `onContextCreated` does puts the target
-        // back into the state that makes the next prepared frame rebuild it.
-        if (!registerWhitePixel()) isUsable = false
+        // The entries are renumbered, so the white pixel is looked up, and packed back if gone (a flat fill without it
+        // draws black); a failure leaves the target unusable, so the next prepared frame rebuilds it.
+        whiteIndex = textures.find(WHITE_PIXEL_KEY, 0)
+        if (whiteIndex < 0 && !registerWhitePixel()) isUsable = false
     }
 
     /**
-     * [trimTextures] for a wallpaper that is not drawing: every texture goes, **the white pixel
-     * included**, and the white pixel is packed again only when the next frame is prepared
-     * ([prepareForFrame]).
-     *
-     * [trimTextures] packs the white pixel straight back, because a frame is about to use it, and
-     * packing even one texel re-creates the whole 2048x2048 atlas page: asked for while hidden, it
-     * gave back nothing -- the GL memory read 25 438 kB before and 25 443 kB after (v5.10A, the
-     * BV6600, screen off). With the white pixel owed instead, the same trim read 27 486 -> 11 071 kB,
-     * 16.4 MB given back; the next visible frame packs it, as it re-uploads every sprite anyway.
+     * The trim of a wallpaper that is not drawing ([MemoryPressurePolicy.gpuTrimFor]): every texture goes, the atlas
+     * and the white pixel included, and the white pixel is packed again only when the next frame is prepared
+     * ([prepareForFrame]). Packing even one texel re-creates the whole 2048x2048 atlas page, so a white pixel packed
+     * straight back would give nothing back (owed instead, the trim gives back about 16 MB on the BV6600).
      */
     fun trimTexturesWhileHidden() {
         flush()
@@ -217,10 +177,8 @@ internal class GlSceneTarget : SceneCanvas {
     private var whitePixelOwed = false
 
     /**
-     * Packs the white pixel [trimTexturesWhileHidden] left owed. Called by the render thread on
-     * every prepared frame, with the context current and before [beginFrame]; a no-op otherwise.
-     * A failure leaves [isUsable] false, the state in which the render thread rebuilds the target
-     * before drawing -- the same answer [trimTextures] gives to the same failure.
+     * Packs the white pixel [trimTexturesWhileHidden] left owed, before [beginFrame] of every prepared frame. A failure
+     * leaves [isUsable] false, so the render thread rebuilds the target before drawing.
      */
     fun prepareForFrame() {
         if (!whitePixelOwed) return
@@ -229,12 +187,8 @@ internal class GlSceneTarget : SceneCanvas {
     }
 
     /**
-     * Packs the flat-fill white pixel and caches the coordinates every solid vertex uses.
-     *
-     * The UV is taken from the *centre* of the entry rather than its corner. A 1x1 entry is a single
-     * texel with a transparent border, and sampling at its corner would sit exactly on the boundary
-     * between the texel and that border — where bilinear filtering would mix in the transparency and
-     * make every flat fill half-alpha. The centre is the only sampling point that is unambiguous.
+     * Packs the flat-fill white pixel and caches its UV: the entry's *centre*, since at its corner bilinear
+     * filtering would mix in the transparent padding and make every flat fill half-alpha.
      */
     private fun registerWhitePixel(): Boolean {
         whiteIndex = textures.registerWhitePixel(WHITE_PIXEL_KEY)
@@ -253,8 +207,10 @@ internal class GlSceneTarget : SceneCanvas {
     fun beginFrame() {
         vertexCount = 0
         writeIndex = 0
+        indexCount = 0
         drawCalls = 0
         drawnVertices = 0L
+        writtenVertices = 0L
         spriteBlits = 0
         boundTexture = 0
         transform.reset()
@@ -269,20 +225,9 @@ internal class GlSceneTarget : SceneCanvas {
     }
 
     /**
-     * How many `glDrawArrays` this target has issued since [beginFrame], and how many vertices went
-     * with them.
-     *
-     * **A counter rather than an argument, because the argument has been wrong here before.** The
-     * batch ends only when the texture changes or the vertex buffer fills, every sprite has lived
-     * in one atlas since v4.29, and v4.30 draws a person in up to five layers -- so the arithmetic
-     * says a crowded frame is still one draw call. The plan v4.30 was written from had predicted
-     * "three draws per pedestrian, twenty-four more per frame" from the same kind of arithmetic and
-     * was wrong by the whole of it. `GlDrawCallTest` reads these two numbers off a real crowded
-     * frame on the device instead.
-     *
-     * Two increments in a function that already builds a vertex buffer and issues a draw: the cost
-     * is not measurable beside what it counts, and it is the only thing that makes the claim
-     * checkable rather than restated.
+     * The draws (`glDrawElements`) issued since [beginFrame], and their triangle corners ([drawnVertices], what
+     * [MAX_VERTICES] cuts on): counted, not predicted from the batching rules, so `GlDrawCallTest` reads them off a
+     * real crowded frame on the device.
      */
     var drawCalls = 0
         private set
@@ -290,23 +235,32 @@ internal class GlSceneTarget : SceneCanvas {
     var drawnVertices = 0L
         private set
 
+    /** How many distinct vertices those draws wrote: a quad's four corners once, a fan's centre once. */
+    var writtenVertices = 0L
+        private set
+
     /** How many sprite blits went into those draws, so a layer's six vertices can be seen. */
     var spriteBlits = 0
         private set
 
     private fun flush() {
-        if (vertexCount == 0) return
+        if (indexCount == 0) return
         drawCalls++
-        drawnVertices += vertexCount
+        drawnVertices += indexCount
+        writtenVertices += vertexCount
         vertexBuffer.clear()
         vertexBuffer.put(vertexData, 0, writeIndex)
         vertexBuffer.position(0)
         program.bindVertexData(vertexBuffer)
+        indexBuffer.clear()
+        indexBuffer.put(indexData, 0, indexCount)
+        indexBuffer.position(0)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, boundTexture)
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+        GLES20.glDrawElements(GLES20.GL_TRIANGLES, indexCount, GLES20.GL_UNSIGNED_SHORT, indexBuffer)
         vertexCount = 0
         writeIndex = 0
+        indexCount = 0
     }
 
     /** Makes [texture] the batch's texture, flushing first if that changes it. */
@@ -317,9 +271,9 @@ internal class GlSceneTarget : SceneCanvas {
         }
     }
 
-    /** Flushes if [needed] more vertices would not fit. */
+    /** Flushes if [needed] more triangle corners would not fit; the vertices they write are never more. */
     private fun ensureRoom(needed: Int) {
-        if (vertexCount + needed > MAX_VERTICES) flush()
+        if (indexCount + needed > MAX_VERTICES) flush()
     }
 
     // --- Transform stack ---------------------------------------------------------------------
@@ -345,12 +299,13 @@ internal class GlSceneTarget : SceneCanvas {
         mappedVertex(transform.mapX(x, y), transform.mapY(x, y), u, v, r, g, bl, al)
     }
 
-    /**
-     * A vertex whose position [mx], [my] is **already mapped** through [transform]: a point that
-     * several triangles share is mapped once and written once per triangle. The same inputs to
-     * `mapX`/`mapY` give the same float, so the vertex is bit for bit the one [vertex] would write.
-     */
+    /** A vertex already mapped through [transform], for one triangle corner: written, and its index put in the batch. */
     private fun mappedVertex(mx: Float, my: Float, u: Float, v: Float, r: Float, g: Float, bl: Float, al: Float) {
+        indexData[indexCount++] = putVertex(mx, my, u, v, r, g, bl, al).toShort()
+    }
+
+    /** A vertex written once, for the triangles that name it ([tri]); returns its index in the batch. */
+    private fun putVertex(mx: Float, my: Float, u: Float, v: Float, r: Float, g: Float, bl: Float, al: Float): Int {
         var i = writeIndex
         vertexData[i++] = mx
         vertexData[i++] = my
@@ -361,15 +316,32 @@ internal class GlSceneTarget : SceneCanvas {
         vertexData[i++] = bl
         vertexData[i++] = al
         writeIndex = i
-        vertexCount++
+        return vertexCount++
+    }
+
+    /** One triangle, by its three vertices' indices. */
+    private fun tri(a: Int, b: Int, c: Int) {
+        indexData[indexCount++] = a.toShort()
+        indexData[indexCount++] = b.toShort()
+        indexData[indexCount++] = c.toShort()
+    }
+
+    /** A quad's four corners written once and its two triangles, (0, 1, 2) and (0, 2, 3), by index. */
+    @Suppress("LongParameterList")
+    private fun indexedQuad(
+        m0x: Float, m0y: Float, m1x: Float, m1y: Float, m2x: Float, m2y: Float, m3x: Float, m3y: Float,
+        u0: Float, v0: Float, u1: Float, v1: Float, r: Float, g: Float, bl: Float, al: Float,
+    ) {
+        val a = putVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        val b = putVertex(m1x, m1y, u1, v0, r, g, bl, al)
+        val c = putVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        val d = putVertex(m3x, m3y, u0, v1, r, g, bl, al)
+        tri(a, b, c)
+        tri(a, c, d)
     }
 
     private fun solidVertex(x: Float, y: Float) {
         vertex(x, y, whiteU, whiteV, colR, colG, colB, colA)
-    }
-
-    private fun solidMapped(mx: Float, my: Float) {
-        mappedVertex(mx, my, whiteU, whiteV, colR, colG, colB, colA)
     }
 
     /** Current flat colour, unpacked once per primitive rather than per vertex. */
@@ -386,12 +358,8 @@ internal class GlSceneTarget : SceneCanvas {
     }
 
     /**
-     * Prepares a flat fill, returning false when the paint is fully transparent.
-     *
-     * Under premultiplied blending a zero-alpha primitive contributes exactly nothing, so emitting
-     * its geometry is pure cost. The scene fades a lot of things through zero — the rain (the snow
-     * is a disc, which [drawDisc] skips at alpha 0 itself), leaves, the sleigh's edge fade — and those
-     * frames get the saving for free.
+     * Prepares a flat fill, returning false when the paint is fully transparent: under premultiplied blending a
+     * zero-alpha primitive adds nothing, and the scene fades many things through zero.
      */
     private fun beginSolid(paint: Paint): Boolean {
         val color = paint.color
@@ -413,7 +381,7 @@ internal class GlSceneTarget : SceneCanvas {
         x2: Float, y2: Float,
         x3: Float, y3: Float,
     ) {
-        // Four corners mapped once, six vertices written: the diagonal's two ends are shared.
+        // Four corners mapped and written once, two triangles by index: the diagonal's two ends are shared.
         val m0x = transform.mapX(x0, y0)
         val m0y = transform.mapY(x0, y0)
         val m1x = transform.mapX(x1, y1)
@@ -422,12 +390,7 @@ internal class GlSceneTarget : SceneCanvas {
         val m2y = transform.mapY(x2, y2)
         val m3x = transform.mapX(x3, y3)
         val m3y = transform.mapY(x3, y3)
-        solidMapped(m0x, m0y)
-        solidMapped(m1x, m1y)
-        solidMapped(m2x, m2y)
-        solidMapped(m0x, m0y)
-        solidMapped(m2x, m2y)
-        solidMapped(m3x, m3y)
+        indexedQuad(m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y, whiteU, whiteV, whiteU, whiteV, colR, colG, colB, colA)
     }
 
     // --- Primitives --------------------------------------------------------------------------
@@ -458,7 +421,17 @@ internal class GlSceneTarget : SceneCanvas {
         val ny = dx / len * half
         if (!beginSolid(paint)) return
         ensureRoom(6)
-        quad(startX + nx, startY + ny, stopX + nx, stopY + ny, stopX - nx, stopY - ny, startX - nx, startY - ny)
+        // A square cap is the Canvas's `SQUARE`: the quad reaches half the width past each point, along the line, and
+        // stays one quad -- a raindrop's ends (`DESIGN_NOTES.md` §12, decision 87). `BUTT` and `ROUND` end the quad at
+        // the two points.
+        val reach = if (paint.strokeCap == Paint.Cap.SQUARE) half / len else 0f
+        val ax = startX - dx * reach
+        val ay = startY - dy * reach
+        val bx = stopX + dx * reach
+        val by = stopY + dy * reach
+        quad(ax + nx, ay + ny, bx + nx, by + ny, bx - nx, by - ny, ax - nx, ay - ny)
+        // A round cap is a fan at each end, eight slices at the least however thin the line ([segmentsFor]): 48 of the
+        // 54 corners of a thin line.
         if (paint.strokeCap == Paint.Cap.ROUND) {
             fillDisc(startX, startY, half)
             fillDisc(stopX, stopY, half)
@@ -486,18 +459,14 @@ internal class GlSceneTarget : SceneCanvas {
         val sines = CircleTable.sines(segments)
         val mcx = transform.mapX(cx, cy)
         val mcy = transform.mapY(cx, cy)
-        var mpx = transform.mapX(cx + rx, cy)
-        var mpy = transform.mapY(cx + rx, cy)
+        val c = putVertex(mcx, mcy, whiteU, whiteV, colR, colG, colB, colA)
+        var p = putVertex(transform.mapX(cx + rx, cy), transform.mapY(cx + rx, cy), whiteU, whiteV, colR, colG, colB, colA)
         for (i in 1..segments) {
             val x = cx + rx * cosines[i]
             val y = cy + ry * sines[i]
-            val mx = transform.mapX(x, y)
-            val my = transform.mapY(x, y)
-            solidMapped(mcx, mcy)
-            solidMapped(mpx, mpy)
-            solidMapped(mx, my)
-            mpx = mx
-            mpy = my
+            val n = putVertex(transform.mapX(x, y), transform.mapY(x, y), whiteU, whiteV, colR, colG, colB, colA)
+            tri(c, p, n)
+            p = n
         }
     }
 
@@ -552,25 +521,17 @@ internal class GlSceneTarget : SceneCanvas {
         val span = gradientBottomY - gradientTopY
         val alphaScale = alpha * INV_255
 
-        // Tessellated as vertical columns down to the shape's base line, **not** as a fan from one
-        // vertex, and each column is split at the gradient's lower stop.
-        //
-        // The reason is fidelity rather than tidiness. A two-stop ramp is linear inside its band and
-        // flat outside it, and a triangle interpolates linearly across its whole area — so a fan
-        // whose apex sits on the base line would carry the highlight all the way down every
-        // triangle instead of letting it stop at the lower stop, turning a highlight on the top
-        // third of the hill into a wash over the whole of it. Splitting each column at that stop
-        // puts a real vertex on the boundary, which is what makes the flat region flat.
+        // Vertical columns down to the shape's base line, each split at the gradient's lower stop, not a fan:
+        // a two-stop ramp is flat below its band, and a triangle interpolates across its whole area, so a fan
+        // would carry the highlight down the whole hill. The split puts a vertex on the stop.
         val baseY = shape.yAt(0)
         for (i in 0 until n - 1) {
             val xL = shape.xAt(i)
             val yL = shape.yAt(i)
             val xR = shape.xAt(i + 1)
             val yR = shape.yAt(i + 1)
-            // A column wholly left or wholly right of the surface covers no sample: its six or
-            // twelve vertices are not emitted. Strict comparisons, so a column touching an edge is
-            // still drawn. The hills hand over a shape two screens wide, once per tile copy, so
-            // about half of every copy's columns are off the surface (v5.10A).
+            // A column wholly left or right of the surface covers no sample and is not emitted; one touching
+            // an edge is. The hills hand over a shape two screens wide per tile copy, so about half are off.
             if (columnOffSurface(xL, yL, xR, yR, baseY)) continue
             val topMost = if (yL > yR) yL else yR
             if (gradientBottomY > topMost && gradientBottomY < baseY) {
@@ -594,9 +555,8 @@ internal class GlSceneTarget : SceneCanvas {
     }
 
     /**
-     * Whether the column from ([xL], [yL]) to ([xR], [yR]) down to [baseY] lies wholly left or wholly
-     * right of the surface once mapped. Only the x extent is tested: the hills are cut into vertical
-     * columns and scrolled sideways, and a column above or below the surface does not happen.
+     * Whether the column from ([xL], [yL]) to ([xR], [yR]) down to [baseY] lies wholly left or right of the
+     * surface once mapped; only x is tested, since the hills scroll sideways and never leave it vertically.
      */
     private fun columnOffSurface(xL: Float, yL: Float, xR: Float, yR: Float, baseY: Float): Boolean {
         if (surfaceWidth <= 0) return false
@@ -621,18 +581,17 @@ internal class GlSceneTarget : SceneCanvas {
         bottomColor: Int,
         alphaScale: Float,
     ) {
-        // Each corner's position and colour worked out once and written where the two triangles
-        // share it -- the expressions [gradientVertex] evaluates, so the same floats.
+        // Each corner worked out and written once for both triangles, by [gradientVertex]'s expressions.
         gradientCorner(0, x0, y0, gradientTopY, span, topColor, bottomColor, alphaScale)
         gradientCorner(1, x1, y1, gradientTopY, span, topColor, bottomColor, alphaScale)
         gradientCorner(2, x2, y2, gradientTopY, span, topColor, bottomColor, alphaScale)
         gradientCorner(3, x3, y3, gradientTopY, span, topColor, bottomColor, alphaScale)
-        emitCorner(0)
-        emitCorner(1)
-        emitCorner(2)
-        emitCorner(0)
-        emitCorner(2)
-        emitCorner(3)
+        val a = putCorner(0)
+        val b = putCorner(1)
+        val c = putCorner(2)
+        val d = putCorner(3)
+        tri(a, b, c)
+        tri(a, c, d)
     }
 
     /** `[mx, my, r, g, b, a]` for each corner of the gradient quad being emitted. */
@@ -660,9 +619,9 @@ internal class GlSceneTarget : SceneCanvas {
         corners[o + 5] = al * alphaScale
     }
 
-    private fun emitCorner(k: Int) {
+    private fun putCorner(k: Int): Int {
         val o = k * 6
-        mappedVertex(corners[o], corners[o + 1], whiteU, whiteV, corners[o + 2], corners[o + 3], corners[o + 4], corners[o + 5])
+        return putVertex(corners[o], corners[o + 1], whiteU, whiteV, corners[o + 2], corners[o + 3], corners[o + 4], corners[o + 5])
     }
 
     private fun gradientVertex(
@@ -693,8 +652,7 @@ internal class GlSceneTarget : SceneCanvas {
         useTexture(whiteTexture)
         ensureRoom(6)
         val span = bottom - top
-        // Six vertices (two triangles) for a full-screen gradient. The Canvas backend rasterises
-        // the same gradient one pixel at a time.
+        // Two triangles, a vertex for each of their six corners, for a full-screen gradient.
         gradientVertex(left, top, top, span, topColor, bottomColor, 1f)
         gradientVertex(right, top, top, span, topColor, bottomColor, 1f)
         gradientVertex(right, bottom, top, span, topColor, bottomColor, 1f)
@@ -714,33 +672,25 @@ internal class GlSceneTarget : SceneCanvas {
         val sines = CircleTable.sines(segments)
         val mcx = transform.mapX(cx, cy)
         val mcy = transform.mapY(cx, cy)
-        var mpx = transform.mapX(cx + radius, cy)
-        var mpy = transform.mapY(cx + radius, cy)
+        // A two-stop radial gradient is linear in radius, as is the fan's interpolation: the falloff is exact.
+        val c = putVertex(mcx, mcy, whiteU, whiteV, colR, colG, colB, inner)
+        var p = putVertex(transform.mapX(cx + radius, cy), transform.mapY(cx + radius, cy), whiteU, whiteV, colR, colG, colB, 0f)
         for (i in 1..segments) {
             val x = cx + radius * cosines[i]
             val y = cy + radius * sines[i]
-            val mx = transform.mapX(x, y)
-            val my = transform.mapY(x, y)
-            // A two-stop radial gradient is linear in radius, and so is interpolation from the fan's
-            // centre vertex to its rim, so the falloff matches rather than approximates.
-            mappedVertex(mcx, mcy, whiteU, whiteV, colR, colG, colB, inner)
-            mappedVertex(mpx, mpy, whiteU, whiteV, colR, colG, colB, 0f)
-            mappedVertex(mx, my, whiteU, whiteV, colR, colG, colB, 0f)
-            mpx = mx
-            mpy = my
+            val n = putVertex(transform.mapX(x, y), transform.mapY(x, y), whiteU, whiteV, colR, colG, colB, 0f)
+            tri(c, p, n)
+            p = n
         }
     }
 
     /**
      * One sprite, whole: the call the frame makes most.
      *
-     * **It keeps its own body, and [drawSpriteClipped] shares none of it** (v5.12C). Routed through one
-     * function with the cut's four extra arguments and a branch, as v5.12B2 first wrote it, the method grew
-     * past what ART inlines into, and the three small calls this body makes -- [SceneTransform.uniformScale],
-     * [useTexture], [ensureRoom] -- became calls of their own on every sprite: on the BV6600's `perf` build
-     * the sprite path took 5 % more cycles at midnight and 21 % more at noon (`simpleperf`, our render
-     * thread, Autumn, one profile each). The arithmetic here is v5.12B's to the character, so a whole sprite
-     * is the quad it was.
+     * **It keeps its own body, sharing none with [drawSpriteClipped].** One function with the cut's four extra
+     * arguments and a branch grows past what ART inlines into, and the three small calls this body makes --
+     * [SceneTransform.uniformScale], [useTexture], [ensureRoom] -- become real calls on every sprite: 5 % more
+     * cycles on the sprite path at midnight and 21 % at noon (`simpleperf`, the BV6600's `perf` build, Autumn).
      */
     override fun drawSprite(
         resId: Int,
@@ -751,39 +701,30 @@ internal class GlSceneTarget : SceneCanvas {
         alpha: Int,
         additive: Boolean,
     ) {
-        // A fully transparent blit contributes nothing under this blend function, and the scene
-        // produces plenty of them: every twinkling star's sparkle and the fading rainbow, firework or
-        // lightning pass through zero. Skipping them here costs one comparison and saves six vertices plus the geometry
-        // that would have been rasterised behind them.
+        // A fully transparent blit adds nothing under this blend, and the stars' sparkles, the rainbow, the
+        // fireworks and the lightning all pass through zero.
         if (alpha <= 0) return
 
-        // How far this draw shrinks the sprite decides which pre-reduced copy of it to sample, so
-        // the GPU is handed pixels it can filter at roughly 1:1 rather than minifying them several
-        // times over. See [SpriteDetailLevel] for why the reduction is done here and not with GL
-        // mipmaps, which the shared atlas and ES 2.0's non-power-of-two rules both forbid.
+        // How far this draw shrinks the sprite picks the pre-reduced copy to sample, so the GPU filters at about
+        // 1:1 ([SpriteDetailLevel]: why not GL mipmaps).
         val level = SpriteDetailLevel.levelFor(transform.uniformScale())
 
-        // The common case: the sprite is already on the GPU at this level, so the pixels are never
-        // asked for and its size comes from the registry. This is what keeps a per-frame blit off
-        // SpriteCache's synchronised lookup entirely.
+        // Usually already uploaded at this level, so a per-frame blit never touches SpriteCache's synchronised lookup.
         var index = textures.find(resId, level)
         if (index < 0) {
             index = textures.register(resId, level, source.bitmapFor(resId))
             if (index < 0) return
-            // Released even though another level may want these pixels again: the cache re-decodes
-            // on demand, a sprite settles into the one or two levels its scene draws it at within a
-            // frame or two, and holding the bitmap costs heap for the whole life of the process.
+            // Released though another level may want it: the cache re-decodes on demand, a sprite settles into one or
+            // two levels within a frame or two, and a held bitmap costs heap for the process's life.
             source.onSpriteUploaded(resId)
         }
 
         spriteBlits++
         useTexture(textures.handleAt(index))
         ensureRoom(6)
-        // **The quad is the sprite's content box, not its canvas.** [GlTextureCache] uploads only
-        // the texels that carry ink, so the rectangle they cover is a sub-rectangle of the authored
-        // one and the quad has to name it -- otherwise a cropped sprite is stretched back over its
-        // whole canvas. The fractions are of the authored box, so a sprite whose ink reaches every
-        // edge produces exactly the quad it always did.
+        // **The quad is the sprite's content box, not its canvas**: [GlTextureCache] uploads only the texels
+        // that carry ink, so the quad names that sub-rectangle, as fractions of the authored box, or a cropped
+        // sprite is stretched over its whole canvas.
         val width = textures.widthAt(index)
         val height = textures.heightAt(index)
         val quadLeft = left + width * textures.contentLeftAt(index)
@@ -797,20 +738,12 @@ internal class GlSceneTarget : SceneCanvas {
         val r = Color.red(tintColor) * INV_255
         val g = Color.green(tintColor) * INV_255
         val bl = Color.blue(tintColor) * INV_255
-        // The tint's own alpha is deliberately ignored, and **the reason written here used to be
-        // wrong** (REN-05). `PorterDuffColorFilter(tint, MULTIPLY)` does multiply the filter's alpha
-        // into the destination, so the Canvas backend does *not* take opacity from the paint alone;
-        // the two backends would disagree the moment a tint arrived with a non-opaque alpha byte.
-        //
-        // They cannot, because none does: every tint in this app comes from a theme colour or a
-        // day/night blend and is fully opaque, which `TintOpacityTest` asserts. Ignoring the
-        // byte is therefore free and keeps the vertex colour meaning one thing, and the assertion
-        // is what keeps that true rather than the claim above it.
-        //
-        // v4.30: the **sign** of the vertex alpha tells the fragment to leave with zero alpha, and
-        // under `GL_ONE, GL_ONE_MINUS_SRC_ALPHA` a zero-alpha contribution is summed rather than
-        // laid over. Read this together with the fragment shader in [GlSpriteProgram], which says
-        // the other half of it; the two are one mechanism written in two places.
+        // The tint's own alpha is ignored. The Canvas backend's `MULTIPLY` filter does multiply it in, so a
+        // day/night `SceneColour.blendArgb` that comes out at 254 (about one ratio in 26) is one level dimmer there
+        // at moments of dusk and dawn: not seen, and left so; `TintOpacityTest` holds the loss to that one level, and
+        // none at the blend's ends.
+        // A negative vertex alpha makes the fragment shader ([GlSpriteProgram]) leave with zero alpha, which this
+        // blend sums rather than lays over: the additive blit.
         val al = if (additive) -(alpha * INV_255) else alpha * INV_255
         val m0x = transform.mapX(quadLeft, quadTop)
         val m0y = transform.mapY(quadLeft, quadTop)
@@ -820,20 +753,13 @@ internal class GlSceneTarget : SceneCanvas {
         val m2y = transform.mapY(right, bottom)
         val m3x = transform.mapX(quadLeft, bottom)
         val m3y = transform.mapY(quadLeft, bottom)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
+        indexedQuad(m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y, u0, v0, u1, v1, r, g, bl, al)
     }
 
     /**
-     * The same quad as [drawSprite], cut to its box with its texture rectangle ([SpriteClip]): a
-     * smaller quad from the same atlas entry, in the same batch, with no GL state changed -- a cut
-     * sprite costs six vertices like a whole one, and `GlDrawCallTest` counts the same draws. Its own
-     * body, as [drawSprite] has its own: see there. Only a person walking out of a window or into one is
-     * drawn this way (v5.12).
+     * The same quad as [drawSprite], cut to its box with its texture rectangle ([SpriteClip]): a smaller quad from
+     * the same atlas entry, in the same batch, no GL state changed, so it costs what a whole sprite does. A body of
+     * its own, as [drawSprite] says. Only a person walking out of a window or into one is drawn this way.
      */
     override fun drawSpriteClipped(
         resId: Int,
@@ -858,9 +784,8 @@ internal class GlSceneTarget : SceneCanvas {
         }
         val width = textures.widthAt(index)
         val height = textures.heightAt(index)
-        // Cut in the sprite's own coordinates, before the transform, where the quad and the box are both
-        // axis-aligned: exact under the mirror a walker is drawn with. A side the box does not cut keeps
-        // [drawSprite]'s numbers to the bit.
+        // Cut before the transform, where the quad and the box are both axis-aligned: exact under a walker's
+        // mirror. A side the box does not cut keeps [drawSprite]'s numbers to the bit.
         val cut = clippedQuad
         val inside = SpriteClip.clip(
             left + width * textures.contentLeftAt(index), top + height * textures.contentTopAt(index),
@@ -893,24 +818,17 @@ internal class GlSceneTarget : SceneCanvas {
         val m2y = transform.mapY(right, bottom)
         val m3x = transform.mapX(quadLeft, bottom)
         val m3y = transform.mapY(quadLeft, bottom)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
+        indexedQuad(m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y, u0, v0, u1, v1, r, g, bl, al)
     }
 
     /** [SpriteClip.clip]'s output, reused: the cut quad and its texture rectangle. */
     private val clippedQuad = FloatArray(SpriteClip.SIZE)
 
     /**
-     * One quad of the atlas sampling the white disc [resId], its box laid over the square [radius] either side of
-     * ([cx], [cy]), tinted [colour] at [alpha] (v5.14): six vertices where [fillDisc]'s fan is 24 or more. The
-     * quad's numbers are [drawSprite]'s -- the content box, the texture rectangle, the vertex colour -- with the box
-     * scaled to the disc instead of the transform, so a disc costs no `save`/`scale`/`restore` of its own; and the
-     * detail level is the one the disc's drawn size asks for, as a sprite's is: device pixels per texel are the
-     * transform's scale times the diameter over the disc's own width in texels.
+     * One quad of the atlas sampling the white disc [resId] over the square [radius] either side of ([cx], [cy]),
+     * tinted [colour] at [alpha]: six corners where [fillDisc]'s fan is 24 or more. The quad is [drawSprite]'s with
+     * the box scaled to the disc instead of the transform, so a disc needs no `save`/`scale`/`restore`; its detail
+     * level is the transform's scale times the diameter over the disc's width in texels.
      */
     override fun drawDisc(
         resId: Int,
@@ -922,8 +840,7 @@ internal class GlSceneTarget : SceneCanvas {
         alpha: Int,
     ) {
         if (alpha <= 0 || radius <= 0f) return
-        // The disc's width in texels, read off its pixels once: a level has to be chosen before the entry that would
-        // say so can be found. One drawing is the disc ([SpriteBlitter.drawDisc]); another one asked for reads its own.
+        // The disc's width in texels, read off its pixels once: the level is chosen before the entry can be found.
         if (resId != discRes) {
             discTexels = source.bitmapFor(resId).width.toFloat()
             discRes = resId
@@ -961,12 +878,7 @@ internal class GlSceneTarget : SceneCanvas {
         val m2y = transform.mapY(right, bottom)
         val m3x = transform.mapX(quadLeft, bottom)
         val m3y = transform.mapY(quadLeft, bottom)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
-        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
-        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
+        indexedQuad(m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y, u0, v0, u1, v1, r, g, bl, al)
     }
 
     /** [drawDisc]'s drawing and its width in texels, read once. */
@@ -983,18 +895,14 @@ internal class GlSceneTarget : SceneCanvas {
         val sines = CircleTable.sines(segments)
         val mcx = transform.mapX(cx, cy)
         val mcy = transform.mapY(cx, cy)
-        var mpx = transform.mapX(cx + radius, cy)
-        var mpy = transform.mapY(cx + radius, cy)
+        val c = putVertex(mcx, mcy, whiteU, whiteV, colR, colG, colB, colA)
+        var p = putVertex(transform.mapX(cx + radius, cy), transform.mapY(cx + radius, cy), whiteU, whiteV, colR, colG, colB, colA)
         for (i in 1..segments) {
             val x = cx + radius * cosines[i]
             val y = cy + radius * sines[i]
-            val mx = transform.mapX(x, y)
-            val my = transform.mapY(x, y)
-            solidMapped(mcx, mcy)
-            solidMapped(mpx, mpy)
-            solidMapped(mx, my)
-            mpx = mx
-            mpy = my
+            val n = putVertex(transform.mapX(x, y), transform.mapY(x, y), whiteU, whiteV, colR, colG, colB, colA)
+            tri(c, p, n)
+            p = n
         }
     }
 
@@ -1026,10 +934,10 @@ internal class GlSceneTarget : SceneCanvas {
 
     private companion object {
         /**
-         * Vertex budget per batch. With every sprite in one atlas a batch spans the whole frame,
-         * and full-intensity rain alone (240 candidates, each a round-capped line of at least 54
-         * vertices) does not fit in it, so an intermediate flush is expected; it is a correctness
-         * mechanism, not a failure.
+         * The batch's size in triangle corners, what [ensureRoom] cuts on; it sizes the vertex buffer too, since the
+         * written vertices are never more. A frame that fills it is drawn in two (Christmas with everything on and the
+         * sleigh in flight, at a few positions of the street), which is correct, not a failure. Full rain, 240 drops of
+         * six corners, takes 1 440.
          */
         const val MAX_VERTICES = 12288
         const val INV_255 = 1f / 255f
@@ -1040,11 +948,7 @@ internal class GlSceneTarget : SceneCanvas {
         const val MIN_SEGMENTS = CircleTable.MIN_SEGMENTS
         const val MAX_SEGMENTS = CircleTable.MAX_SEGMENTS
 
-        /**
-         * Registry key for the flat-fill white pixel.
-         *
-         * Negative so it can never collide with a real `R.drawable` id, which are always positive.
-         */
+        /** Registry key of the flat-fill white pixel: negative, so it never collides with an `R.drawable` id. */
         const val WHITE_PIXEL_KEY = -1
     }
 }

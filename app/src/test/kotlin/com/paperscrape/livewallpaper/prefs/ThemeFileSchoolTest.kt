@@ -21,22 +21,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **A theme file exported before v5.6 gets the school at import, as the same theme saved then does**
- * (inventory I-93, v5.9F).
+ * **A theme file exported before v5.6 gets the school at import, as the same theme saved then does.**
  *
- * The maintainer decided on 2026-09-21 that streets saved before the school existed get it (*«voglio
- * che prendano la scuola»*), and v5.7F did it for the themes the store holds, in the 4 -> 5 step of
- * `migrateCustomThemeJson` (`SavedThemeSchoolMigrationTest`). A theme **file** took another road:
- * `parseThemeShare` read its street as it was, so a file exported from v5.5 and imported today came
- * in without a school however the sliders were set. On 2026-09-28 the maintainer answered that the
- * files get it too. The file cannot say it is old -- the share format's own version is 1 and has
- * never changed -- so the rule is the one the store applies, and it adds nothing to a street that
- * has a building in the school's third, which every street from v5.6 on has.
+ * A street saved before the school existed gets it: in the store, at the 4 -> 5 step of
+ * `migrateCustomThemeJson` (`SavedThemeSchoolMigrationTest`), and in a theme **file**, at
+ * `parseThemeShare`; read as it was, a file exported from v5.5 would come in without a school however
+ * the sliders were set. The file cannot say it is old -- the share format's own version is 1 for
+ * every file -- so the rule is the one the store applies, and it adds nothing to a street that has a
+ * building in the school's third, which every street from v5.6 on has.
  *
- * The fixture is the store v5.7F read off the BV6600 after saving a theme with the published v5.5
- * (`consegna_v5_7f/registri/dati/tema_salvato_da_v55.json`, schema 4): a real pre-school street, 29
- * objects, and the file below is what v5.5's export wrote from it (the same five keys and the
- * format's version 1).
+ * The fixture is a store the published v5.5 wrote on the BV6600 (schema 4): a real pre-school
+ * street, 29 objects, and the file below is what v5.5's export wrote from it (the same five keys and
+ * the format's version 1).
  */
 class ThemeFileSchoolTest {
 
@@ -87,7 +83,7 @@ class ThemeFileSchoolTest {
     fun `on every built-in street an old file and an old saved theme end the same`() {
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
-            // As a theme is saved: without the scarecrows, which the catalogue lays again at the load (v5.16).
+            // As a theme is saved: without the scarecrows, which the catalogue lays again at the load.
             val street = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).asSaved().staticObjects
                 .filter { c.keepCandidate(it) }
                 .filterNot { isSchool(it) }

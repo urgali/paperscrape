@@ -11,15 +11,15 @@ import org.junit.Test
  *
  * The renderer itself needs a `Canvas`, so these exercise the coverage field directly and then
  * reproduce the exact presence test `drawPrecipitation` performs —
- * `intensity × coverage(x)` fed to the unchanged [CandidateThreshold.isPresent] — over the real
- * candidate positions. That is the whole of the new logic; everything else in the draw function
- * was left alone.
+ * `intensity × coverage(x)` fed to [CandidateThreshold.isPresent] — over the real
+ * candidate positions. That presence test is the whole of the rule; the rest of the draw function
+ * places and draws the drops it keeps.
  */
 class CloudCoverageTest {
 
     private val screenWidth = 1080f
     private val precipitationOffset = CandidateThreshold.offsetFor(EffectId.PRECIPITATION)
-    private val precipitationSeed = "sunset".hashCode() xor (EffectId.PRECIPITATION * -0x61c88647)
+    private val precipitationSeed = PaperRenderer.seedFor(ThemeCatalog.byId("sunset"), EffectId.PRECIPITATION)
 
     /** Base x of precipitation candidate [i], exactly as the renderer computes it. */
     private fun dropX(i: Int): Float =
@@ -125,7 +125,7 @@ class CloudCoverageTest {
         for (x in 0..1080 step 20) assertEquals(0f, coverage.at(x.toFloat(), screenWidth), 0f)
     }
 
-    // --- Requirement 1: clouds visible at zero density means no precipitation -------------------
+    // --- Clouds visible at zero density means no precipitation -------------------
 
     @Test
     fun `no clouds means no precipitation`() {
@@ -137,7 +137,7 @@ class CloudCoverageTest {
 
     @Test
     fun `the at-least-one guarantee never overrides clear sky`() {
-        // D7 keeps a category visible at low settings, but "no rain from a clear sky" wins: the
+        // The at-least-one floor keeps a category visible at low settings, but "no rain from a clear sky" wins: the
         // forced candidate is still skipped when its own position has zero coverage.
         val coverage = coverageCovering(0f)
         for (intensity in listOf(0.001f, 0.01f, 0.5f, 1f)) {
@@ -148,7 +148,7 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Requirement 3: clouds switched off falls back to uniform ---------------------------------
+    // --- Clouds switched off falls back to uniform ---------------------------------
 
     @Test
     fun `hiding the cloud layer falls back to full coverage`() {
@@ -174,6 +174,61 @@ class CloudCoverageTest {
         }
     }
 
+    /**
+     * **No cloud placed and none showing: the rain falls everywhere**, through the field the renderer begins its frame
+     * with. The rule and the field are the renderer's own ([CloudCoverage.rainField], [CloudCoverage.beginFrame]), so a
+     * frame that forgot to make the field uniform -- the cloud layer switched off, and the rain gone with it -- fails
+     * here.
+     */
+    @Test
+    fun `with no cloud placed or showing the rain falls everywhere`() {
+        val field = CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = false, lapsed = false, themeDensity = Float.NaN)
+        assertEquals(CloudCoverage.RAIN_EVERYWHERE, field)
+        val coverage = CloudCoverage()
+        coverage.beginFrame(field)
+        for (x in 0..1080 step 20) assertEquals(1f, coverage.at(x.toFloat(), screenWidth), 0f)
+        for (intensity in listOf(0.1f, 0.6f, 1f)) assertEquals(referenceDrops(intensity), drops(coverage, intensity))
+        // A cloud still fading out is still a cloud: the field is its, until it has gone.
+        assertEquals(
+            CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS,
+            CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = true, lapsed = false, themeDensity = Float.NaN),
+        )
+        assertEquals(
+            CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS,
+            CloudCoverage.rainField(placedDensity = 0.4f, cloudsShowing = true, lapsed = false, themeDensity = 0.4f),
+        )
+    }
+
+    /**
+     * **When the forecast lapses, the theme's rain falls as the theme draws it, from that frame.** The theme's rain
+     * arrives in the frame the forecast lapses -- precipitation and the storm change in one frame on an expiry, as on
+     * every forecast change -- while the forecast's clouds fade out over seconds: falling through those, the
+     * theme's rain would shrink with them for up to twenty seconds and come back everywhere in a frame when the last went.
+     * It falls everywhere if the theme's cloud layer is off, under the theme's own clouds if it is on -- whatever the
+     * forecast's still draw.
+     */
+    @Test
+    fun `after a lapse the theme's rain falls through the theme's clouds and not the fading forecast's`() {
+        // The forecast's clouds still fading out at an eased cover of 0.6, the theme's cloud layer off.
+        val off = CloudCoverage.rainField(placedDensity = 0.6f, cloudsShowing = true, lapsed = true, themeDensity = Float.NaN)
+        assertEquals(CloudCoverage.RAIN_EVERYWHERE, off)
+        val coverage = CloudCoverage()
+        coverage.beginFrame(off)
+        for (intensity in listOf(0.35f, 1f)) assertEquals(referenceDrops(intensity), drops(coverage, intensity))
+        // The theme's clouds on at 0.4: under those, whatever the forecast's still draw, and also when none is drawn yet.
+        assertEquals(
+            CloudCoverage.RAIN_UNDER_THEME_CLOUDS,
+            CloudCoverage.rainField(placedDensity = 0.6f, cloudsShowing = true, lapsed = true, themeDensity = 0.4f),
+        )
+        assertEquals(
+            CloudCoverage.RAIN_UNDER_THEME_CLOUDS,
+            CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = false, lapsed = true, themeDensity = 0.4f),
+        )
+        val theme = CloudCoverage()
+        theme.beginFrame(CloudCoverage.RAIN_UNDER_THEME_CLOUDS)
+        assertFalse("under the theme's clouds the field starts clear", theme.isUniform())
+    }
+
     @Test
     fun `beginFrame clears the uniform fallback`() {
         val coverage = CloudCoverage()
@@ -184,7 +239,7 @@ class CloudCoverageTest {
         assertEquals(0f, coverage.at(540f, screenWidth), 0f)
     }
 
-    /** What the previous build drew: presence decided by intensity alone. */
+    /** Presence decided by intensity alone, with no coverage: what full cover and a hidden cloud layer draw. */
     private fun referenceDrops(intensity: Float): List<Int> {
         val fallback = CandidateThreshold.fallbackIndexFor(
             intensity, PaperRenderer.PRECIPITATION_POOL_SIZE, precipitationOffset,
@@ -194,7 +249,7 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Requirement 4: full coverage matches the previous behaviour --------------------------------
+    // --- Full coverage draws what intensity alone draws --------------------------------
 
     @Test
     fun `full coverage reproduces the previous drop set exactly`() {
@@ -218,7 +273,7 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Requirement 2: coherence across cloud densities ----------------------------------------------
+    // --- Coherence across cloud densities ----------------------------------------------
 
     @Test
     fun `more cloud cover means more precipitation`() {
@@ -242,11 +297,11 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Requirement 5: no teleport ----------------------------------------------------------------------
+    // --- No teleport ----------------------------------------------------------------------
 
     @Test
     fun `changing cloud cover never moves a surviving drop`() {
-        // The Phase 2.1/2.2 guarantee has to survive this change: coverage decides existence only,
+        // The candidate pool's guarantee holds under coverage: coverage decides existence only,
         // never position, speed or phase.
         val attributes = mutableMapOf<Int, List<Float>>()
         var moved = 0
@@ -283,7 +338,7 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Requirement 6: determinism ------------------------------------------------------------------------
+    // --- Determinism ------------------------------------------------------------------------
 
     @Test
     fun `the same cloud field always produces the same drops`() {
@@ -299,5 +354,40 @@ class CloudCoverageTest {
         val high = drops(coverage, 0.9f).size
         assertTrue("intensity stopped mattering: $low vs $high", high > low)
         assertNotEquals(low, high)
+    }
+    @Test
+    fun aFloorRaisesTheWholeSkyForOneFrame() {
+        val coverage = CloudCoverage()
+        coverage.beginFrame(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS)
+        coverage.addCloud(centerX = 200f, coreHalfWidth = 50f, spreadHalfWidth = 80f, screenWidth = screenWidth)
+        assertEquals(0f, coverage.at(900f, screenWidth), 0f)
+        coverage.setFloor(0.4f)
+        // Open sky reads the floor; under the cloud the cloud's own 1 stands.
+        assertEquals(0.4f, coverage.at(900f, screenWidth), 0f)
+        assertEquals(1f, coverage.at(200f, screenWidth), 0f)
+        // More drops at the floor than under the cloud alone, all of them at 1.
+        val atFloor = drops(coverage, 0.9f).size
+        coverage.setFloor(1f)
+        val everywhere = drops(coverage, 0.9f).size
+        coverage.beginFrame(CloudCoverage.RAIN_EVERYWHERE)
+        assertEquals("a floor of 1 is the rain everywhere", drops(coverage, 0.9f).size, everywhere)
+        assertTrue("the floor added no drop: $atFloor of $everywhere", atFloor < everywhere)
+        // The next frame starts without it.
+        coverage.beginFrame(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS)
+        assertEquals(0f, coverage.at(900f, screenWidth), 0f)
+    }
+
+    @Test
+    fun `clouds at 0 percent leave the rain falling everywhere, as clouds turned off do`() {
+        // The theme's own clouds on at 0 %: no cloud is placed, so the rain falls over the whole sky, as with the cloud
+        // layer off; not nowhere, with Show Rain/Snow on.
+        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(0f, cloudsShowing = false, lapsed = false, themeDensity = 0f))
+        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(Float.NaN, cloudsShowing = false, lapsed = false, themeDensity = Float.NaN))
+        // A forecast lapsed to a theme whose clouds are at 0 %: the theme's rain everywhere too.
+        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(0.3f, cloudsShowing = true, lapsed = true, themeDensity = 0f))
+        // While the last clouds of a slider brought to 0 % still fade, the rain is still under them (and spreads as they go).
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(0f, cloudsShowing = true, lapsed = false, themeDensity = 0f))
+        // Clouds above 0 % place clouds, and the rain falls under them.
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(0.01f, cloudsShowing = false, lapsed = false, themeDensity = 0.01f))
     }
 }

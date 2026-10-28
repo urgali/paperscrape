@@ -3,17 +3,17 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Deterministic, index-addressed randomness for scene effect candidates.
  *
- * ### What this replaces
+ * ### Why not a `Random`
  *
- * Every effect used to build a fresh `Random(theme.id.hashCode() + salt)` **on every frame** and
- * read from it *sequentially*, one `nextFloat()` at a time, as it walked its candidate list. That
- * had three separate consequences:
+ * An effect that built a fresh `Random(theme.id.hashCode() + salt)` **on every frame** and read
+ * from it *sequentially*, one `nextFloat()` at a time, as it walked its candidate list, would have
+ * three separate faults:
  *
  *  1. an object allocation per effect per frame, on the draw path;
- *  2. a candidate's attributes depended on **how many earlier candidates had been skipped**,
- *     because a skipped candidate did not consume from the stream — so lowering the density slider
- *     by one notch gave every surviving cloud, raindrop and bird different values and the whole
- *     field jumped;
+ *  2. a candidate's attributes would depend on **how many earlier candidates had been skipped**,
+ *     because a skipped candidate does not consume from the stream — so lowering the density
+ *     slider by one notch would give every surviving cloud, raindrop and bird different values and
+ *     the whole field would jump;
  *  3. the same jump on every hourly live-weather refresh, since weather writes the same density
  *     and intensity inputs.
  *
@@ -29,8 +29,8 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### Cost
  *
- * A handful of integer operations — comparable to the `nextFloat()` it replaces, minus the
- * allocation. No state, so nothing to invalidate when the theme, the customization or the screen
+ * A handful of integer operations — comparable to a `nextFloat()`, without the allocation. No
+ * state, so nothing to invalidate when the theme, the customization or the screen
  * size changes: the next frame simply computes different values.
  */
 internal object CandidateNoise {
@@ -94,12 +94,11 @@ internal object CandidateNoise {
  * is the canonical low-discrepancy sequence in one dimension — by the three-distance theorem the
  * surviving indices stay evenly spread at every density and every pool size.
  *
- * It also replaces a subtly broken predecessor. The old threshold was
- * `((i * 7919 + salt * 131) % 1000) / 1000`, and `salt * 131 % 1000` collapses to the same value
- * for any two salts differing by a multiple of 1000 — which the salts in use did. Birds (7001),
- * clouds (8001), precipitation (9001) and sailboats (6001) therefore shared one identical threshold
- * sequence and selected the same candidate indices at the same density. [offsetFor] derives the
- * offset from the effect id instead, so effects genuinely decorrelate.
+ * The offset is not a salt mixed in by a modulo: in `((i * 7919 + salt * 131) % 1000) / 1000`,
+ * `salt * 131 % 1000` collapses to the same value for any two salts differing by a multiple of
+ * 1000, so effects salted 6001, 7001, 8001 and 9001 would share one identical threshold sequence
+ * and select the same candidate indices at the same density. [offsetFor] derives the offset from
+ * the effect id, so effects genuinely decorrelate.
  */
 internal object CandidateThreshold {
 
@@ -115,11 +114,11 @@ internal object CandidateThreshold {
     /**
      * The threshold offset for an effect, given its ordinal from [EffectId].
      *
-     * Evenly spaced rather than hashed. Hashing looked natural and was tried first, but hashed
-     * offsets are independent uniforms, so with nine effects two of them landed 0.008 apart and
-     * consequently selected identical candidate sets at most densities — caught by
-     * `CandidateSystemTest`. Even spacing makes the minimum separation `1 / EffectId.COUNT` by
-     * construction, which cannot degrade as effects are added.
+     * Evenly spaced rather than hashed: hashed offsets are independent uniforms, so with nine
+     * effects two of them can land close together (one hash put two 0.008 apart) and select
+     * identical candidate sets at most densities, which `CandidateSystemTest` catches. Even spacing
+     * makes the minimum separation `1 / EffectId.COUNT` by construction, which cannot degrade as
+     * effects are added.
      */
     fun offsetFor(effectOrdinal: Int): Float =
         (effectOrdinal + 0.5f) / EffectId.COUNT
@@ -135,6 +134,16 @@ internal object CandidateThreshold {
         if (of(index, effectOffset) < density) return true
         return index == fallbackIndex
     }
+
+    /**
+     * Whether candidate [index] is absent at every density up to [maxDensity] -- what [isPresent] says for any
+     * `maxDensity x share` with the share in 0..1, decided before the share is known. A float product by a factor of at
+     * most 1 never rounds above the other factor, so a threshold at or above [maxDensity] is at or above every such
+     * density; only the fallback candidate can still be present there. The rain and the snow read it to skip a drop
+     * before they look up the cloud cover over it.
+     */
+    fun absentUpTo(index: Int, maxDensity: Float, effectOffset: Float, fallbackIndex: Int): Boolean =
+        index != fallbackIndex && of(index, effectOffset) >= maxDensity
 
     /**
      * The candidate that must be kept when [density] is above zero but no candidate qualifies,

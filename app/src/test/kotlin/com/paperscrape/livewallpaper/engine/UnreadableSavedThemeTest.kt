@@ -13,13 +13,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Item 18: one saved theme the app cannot read must not cost the user the others (v5.9A).
+ * One saved theme the app cannot read must not cost the user the others.
  *
- * Until v5.9A `customThemeDataFromJsonString` read the whole document inside one `catch`, so one
- * damaged entry read as `CustomThemeData.EMPTY`: every saved theme left the Themes screen, a
- * wallpaper set to one of them fell back to Sunset, and `CustomThemeStore.update` -- which refuses to
- * write over a document it cannot read (BCK-05) -- dropped every later edit without a word. The
- * three properties the repair owes, each with its own test here:
+ * A reader that read the whole document inside one `catch` would turn one damaged entry into
+ * `CustomThemeData.EMPTY`: every saved theme would leave the Themes screen, a wallpaper set to one of
+ * them would fall back to Sunset, and `CustomThemeStore.update` -- which refuses to write over a
+ * document it cannot read -- would drop every later edit without a word. The three properties
+ * `customThemeDataFromJsonString` owes, each with its own test here:
  *
  *  1. **the others are seen** -- [one unreadable theme no longer hides the others];
  *  2. **an edit is applied, not dropped** -- [an edit is applied rather than thrown away];
@@ -27,15 +27,14 @@ import org.junit.Test
  *     every write byte for byte].
  *
  * **Written against the reader's public surface only** (`customThemeDataFromJsonString`,
- * `customThemeDataOrNull`, `toJsonString`), which v5.8 already had, so the same file runs red on the
- * v5.8 tree: that run is `consegna_v5_9a/registri/` of the round. `update` below is
- * `CustomThemeStore.update`'s body without the DataStore around it; `CorruptThemeStoreTest` holds the
- * store to that shape, and the instrumented `UnreadableSavedThemeStoreTest` runs the real store.
+ * `customThemeDataOrNull`, `toJsonString`), so it does not depend on how the reader is built inside.
+ * `update` below is `CustomThemeStore.update`'s body without the DataStore around it;
+ * `CorruptThemeStoreTest` holds the store to that shape, and the instrumented
+ * `UnreadableSavedThemeStoreTest` runs the real store.
  *
- * The damage used is the one a real release could cause: a static object of a type this build does
- * not have (`FOUNTAIN`), which is what removing `SceneObjectType.DOG` did to every theme saved with
- * a dog in v29 (`CHANGELOG.md`, "Dogs -- fully deleted"), and what a future type would do after a
- * downgrade.
+ * The damage used is one a real store can hold: a static object of a type this build does not have
+ * (`FOUNTAIN`), as a theme saved with a type this build has dropped holds, and as a theme saved with
+ * a newer build's type holds after a downgrade.
  */
 class UnreadableSavedThemeTest {
 
@@ -67,7 +66,7 @@ class UnreadableSavedThemeTest {
     @Test
     fun `the unreadable theme survives every write byte for byte`() {
         // The whole-store rewrite first: a failed backup import rolls back by writing what it read
-        // (`BackupRepository.import` -> `CustomThemeStore.replaceAll`). On v5.8 that read was EMPTY.
+        // (`BackupRepository.import` -> `CustomThemeStore.replaceAll`).
         val rolledBack = customThemeDataFromJsonString(document()).toJsonString()
         assertKept("the rollback's rewrite", rolledBack)
 
@@ -100,7 +99,7 @@ class UnreadableSavedThemeTest {
             overrides = mapOf("christmas" to CHRISTMAS, "beach" to BEACH),
             customThemes = listOf(MINE, OTHER),
         )
-        // What `toJsonString` wrote until v5.9A, line for line.
+        // The plain shape, the one a build up to v5.9A writes and reads, line for line.
         val before = JSONObject().apply {
             put("schemaVersion", CUSTOM_THEME_SCHEMA_VERSION)
             put("overrides", JSONObject().apply { data.overrides.forEach { (k, v) -> put(k, v.toJson()) } })

@@ -11,8 +11,7 @@ import org.junit.Test
  * The wallpaper paints precipitation in the theme's night colour blended toward its day colour by
  * the day blend (`PaperRenderer.drawPrecipitation`). The gallery card took the day colour whatever
  * moment it showed, which was harmless while every card was a day card and stopped being so when
- * Halloween's and New Year's Eve's cards became midnight ones -- item 73 of `BACKLOG_v4_27.md` had
- * named exactly this as *"the paragraph to come back to"* (v5.9B, inventory row I-03).
+ * Halloween's and New Year's Eve's cards became midnight ones.
  *
  * The wallpaper then carries its rain off the sky it falls through
  * (`PrecipitationContrast.standOffFromSky`); the card did not, and on four cards of twelve the rain

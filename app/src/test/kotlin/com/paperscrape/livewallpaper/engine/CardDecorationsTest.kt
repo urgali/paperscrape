@@ -7,8 +7,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **The gallery card hangs on each of its buildings the Christmas decorations the wallpaper hangs on it** (v5.14C2,
- * ROADMAP A186; the maintainer's *«Aggiungili nella scheda»*, 2026-10-16): counted and placed building by building, against
+ * **The gallery card hangs on each of its buildings the Christmas decorations the wallpaper hangs on it** (the maintainer's
+ * *«Aggiungili nella scheda»*, 2026-10-16): counted and placed building by building, against
  * the points the buildings' generator wrote into `NeighbourhoodTable.kt` -- worked out here from the table, not through
  * [ChristmasDecorations] (but for which sills carry a string: the wallpaper's own rule, [ChristmasDecorations.sillStrung],
  * under the card building's seed), so a card that drifted from the rule fails here whatever the sequence says:
@@ -304,22 +304,22 @@ class CardDecorationsTest {
     }
 
     /**
-     * **The Halloween decorations on the card** (v5.16, the set C of v5.16A, *«C ragnatele e pipistrelli»*, 2026-10-21): on the card's houses
-     * and its restaurant, bar and shop, none on a tower, the school or a station; where the wallpaper hangs them, worked out
-     * here from the table -- a cobweb at each end of the top piece's roofline, the right one mirrored, a bat on every third
-     * point of it from the third to the third from the end, a jack-o'-lantern 7 units to the left of every front door, its
-     * candle lit as the wallpaper lights it at the card's moment (none by day) -- and drawn the same number of times their
-     * size, never less, so the narrowest band, the cobweb's threads and the
-     * bat's ([HalloweenDecorationTable.DECORATION_BAND_UNITS]), keeps 2 px on the BV6600's gallery card, and no more where
-     * they had to grow. All twelve built-ins with the switch on (and the Christmas lights off: the two never hang together),
-     * by day and at night.
+     * **The Halloween decorations on the card** (`DESIGN_NOTES.md` §12 decision 85): on the card's houses and its
+     * restaurant, bar and shop, none on a tower, the school or
+     * a station; where the wallpaper hangs them, worked out here from the table -- one cobweb, at the end of the top piece's
+     * roofline the drawing chooses ([HalloweenDecorations.cobwebCorner]: the left end as drawn, the right one mirrored), tinted
+     * as the building's walls on the card choose ([HalloweenDecorations.webTintOn] of the colour its wall masks carry), no bat,
+     * a jack-o'-lantern 7 units to the left of every front door, its candle lit as the wallpaper lights it at the card's moment
+     * (none by day) -- and drawn the same number of times their size, never less, so the narrowest band, the cobweb's threads
+     * ([HalloweenDecorationTable.DECORATION_BAND_UNITS]), keeps 2 px on the BV6600's gallery card, and no more where they had
+     * to grow. All twelve built-ins with the switch on (and the Christmas lights off: the two never hang together), by day
+     * and at night.
      */
     @Test
     fun `the card's houses and shops wear the wallpaper's Halloween decorations, in its places, and keep 2 px`() {
         assertEquals("the gallery's scale is the card's", GALLERY_CARD_PX / ThemePreviewScene.WIDTH_UNITS, ThemePreviewScenes.GALLERY_PX_PER_UNIT, 0f)
         val halloween = setOf(
-            HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.BAT_RES,
-            HalloweenDecorationTable.PUMPKIN_RES, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
+            HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.PUMPKIN_RES, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
         )
         var decorated = 0
         var bare = 0
@@ -357,13 +357,12 @@ class CardDecorationsTest {
                 val top = deal[deal.size - 1]
                 val xs = top.piece.roofX
                 val ys = top.piece.roofY
+                val right = HalloweenDecorations.cobwebCorner(deal) == 1
                 val want = buildList {
-                    add(Triple(HalloweenDecorationTable.WEB_RES, xs[0] + HalloweenDecorationTable.WEB_X * f, top.baseY + ys[0] + HalloweenDecorationTable.WEB_Y * f))
-                    add(Triple(HalloweenDecorationTable.WEB_RES, xs[xs.size - 1] - HalloweenDecorationTable.WEB_X * f, top.baseY + ys[xs.size - 1] + HalloweenDecorationTable.WEB_Y * f))
-                    var i = 2
-                    while (i <= xs.size - 3) {
-                        add(Triple(HalloweenDecorationTable.BAT_RES, xs[i] + HalloweenDecorationTable.BAT_X * f, top.baseY + ys[i] + HalloweenDecorationTable.BAT_Y * f))
-                        i += 3
+                    if (right) {
+                        add(Triple(HalloweenDecorationTable.WEB_RES, xs[xs.size - 1] - HalloweenDecorationTable.WEB_X * f, top.baseY + ys[xs.size - 1] + HalloweenDecorationTable.WEB_Y * f))
+                    } else {
+                        add(Triple(HalloweenDecorationTable.WEB_RES, xs[0] + HalloweenDecorationTable.WEB_X * f, top.baseY + ys[0] + HalloweenDecorationTable.WEB_Y * f))
                     }
                     for (n in 0 until deal.size) {
                         val door = deal[n].piece.door ?: continue
@@ -379,10 +378,14 @@ class CardDecorationsTest {
                     assertTrue("$where: a decoration at $b where the wallpaper hangs it at $a",
                         a.first == b.first && kotlin.math.abs(a.second - b.second) < 1e-3f && kotlin.math.abs(a.third - b.third) < 1e-3f)
                 }
-                assertEquals("$where: only the right cobweb is mirrored", listOf(false, true), got.filter { it.resId == HalloweenDecorationTable.WEB_RES }.map { it.mirrored })
+                assertEquals("$where: one cobweb, mirrored at the right end only", listOf(right), got.filter { it.resId == HalloweenDecorationTable.WEB_RES }.map { it.mirrored })
+                // The walls' colour on the card: the tint its wall masks are summed in.
+                val wallRes = (0 until deal.size).flatMap { n -> deal[n].piece.parts.filter { it.role == PartRole.WALL_MASK }.map { it.res } }.toSet()
+                val wall = item.parts.first { it.added && it.resId in wallRes }.tint!!
                 for (part in got) {
                     val want = if (part.resId == HalloweenDecorationTable.PUMPKIN_LIGHT_RES) lit else 255
-                    assertTrue("$where: a Halloween decoration tinted, or at alpha ${part.alpha} for $want", part.tint == null && part.alpha == want)
+                    val tint = if (part.resId == HalloweenDecorationTable.WEB_RES) HalloweenDecorations.webTintOn(wall) else null
+                    assertTrue("$where: a Halloween decoration tinted ${part.tint}, or at alpha ${part.alpha}, for $tint and $want", part.tint == tint && part.alpha == want)
                 }
                 if (lit == 0) dayCards++ else nightCards++
                 // The card's pixels a unit of the building: its scale on the card times the gallery's (the 310 px it is measured by).
@@ -419,13 +422,39 @@ class CardDecorationsTest {
         )) {
             assertTrue("the card no longer calls $call", card.contains(call))
         }
-        // And the Halloween ones (v5.16), on the same buildings.
-        for (call in listOf("HalloweenDecorations.forEachCobweb(deal)", "HalloweenDecorations.forEachBat(deal)", "HalloweenDecorations.forEachDoorPumpkin(deal)")) {
+        // And the Halloween ones (v5.16; one cobweb and no bat since v5.17), on the same buildings, the cobweb tinted by one rule.
+        for (call in listOf("HalloweenDecorations.forEachCobweb(deal)", "HalloweenDecorations.forEachDoorPumpkin(deal)", "HalloweenDecorations.webTintAt(")) {
             assertTrue("the wallpaper no longer calls $call", objects.contains(call))
             assertTrue("the card no longer calls $call", card.contains(call))
         }
         assertTrue(objects.contains("HalloweenDecorations.decorates(family.kind, storefront)"))
         assertTrue(card.contains("HalloweenDecorations.decorates(family.kind, storefront)"))
+        // The wallpaper's cobweb tinted by the walls' own colour at the frame's hour, the one every wall mask of the building is
+        // summed in (v5.17), turning over the dusk between the walls' colours by day and at night, the same pair's at 1 and 0, at
+        // the frame's dayBlend (inventory I-1127): whole lines, comments off.
+        val halloween = objects.substringAfter("private fun drawHalloweenDecorations(").substringBefore("\n    }\n")
+            .lines().map { it.substringBefore("//").trim() }
+        assertTrue("the wallpaper's web is not tinted by its walls", "val web = HalloweenDecorations.webTintAt(dayWall, nightWall, dayBlend)" in halloween)
+        assertTrue("the wallpaper's web is not drawn tinted", halloween.any { it.startsWith("sprites.drawTinted(") } &&
+            "SpriteScale.SCENE_UNITS, web," in halloween)
+        val lines = objects.lines().map { it.substringBefore("//").trim() }
+        assertTrue(
+            "the decorations are not handed the walls' two ends and the moment",
+            "drawHalloweenDecorations(canvas, deal, night, wallAt(spec, variant, storefront, 1f), wallAt(spec, variant, storefront, 0f), dayBlend)" in lines,
+        )
+        assertTrue("the walls are not the pair's at the frame's hour", "val wallColor = wallAt(spec, variant, storefront, dayBlend)" in lines)
+        assertTrue("the walls are summed in another colour", "sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, wallColor)" in lines)
+        // The card's the same: its walls at the card's hour and their two ends.
+        val cardLines = card.lines().map { it.substringBefore("//").trim() }
+        for (line in listOf(
+            "val wall = if (storefront != null) c.storefrontWall(spec, storefront, dayBlend) else c.wallColourFor(spec, variant, dayBlend)",
+            "val dayWall = if (storefront != null) c.storefrontWall(spec, storefront, 1f) else c.wallColourFor(spec, variant, 1f)",
+            "val nightWall = if (storefront != null) c.storefrontWall(spec, storefront, 0f) else c.wallColourFor(spec, variant, 0f)",
+            "halloweenDecorations(parts, deal, itemScale, night, dayWall, nightWall, dayBlend)",
+            "val web = HalloweenDecorations.webTintAt(dayWall, nightWall, dayBlend)",
+        )) {
+            assertTrue("the card no longer reads: $line", line in cardLines)
+        }
     }
 
     private fun sourceRoot(): File {

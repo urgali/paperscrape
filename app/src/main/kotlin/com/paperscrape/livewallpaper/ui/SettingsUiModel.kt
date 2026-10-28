@@ -1,9 +1,14 @@
 package com.paperscrape.livewallpaper.ui
 
 import com.paperscrape.livewallpaper.engine.DecorationExclusion
+import com.paperscrape.livewallpaper.engine.SceneObjectLayout
+import com.paperscrape.livewallpaper.engine.SceneObjectType
+import com.paperscrape.livewallpaper.engine.standsAny
 import com.paperscrape.livewallpaper.engine.nightOverDayActive
 import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.engine.StorefrontGroup
+import com.paperscrape.livewallpaper.engine.StorefrontStreet
+import com.paperscrape.livewallpaper.engine.keepsOnlyFirsUnderPalms
 import com.paperscrape.livewallpaper.engine.palmsShown
 import com.paperscrape.livewallpaper.location.DeviceLocationAccess
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
@@ -11,34 +16,23 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherProviderId
 
 /**
- * Which location source is in use, as one choice instead of two switches.
- *
- * **Presentation only.** Nothing is stored under this name. The wallpaper has always had two
- * independent, mutually exclusive boolean preferences -- `useLocationForSunTimes` and
- * `useCustomLocation` -- and `WallpaperPrefs.setUseLocation` / `setUseCustomLocation` are what
- * enforce that only one of them is ever true. Three booleans-worth of states were expressed as
- * two switches whose subtitles each had to explain the other; this enum names the three states
- * the pair can actually be in, with the device state split by the stored positioning kind into
- * GPS and NETWORK, and [SettingsUiModel.locationFlags] maps back to exactly the same pair of
- * writes the two switches performed.
+ * Which location source is in use, as one choice instead of two switches. **Presentation only**: what is stored is the
+ * pair `useLocationForSunTimes` / `useCustomLocation`, never both true (`WallpaperPrefs.setUseLocation` /
+ * `setUseCustomLocation`), the stored positioning kind splitting the device state into GPS and NETWORK.
  */
 enum class LocationMode { OFF, GPS, NETWORK, CUSTOM }
 
 /**
- * Which seasonal palette the current theme is wearing, as one choice instead of two switches.
- *
- * **Presentation only**, for the same reason as [LocationMode]: `fallColorsEnabled` and
- * `winterColorsEnabled` are two readings of the same leaves and cannot both be true (see
- * `WallpaperPrefs.setFallColorsEnabled` / `setWinterColorsEnabled`, each of which clears the
- * other). Christmas lights are deliberately *not* part of this choice -- they hang on top of
- * whatever the trees look like and stay an independent switch.
+ * Which seasonal palette the current theme wears, as one choice instead of two switches. **Presentation only**:
+ * `fallColorsEnabled` and `winterColorsEnabled` are never both true (each `WallpaperPrefs` setter clears the other).
+ * Christmas lights are not part of it: they hang on whatever the trees look like.
  */
 enum class SeasonalPalette { NONE, AUTUMN, WINTER }
 
 
 /**
  * Why Live Weather cannot drive the scene right now, though the user may have turned it on -- the
- * first thing to put right, in the order a user can put them right (v5.10C).
+ * first thing to put right, in the order a user can put them right.
  */
 enum class LiveWeatherBlocker {
     /** Nothing is missing. */
@@ -59,27 +53,23 @@ enum class LiveWeatherBlocker {
     /** The provider answered and refused the key (`LiveWeatherStatus.REJECTED_API_KEY`). A tap opens it. */
     REJECTED_KEY,
 
-    /**
-     * A location source is chosen but the phone has given no position (`LiveWeatherStatus.NO_LOCATION`
-     * with GPS or Network chosen). A tap brings the Location choice into view.
-     */
+    /** The engine reports no position for the chosen source (`LiveWeatherStatus.NO_LOCATION`). Tap: the Location choice. */
     LOCATION_UNAVAILABLE,
 
     /**
-     * GPS or Network is chosen and the phone does not let PaperScrape use a position from it
-     * (`DeviceLocationAccess.mayUsePosition`, read from the phone each time the screen comes back,
-     * v5.10D): no permission, or only the approximate one for GPS. A tap brings the Location choice into
-     * view, where the row says which and leads to the fix.
+     * GPS or Network is chosen and the phone does not let PaperScrape use its position (no permission, or only the
+     * approximate one for GPS: `DeviceLocationAccess.mayUsePosition`, read each time the screen comes back). A tap
+     * brings the Location choice into view, where the row says which and leads to the fix.
      */
     LOCATION_NOT_ALLOWED,
 }
 
 /**
- * The line under the GPS / Network choice that says whether the phone gives the position (v5.10D, the
- * maintainer's decision of 2026-09-30 on row 5 of the v5.10A table, inventory I-206).
+ * The line under the GPS / Network choice that says whether the phone gives the position
+ * (`DESIGN_NOTES.md` §12, decision 40).
  */
 enum class DeviceLocationLine {
-    /** The phone gives it: the row shows the position, as before v5.10D. */
+    /** The phone gives it: the row shows the position. */
     WORKING,
 
     /** "GPS - tap to allow": no permission. Nothing from the phone is used until it is given. */
@@ -98,9 +88,8 @@ enum class DeviceLocationTap {
     NOTHING,
 
     /**
-     * The permission dialog for the chosen kind (`DeviceLocationAccess.permissionsToRequest`); where the
-     * system will not show it any more, PaperScrape's page in the phone's settings
-     * ([SettingsUiModel.afterLocationRequest]).
+     * The permission dialog for the chosen kind (`DeviceLocationAccess.permissionsToRequest`); where the system will
+     * not show it any more, PaperScrape's page in the phone's settings ([SettingsUiModel.afterLocationRequest]).
      */
     ASK_PERMISSION,
 
@@ -109,10 +98,9 @@ enum class DeviceLocationTap {
 }
 
 /**
- * The Location row under GPS or Network: [working] only while the phone gives the position; otherwise
- * the [line] says what is missing and the [tap] goes where it is put right. [usesLastPosition] says
- * whether the scene meanwhile keeps the last position the phone gave (location switched off) or uses
- * none (no permission).
+ * The Location row under GPS or Network: [working] only while the phone gives the position; otherwise the [line] says
+ * what is missing and the [tap] goes where it is put right. [usesLastPosition]: whether the scene meanwhile keeps the
+ * last position the phone gave (location switched off) or uses none (no permission).
  */
 data class DeviceLocationRowState(
     val working: Boolean,
@@ -121,28 +109,26 @@ data class DeviceLocationRowState(
     val usesLastPosition: Boolean,
 )
 
-/** What the settings screen does with the answer to a location permission request (v5.10D). */
+/** What the settings screen does with the answer to a location permission request. */
 enum class LocationRequestOutcome {
-    /** Granted: the choice is stored, as it always was. */
+    /** Granted: the choice is stored. */
     STORE,
 
     /** Granted, and the phone's location is off: the choice is stored and the location page opened. */
     STORE_AND_OPEN_LOCATION_SETTINGS,
 
-    /** Refused, and the system would ask again: the previous choice stays, as it always did. */
+    /** Refused, and the system would ask again: the previous choice stays. */
     KEEP_PREVIOUS,
 
     /**
-     * Refused for good -- the system no longer shows the dialog -- after a refusal already seen on this
-     * screen, or for a choice already stored: PaperScrape's page in the phone's settings opens, where
-     * the permission is given. Until v5.10D such a tap did nothing at all. **Nothing is written**: a
-     * choice already stored stays, and a new one is made once the permission is there, so a working
-     * Custom or Off is never replaced by a GPS that cannot work (the read-only review of v5.10D).
+     * Refused for good (the system no longer shows the dialog) after a refusal already seen on this screen, or for a
+     * choice already stored: PaperScrape's page in the phone's settings opens. **Nothing is written**, so a working
+     * Custom or Off is never replaced by a GPS that cannot work; the new choice is made once the permission is there.
      */
     OPEN_APP_PAGE,
 }
 
-/** What a tap on the Live Weather switch does (v5.10C): whatever is missing, it goes there. */
+/** What a tap on the Live Weather switch does: whatever is missing, it goes there. */
 enum class LiveWeatherTap {
     /** Shown on: the stored flag off. */
     TURN_OFF,
@@ -164,38 +150,21 @@ enum class LiveWeatherTap {
 }
 
 /**
- * The separate things "Live Weather" used to mean at once.
- *
- * v3.0 had one boolean doing all of these jobs, and the jobs disagreed. `Weather & time` disabled the
- * switch whenever a live fetch was impossible, `World & scene` locked clouds and precipitation
- * whenever the switch was *on*, and neither asked what the scene was actually drawing. The
- * reachable, persistent result was a switch stuck on, greyed out, that the user was told to turn
- * off -- with the weather controls locked behind it and a banner on the other screen already
- * admitting the forecast was not in effect.
- *
- * **v5.10C, the maintainer's decision of 2026-09-30 (row 4):** the switch is drawn **on only while
- * real weather can drive the scene** -- [shownOn] -- and, when it cannot, off, with the reason under
- * it ([blocker]) and a tap that goes where the reason is put right. Until then it showed the stored
- * flag, so a fixed hour, no location, no key or another wallpaper left it reading on over a scene
- * that ran on the theme's own weather (inventory I-204). It always accepts a tap: there is no state
- * left in which a tap does nothing, so the old dead end (the switch stuck on and greyed) cannot come
- * back, and the stored choice is never written to make the switch look right.
+ * The Live Weather switch: drawn **on only while real weather can drive the scene** ([shownOn]); otherwise off, with
+ * the reason under it ([blocker]) and a tap that goes where it is put right (`DESIGN_NOTES.md` §12, decision 40). It
+ * always accepts a tap, and the stored choice is never written to make the switch look right.
  *
  * @property configuredOn what the user asked for -- the stored `liveWeatherEnabled` flag.
- * @property canBeTurnedOn whether the two prerequisites of a fetch the engine checks first are in
- *   place: the scene follows real time and a location is chosen (`LiveWeatherSchedule.runs`, and the
- *   loop's `fix`). It is what the status banner's "waiting" and "not running" are about.
- * @property blocker the first reason real weather cannot drive the scene, or
- *   [LiveWeatherBlocker.NONE].
+ * @property canBeTurnedOn the two prerequisites the engine checks first: the scene follows real time and a location is
+ *   chosen (`LiveWeatherSchedule.runs`, the loop's `fix`). The status banner's "waiting" and "not running" are about it.
+ * @property blocker the first reason real weather cannot drive the scene, or [LiveWeatherBlocker.NONE].
  * @property shownOn what the switch is drawn as: [configuredOn] with no [blocker].
- * @property drivingTheScene whether real conditions are what the scene is drawing. This -- not
- *   [configuredOn] -- is what makes the theme's own cloud and precipitation controls read-only,
- *   and what the "Driven by Live Weather" label is allowed to claim. **Only while [shownOn]**
- *   (v5.10C): with the switch drawn off, whatever the engine last published is about a Live Weather
- *   that cannot run -- another wallpaper, where no engine draws, or a fixed hour set while the
- *   settings screen covered the wallpaper, so the engine has not been on screen to stop -- and a
- *   stale "driving" would lock World & scene's clouds behind a switch that reads off and whose tap
- *   goes elsewhere: a way out that no longer exists. `SettingsUiModelTest` keeps that unreachable.
+ * @property drivingTheScene whether real conditions are what the scene draws: this, not [configuredOn], leaves the
+ *   theme's own cloud and precipitation controls out ([SettingsUiModel.forecastOwnsTheWeatherControls]) and is what
+ *   "Driven by Live Weather" may claim. **Only while
+ *   [shownOn]**: with the switch off, what the engine last published is about a Live Weather that cannot run (another
+ *   wallpaper, or a fixed hour set while the settings screen covered the wallpaper), and a stale "driving" would lock
+ *   World & scene's clouds behind a switch that reads off. `SettingsUiModelTest` keeps that unreachable.
  */
 data class LiveWeatherUiState(
     val configuredOn: Boolean,
@@ -206,31 +175,14 @@ data class LiveWeatherUiState(
 )
 
 /**
- * What the "Realistic Moon Phases" control shows, and whether it accepts a tap at all.
+ * What the "Realistic Moon Phases" control shows, and whether it accepts a tap. It follows the renderer: with
+ * `halloweenEnabled` on, `PaperRenderer.drawMoonWithPhase` draws the carved moon, always full, and never reads
+ * `moon.realisticPhases`; with *Show Moon* off, `drawCelestialBody` draws no moon. Then the switch shows off and locked.
+ * **Nothing writes the difference back**: the stored value is what [shownOn] returns once both allow it again.
  *
- * **The renderer already decides this; the control was the only part that had not been told.**
- * `PaperRenderer.drawMoonWithPhase` draws `moon_jack_o_lantern`, always full, and returns before
- * it ever reads `moon.realisticPhases` while `halloweenEnabled` is on -- because a carved face
- * that waxed and waned would be a lit fraction of a grin, which reads as a rendering fault rather
- * than as a decoration. The switch stayed live and did nothing, and a control that moves without
- * effect teaches the user that the setting is broken.
- *
- * **[shownOn] is not what is stored, and nothing writes the difference back.** While Halloween is
- * on the control shows off and locked; the user's own value is untouched in the DataStore and is
- * what [shownOn] returns again the moment Halloween goes off. Writing `false` into the preference
- * to make the switch look right would destroy a setting the user chose, which is exactly what
- * `PeopleDensity.resolveNightDensity`'s own derivation forbids: a settings change is not entitled
- * to silently alter what an existing user had set up.
- *
- * **And with the moon itself hidden** (v5.10C, row 7 of the maintainer's table of 2026-09-30):
- * `PaperRenderer.drawCelestialBody` returns before the moon is drawn at all while *Show Moon* is off, so
- * its phases were a switch with nothing under it. Same rule, same refusal to write: off and locked,
- * the stored value back the moment the moon is.
- *
- * @property shownOn what the switch is drawn as. The stored value, or `false` while overridden.
+ * @property shownOn the stored value, or `false` while overridden.
  * @property interactive whether the switch accepts a tap.
- * @property overriddenByHalloween whether the override is in force, and therefore whether the row
- *   owes the user the sentence that says why.
+ * @property overriddenByHalloween whether Halloween holds it, so the row owes the sentence that says why.
  * @property needsMoon whether the hidden moon is what holds it (Halloween, when both, is said first).
  */
 data class MoonPhasesUiState(
@@ -241,7 +193,8 @@ data class MoonPhasesUiState(
 )
 
 /**
- * *Laughing moon* or *Night sky by day* (v5.16, [SettingsUiModel.laughingMoon], [SettingsUiModel.nightSkyByDay]): the
+ * *Laughing moon*, *Night sky by day* or *Moon stays in place* ([SettingsUiModel.laughingMoon],
+ * [SettingsUiModel.nightSkyByDay], [SettingsUiModel.stillMoon]): the
  * [DependentSwitchUiState] rule, with what holds it named -- [needsHalloween] while *Halloween* is off, else [needsMoon]
  * while *Moon* is.
  */
@@ -253,7 +206,7 @@ data class HalloweenMoonSwitchUiState(
 )
 
 /**
- * A decoration switch of one side of the Halloween/Christmas rule (v5.16, `DecorationExclusion`): [shownOn] its stored
+ * A decoration switch of one side of the Halloween/Christmas rule (`DecorationExclusion`): [shownOn] its stored
  * value, [interactive] unless the other side is on and this one is off -- then [blockedByTheOther], greyed, and its line
  * says the other's are already on.
  */
@@ -272,14 +225,8 @@ data class ExclusiveSwitchUiState(
 )
 
 /**
- * A switch that only does something while another control is on -- *Night Birds* under *Show Birds*,
- * *Thunderstorm* under rain (v5.10C, row 7).
- *
- * The [MoonPhasesUiState] rule, generalised: off and locked while what it depends on is off, and
- * **the stored value is not touched**, so it is back the moment that thing is.
- *
- * @property shownOn the stored value while [available], off otherwise.
- * @property interactive [available].
+ * A switch that only does something while another control is on -- *Night Birds* under *Show Birds*, *Thunderstorm*
+ * under rain: the [MoonPhasesUiState] rule, off and locked while that is off, **the stored value untouched**.
  */
 data class DependentSwitchUiState(
     val shownOn: Boolean,
@@ -287,35 +234,78 @@ data class DependentSwitchUiState(
 )
 
 /**
- * A *Show X* switch with an amount slider beside it -- density, intensity, opacity, number -- for a
- * thing the wallpaper draws none of at 0 (v5.10C, row 8 of the maintainer's table).
+ * A *Show X* switch with an amount slider beside it -- density, intensity, opacity, number -- for a thing the wallpaper
+ * draws none of at 0 (`DESIGN_NOTES.md` §12, decision 40): at 0 % the switch reads off and says so, and the "decorations
+ * on" counts follow it. The stored visibility is kept; raising the slider brings it back, and so does a tap ([amountTap]).
+ * Not for the categories that keep something at 0: the buildings (the places among the houses), the cars (one car,
+ * `CarSelection`), the people ([people]) and the mountains (at least one).
  *
- * At 0 % the trees, houses, parasols, the six seasonal decorations, the stars, birds, clouds, rain and
- * snow, the rainbow, the sailboats and the dolphins are all absent from the scene, and until v5.10C
- * their switch went on reading on, and the home screen and the Seasons screen counted them among the
- * "decorations on" (inventory I-211). Now the switch reads off and says so, and the counts follow the
- * switch. The stored visibility is kept; raising the slider brings it back, and so does a tap
- * ([amountTap]).
+ * **Above 0 % a category of the street can keep nothing**: `keepCandidate` has no minimum fraction, so at a few per cent
+ * a theme may keep none (trees at 4 %, towers at 10 %). Their switch is told whether one stands ([StandingObjects]) and
+ * reads off, with its line, when none does (decision 40).
  *
- * Not for the categories that keep something at 0: the buildings (the places among the houses), the cars (one
- * car, `CarSelection`), the people (their night density is a slider of its own) and the mountains
- * (at least one).
+ * **A theme's street can have none of a category at all**: a random theme rolls three to six objects, and a saved theme
+ * keeps only what stood when it was saved, so no amount stands one ([StandingObjects.themeHasTrees] and the three like
+ * it). There the switch reads off and locked whatever is stored, its line says the theme has none, and a tap writes
+ * nothing ([AmountTap.NoneOnThisTheme]): the stored visibility and amount are left as they are.
  *
- * @property shownOn visible and the amount above 0.
+ * @property shownOn visible, and something drawn: the amount above 0 and, for a category of the street, one standing.
  * @property noneAtZero the amount is 0, and that -- not the switch -- is why nothing is drawn.
+ * @property noneAtThisAmount visible and above 0, and nothing stands at that amount on this theme.
+ * @property noneOnThisTheme the theme's street has none at any amount. It wins over [noneAtZero] and [noneAtThisAmount],
+ *   both false then: they name an amount, and no amount would help.
  */
 data class AmountSwitchUiState(
     val shownOn: Boolean,
     val noneAtZero: Boolean,
+    val noneAtThisAmount: Boolean = false,
+    val noneOnThisTheme: Boolean = false,
 )
 
 /**
- * The *Distant houses* switch and its row on World & scene (v5.11, inventory I-407; the maintainer's
- * choices of 2026-10-06), under the rule of `AI_PROJECT_RULES.md` 8.7: on only while houses stand.
+ * Which of a theme's categories of the street would stand at least one object at the amount a customization gives it,
+ * its switch on -- `keepCandidate` over the layout the theme draws ([com.paperscrape.livewallpaper.engine.standsAny]), the
+ * wallpaper's own rule: the houses, the towers (the buildings' candidates that are not places among the houses), the trees
+ * and palms, the parasols, and the seven decorations. What [SettingsUiModel.amountSwitch] is given; whether the switch is
+ * on is its own question, so a category switched off still says whether a tap would show one.
  *
- * They stand on the mountains, so they need the switch on, an amount above 0 % and at least one
- * mountain layer on; otherwise the switch reads off, the line says which, and a tap goes where it is
- * put right -- the amount back to 50 %, or the Mountains page. The stored choice is never rewritten.
+ * [themeHasHouses], [themeHasTowers], [themeHasTrees] and [themeHasParasols] say whether the street has one at all: one
+ * stands at 100 %. [themeHasPlaces] says whether it has a place among the houses, where the six buildings -- the shops
+ * and the public buildings -- take turns. Every built-in street has all five; a random theme rolls three to six objects
+ * and a saved one keeps only what stood when it was saved, so either can have none, and then no amount brings one. The
+ * seven decorations are not asked: every street the catalogue lays has all their candidates (`SceneObjectCatalog.layoutFor`).
+ * [onlyFirsEvenAtFull]: with the Palms switch on, every tree the street keeps at 100 % would stand as a Christmas fir, so
+ * no density puts a palm anywhere ([com.paperscrape.livewallpaper.engine.keepsOnlyFirsUnderPalms]).
+ *
+ * **The rows and switches that read these take them without a default** (`towerHours`, `towersRowSummary`,
+ * `storefrontRowSummary`, `storefrontGroupLine`, `shopHours`, `publicHours`, `ObjectCategorySection`,
+ * `StorefrontGroupSection`): a screen that left one out would read a row on over a street that stands none, so the
+ * compiler holds every screen to passing the street's.
+ */
+data class StandingObjects(
+    val houses: Boolean,
+    val towers: Boolean,
+    val trees: Boolean,
+    val parasols: Boolean,
+    val snowmen: Boolean,
+    val gifts: Boolean,
+    val penguins: Boolean,
+    val bunnies: Boolean,
+    val easterEggs: Boolean,
+    val pumpkins: Boolean,
+    val scarecrows: Boolean,
+    val themeHasHouses: Boolean = true,
+    val themeHasTowers: Boolean = true,
+    val themeHasTrees: Boolean = true,
+    val themeHasParasols: Boolean = true,
+    val themeHasPlaces: Boolean = true,
+    val onlyFirsEvenAtFull: Boolean = false,
+)
+
+/**
+ * The *Distant houses* switch and its row on World & scene (`DESIGN_NOTES.md` §12, decision 52): on only while houses
+ * stand (decision 40) -- the switch on, an amount above 0 % and a mountain layer to stand on. Otherwise
+ * the line says which and a tap goes where it is put right; the stored choice is never rewritten.
  *
  * @property shownOn on, above 0 % and with mountains to stand on.
  * @property noneAtZero on, with the mountains, and at 0 %: the amount is why none stands.
@@ -351,36 +341,28 @@ sealed interface AmountTap {
 
     /**
      * On, at 0 %: the flag on and the amount back to [amount] -- the theme's own, or
-     * [SettingsUiModel.FALLBACK_AMOUNT] where that is 0 too -- because "on" at 0 % is a tap that
-     * changes nothing, which is the defect this row repairs.
+     * [SettingsUiModel.FALLBACK_AMOUNT] where that is 0 too -- because "on" at 0 % alone would be a tap
+     * that changes nothing.
      */
     data class Restore(val amount: Float) : AmountTap
+
+    /**
+     * The theme's street has none of the category ([AmountSwitchUiState.noneOnThisTheme]): nothing is written, neither
+     * the flag nor the amount, since no write would make one appear.
+     */
+    data object NoneOnThisTheme : AmountTap
 }
 
 /**
- * How the four boat-and-dolphin controls on *Lake, boats and dolphins* must be drawn, given
- * whether the lake itself is on.
+ * How the four boat-and-dolphin controls on *Lake, boats and dolphins* are drawn. They follow the renderer:
+ * `PaperRenderer.updateLakeBandY` returns early while `LakeConfig.drawsWater` is false (the lake off, or at 0 % height),
+ * so `drawLake` never reaches the sailboats or the dolphins. The [MoonPhasesUiState] rule: off and locked then, and
+ * nothing writes the difference back.
  *
- * **The renderer already decided this; the controls were the only part that had not been told.**
- * `PaperRenderer.updateLakeBandY` returns early while `lake.visible` is false (since v5.10E while
- * `LakeConfig.drawsWater` is false: off, or at 0 % height), so `drawLake`
- * never reaches the sailboats or the dolphins: with the lake off there is no water and nothing
- * floats on it. The two switches nevertheless read **on** and both density sliders stayed fully
- * live -- four controls that move without effect, on the one screen where the default themes make
- * it easy to meet (Sunset ships with the lake off).
- *
- * The same rule as [MoonPhasesUiState], for the same reason and with the same refusal:
- * **[sailboatsShownOn] and [dolphinsShownOn] are not what is stored, and nothing writes the
- * difference back.** While the lake is off the switches show off and locked; the user's own
- * values sit untouched in the DataStore and come back the moment the lake goes on. Writing
- * `false` into the preferences to make the switches look right would destroy a choice the user
- * made -- which is exactly the bug this shape exists to avoid.
- *
- * @property sailboatsShownOn what the sailboat switch is drawn as. The stored value, or `false`.
- * @property dolphinsShownOn what the dolphin switch is drawn as. The stored value, or `false`.
+ * @property sailboatsShownOn the stored value, or `false`.
+ * @property dolphinsShownOn the stored value, or `false`.
  * @property interactive whether the four controls accept a touch.
- * @property blockedByLakeOff whether the lake is what is holding them, and therefore whether the
- *   rows owe the user the sentence that says why.
+ * @property blockedByLakeOff whether the lake holds them, so the rows owe the sentence that says why.
  */
 data class LakeContentsUiState(
     val sailboatsShownOn: Boolean,
@@ -390,29 +372,10 @@ data class LakeContentsUiState(
 )
 
 /**
- * The translation layer between the settings UI's grouped choices and the preference flags that
- * have always backed them.
- *
- * Deliberately free of Compose and Android imports so the mapping is unit-testable on the JVM.
- * The read direction (`locationMode`, `seasonalPalette`) is what the screens use, and it is pinned
- * by `SettingsUiModelTest`; the write direction (`locationFlags`, `deviceKindFor`,
- * `seasonalPaletteFlags`) is pinned there too, but no screen calls it -- `WeatherTimeScreen` and
- * `SeasonsScreen` write the preferences directly.
- */
-/**
- * What the two reset rows of *Advanced & about* say and whether each can be pressed (v5.8C).
- *
- * **Two kinds of thing a user does to a built-in theme, and until v5.8C one button that counted
- * only one of them.** A *saved version* is a copy made with "Replace with current" in the gallery
- * (`CustomThemeData.overrides`); *current edits* are the changes made in World & scene and
- * Seasons & decorations, which the app keeps per theme (`WallpaperSettings.themeCustomizations`)
- * and which win over a saved version. The one button reset saved versions, and its line counted
- * only them: a user who had edited two themes from the menus read "No built-in theme has your
- * edits" beside a disabled button (assessment v5.7 row 4). The maintainer decided on 2026-09-25:
- * two buttons, each saying what it resets, each with its own line and its own enabled state.
- *
- * Both lists are display names of built-in themes, in the gallery's order, so the line and the
- * confirmation can name exactly what goes.
+ * What the two reset rows of *Advanced & about* say and whether each can be pressed: one for *saved versions* (copies
+ * made with "Replace with current", `CustomThemeData.overrides`), one for *current edits* (World & scene and Seasons &
+ * decorations, kept per theme in `WallpaperSettings.themeCustomizations`, which win over a saved version). The lists
+ * are display names in the gallery's order, so the line and the confirmation name exactly what goes.
  */
 data class ThemeResetUiState(
     /** Built-in themes with a saved version ("Replace with current"), by display name. */
@@ -423,16 +386,18 @@ data class ThemeResetUiState(
     val currentEditIds: List<String> = emptyList(),
 )
 
+/**
+ * What the settings screens show and what their taps write, worked out from the stored preferences: free of Compose and
+ * Android so `SettingsUiModelTest` runs it on the JVM. The write direction (`locationFlags`, `deviceKindFor`,
+ * `seasonalPaletteFlags`) is tested but called by no screen: `WeatherTimeScreen` and `SeasonsScreen` write the
+ * preferences directly.
+ */
 object SettingsUiModel {
 
     /**
-     * Which built-in themes each reset would change.
-     *
-     * A theme counts as edited only if its current customization differs from what it would show
-     * with the edits gone -- its saved version's customization if it has one, otherwise its
-     * defaults -- so a control moved and moved back does not light the button, and a theme whose
-     * only change is a saved version is listed once, under saved versions. [themeCustomizations]
-     * is `WallpaperSettings.themeCustomizations`, which already folds in the theme under live edit.
+     * Which built-in themes each reset would change. A theme counts as edited only if its customization differs from
+     * what it would show with the edits gone (its saved version's, else its defaults), so a control moved and moved back
+     * does not light the button. [themeCustomizations] already folds in the theme under live edit.
      */
     fun themeResetState(
         builtIns: List<com.paperscrape.livewallpaper.engine.SceneTheme>,
@@ -453,15 +418,10 @@ object SettingsUiModel {
     }
 
     /**
-     * The line under *Automatic theme by date*, on the home screen ([overridingYourPick]) and in the
-     * gallery, and the gallery's caption under it ([autoThemeCaption]).
-     *
-     * **A calendar may have a gap** -- a stretch no season covers, which the maintainer allowed in
-     * v5.1 and the calendar screen names with its dates -- and on those days the wallpaper shows the
-     * theme picked by hand, unless a holiday covers them (`SeasonalThemeRules.themeForDate` answers
-     * null). Until v5.9F both lines were fixed text saying the calendar picks a theme "for every day
-     * of the year", which a gap makes false (inventory I-06). The count is the calendar row's own,
-     * the days no season covers (`SeasonalCalendar.coverage`).
+     * The line under *Automatic theme by date*, on the home screen ([overridingYourPick]) and in the gallery. **A
+     * calendar may have a gap**, days no season covers, where the theme picked by hand shows unless a holiday covers
+     * them (`SeasonalThemeRules.themeForDate` answers null): "every day of the year" is said only without one. The count
+     * is the calendar row's own (`SeasonalCalendar.coverage`).
      */
     fun autoThemeLine(calendar: com.paperscrape.livewallpaper.engine.SeasonalCalendar, overridingYourPick: Boolean): String {
         val gaps = calendar.coverage().uncoveredDays.size
@@ -491,14 +451,9 @@ object SettingsUiModel {
 
 
     /**
-     * Reads the stored flags and the stored positioning kind as one mode.
-     *
-     * The device flag is checked first only as a tie-break for a state the preferences layer does
-     * not produce (both true); it cannot arise through either setter.
-     *
-     * An install from before v3.0 has no stored kind, and `WallpaperSettings` defaults it to
-     * `NETWORK` -- which is what the single old "Phone" mode already used in practice, so those
-     * users find the control on Network rather than on a mode they never chose.
+     * Reads the stored flags and the stored positioning kind as one mode. The device flag wins the tie (both true) that
+     * neither setter produces. With no stored kind `WallpaperSettings` reads `NETWORK`, the positioning an install that
+     * never chose one uses.
      */
     fun locationMode(
         useDeviceLocation: Boolean,
@@ -514,11 +469,8 @@ object SettingsUiModel {
     }
 
     /**
-     * The flag pair a given mode means: `(useDeviceLocation, useCustomLocation)`.
-     *
-     * Both device modes set the same device flag -- which of the two systems it means is
-     * [deviceKindFor], stored alongside rather than folded into this pair. `OFF` clears both,
-     * which is the state a fresh install starts in.
+     * The flag pair a mode means: `(useDeviceLocation, useCustomLocation)`. Both device modes set the device flag, the
+     * system being [deviceKindFor], stored alongside; `OFF`, a fresh install's state, clears both.
      */
     fun locationFlags(mode: LocationMode): Pair<Boolean, Boolean> = when (mode) {
         LocationMode.OFF -> false to false
@@ -535,25 +487,20 @@ object SettingsUiModel {
 
 
     /**
-     * Reads the stored Live Weather flag, its prerequisites, the wallpaper and the status the
-     * wallpaper service published as the distinct answers the UI needs. See [LiveWeatherUiState].
+     * The Live Weather switch's state ([LiveWeatherUiState]) from the stored flag, its prerequisites, the wallpaper and
+     * the status the engine published.
      *
-     * @param followRealTime `syncWithRealTime`. A fixed-hour scene has no "now" to fetch for.
-     * @param devicePositionUsable for GPS and Network, whether the phone lets PaperScrape use a position
-     *   (`DeviceLocationAccess.mayUsePosition`, read from the phone each time the screen comes back,
-     *   v5.10D); ignored for Custom and Off.
-     * @param keyMissing the selected provider needs a key and none is set
-     *   (`WeatherProvider.requiresApiKey`), worked out from the settings rather than from the
-     *   status, which only an engine on screen updates.
+     * @param followRealTime `syncWithRealTime`: a fixed-hour scene has no "now" to fetch for.
+     * @param devicePositionUsable for GPS and Network, `DeviceLocationAccess.mayUsePosition`, read from the phone each
+     *   time the screen comes back; ignored for Custom and Off.
+     * @param keyMissing the selected provider needs a key and none is set, from the settings: the status is updated
+     *   only by an engine on screen.
      * @param isTheWallpaper whether PaperScrape is the phone's wallpaper (`WallpaperEngineCensus`).
-     * @param status what the engine last reported it was doing. [LiveWeatherStatus.OFF] here means
-     *   "the engine has not said yet" as well as "it is off", which is why the scene is treated as
-     *   theme-driven until it says otherwise -- the honest answer while nothing is known. Only two of
-     *   its answers can hold the switch off, a refused key and a phone that gives no position: they
-     *   are facts the screen cannot work out on its own. The engine forgets them when the inputs they
-     *   were about change (`PaperWallpaperService`, v5.10C), so a key typed in a moment ago is not
-     *   read as refused. A network that did not answer ([LiveWeatherStatus.FAILED]) leaves it on: the
-     *   app retries by itself and there is nothing for the user to put right.
+     * @param status what the engine last reported. [LiveWeatherStatus.OFF] also means "not said yet", so the scene counts
+     *   as theme-driven until it says otherwise. Only a refused key and no position can hold the switch off, facts the
+     *   screen cannot work out itself; the engine forgets them when their inputs change (`PaperWallpaperService`), so a
+     *   key typed a moment ago is not read as refused. A network that did not answer ([LiveWeatherStatus.FAILED]) leaves
+     *   it on: the app retries by itself.
      */
     fun liveWeather(
         liveWeatherEnabled: Boolean,
@@ -570,7 +517,7 @@ object SettingsUiModel {
             !followRealTime -> LiveWeatherBlocker.FIXED_HOUR
             locationMode == LocationMode.OFF -> LiveWeatherBlocker.NO_LOCATION
             // Read from the phone by the screen, so it holds the switch off at once -- not after the
-            // engine has next been on screen and reported no position (v5.10D, row 5).
+            // engine has next been on screen and reported no position.
             deviceMode && !devicePositionUsable -> LiveWeatherBlocker.LOCATION_NOT_ALLOWED
             keyMissing -> LiveWeatherBlocker.MISSING_KEY
             !isTheWallpaper -> LiveWeatherBlocker.NOT_THE_WALLPAPER
@@ -590,14 +537,7 @@ object SettingsUiModel {
         )
     }
 
-    /**
-     * How the "Realistic Moon Phases" row must be drawn, given the stored value, Halloween and the
-     * moon itself.
-     *
-     * Deliberately a pure function of the flags rather than an expression inlined in the
-     * composable: this is the whole of the rule, it is the thing that must not start writing to
-     * the preference, and here it is readable and testable on the JVM. See [MoonPhasesUiState].
-     */
+    /** How the "Realistic Moon Phases" row is drawn, given the stored value, Halloween and the moon. See [MoonPhasesUiState]. */
     fun moonPhases(storedRealisticPhases: Boolean, halloweenEnabled: Boolean, moonVisible: Boolean = true): MoonPhasesUiState =
         MoonPhasesUiState(
             shownOn = storedRealisticPhases && !halloweenEnabled && moonVisible,
@@ -607,7 +547,7 @@ object SettingsUiModel {
         )
 
     /**
-     * *Laughing moon* and *Night sky by day* (v5.16): both are the Halloween moon's -- the carved face laughing, the carved
+     * *Laughing moon* and *Night sky by day*: both are the Halloween moon's -- the carved face laughing, the carved
      * moon kept up all day -- so each is off and locked while *Halloween* or *Moon* is off, the stored choice kept
      * ([dependentSwitch], the rule of [moonPhases]); [needsHalloween] says which line the row owes (Halloween first).
      */
@@ -616,6 +556,10 @@ object SettingsUiModel {
 
     fun nightSkyByDay(c: com.paperscrape.livewallpaper.engine.SceneCustomization): HalloweenMoonSwitchUiState =
         halloweenMoonSwitch(c.nightSkyByDayEnabled, c)
+
+    /** *Moon stays in place*: the carved moon kept still, so the same rule ([com.paperscrape.livewallpaper.engine.stillMoonActive]). */
+    fun stillMoon(c: com.paperscrape.livewallpaper.engine.SceneCustomization): HalloweenMoonSwitchUiState =
+        halloweenMoonSwitch(c.stillMoonEnabled, c)
 
     private fun halloweenMoonSwitch(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization) =
         HalloweenMoonSwitchUiState(
@@ -626,11 +570,10 @@ object SettingsUiModel {
         )
 
     /**
-     * *Show Sun*, *Show Birds* and *Show Rainbow* while the night by day is in force (v5.16,
-     * [com.paperscrape.livewallpaper.engine.nightOverDayActive]): the scene is night at every hour, so the sun is never
+     * *Show Sun*, *Show Birds* and *Show Rainbow* while the night by day is in force
+     * ([com.paperscrape.livewallpaper.engine.nightOverDayActive]): the scene is night at every hour, so the sun is never
      * up, the birds fly only as night birds and the rainbow, a daylight thing, never shows -- *Show Sun* and *Show Rainbow*
-     * off and locked, *Show Birds* as [showBirds] says, the stored choice kept, and each line says why (decision 40;
-     * inventory I-1027).
+     * off and locked, *Show Birds* as [showBirds] says, the stored choice kept, and each line says why (decision 40).
      */
     fun showSun(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState =
         dependentSwitch(c.sun.visible, available = !c.nightOverDayActive())
@@ -639,7 +582,7 @@ object SettingsUiModel {
      * *Show Birds*, as its amount shows it ([amountSwitch]): locked by the night by day while the birds are on and *Night
      * Birds* off -- the birds would fly and the night by day keeps them down, and *Night Birds*, available while the birds are
      * on, is the way out. With the birds off it stays a switch: locked too, it and *Night Birds* ("Needs Show Birds above")
-     * would each wait for the other (v5.16B's final review).
+     * would each wait for the other.
      */
     fun showBirds(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState {
         val stored = amountSwitch(c.birds.visible, c.birds.density).shownOn
@@ -661,34 +604,160 @@ object SettingsUiModel {
             "the night sky by day off in Seasons & decorations, Halloween. Your choice is kept until then."
 
     /**
-     * *Halloween decorations* and the three Christmas ones are never on together in a theme (v5.16,
-     * [DecorationExclusion], the maintainer's *«vince il primo scelto e il secondo deve avere il toggle non attivabile con
-     * errore»*, 2026-10-21): a switch of the side that is off is greyed while the other side is on, and its line says the
-     * other's are already on. One that is on stays a switch that can be turned off.
+     * *Halloween decorations* and the three Christmas ones are never on together in a theme ([DecorationExclusion],
+     * `DESIGN_NOTES.md` §12, decision 77): a switch of the side that is off is greyed while the other side is on, and its
+     * line says the other's are already on. One that is on stays a switch that can be turned off.
+     *
+     * They hang on the houses and on the three shops among them, which stand in the street's places ([hasPlaces]). With
+     * nothing to hang on the switch reads off and locked, and **its line names only the ways that would help on this
+     * street** ([halloweenDecorationsLine]): a street with neither ([NO_HOUSE_OR_SHOP_ON_THIS_THEME_LINE]) has none.
      */
-    fun halloweenDecorations(c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
-        if (DecorationExclusion.halloweenDecorationsHang(c)) exclusive(c.halloweenDecorationsEnabled, DecorationExclusion.halloweenAllowed(c))
-        else nothingToHangOn(NEEDS_HOUSES_LINE)
-
-    fun christmasDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
-        exclusive(stored, DecorationExclusion.christmasAllowed(c))
-
-    /**
-     * *Lights on the buildings* (v5.16): as [christmasDecoration] while a house, a building or a house on the mountains
-     * stands to carry them, and off and locked while none does, the stored choice kept (decision 40, the maintainer's *«A:
-     * grigi con la frase, come gli abeti (consigliata)»*, 2026-10-22). So does [halloweenDecorations] with no house or shop.
-     */
-    fun christmasBuildingDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
-        if (DecorationExclusion.buildingLightsHang(c)) christmasDecoration(stored, c) else nothingToHangOn(NEEDS_BUILDINGS_LINE)
+    fun halloweenDecorations(
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout? = null,
+    ): ExclusiveSwitchUiState =
+        if (DecorationExclusion.halloweenDecorationsHang(c, layout)) {
+            exclusive(c.halloweenDecorationsEnabled, DecorationExclusion.halloweenAllowed(c, layout))
+        } else {
+            nothingToHangOn(halloweenDecorationsLine(c, layout))
+        }
 
     /**
-     * *Lights on the trees* or *Christmas firs* (v5.16): as [christmasDecoration] while trees stand, and **off and locked
-     * while none does** -- *Show Trees* off or at 0 % --, the stored choice kept and back with the trees (decision 40, the
-     * maintainer's *«A: grigi con la frase, come le palme (consigliata)»*, 2026-10-22; *Palms*, the same rule on the Trees
-     * page). Its line says what is missing ([NEEDS_TREES_LINE]).
+     * The line under *Halloween decorations* while nothing carries them: the houses where the street has them, *Show
+     * Buildings* where it has places (the shops stand in them while it is on), what it lacks said. Without the street,
+     * both ways.
      */
-    fun christmasTreeDecoration(stored: Boolean, c: com.paperscrape.livewallpaper.engine.SceneCustomization): ExclusiveSwitchUiState =
-        if (DecorationExclusion.treesStand(c)) christmasDecoration(stored, c) else nothingToHangOn(NEEDS_TREES_LINE)
+    private fun halloweenDecorationsLine(
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout?,
+    ): String {
+        val houses = layout == null || themeHas(layout, c, DecorationExclusion.HOUSE_TYPES)
+        val places = layout == null || hasPlaces(layout)
+        return when {
+            !houses && !places -> NO_HOUSE_OR_SHOP_ON_THIS_THEME_LINE
+            // Places, and still no shop: Show Buildings is off.
+            !houses -> NO_HOUSES_BUILDINGS_OFF_LINE
+            !places -> if (housesOnWithNoneStanding(c)) NO_HOUSE_AND_NO_SHOPS_LINE else NEEDS_HOUSES_NO_SHOPS_LINE
+            housesOnWithNoneStanding(c) -> NO_HOUSE_FOR_HALLOWEEN_LINE
+            else -> NEEDS_HOUSES_LINE
+        }
+    }
+
+    /**
+     * The rules of the decorations that hang on the street are given the street the theme draws ([layout]): a tree or a
+     * house stands where `keepCandidate` keeps one, and above 0 % a theme can keep none ([DecorationExclusion]). Without
+     * it, the amounts above 0 % stand for it.
+     */
+    fun christmasDecoration(
+        stored: Boolean,
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout? = null,
+    ): ExclusiveSwitchUiState =
+        exclusive(stored, DecorationExclusion.christmasAllowed(c, layout))
+
+    /**
+     * *Lights on the buildings*: as [christmasDecoration] while a house, a building or a house on the mountains stands to
+     * carry them, and off and locked while none does, the stored choice kept (decision 40), its line naming the ways
+     * ([buildingLightsLine]). So does [halloweenDecorations] with no house or shop.
+     */
+    fun christmasBuildingDecoration(
+        stored: Boolean,
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout? = null,
+    ): ExclusiveSwitchUiState =
+        if (DecorationExclusion.buildingLightsHang(c, layout)) {
+            christmasDecoration(stored, c, layout)
+        } else {
+            nothingToHangOn(buildingLightsLine(c, layout))
+        }
+
+    /**
+     * The line under *Lights on the buildings* while nothing carries them: **only the ways that would help on this
+     * street**, and what it lacks said. The houses where it has houses (raised where they are on and none stands, else
+     * turned on); the buildings where it has places or towers (turned on, or -- *Show Buildings* on with no place and every
+     * tower thinned away -- the Towers raised); the houses on the mountains on every street, by their own switch, or by
+     * the mountains where they are on above 0 % and no mountain is shown to stand on. Without the street, the houses and
+     * the buildings both. Where every way is a switch it reads "Needs ... on" ([NEEDS_BUILDINGS_LINE]'s form), where one
+     * is an amount "No house stands ..." ([NO_HOUSE_FOR_LIGHTS_LINE]'s), which names what does not carry them: the
+     * distant houses, whichever of the two is the way.
+     */
+    internal fun buildingLightsLine(
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout?,
+    ): String {
+        val houses = layout == null || themeHas(layout, c, DecorationExclusion.HOUSE_TYPES)
+        val buildings = layout == null || hasPlaces(layout) || themeHas(layout, c, setOf(SceneObjectType.SKYSCRAPER))
+        val raiseHouses = houses && housesOnWithNoneStanding(c)
+        val raiseTowers = buildings && c.buildings.visible
+        val carriers = listOfNotNull(
+            "the houses".takeIf { houses && !raiseHouses },
+            "the buildings".takeIf { buildings && !c.buildings.visible },
+            "the distant houses",
+        )
+        val noMountain = c.distantHouses.drawsAny && !c.mountainsFront.drawsAny && !c.mountainsBack.drawsAny
+        val turnOn = carriers.dropLast(1) + (if (noMountain) "the mountains" else "the distant houses")
+        val lacks = listOfNotNull("no houses".takeIf { !houses }, "no buildings".takeIf { !buildings })
+        if (!raiseHouses && !raiseTowers) {
+            val has = if (lacks.isEmpty()) "" else ": this theme has " + lacks.joinToString(" and ")
+            return "Needs ${orList(turnOn)} on in World & scene$has. Your choice is kept until then."
+        }
+        val stands = when {
+            raiseHouses && raiseTowers -> "No house or tower stands at these densities"
+            raiseHouses -> "No house stands at this density"
+            else -> "No tower stands at this density"
+        }
+        val carry = if (carriers.size == 1) "${carriers[0]} do not carry them" else "neither ${carriers[0]} nor ${carriers[1]} carry them"
+        val raise = "Raise " + listOfNotNull("Houses".takeIf { raiseHouses }, "Towers".takeIf { raiseTowers }).joinToString(" or ")
+        val ways = if (raiseHouses && raiseTowers) "$raise, or turn ${orList(turnOn)} on" else "$raise or turn ${orList(turnOn)} on"
+        return "$stands on this theme${lacks.joinToString("") { ", it has $it" }}, and $carry. $ways in World & scene; " +
+            "your choice is kept until then."
+    }
+
+    /** "A", "A or B", "A, B or C": how a line names its ways. */
+    private fun orList(items: List<String>): String =
+        if (items.size == 1) items[0] else items.dropLast(1).joinToString(", ") + " or " + items.last()
+
+    /**
+     * *Lights on the trees* or *Christmas firs*: as [christmasDecoration] while trees stand, and **off and locked while
+     * none does** -- *Show Trees* off, at 0 %, or too low for one to stand --, the stored choice kept and back with the
+     * trees (decision 40; *Palms* follows the same rule on the Trees page). Its line says what is missing
+     * ([NEEDS_TREES_LINE] or [NO_TREE_AT_THIS_DENSITY_LINE]), or -- the trees being the one thing they hang on -- that the
+     * theme's street has no tree at all, where neither would help ([noneOnThisThemeLine]).
+     */
+    fun christmasTreeDecoration(
+        stored: Boolean,
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout? = null,
+    ): ExclusiveSwitchUiState = when {
+        DecorationExclusion.treesStand(c, layout) -> christmasDecoration(stored, c, layout)
+        layout != null && !themeHas(layout, c, DecorationExclusion.TREE_TYPES) -> nothingToHangOn(noneOnThisThemeLine("trees"))
+        c.trees.visible && c.trees.density > 0f -> nothingToHangOn(NO_TREE_AT_THIS_DENSITY_LINE)
+        else -> nothingToHangOn(NEEDS_TREES_LINE)
+    }
+
+    /**
+     * *Christmas firs*: as [christmasTreeDecoration], and also off and locked where trees stand but no fir can
+     * ([DecorationExclusion.firsCanStand]: a street of palms alone with the Palms switch on, whose palm slots stay palms),
+     * the line saying the Palms switch is the way ([PALMS_KEEP_NO_FIRS_LINE]). The trees' own lines come first: while no
+     * tree stands the Palms switch is locked too.
+     */
+    fun christmasFirs(
+        stored: Boolean,
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        layout: SceneObjectLayout? = null,
+    ): ExclusiveSwitchUiState {
+        val trees = christmasTreeDecoration(stored, c, layout)
+        return if (trees.needsSomethingToHangOn || DecorationExclusion.firsCanStand(c, layout)) trees else nothingToHangOn(PALMS_KEEP_NO_FIRS_LINE)
+    }
+
+    /** The line under *Christmas firs* where the palms take every tree's place ([christmasFirs]). */
+    const val PALMS_KEEP_NO_FIRS_LINE =
+        "The palms are on, and the firs grow only among the leafy trees. Turn Palms off in World & scene, Trees; your " +
+            "choice is kept until then."
+
+    /** The houses on and above 0 %: with none standing, the amount is why ([NO_HOUSE_FOR_HALLOWEEN_LINE]). */
+    private fun housesOnWithNoneStanding(c: com.paperscrape.livewallpaper.engine.SceneCustomization): Boolean =
+        c.houses.visible && c.houses.density > 0f
 
     private fun nothingToHangOn(line: String) =
         ExclusiveSwitchUiState(shownOn = false, interactive = false, blockedByTheOther = false, needsSomethingToHangOn = true, needsLine = line)
@@ -698,30 +767,82 @@ object SettingsUiModel {
         needsSomethingToHangOn = false, needsLine = null,
     )
 
-    /** The line under *Halloween decorations* while a Christmas decoration is on (v5.16, [halloweenDecorations]). */
+    /** The line under *Halloween decorations* while a Christmas decoration is on ([halloweenDecorations]). */
     const val CHRISTMAS_ALREADY_ON_LINE =
         "Christmas decorations are already on. Turn them off in Christmas to hang these."
 
-    /** The line under a Christmas decoration while the Halloween decorations are on (v5.16, [christmasDecoration]). */
+    /** The line under a Christmas decoration while the Halloween decorations are on ([christmasDecoration]). */
     const val HALLOWEEN_ALREADY_ON_LINE =
         "Halloween decorations are already on. Turn them off in Halloween to use this."
 
-    /** The line under *Lights on the trees* or *Christmas firs* while no tree stands (v5.16, [christmasTreeDecoration]). */
+    /** The line under *Lights on the trees* or *Christmas firs* while the trees are off or at 0 % ([christmasTreeDecoration]). */
     const val NEEDS_TREES_LINE =
         "Needs Show Trees on in World & scene. Your choice is kept until then."
 
-    /** The line under *Halloween decorations* while no house or shop stands (v5.16, [halloweenDecorations]). */
+    /** The line under *Halloween decorations* while the houses are off or at 0 % and no shop stands ([halloweenDecorations]). */
     const val NEEDS_HOUSES_LINE =
         "Needs the houses or the buildings on in World & scene. Your choice is kept until then."
 
-    /** The line under *Lights on the buildings* while nothing stands to carry them (v5.16, [christmasBuildingDecoration]). */
+    /** The line under *Lights on the buildings* while nothing stands to carry them ([christmasBuildingDecoration]). */
     const val NEEDS_BUILDINGS_LINE =
         "Needs the houses, the buildings or the distant houses on in World & scene. Your choice is kept until then."
 
+    /** The line under *Lights on the trees* or *Christmas firs* while *Show Trees* is on and no tree stands at its density. */
+    const val NO_TREE_AT_THIS_DENSITY_LINE =
+        "No tree stands at this density on this theme. Raise Trees in World & scene; your choice is kept until then."
+
+    /** The line under *Halloween decorations* while the houses are on and none stands, and the buildings are off. */
+    const val NO_HOUSE_FOR_HALLOWEEN_LINE =
+        "No house stands at this density on this theme, and the buildings are off. Raise Houses or turn the " +
+            "buildings on in World & scene; your choice is kept until then."
+
+    /** The line under *Lights on the buildings* while the houses are on and none stands, and nothing else carries them. */
+    const val NO_HOUSE_FOR_LIGHTS_LINE =
+        "No house stands at this density on this theme, and neither the buildings nor the distant houses carry them. " +
+            "Raise Houses or turn the buildings or the distant houses on in World & scene; your choice is kept until then."
+
+    /** The line under *Halloween decorations* on a street with no house and no place among the houses ([halloweenDecorations]). */
+    const val NO_HOUSE_OR_SHOP_ON_THIS_THEME_LINE = "This theme has no houses and no shops."
+
+    /** The line under *Halloween decorations* on a street with places and no house, *Show Buildings* off. */
+    const val NO_HOUSES_BUILDINGS_OFF_LINE =
+        "This theme has no houses, and the buildings are off. Turn the buildings on in World & scene; your choice is kept " +
+            "until then."
+
+    /** The line under *Halloween decorations* on a street with houses and no place, the houses on and none standing. */
+    const val NO_HOUSE_AND_NO_SHOPS_LINE =
+        "No house stands at this density on this theme, and it has no shops. Raise Houses in World & scene; your choice " +
+            "is kept until then."
+
+    /** The line under *Halloween decorations* on a street with houses and no place, the houses off or at 0 %. */
+    const val NEEDS_HOUSES_NO_SHOPS_LINE =
+        "Needs the houses on in World & scene: this theme has no shops. Your choice is kept until then."
+
     /**
-     * What a tap on the Live Weather switch does. Every state leads somewhere, so the switch always
-     * accepts a tap; the stored flag is turned on with the step that puts right what holds it, so the
-     * choice is made once and shows the moment nothing is missing any more.
+     * The line under *Palms* where every tree the street keeps would stand as a Christmas fir even at 100 %
+     * ([StandingObjects.onlyFirsEvenAtFull]): raising the density would put no palm anywhere.
+     */
+    const val PALMS_ONLY_FIRS_ON_THIS_THEME_LINE =
+        "Every tree on this theme is a Christmas fir, and the firs stay. Turn the Christmas firs off; your choice is kept " +
+            "until then."
+
+    /** The line under *Palms* on a street with no tree: the palms take the trees' places. */
+    const val PALMS_NO_TREES_ON_THIS_THEME_LINE = "This theme has no trees, and palms stand where the trees do."
+
+    /**
+     * The line under a switch whose [things] the theme's street has none of at any amount -- *Show Houses*, *Show Trees*,
+     * *Show Parasols*, *Show Buildings* ([AmountSwitchUiState.noneOnThisTheme]), *Tower opening hours* with no tower, *Lights
+     * on the trees* and *Christmas firs* with no tree, the shops' and the public buildings' hours and pages with no place
+     * among the houses: "This theme has no trees."
+     */
+    fun noneOnThisThemeLine(things: String): String = "This theme has no $things."
+
+    /** [noneOnThisThemeLine] as a row of World & scene says it: with no full stop, like the rows' other states. */
+    fun noneOnThisThemeSummary(things: String): String = "This theme has no $things"
+
+    /**
+     * What a tap on the Live Weather switch does. Every state leads somewhere; the stored flag is turned on with the step
+     * that puts right what holds it, so the choice shows the moment nothing is missing.
      */
     fun liveWeatherTap(state: LiveWeatherUiState): LiveWeatherTap = when {
         state.shownOn -> LiveWeatherTap.TURN_OFF
@@ -736,27 +857,22 @@ object SettingsUiModel {
     }
 
     /**
-     * The Palms switch, as the Trees page of World & scene draws it (Seasons & decorations until
-     * v5.10C2): the half of the switch the theme reads ([palmsShown], v5.10C), and **only while the
-     * trees stand** -- the palms take the trees' places, so
-     * with *Show Trees* off, or the trees at 0 %, there is nowhere for one to stand
-     * (`palmSpeciesApplied` swaps only the slots `keepCandidate` kept). Off and locked then, the stored
-     * value kept, the rule of [dependentSwitch]. Beach and Desert read on over no palm the same way
-     * until v5.10C; the other ten could not, until their palms could be switched on.
-     *
-     * **And only while a palm would stand** (v5.10C2): the Christmas firs stay firs among the palms, so
-     * a wood thinned under *Christmas firs* can keep nothing but firs ([onlyFirsWouldStand], which is
-     * `SceneObjectLayout.keepsOnlyFirsUnderPalms` of the theme's layout). Off and locked then too, the
-     * same rule: the switch would put no palm anywhere.
+     * The Palms switch on the Trees page of World & scene: the half of the switch the theme reads ([palmsShown]), off and
+     * locked ([dependentSwitch]) unless a palm would stand -- the palms take the trees' places (`palmSpeciesApplied` swaps
+     * only the slots `keepCandidate` kept), so they need a tree standing, and the Christmas firs stay firs, so a wood
+     * thinned under *Christmas firs* may keep nothing but firs ([onlyFirsWouldStand],
+     * `SceneObjectLayout.keepsOnlyFirsUnderPalms`).
      */
     fun palms(
         c: com.paperscrape.livewallpaper.engine.SceneCustomization,
         layoutPlantsPalms: Boolean,
         onlyFirsWouldStand: Boolean,
+        /** Whether a tree stands at all ([StandingObjects.trees]): at a few per cent a theme can keep none. */
+        treesStand: Boolean = c.trees.density > 0f,
     ): DependentSwitchUiState =
         dependentSwitch(
             stored = c.palmsShown(layoutPlantsPalms),
-            available = amountSwitch(c.trees.visible, c.trees.density).shownOn && !onlyFirsWouldStand,
+            available = amountSwitch(c.trees.visible, c.trees.density, treesStand).shownOn && !onlyFirsWouldStand,
         )
 
     /** See [DependentSwitchUiState]: [stored] while [available], off and locked otherwise. */
@@ -764,15 +880,10 @@ object SettingsUiModel {
         DependentSwitchUiState(shownOn = stored && available, interactive = available)
 
     /**
-     * *Thunderstorm*, from the theme's own weather (v5.10C): it flashes only while *Show Rain/Snow* is
-     * on and Rain is the type -- exactly `LiveWeatherSceneRules.stormActive`'s theme path, which
-     * `SwitchesTellTheTruthTest` holds it to. **Not the intensity**: the renderer flashes at 0 %
-     * intensity too, so a switch that read off there would be the defect the other way round. The
-     * flash over a dry sky (inventory I-292) is meant: the maintainer, 2026-10-04, *«nel mondo vero può
-     * esistere un temporale senza pioggia, quindi va bene»*. While Live
-     * Weather drives the scene the forecast decides instead, and since v5.10D the row is not drawn
-     * then ([forecastOwnsTheWeatherControls]): until then it stood locked with the stored value, which
-     * could read on under a clear sky.
+     * *Thunderstorm*, from the theme's own weather: it flashes only while *Show Rain/Snow* is on and Rain is the type,
+     * `LiveWeatherSceneRules.stormActive`'s theme path (`SwitchesTellTheTruthTest`). **Not the intensity**: at 0 % it is a
+     * storm without rain, and meant (`DESIGN_NOTES.md` §12, decision 44). Under Live Weather the row is not drawn
+     * ([forecastOwnsTheWeatherControls]).
      */
     fun thunderstorm(
         storedThunderstorm: Boolean,
@@ -782,26 +893,17 @@ object SettingsUiModel {
         dependentSwitch(storedThunderstorm, available = precipitationVisible && precipitationIsRain)
 
     /**
-     * Whether the Clouds and the Rain and snow pages of World & scene leave out the theme's own
-     * weather controls -- *Show Clouds* and its amount, *Show Rain/Snow*, the type, the intensity and
-     * *Thunderstorm* -- and say instead that the forecast decides them (v5.10D, inventory I-220, the
-     * maintainer's *sì* of 2026-09-30 to row 11).
-     *
-     * While real weather drives the sky those controls hold the theme's values, not the sky's: until
-     * v5.10D they stood there greyed, so *Show Clouds* could read **off** with the forecast's clouds on
-     * screen (`LiveWeatherSceneRules.cloudDensity` gives the theme's switch no vote), and *Show
-     * Rain/Snow* off in the rain. A greyed switch still says on or off, and that was the false part.
-     * The colours stay: the forecast does not choose them. Exactly [LiveWeatherUiState.drivingTheScene],
-     * so the controls come back the moment the theme's weather is what shows.
+     * Whether the Clouds and the Rain and snow pages leave out the theme's own weather controls (*Show Clouds* and its
+     * amount, *Show Rain/Snow*, the type, the intensity, *Thunderstorm*) and say the forecast decides them: they hold the
+     * theme's values, and even greyed a switch says on or off -- *Show Clouds* off under the forecast's clouds
+     * (`LiveWeatherSceneRules.cloudDensity` gives it no vote). The colours stay: the forecast does not choose them.
      */
     fun forecastOwnsTheWeatherControls(liveWeather: LiveWeatherUiState): Boolean = liveWeather.drivingTheScene
 
     /**
-     * The line under a weather provider's key row in Weather & time's Advanced group (v5.10D,
-     * inventory I-221): **"Required - not set" only for the provider chosen as the source**. Until
-     * v5.10D the two keyed providers both read "Required - not set" whatever was chosen, so a user on
-     * Open-Meteo, which needs no key, read two requirements that did not apply to them; and the
-     * Open-Meteo row said "using Open-Meteo's free service" while another provider was the one in use.
+     * The line under a weather provider's key row in Weather & time's Advanced group: **"Required - not
+     * set" only for the provider chosen as the source**, so a user on Open-Meteo, which needs no key,
+     * reads no requirement that does not apply, and the Open-Meteo row says it is in use only while it is.
      */
     fun apiKeyLine(row: WeatherProviderId, selected: WeatherProviderId, keySet: Boolean): String {
         val chosen = row == selected
@@ -822,16 +924,9 @@ object SettingsUiModel {
     }
 
     /**
-     * The Location row under GPS or Network (v5.10D, row 5 of the v5.10A table): what the phone gives,
-     * read from the phone each time the page comes to the front, never from the stored choice.
-     *
-     * The stored choice is not rewritten (`AI_PROJECT_RULES.md` 8.7): GPS stays chosen, and the row
-     * under it says it is not working, why, and where a tap puts it right. Until v5.10D the row showed
-     * the last position the phone had given, "Resolved from the GPS receiver", whatever the phone said
-     * now -- with the permission taken away, the location switched off, or an app backup restored on a
-     * phone that never gave the permission -- and the wallpaper used that position for good.
-     *
-     * Null for Off and Custom, which use nothing of the phone's.
+     * The Location row under GPS or Network: what the phone gives, read each time the page comes to the front, never
+     * from the stored choice. The choice is not rewritten (decision 40): GPS stays chosen, and the row says
+     * it is not working, why, and where a tap puts it right. Null for Off and Custom, which use nothing of the phone's.
      */
     fun deviceLocationRow(mode: LocationMode, access: DeviceLocationAccess): DeviceLocationRowState? {
         if (mode != LocationMode.GPS && mode != LocationMode.NETWORK) return null
@@ -848,15 +943,11 @@ object SettingsUiModel {
     }
 
     /**
-     * What to do with the answer to a location permission request for [kind] (v5.10D).
-     *
-     * [fineGranted] and [coarseGranted] are the phone's answer; [systemWouldAskAgain] is
-     * `shouldShowRequestPermissionRationale` after it. **That says "no" both after a refusal for good
-     * and after a dialog closed without an answer**, so the app's page is opened only where the first
-     * is meant: after a refusal already seen on this screen ([refusalSeenHere]), or for a choice
-     * already stored ([choiceAlreadyStored] -- "GPS - tap to allow", where a refusal for good returns
-     * at once, with no dialog). The same reading `UpdateNotificationPolicy`'s row makes of the same
-     * signal for notifications (v5.10C).
+     * What to do with the answer to a location permission request for [kind]. [systemWouldAskAgain] is
+     * `shouldShowRequestPermissionRationale`, which says "no" **both after a refusal for good and after a dialog closed
+     * without an answer**, so the app's page opens only where the first is meant: after a refusal already seen here
+     * ([refusalSeenHere]), or for a choice already stored ([choiceAlreadyStored], where a refusal for good returns at
+     * once, with no dialog). `UpdateNotificationPolicy` reads the same signal the same way.
      */
     fun afterLocationRequest(
         kind: DeviceLocationKind,
@@ -896,10 +987,9 @@ object SettingsUiModel {
     }
 
     /**
-     * What a tap that moves the *Distant houses* switch to [wanted] does: the Mountains page while
-     * there is no mountain to stand on, the amount back to
-     * [com.paperscrape.livewallpaper.engine.DistantHousesConfig.STARTING_DENSITY] when it is turned on
-     * at 0 %, and otherwise the flag.
+     * What a tap that moves the *Distant houses* switch to [wanted] does: the Mountains page while there is no mountain
+     * to stand on, the amount back to [com.paperscrape.livewallpaper.engine.DistantHousesConfig.STARTING_DENSITY] when
+     * turned on at 0 %, otherwise the flag.
      */
     fun distantHousesTap(wanted: Boolean, visible: Boolean, density: Float, mountainsShown: Boolean): DistantHousesTap =
         when {
@@ -910,14 +1000,15 @@ object SettingsUiModel {
         }
 
     /**
-     * The line at the top of the Shops page and of the Public buildings page (v5.11, the second group
-     * v5.13; `AI_PROJECT_RULES.md` 8.7): which buildings the group is, that all six of the street take
-     * turns in its places as the scenery scrolls, and that the group's colours are its own -- or, with
-     * *Show Buildings* off, that they are not standing and where that switch is, since they stand by it
-     * and have none of their own.
+     * The line at the top of the Shops and the Public buildings pages: which buildings the group is, that the six take
+     * turns in the street's places and that the colours are the group's -- or, with *Show Buildings* off, where that
+     * switch is, since they stand by it (decision 40). On a street with no place among the houses
+     * ([placesOnTheme], [StandingObjects.themeHasPlaces]) none of the six stands at any setting, and the line says so.
      */
-    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean): String =
-        if (buildingsVisible) {
+    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean, placesOnTheme: Boolean): String =
+        if (!placesOnTheme) {
+            noneOnThisThemeLine(groupThings(group))
+        } else if (buildingsVisible) {
             "${groupBuildings(group)}. Along the street the six buildings among the houses take turns in its " +
                 "places as the scenery scrolls. Each randomly uses Color 1 or Color 2, and blends into " +
                 "its night version as it gets dark."
@@ -932,47 +1023,80 @@ object SettingsUiModel {
         StorefrontGroup.PUBLIC -> "The school, the fire station and the police station"
     }
 
-    /** The name of the page *Show Buildings* is on since v5.13: the towers'. */
+    /** A group, as a line that says a theme has none of it says it: "shops", "public buildings". */
+    fun groupThings(group: StorefrontGroup): String = when (group) {
+        StorefrontGroup.SHOPS -> "shops"
+        StorefrontGroup.PUBLIC -> "public buildings"
+    }
+
+    /** The name of the page *Show Buildings* is on: the towers'. */
     const val TOWERS_PAGE = "Towers & offices"
 
     /**
-     * *Shop opening hours* and *Public building opening hours* (v5.12 and v5.13, the maintainer's
-     * *«vorrei inoltre aggiungere uno slide per orari solo grattacieli e solo negozi»* of 2026-10-09 and
-     * *«il resto accetto i consigliati»* of 2026-10-11): on only while there are buildings of the group to
-     * keep them (`AI_PROJECT_RULES.md` 8.7). The six buildings among the houses stand while *Show
-     * Buildings* is on, whatever the Towers amount (`SceneCustomization.keepCandidate`), and each group
-     * has its turns in the places along every street, so that switch is the one thing that stops them;
-     * the stored choice is kept, and back the moment it is on.
+     * *Shop opening hours* and *Public building opening hours* (`DESIGN_NOTES.md` §12, decision 62): on only while the
+     * group's buildings stand (decision 40). They stand while *Show Buildings* is on, whatever the Towers
+     * amount (`SceneCustomization.keepCandidate`), on a street with places among the houses ([placesOnTheme]): so that
+     * switch alone holds them, and on a street with none nothing does. The stored choice is kept.
      */
-    fun shopHours(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState =
-        dependentSwitch(stored, available = buildingsVisible)
+    fun shopHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && buildingsVisible)
 
     /** The public buildings' hours, by [shopHours]' rule. */
-    fun publicHours(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState =
-        dependentSwitch(stored, available = buildingsVisible)
+    fun publicHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && buildingsVisible)
 
     /**
-     * A group's hours as its row in *Landscape* says them (v5.13): "always open", or "open 09:00-20:00".
+     * A group's hours as its row in *Landscape* says them: "always open", or "open 09:00-20:00".
      * The same quarter hours the sliders print.
      */
     fun hoursSummary(enabled: Boolean, open: Float, close: Float): String =
         if (!enabled || open == close) "always open" else "open ${clockText(open)}-${clockText(close)}"
 
-    /** The *Towers & offices* row (v5.13): off, or the amount and the hours. */
-    fun towersRowSummary(visible: Boolean, amount: Float, hoursEnabled: Boolean, open: Float, close: Float): String =
-        if (!visible) "Off" else "${(amount * 100).toInt()}%, ${hoursSummary(hoursEnabled && amount > 0f, open, close)}"
+    /**
+     * The *Towers & offices* row: off, or the amount and the hours -- or, above 0 % with no tower kept on this
+     * theme ([towersStand], [StandingObjects.towers]), that none stands; on a street with no tower at all
+     * ([towersOnTheme], [StandingObjects.themeHasTowers]), that, the amount and the hours being about nothing; and on one
+     * with no building at all -- no tower and no place ([placesOnTheme]) -- that, whatever *Show Buildings* says, since
+     * its switch is locked.
+     */
+    fun towersRowSummary(
+        visible: Boolean,
+        amount: Float,
+        hoursEnabled: Boolean,
+        open: Float,
+        close: Float,
+        towersStand: Boolean,
+        towersOnTheme: Boolean,
+        placesOnTheme: Boolean,
+    ): String = when {
+        !towersOnTheme && !placesOnTheme -> noneOnThisThemeSummary("buildings")
+        !visible -> "Off"
+        !towersOnTheme -> noneOnThisThemeSummary("towers")
+        amount > 0f && !towersStand -> "${(amount * 100).toInt()}%, no tower at this density on this theme"
+        else -> "${(amount * 100).toInt()}%, ${hoursSummary(hoursEnabled && amount > 0f, open, close)}"
+    }
 
     /**
-     * The *Shops* and *Public buildings* rows (v5.13): the group's buildings and hours, or -- *Show
-     * Buildings* off -- that they are off and why.
+     * The *Shops* and *Public buildings* rows: the group's buildings and hours, or -- *Show
+     * Buildings* off -- that they are off and why; on a street with no place among the houses ([placesOnTheme]), that the
+     * theme has none of them.
      */
-    fun storefrontRowSummary(group: StorefrontGroup, buildingsVisible: Boolean, hoursEnabled: Boolean, open: Float, close: Float): String =
-        if (!buildingsVisible) {
+    fun storefrontRowSummary(
+        group: StorefrontGroup,
+        buildingsVisible: Boolean,
+        hoursEnabled: Boolean,
+        open: Float,
+        close: Float,
+        placesOnTheme: Boolean,
+    ): String =
+        if (!placesOnTheme) {
+            noneOnThisThemeSummary(groupThings(group))
+        } else if (!buildingsVisible) {
             "Off - Show Buildings is off"
         } else {
             when (group) {
                 StorefrontGroup.SHOPS -> "Restaurant, bar and shop, ${hoursSummary(hoursEnabled, open, close)}"
-                // The hours are the school's; the fire and the police station never close (2026-10-12).
+                // The hours are the school's; the fire and the police station never close.
                 StorefrontGroup.PUBLIC -> if (!hoursEnabled || open == close) {
                     "School, fire and police station, always open"
                 } else {
@@ -988,36 +1112,153 @@ object SettingsUiModel {
     }
 
     /**
-     * *Tower opening hours* (v5.12): on only while there are towers to keep them -- *Show Buildings* on
-     * and the Towers amount above 0 %, the two things that stop every tower. See [shopHours].
+     * *Tower opening hours*: on only while there are towers to keep them -- *Show Buildings* on and a tower kept
+     * at the Towers amount ([towersStand], [StandingObjects.towers]): at a few per cent a theme can keep none, and at
+     * 0 % none does. See [shopHours].
      */
-    fun towerHours(stored: Boolean, buildingsVisible: Boolean, towersAmount: Float): DependentSwitchUiState =
-        dependentSwitch(stored, available = buildingsVisible && towersAmount > 0f)
-
-    /** See [AmountSwitchUiState]. */
-    fun amountSwitch(visible: Boolean, amount: Float): AmountSwitchUiState =
-        AmountSwitchUiState(shownOn = visible && amount > 0f, noneAtZero = amount <= 0f)
+    fun towerHours(
+        stored: Boolean,
+        buildingsVisible: Boolean,
+        towersAmount: Float,
+        towersStand: Boolean,
+    ): DependentSwitchUiState =
+        dependentSwitch(stored, available = buildingsVisible && towersAmount > 0f && towersStand)
 
     /**
-     * What a tap that moves an [AmountSwitchUiState] switch to [wanted] writes. Turning it on at 0 %
-     * restores [defaultAmount] -- the theme's own amount -- so the thing appears; anything else is the
-     * switch's own flag, as it always was.
+     * See [AmountSwitchUiState]. [stands] is whether the category keeps one object at [amount] on this theme
+     * ([StandingObjects]) -- for the effects, which keep one at any amount above 0, the amount above 0 -- and [onTheme]
+     * whether the theme's street has one at all ([StandingObjects.themeHasTrees] and the three like it); the effects,
+     * the mountains and the decorations always do.
      */
-    fun amountTap(wanted: Boolean, amount: Float, defaultAmount: Float): AmountTap =
-        if (wanted && amount <= 0f) AmountTap.Restore(if (defaultAmount > 0f) defaultAmount else FALLBACK_AMOUNT)
-        else AmountTap.SetVisible(wanted)
+    fun amountSwitch(visible: Boolean, amount: Float, stands: Boolean = amount > 0f, onTheme: Boolean = true): AmountSwitchUiState =
+        AmountSwitchUiState(
+            shownOn = onTheme && visible && amount > 0f && stands,
+            noneAtZero = onTheme && amount <= 0f,
+            noneAtThisAmount = onTheme && visible && amount > 0f && !stands,
+            noneOnThisTheme = !onTheme,
+        )
 
     /**
-     * The amount a tap restores where the theme's own is 0 as well. No built-in theme ships one of
-     * these controls at 0 today, so this is a backstop, not a choice anyone will see: the middle of
-     * the slider.
+     * What a tap that moves an [AmountSwitchUiState] switch to [wanted] writes. On a street with none of the category at
+     * all ([onTheme] false) nothing: no amount would show one, so the tap promises nothing and the stored flag and amount
+     * stay as they are. Turning it on where nothing would stand -- at 0 %, or at an amount that keeps none on this theme
+     * ([stands] false) -- restores [defaultAmount], the theme's own, so the thing appears; where the theme's own is no
+     * higher than the amount it is at, all of them, 100 %. Anything else is the switch's own flag.
+     */
+    fun amountTap(
+        wanted: Boolean,
+        amount: Float,
+        defaultAmount: Float,
+        stands: Boolean = amount > 0f,
+        onTheme: Boolean = true,
+    ): AmountTap = when {
+        !onTheme -> AmountTap.NoneOnThisTheme
+        wanted && amount <= 0f -> AmountTap.Restore(if (defaultAmount > 0f) defaultAmount else FALLBACK_AMOUNT)
+        wanted && !stands -> AmountTap.Restore(if (defaultAmount > amount) defaultAmount else 1f)
+        else -> AmountTap.SetVisible(wanted)
+    }
+
+    /**
+     * What [layout] -- the street the theme draws -- would stand at the amounts [c] gives, category by category, each
+     * switch on (`keepCandidate`, the wallpaper's rule, [com.paperscrape.livewallpaper.engine.standsAny]), and which of
+     * the houses, towers, trees, parasols and places it has at all ([themeHas], [hasPlaces]).
+     */
+    fun standing(layout: SceneObjectLayout, c: com.paperscrape.livewallpaper.engine.SceneCustomization): StandingObjects {
+        val on = c.copy(
+            houses = c.houses.copy(visible = true),
+            buildings = c.buildings.copy(visible = true),
+            trees = c.trees.copy(visible = true),
+            parasols = c.parasols.copy(visible = true),
+            snowmen = c.snowmen.copy(visible = true),
+            gifts = c.gifts.copy(visible = true),
+            penguins = c.penguins.copy(visible = true),
+            bunnies = c.bunnies.copy(visible = true),
+            easterEggs = c.easterEggs.copy(visible = true),
+            pumpkins = c.pumpkins.copy(visible = true),
+            scarecrows = c.scarecrows.copy(visible = true),
+        )
+        return StandingObjects(
+            houses = on.standsAny(layout, DecorationExclusion.HOUSE_TYPES),
+            towers = on.standsAny(layout, setOf(SceneObjectType.SKYSCRAPER)),
+            trees = on.standsAny(layout, DecorationExclusion.TREE_TYPES),
+            parasols = on.standsAny(layout, setOf(SceneObjectType.PARASOL)),
+            snowmen = on.standsAny(layout, setOf(SceneObjectType.SNOWMAN)),
+            gifts = on.standsAny(layout, setOf(SceneObjectType.GIFT)),
+            penguins = on.standsAny(layout, setOf(SceneObjectType.PENGUIN)),
+            bunnies = on.standsAny(layout, setOf(SceneObjectType.BUNNY)),
+            easterEggs = on.standsAny(layout, setOf(SceneObjectType.EASTER_EGG)),
+            pumpkins = on.standsAny(layout, setOf(SceneObjectType.PUMPKIN)),
+            scarecrows = on.standsAny(layout, setOf(SceneObjectType.SCARECROW)),
+            themeHasHouses = themeHas(layout, c, DecorationExclusion.HOUSE_TYPES),
+            themeHasTowers = themeHas(layout, c, setOf(SceneObjectType.SKYSCRAPER)),
+            themeHasTrees = themeHas(layout, c, DecorationExclusion.TREE_TYPES),
+            themeHasParasols = themeHas(layout, c, setOf(SceneObjectType.PARASOL)),
+            themeHasPlaces = hasPlaces(layout),
+            onlyFirsEvenAtFull = layout.keepsOnlyFirsUnderPalms(c.copy(trees = c.trees.copy(visible = true, density = 1f))),
+        )
+    }
+
+    /**
+     * Whether [layout] has one of [types] at all: one stands with the houses, the buildings, the trees and the parasols on
+     * and at 100 % -- `keepCandidate` itself, so what no amount can change. Not the places among the houses, which
+     * [com.paperscrape.livewallpaper.engine.standsAny] leaves out: for the buildings this asks after the towers.
+     */
+    private fun themeHas(
+        layout: SceneObjectLayout,
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        types: Set<SceneObjectType>,
+    ): Boolean = c.copy(
+        houses = c.houses.copy(visible = true, density = 1f),
+        buildings = c.buildings.copy(visible = true, density = 1f),
+        trees = c.trees.copy(visible = true, density = 1f),
+        parasols = c.parasols.copy(visible = true, density = 1f),
+    ).standsAny(layout, types)
+
+    /**
+     * Whether [layout] has a place among the houses ([StorefrontStreet.isPlace]), where the six buildings take turns --
+     * the three shops among them. The places stand at every amount while *Show Buildings* is on (`keepCandidate`), so
+     * this is whether a shop can stand at all.
+     */
+    private fun hasPlaces(layout: SceneObjectLayout): Boolean = layout.staticObjects.any { StorefrontStreet.isPlace(it) }
+
+    /** The line under a *Show X* switch of the street at an amount that keeps none on this theme ([amountSwitch]). */
+    fun noneAtThisAmountLine(amount: Float): String =
+        "None at ${(amount * 100).toInt()}% density on this theme - tap to bring them back"
+
+    /**
+     * *Show people*: the people walk by their day density by day and their night density at night
+     * (`PeopleDensity.at`), so with both at 0 % nobody walks at any hour -- off then, and said, the stored values kept; a
+     * tap brings the day density back to the theme's own. With either above 0 % some hour has people: on.
+     */
+    fun people(visible: Boolean, dayDensity: Float, nightDensity: Float): AmountSwitchUiState =
+        AmountSwitchUiState(
+            shownOn = visible && (dayDensity > 0f || nightDensity > 0f),
+            noneAtZero = dayDensity <= 0f && nightDensity <= 0f,
+        )
+
+    /**
+     * What a tap on *Show people* writes: turning it on with both densities at 0 % brings the day density back to
+     * [defaultDayDensity], the theme's own, so people walk; anything else is the switch's own flag.
+     */
+    fun peopleTap(wanted: Boolean, dayDensity: Float, nightDensity: Float, defaultDayDensity: Float): AmountTap =
+        if (wanted && dayDensity <= 0f && nightDensity <= 0f) {
+            AmountTap.Restore(if (defaultDayDensity > 0f) defaultDayDensity else FALLBACK_AMOUNT)
+        } else {
+            AmountTap.SetVisible(wanted)
+        }
+
+    /** The line under *Show people* with both densities at 0 % ([people]). */
+    const val NO_PEOPLE_AT_ZERO_LINE = "None at 0% by day and by night - tap to bring them back"
+
+    /**
+     * The amount a tap restores where the theme's own is 0 as well: the middle of the slider. No
+     * built-in theme ships one of these controls at 0, so it is a backstop.
      */
     const val FALLBACK_AMOUNT = 0.5f
 
     /**
      * The first half of the home screen's *Weather & time* line: what the Live Weather switch shows,
-     * in words -- "on" only when the switch is (v5.10C, row 4: the line said "Live Weather on" over a
-     * fixed hour), and while the stored "on" is held, why.
+     * in words -- "on" only when the switch is, and while the stored "on" is held, why.
      */
     fun homeLiveWeatherLine(state: LiveWeatherUiState): String = when {
         state.shownOn -> "Live Weather on"
@@ -1035,53 +1276,81 @@ object SettingsUiModel {
     }
 
     /**
-     * How many decorations the home screen's *Seasons & decorations* line counts as on: each one the
-     * way its own switch shows it (v5.10C).
-     *
-     * A decoration with a density counts only above 0 % ([amountSwitch]), because at 0 % none is drawn
-     * (inventory I-211: "Snowmen" at 0 % was a decoration on).
-     *
-     * **The palms are not counted, since v5.10C2.** v5.10C counted them on a theme that plants none,
-     * while their switch was Seasons & decorations' Summer row; the maintainer moved it to the Trees
-     * page of World & scene on 2026-10-03 (*«il flag non deve stare in summer ma in tree»*), and a line
-     * that counts what its screen does not show is a count of something else.
+     * How many decorations the home screen's *Seasons & decorations* line counts as on: each the way its own switch
+     * shows it, by the functions that draw the switches -- so the Christmas lights and the Halloween decorations count
+     * only with something to hang them on, and one with a density only while one stands
+     * ([amountSwitch]). **Not the palms**: their switch is on World & scene's Trees page, not on the screen counted.
      */
-    fun decorationsOn(c: com.paperscrape.livewallpaper.engine.SceneCustomization): Int =
-        listOf(
-            c.christmasBuildingLightsEnabled,
-            c.christmasTreeLightsEnabled,
-            c.christmasFirsEnabled,
+    fun decorationsOn(
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        /** The street the theme draws, and what it stands under [c] ([standing]); without them, the amounts above 0 %. */
+        layout: SceneObjectLayout? = null,
+    ): Int {
+        val s = layout?.let { standing(it, c) }
+        return listOf(
+            christmasBuildingDecoration(c.christmasBuildingLightsEnabled, c, layout).shownOn,
+            christmasTreeDecoration(c.christmasTreeLightsEnabled, c, layout).shownOn,
+            christmasFirs(c.christmasFirsEnabled, c, layout).shownOn,
             c.santaEnabled,
             c.halloweenEnabled,
             laughingMoon(c).shownOn,
             nightSkyByDay(c).shownOn,
-            c.halloweenDecorationsEnabled,
+            stillMoon(c).shownOn,
+            halloweenDecorations(c, layout).shownOn,
             c.bloodRainEnabled,
             c.headlessHorsemanEnabled,
             c.horrorSkyEnabled,
             c.flowersEnabled,
-            amountSwitch(c.scarecrows.visible, c.scarecrows.density).shownOn,
-            amountSwitch(c.snowmen.visible, c.snowmen.density).shownOn,
-            amountSwitch(c.gifts.visible, c.gifts.density).shownOn,
-            amountSwitch(c.penguins.visible, c.penguins.density).shownOn,
-            amountSwitch(c.bunnies.visible, c.bunnies.density).shownOn,
-            amountSwitch(c.easterEggs.visible, c.easterEggs.density).shownOn,
-            amountSwitch(c.pumpkins.visible, c.pumpkins.density).shownOn,
+            amountSwitch(c.scarecrows.visible, c.scarecrows.density, s?.scarecrows ?: (c.scarecrows.density > 0f)).shownOn,
+            amountSwitch(c.snowmen.visible, c.snowmen.density, s?.snowmen ?: (c.snowmen.density > 0f)).shownOn,
+            amountSwitch(c.gifts.visible, c.gifts.density, s?.gifts ?: (c.gifts.density > 0f)).shownOn,
+            amountSwitch(c.penguins.visible, c.penguins.density, s?.penguins ?: (c.penguins.density > 0f)).shownOn,
+            amountSwitch(c.bunnies.visible, c.bunnies.density, s?.bunnies ?: (c.bunnies.density > 0f)).shownOn,
+            amountSwitch(c.easterEggs.visible, c.easterEggs.density, s?.easterEggs ?: (c.easterEggs.density > 0f)).shownOn,
+            amountSwitch(c.pumpkins.visible, c.pumpkins.density, s?.pumpkins ?: (c.pumpkins.density > 0f)).shownOn,
         ).count { it }
+    }
 
     /**
-     * Whether choosing [pickedThemeId] -- a gallery card, or *Shuffle a random theme* -- must ask
-     * first (v5.10C, row 9): while *Automatic theme by date* is on and the calendar is showing
-     * [calendarThemeId] today, a different pick is saved and **not shown**, because the calendar wins
-     * (`PaperWallpaperService` and the gallery resolve the same way). The tap changed nothing on the
-     * wallpaper, and the row then read "Random theme active" over an Autumn scene (inventory I-212).
-     * The question names the calendar's theme and offers to turn the automatic theme off.
-     *
-     * [pickedThemeId] null is *Shuffle*, whose theme does not exist until it is made: always a
-     * different one. Picking the calendar's own theme asks nothing: it is already what shows.
+     * Whether choosing [pickedThemeId] -- a gallery card, or *Shuffle a random theme* (null: always a different one) --
+     * must ask first: while the calendar shows [calendarThemeId] today, a different pick is saved and **not shown**,
+     * because the calendar wins (`PaperWallpaperService` and the gallery resolve the same way).
      */
     fun pickNeedsCalendarQuestion(calendarThemeId: String?, pickedThemeId: String?): Boolean =
         calendarThemeId != null && pickedThemeId != calendarThemeId
+
+    /**
+     * How long from [now] until the next day begins where [now] is: when the settings read the date again (the calendar's
+     * theme of today). From the start of the next day in its own zone, so a day of 23 or 25 hours -- the change of the
+     * clocks -- ends at its midnight; never less than a millisecond.
+     */
+    fun millisUntilNextDay(now: java.time.ZonedDateTime): Long =
+        java.time.Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay(now.zone)).toMillis().coerceAtLeast(1L)
+
+    /**
+     * The line under *Shuffle a random theme*: "active" only while a random theme is what shows -- picked, and no
+     * calendar's theme showing over it today ([calendarThemeId]). With *Automatic theme by date* on and a day the
+     * calendar covers, a random theme picked earlier is kept but not shown.
+     */
+    fun shuffleLine(themeId: String, calendarThemeId: String?): String =
+        if (com.paperscrape.livewallpaper.engine.RandomSceneGenerator.isRandomThemeId(themeId) && calendarThemeId == null) {
+            "Random theme active - tap again to generate another one"
+        } else {
+            "Builds a new theme from scratch and selects it"
+        }
+
+    /**
+     * The first line of the Holiday calendar page with *Automatic theme by date* on: "each day" only while the seasons
+     * cover the whole year; on a gap's days the theme picked by hand shows.
+     */
+    fun calendarBanner(hasGaps: Boolean): String =
+        if (hasGaps) {
+            "The calendar picks a theme for each day a holiday or a season covers. Holidays sit on top of the " +
+                "seasons; the days no season covers are named below."
+        } else {
+            "The calendar picks a theme for each day. Holidays sit on top; the seasons underneath cover the rest " +
+                "of the year."
+        }
 
     /** Reads the pair of stored palette flags as one choice. */
     fun seasonalPalette(fallColorsEnabled: Boolean, winterColorsEnabled: Boolean): SeasonalPalette = when {
@@ -1098,23 +1367,16 @@ object SettingsUiModel {
     }
 
     /**
-     * The banner at the top of World & scene and Seasons & decorations (v5.10E, inventory I-219, the
-     * maintainer's *sì* of 2026-09-30 to row 11). It said "Keep this look by saving the theme from
-     * Advanced & about", which read as "unsaved changes are lost": they are not. Since v4.3 an edit is
-     * kept with its theme -- archived when another theme is edited, back when this one is
-     * (`WallpaperPrefs.ensureFreshPendingTheme`) -- and saving makes a separate copy. Now it says so.
+     * The banner at the top of World & scene and Seasons & decorations (`DESIGN_NOTES.md` §12, decision 45): an edit
+     * stays with its theme (`WallpaperPrefs.ensureFreshPendingTheme`), and saving makes a separate copy.
      */
     fun themeEditsBanner(themeName: String): String =
         "These change $themeName, the theme showing now, and your changes stay with it when you switch " +
             "themes. To keep this look as a theme of its own, save it from Advanced & about."
 
     /**
-     * The question before "Reset this theme's scene to defaults" (v5.10E, inventory I-213). It said
-     * "everything on this screen", and the screen ends with **Motion** -- scroll speed, parallax, the
-     * background scrolling, swipe scroll -- which is every theme's, not this one's, and which the reset
-     * has never touched (`WallpaperPrefs.resetAllCategories` removes only this theme's keys). Resetting
-     * Motion from here would change every other theme, against the sentence that closes this one, so
-     * the sentence says what the reset does instead [the choice the v5.10A table left between the two].
+     * The question before "Reset this theme's scene to defaults" (`DESIGN_NOTES.md` §12, decision 42): what goes, and
+     * that **Motion**, every theme's, stays (`WallpaperPrefs.resetAllCategories` removes only this theme's keys).
      */
     fun sceneResetMessage(themeName: String): String =
         "This puts the sky, the landscape, the life and the traffic on this screen back to how $themeName " +
@@ -1123,10 +1385,8 @@ object SettingsUiModel {
             "every theme. Your other themes are not affected."
 
     /**
-     * The question before "Reset decorations to defaults" (v5.10E, inventory I-214): until then there
-     * was none, and the reset left the snow and leaf piles where they were. What
-     * `WallpaperPrefs.resetDecorations` removes, named; and the palms, which it no longer takes
-     * (I-294: "Reset Trees to default" does, on the page their switch is on).
+     * The question before "Reset decorations to defaults" (decision 42): what `WallpaperPrefs.resetDecorations`
+     * removes. Not the palms: "Reset Trees to default" takes them.
      */
     fun decorationsResetMessage(themeName: String): String =
         "This puts everything on this screen back to how $themeName ships: the seasonal palette and its " +
@@ -1134,23 +1394,17 @@ object SettingsUiModel {
             "with its density and colours. The rest of the scene and your other themes are not affected."
 
     /**
-     * The gallery's "Reset to default" for a built-in theme with a saved version (v5.10E, inventory
-     * I-215). It said "restores the original" and removed only the saved version: the edits made to
-     * the theme in World & scene and Seasons & decorations, which win over a saved version
-     * (`CustomThemeRegistry.resolveActiveCustomization`), stayed on top, and the card went on showing
-     * them. Now the reset takes both, and the question says so.
+     * The gallery's "Reset to default" for a built-in theme with a saved version (decision 42): it takes the saved
+     * version and the theme's edits, which win over it (`CustomThemeRegistry.resolveActiveCustomization`).
      */
     fun galleryResetMessage(themeName: String): String =
         "This removes your saved version of \"$themeName\" and the changes made to it in World & scene and " +
             "Seasons & decorations, so it looks as it ships. Your other themes are not affected."
 
     /**
-     * The question before "Replace with current" on a gallery card (v5.10E, inventory I-215): until then
-     * none, and the tap copied the theme **showing now** -- its colours, its scene and your changes --
-     * onto the card's theme. [targetName] is the card's theme, [showingName] the one showing, [sameTheme]
-     * whether they are one theme (by id: a theme of your own may share a built-in's name);
-     * [targetIsBuiltIn] says whether "Reset to default" can undo it (a saved version of a built-in) or
-     * nothing can (a theme of your own, overwritten). Returns the title and the text.
+     * The question before "Replace with current" on a gallery card (decision 42), which copies the theme **showing
+     * now** onto the card's: [sameTheme] by id (a theme of your own may share a built-in's name); [targetIsBuiltIn]
+     * says whether "Reset to default" can undo it. Returns the title and the text.
      */
     fun replaceWithCurrentQuestion(
         targetName: String,
@@ -1178,12 +1432,9 @@ object SettingsUiModel {
     }
 
     /**
-     * Each bird colour's real share of the flock, in whole per cent, for the line beside its slider
-     * (v5.10E, inventory I-218, the maintainer's *sì* to row 11). The sliders are weights, and they
-     * printed "Color 1: 100" -- which read as "all the birds", though three other colours at 100 share
-     * the flock four ways. The share is what [com.paperscrape.livewallpaper.engine.BirdsConfig.pickColor]
-     * draws: each weight over their sum, and with every weight at 0, all of them the first colour.
-     * Largest-remainder rounding, so the four always add up to 100.
+     * Each bird colour's real share of the flock, in whole per cent, for the line beside its slider (decision 45): the
+     * sliders are weights. What [com.paperscrape.livewallpaper.engine.BirdsConfig.pickColor] draws: each weight over
+     * their sum, all the first colour when every weight is 0; largest-remainder rounding, so the four add up to 100.
      */
     fun birdColorShares(weights: List<Float>): List<Int> {
         if (weights.isEmpty()) return emptyList()
@@ -1203,43 +1454,30 @@ object SettingsUiModel {
     }
 
     /**
-     * *Swipe scroll* (v5.10E, inventory I-222; the rule of `AI_PROJECT_RULES.md` 8.7): on only once the
-     * home screen has moved the wallpaper with a swipe at least once ([swipeReported],
-     * `WallpaperSettings.swipeReported`, written by the wallpaper the first time it does). Many home
-     * screens never tell the wallpaper about swipes -- the project's own phone never has (`CLAUDE.md`
-     * §7) -- and there the switch was on over nothing. Off and locked until one arrives, with the
-     * reason; the stored choice kept, and back by itself then. Nothing on this screen can make a home
-     * screen send swipes, so the tap has nowhere to go.
+     * *Swipe scroll* (decision 40): on only once the home screen has moved the wallpaper with a swipe
+     * ([swipeReported], written by the wallpaper the first time it does). Many home screens never send swipes -- the
+     * BV6600's never calls `onOffsetsChanged` -- so until one arrives it is off and locked, with the reason, the stored
+     * choice kept. Nothing here can make a home screen send swipes, so the tap has nowhere to go.
      */
     fun swipeScroll(stored: Boolean, swipeReported: Boolean): DependentSwitchUiState =
         dependentSwitch(stored, available = swipeReported)
 
     /**
-     * Whether anything scrolls the scene -- the drift at [scrollSpeed], or a swipe the home screen
-     * reports with *Swipe scroll* on ([swipeScroll]) -- which is what *Parallax strength* and *Scroll
-     * the background too* act on (v5.10E, inventory I-226). With neither, the two moved and changed
-     * nothing: the slider is locked and the switch off and locked, the stored values kept.
+     * Whether anything scrolls the scene -- the drift at [scrollSpeed], or a reported swipe with *Swipe scroll* on --
+     * which *Parallax strength* and *Scroll the background too* act on: without it they are locked (decision 45).
      */
     fun sceneScrolls(scrollSpeed: Float, swipeScroll: DependentSwitchUiState): Boolean =
         scrollSpeed > 0f || swipeScroll.shownOn
 
     /**
-     * Whether an amount slider -- a density, an intensity, an opacity, a number, a height -- accepts a
-     * touch (v5.10E, inventory I-226): **only while its own switch is on**, as stored. With the switch
-     * off it moved and changed nothing; locked now, its value kept. Not "at 0 %": there the switch reads
-     * off because of the slider ([amountSwitch]), and the slider is how the amount comes back.
+     * Whether an amount slider accepts a touch (decision 45): **only while its own switch is on, as stored** -- not "at
+     * 0 %", where the switch reads off because of the slider ([amountSwitch]) and the slider brings the amount back.
      */
     fun amountSliderEnabled(storedVisible: Boolean): Boolean = storedVisible
 
     /**
-     * How the sailboat and dolphin rows must be drawn, given the stored values and the lake --
-     * [lakeVisible] is the lake as its switch shows it: on, and since v5.10E above 0 % height
-     * ([com.paperscrape.livewallpaper.engine.LakeConfig.drawsWater], inventory I-293).
-     *
-     * Pure, and stated here rather than inlined in the composable for the same three reasons
-     * [moonPhases] is: this is the whole of the rule, it is the thing that must not start writing
-     * to the preferences, and here it is readable and testable on the JVM without a device.
-     * See [LakeContentsUiState].
+     * How the sailboat and dolphin rows are drawn ([LakeContentsUiState]); [lakeVisible] is the lake as its switch
+     * shows it: on, and above 0 % height ([com.paperscrape.livewallpaper.engine.LakeConfig.drawsWater]).
      */
     fun lakeContents(
         lakeVisible: Boolean,

@@ -8,44 +8,40 @@ import com.paperscrape.livewallpaper.R
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
  * choose from for one instance, and how many times that piece repeats. A piece's coordinates are
- * its own -- relative to the piece's foot -- and the baseline climbs by the height of everything
- * already placed, which is how one table gives a street where two neighbours carry two
- * silhouettes rather than one facade repeated.
+ * relative to its own foot, and the baseline climbs by the height of everything already placed, so
+ * two neighbours carry two silhouettes rather than one facade repeated.
  *
- * [PartRole] is what a part is *for*, not how it looks:
- * - `FIXED` is art that never takes a tint (awnings, plaques, the lanterns' brackets, stone steps,
- *   the busts' cream frames) plus the fixed term of every tinted card;
- * - `WALL_MASK` and `GLASS_MASK` are weight masks **summed** over the fixed layer at the blit,
- *   the system the people have used since v4.30 -- a weight interpolates, an index does not, and
- *   an index is what left a 63/255 halo when this was tried the other way round;
- * - `SNOW` is drawn only while `winterColorsEnabled`, as a layer *over* the roof and never as the
- *   roof tinted white;
- * - `LAMP` and `OCCUPANTS` are call-outs to the behaviours that already exist, at the piece's own
- *   declared coordinates, so a porch light and a bust in a window do not have to be re-found from
- *   the artwork.
+ * [PartRole] is what a part is *for*:
+ * - `FIXED` is art that never takes a tint (awnings, plaques, stone steps, the busts' frames) plus
+ *   the fixed term of every tinted card;
+ * - `WALL_MASK` and `GLASS_MASK` are weight masks **summed** over the fixed layer at the blit, as
+ *   the people's layers are: a weight interpolates at a mask's edge, where an index leaves a halo;
+ * - `SNOW` is drawn only while `winterColorsEnabled`, as a layer over the roof, never the roof
+ *   tinted white;
+ * - `LAMP` and `OCCUPANTS` place a porch light and a bust in a window at the piece's declared
+ *   coordinates.
  *
  * **Every wall surface descends from one of the two editable colours of the object's category**;
- * the glass mask takes the scene's fixed day/night glass colours (`SceneObjectRenderer.windowGlassColor`;
- * at night the dark glass of `unlitWindowGlassColor` for a business while it is shut, and for a house
- * with its lit panes laid over it as flat cards, v5.12). A card is `w * wall + (1 - w) * k` with `k` only ink
- * or white, and `w` is baked into the wall mask; so there is no colour variant in this set and no
- * colour of a piece's own. See the script's own doc comment.
+ * the glass mask takes the scene's day/night glass colours (`SceneObjectRenderer.windowGlassColor`;
+ * at night `unlitWindowGlassColor` for a shut business, and for a house with its lit panes laid over
+ * it). A card is `w * wall + (1 - w) * k` with `k` only ink or white and `w` baked into the wall
+ * mask, so no piece has a colour of its own. See the script's own doc comment.
  */
 internal enum class PartRole { FIXED, SNOW, WALL_MASK, GLASS_MASK, LAMP, OCCUPANTS }
 
 internal class BuildingPart(val res: Int, val x: Float, val y: Float, val role: PartRole)
 
 /**
- * An opening a bust may stand in, a pane of a house's glass (`BuildingPiece.panes`, v5.12), or (with
+ * An opening a bust may stand in, a pane of a house's glass (`BuildingPiece.panes`), or (with
  * `h` = 0) a sill a light string may hang from.
  */
 internal class BuildingWindow(val x: Float, val y: Float, val w: Float, val h: Float)
 
 /**
- * A piece's front door (v5.14), in the piece's own units: its box ([x], [y], [w], [h] -- the rectangle the door is
- * drawn in), the outline of its card as the scissors cut it ([outlineX], [outlineY], convex but for the wobble's small dents), and how far its
- * shadow paper is offset ([reliefX], [reliefY]; 0 for the towers' glass doors, which are an opening in a framed
- * card). Where the Christmas wreath hangs, and what a shut building's shutter covers: the card and its shadow, exactly.
+ * A piece's front door, in the piece's own units: its box ([x], [y], [w], [h]), the outline of its card as
+ * the scissors cut it ([outlineX], [outlineY], convex but for the wobble's small dents), and how far its
+ * shadow paper is offset ([reliefX], [reliefY]; 0 for the towers' glass doors, an opening in a framed
+ * card). Where the Christmas wreath hangs, and what a shut building's shutter covers: the card and its shadow.
  */
 internal class BuildingDoor(
     val x: Float, val y: Float, val w: Float, val h: Float,
@@ -62,32 +58,31 @@ internal class BuildingPiece(
     val smokeX: Float, val smokeY: Float,
     val beaconX: Float, val beaconY: Float,
     /**
-     * A house piece's panes of glass (v5.12), each one a window its night may light or leave dark:
-     * first the [windows], in their order -- pane `k` is window `k` for every `k` below
-     * `windows.size` -- then the rest, the dormers and the turret's small windows. Empty for the other
-     * buildings, which light all their glass together while they are open.
+     * A house piece's panes of glass, each one a window its night may light or leave dark: first the
+     * [windows], in their order (pane `k` is window `k` for every `k` below `windows.size`), then the
+     * dormers and the turret's small windows. Empty for the other buildings, which light all their
+     * glass together while they are open.
      */
     val panes: List<BuildingWindow> = emptyList(),
     /**
-     * How many of its building's people this piece brings, as a count of windows (v5.12): its own
-     * window count, except where a piece gained windows in v5.12 -- the storeys, the school's upper
-     * floor, the bars' -- and brings the people it did before; and the shop and the two stations (v5.13), which
-     * bring fewer than their windows, at the shops' rate (`civic.py`). The number of people at a building's
-     * windows is one of the scene's quantities the maintainer keeps, and the table he approved said it
-     * stays (*«il resto si a tutto»*, 2026-10-09): it is dealt over this
-     * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
+     * How many of its building's people this piece brings, as a count of windows: its own window
+     * count, except for the storeys, the school and the bars, which have more windows than people, and
+     * the shop and the two stations, which bring fewer at the shops' rate (`civic.py`). The number of
+     * people at a building's windows does not change with its windows (`DESIGN_NOTES.md` §12, decision 54):
+     * people are dealt over this ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at
+     * over all of them.
      */
     val people: Int = windows.size,
-    /** The piece's front door, where it has one (v5.14): see [BuildingDoor]. */
+    /** The piece's front door, where it has one: see [BuildingDoor]. */
     val door: BuildingDoor? = null,
     /**
-     * Where a roof string's bulbs hang on a building's top piece and on a distant house (v5.14): its roofline -- the
+     * Where a roof string's bulbs hang on a building's top piece and on a distant house: its roofline -- the
      * top outline of what the piece draws, parts narrower than 9 units (a chimney, a pole, a spire's needle) left
      * out -- every 6 units along it. Empty for the other pieces.
      */
     val roofX: FloatArray = floatArrayOf(),
     val roofY: FloatArray = floatArrayOf(),
-    /** The highest point the piece draws, where a tower's star stands (v5.14); 0, 0 where [roofX] is empty. */
+    /** The highest point the piece draws, where a tower's star stands; 0, 0 where [roofX] is empty. */
     val topX: Float = 0f,
     val topY: Float = 0f,
 )
@@ -97,8 +92,8 @@ internal class BuildingPiece(
  *
  * [heights], where a slot has them, are alternatives the deal does **not** choose between: each
  * instance takes one by a coin of its own (`NeighbourhoodComposer.heightIndex`), in place of the one
- * piece in [options]. The towers' three bodies (v5.11) vary a skyline's height this way without
- * growing the catalogue `SilhouetteDeal` deals from, which would have re-dealt every theme's crowns.
+ * piece in [options]. The towers' three bodies vary a skyline's height this way without growing
+ * the catalogue `SilhouetteDeal` deals from, which would re-deal every theme's crowns.
  */
 internal class BuildingSlot(
     val options: List<BuildingPiece>,
@@ -692,14 +687,13 @@ internal object NeighbourhoodTable {
         ),
     )
 
-    // **v5.4, item 113: 56 and 73, not 96 and 90.146.** Both families inherited the height of
-    // the two-storey facade the v5.0 redraw replaced, and `unitsTall` is the third of the
-    // three numbers that said so -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion
+    // **56 and 73: what the pavilion and the corner bar draw.** `unitsTall` is one of the
+    // three numbers that describe each building's height, with its variant's `metresTall`
+    // and `spriteUnitsTall` -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion
     // draws 56 piece units and the corner bar 53 or 73, measured off their own parts by
-    // `BuildingHeightDeclarationTest`. Each family's `unitsTall` moved by exactly the factor
-    // its variant's `metresTall` did, so `metresTall / unitsTall` -- the only quantity the
-    // blit scale depends on -- is unchanged and no piece of either building is drawn at a
-    // different size.
+    // `BuildingHeightDeclarationTest`. The blit scale depends on `metresTall / unitsTall`
+    // alone, so those two move together, by one factor, or the building is drawn at
+    // another size.
     private val RESTAURANT_FAMILY = BuildingFamily(
         56.0f, 50.0f, WindowBuildingKind.COMMERCIAL,
         listOf(
@@ -714,11 +708,10 @@ internal object NeighbourhoodTable {
         ),
     )
 
-    // **v5.6F: the sixth family.** One figure with one deal, drawn 74 piece units above the
-    // ground line against the 72 it declares -- the two are the turret cornice and the grid
-    // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting
-    // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass
-    // like the shops and the stations, and the only one of the six whose windows show only children.
+    // **The school: one figure with one deal**, drawn 74 piece units above the ground line
+    // against the 72 it declares (the turret cornice and the grid margin);
+    // `BuildingHeightDeclarationTest` measures the ratio. Its `WindowBuildingKind` is its own:
+    // street-level glass like the shops and the stations, whose windows show only children.
     private val SCHOOL_FAMILY = BuildingFamily(
         72.0f, 40.0f, WindowBuildingKind.SCHOOL,
         listOf(
@@ -726,7 +719,7 @@ internal object NeighbourhoodTable {
         ),
     )
 
-    // **v5.13: the shop and the two stations.** No place of their own in the street: each of the six
+    // **The shop and the two stations.** No place of their own in the street: each of the six
     // buildings among the houses stands in whichever of the places [StorefrontStreet] deals
     // it, drawn at that place's metre, so these three have no [SceneSpace.SceneVariant] row and
     // their `unitsTall` is their own drawing's height. The two stations are their own
@@ -763,7 +756,7 @@ internal object NeighbourhoodTable {
     )
 
     /**
-     * The six buildings that stand among the houses (v5.13), by what they are: the restaurant, the
+     * The six buildings that stand among the houses, by what they are: the restaurant, the
      * school and the bar are their size-table rows' families above, the shop and the two stations have
      * none -- each of the six is drawn in whichever of the places [StorefrontStreet] deals it.
      */
@@ -777,7 +770,7 @@ internal object NeighbourhoodTable {
     )
 
     /**
-     * The distant houses on the mountains (v5.11), in the order `DistantHouses` deals them: the
+     * The distant houses on the mountains, in the order `DistantHouses` deals them: the
      * cottage, the chalet, the tall house. Each piece's `height` is its drawing's own, roof peak to
      * foot, which is what `SceneSpace.distantHousePixelsTall` sizes.
      */

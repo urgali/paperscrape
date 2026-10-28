@@ -1,68 +1,51 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * How a person at a window walks out of it, and into another (v5.12).
+ * How a person at a window walks out of it, and into another: **nobody at a window appears or
+ * disappears from one frame to the next** (the maintainer, 2026-10-09: *«le persone devono "camminare"
+ * e uscire dalla visuale finestre, non sparire»*, closing included).
  *
- * ### What it promises
+ * - **A person who changes window** ([WindowRoster]: in a house, and in a business while it is open)
+ *   walks sideways out of their window, hidden by the wall beside it, and into the other from its side.
+ * - **At closing** the people of a shop, the school, a bar and a tower walk out one at a time, and **at
+ *   opening** walk in one at a time ([Doorway]).
  *
- * The maintainer's words of 2026-10-09, shown how the people changed windows: *«questo è sbagliato,
- * le persone devono "camminare" e uscire dalla visuale finestre, non sparire»*, and *«va fatto anche
- * per la chiusura, non solo per finestre accese/spente»*. So **nobody at a window appears or
- * disappears from one frame to the next, anywhere**:
- *
- * - **a person who changes window** -- in a house, and in a shop, the school or a bar while it is open
- *   ([WindowRoster]) -- walks sideways out of the window they stand at, hidden by the wall beside it,
- *   and walks into the other one from its side;
- * - **at closing** the people of a shop, the school, a bar and a tower walk out one at a time, and **at
- *   opening** they walk in one at a time ([Doorway]).
- *
- * Nothing fades and nothing shrinks in place of the walk: a person is drawn whole, at full strength,
- * and only the part of them inside the glass is drawn ([SceneCanvas.drawSpriteClipped]).
+ * Nothing fades or shrinks: a person is drawn whole, and only the part inside the glass is drawn
+ * ([SceneCanvas.drawSpriteClipped]).
  *
  * ### The walk
  *
- * At [SPEED] units of the building a second (on the BV6600 a house's window is about ten pixels and a
- * unit three quarters of one), getting going over [EASE_SECONDS] and stopping over as long: from
- * standing, a person is out of a house's window in 2.4 to 2.6 seconds, and out of any window of the
- * streets in 2.1 to 2.9 (`WindowWalkTest`) -- `DESIGN_NOTES.md` §1, "Nothing moves quickly". A person
- * faces the way they walk (the busts are drawn looking toward +x, so walking toward -x they are drawn
- * mirrored) and is drawn as the artwork faces once they stand still.
+ * At [SPEED] units of the building a second, easing in and out over [EASE_SECONDS]: out of any window
+ * of the streets in 2.1 to 2.9 seconds from standing (`WindowWalkTest`): nothing in the scene
+ * moves quickly. A walker faces the way they walk (the busts face +x, so walking toward -x they are
+ * mirrored) and stands as the artwork faces.
  *
- * - **Along one floor** the walk is one stretch from one window's middle to the other's.
- * - **To another floor** it is three: out of the window, [STAIRS_SECONDS] out of sight, and into the
- *   other from its side.
- * - **In a house every window is its own room**, so a walker is seen through the window they leave and
- *   the one they come to, and nowhere between: across a three-window floor they pass behind the middle
- *   room. Toward the other window, or, straight above or below it, toward the nearer end of the house.
- * - **A shop, the school, a bar and a tower are one room a floor**, most of their windows side by side
- *   behind posts a few units wide -- narrower than a person, who crosses one seen in two windows at once
- *   -- so a walker is seen through every window of the floor they pass, as somebody walking behind a
- *   pillar is (behind a door or a wider wall, like the school's, they are out of sight a while). To
- *   another floor, or out and in at the hours, they go by the nearer end of the floor: the end on the
- *   side of the building's middle the window is on.
+ * - **Along one floor**: one stretch from one window's middle to the other's.
+ * - **To another floor**: out of the window, [STAIRS_SECONDS] out of sight, into the other from its side.
+ * - **In a house every window is its own room**: a walker is seen only through the window they leave and
+ *   the one they come to, going toward the other window or, straight above or below it, toward the
+ *   nearer end of the house.
+ * - **A shop, the school, a bar and a tower are one room a floor**: their posts are narrower than a
+ *   person, so a walker is seen through every window of the floor they pass. To another floor, or out
+ *   and in at the hours, they go by the end of the floor on the side of the building's middle the
+ *   window is on.
  *
  * ### The lights
  *
- * Where somebody stands, the window is lit, and **nobody is ever seen behind a window that is not**: a
- * house whose walker takes the light along lights the window they go to first -- over the two seconds
- * every light takes ([WindowRoster.FADE_SECONDS]), finished before they come into it -- and puts out
- * the one they left only once they are out of it ([litAmount]). A business's glass is lit all together
- * while it is open: at the opening minute it lights over the same two seconds and its people walk in once
- * it is lit; in the minute before the closing they walk out, and at the closing minute it goes dark -- once
- * the last of them is out, should a walk still be going on ([Doorway], [BusinessHours], v5.14).
+ * **Nobody is seen behind a window that is not lit.** A house whose walker takes the light along lights
+ * the next window first (over [WindowRoster.FADE_SECONDS], done before they come into it) and puts out
+ * the one they left once they are out of it ([litAmount]). A business's glass lights at the opening
+ * minute and its people walk in once it is lit; they walk out in the minute before the closing, and the
+ * glass goes dark at the closing minute once the last of them is out ([Doorway], [BusinessHours]).
  *
- * ### What it costs
+ * ### State and cost
  *
- * A building's windows are measured once, when its roster is made ([Layout]); a roster change is a
- * function of the scene's time, as [WindowRoster]'s states are, so a walk is the same at the same
- * moment on every device and every golden. The walks at the hours are the one thing that remembers: the
- * hours move with the clock, a minute at a time, and a walk has to take seconds, so a building's
- * [Doorway] holds who is walking and since when -- a few numbers, kept with the building, carried over
- * when the list of objects is rebuilt. Where the hour jumps or the opening hours are changed, the scene is
- * cut rather than walked: the doorways take their numbers at once ([Doorway.advance]). A frame computes a
- * few positions into arrays it owns ([Figures]) and allocates nothing; it reads the roster's clock once for the
- * building, its lights included ([litAmount] with the [Figures]), and once the building's longest move is over
- * ([Layout.longestMove]) -- most of the minutes between two changes -- it does not look for who walked (v5.12C).
+ * A roster change is a function of the scene's time, so a walk is the same on every device and golden.
+ * Only the walks at the hours remember: a building's [Doorway] keeps who is walking and since when,
+ * carried over when the objects are rebuilt, and a jump of the hour or of the opening hours is a cut
+ * ([Doorway.advance]). The windows are measured once ([Layout]); a frame writes into arrays it owns
+ * ([Figures]), allocates nothing, reads the roster's clock once for the building, and once
+ * [Layout.longestMove] has passed since the last change does not look for a walker.
  */
 internal object WindowWalk {
 
@@ -156,7 +139,7 @@ internal object WindowWalk {
         /**
          * The longest of the roster's moves in this building, from any window to any other ([moveTime]),
          * in seconds: once this long has passed since the roster's last change, its walker -- if it moved
-         * one -- is standing, and [figuresAt] does not ask who it was (v5.12C).
+         * one -- is standing, and [figuresAt] does not ask who it was.
          */
         var longestMove = 0.0
             internal set
@@ -375,9 +358,8 @@ internal object WindowWalk {
     }
 
     /**
-     * [litAmount] at the moment [figures] was filled for ([figuresAt], the same building): the roster's
-     * clock read once for the building rather than once a pane -- the renderer's form (v5.12C), the same
-     * numbers.
+     * [litAmount] at the moment [figures] was filled for ([figuresAt], the same building), with the
+     * roster's clock read once for the building rather than once a pane: the renderer's form, same numbers.
      */
     fun litAmount(plan: WindowRoster.Plan, layout: Layout, figures: Figures, pane: Int): Float =
         litAmount(plan, layout, figures.tick, figures.stateNow, figures.stateBefore, figures.since, pane)
@@ -405,12 +387,11 @@ internal object WindowWalk {
      * of the windows that remembers (see [WindowWalk]). Kept with the building, made fresh with it, and handed
      * on when the list of objects is rebuilt ([copyFrom]).
      *
-     * **The glass** (v5.14): at the opening minute it lights over the [WindowRoster.FADE_SECONDS] every light
-     * of the scene takes, at the closing minute it goes dark over as long ([BusinessHours]); and it goes dark
-     * only once nobody is in, so nobody is ever seen behind it unlit -- the people walk out in the minute
-     * before ([BusinessHours.peopleAt]), and at every closing measured on the twelve streets -- 4 154 of them,
-     * 28.5 s at the slowest -- they are out before the minute is (`WindowWalkTest`). The blind and the shutter of a shut building come down with it
-     * (`SceneObjectRenderer.drawShut`).
+     * **The glass** lights at the opening minute over [WindowRoster.FADE_SECONDS] and goes dark at the
+     * closing minute over as long ([BusinessHours]), but only once nobody is in, so nobody is seen behind it
+     * unlit. The people walk out in the minute before ([BusinessHours.peopleAt]), and at every closing of the
+     * twelve streets they are out before that minute ends (`WindowWalkTest`). The blind and the shutter of a
+     * shut building come down with the glass (`SceneObjectRenderer.drawShut`).
      */
     class Doorway {
         /** How many people are in: the first [shown] by their order ([WindowRoster.Plan.seat]); -1 not yet seen. */
@@ -478,13 +459,11 @@ internal object WindowWalk {
          * first missing, once the glass is lit -- unless the roster is walking them, or will move them before
          * they would be in.
          *
-         * **Seen for the first time, or with [settle], it takes its numbers without anybody walking and the
-         * glass at once**: a scene that starts is not a change, and nor is a cut -- the hour jumping (the
-         * screen off for an hour, a fixed hour moved, the phone's clock set: the sky and the lights jump with
-         * it) or the opening hours changed (a group's switch or its hours: its glass changes at once). People
-         * walk out and in when the hours close and open the building in front of you; walked out after a cut,
-         * they would walk behind glass already gone dark. Any other change of the settings is no cut: whoever
-         * is walking goes on.
+         * **Seen for the first time, or with [settle], it takes its numbers and the glass at once, nobody
+         * walking**: a scene that starts is not a change, and nor is a cut -- the hour jumping (screen off for
+         * an hour, a fixed hour moved, the phone's clock set) or the opening hours changed. Walked out after a
+         * cut, people would walk behind glass already dark. Any other change of the settings is no cut:
+         * whoever is walking goes on.
          */
         fun advance(
             plan: WindowRoster.Plan,

@@ -7,26 +7,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.SwipeLeft
-import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.Apartment
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Cottage
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Filter
-import androidx.compose.material.icons.outlined.FilterDrama
-import androidx.compose.material.icons.outlined.Flare
-import androidx.compose.material.icons.outlined.House
-import androidx.compose.material.icons.outlined.Landscape
-import androidx.compose.material.icons.outlined.Park
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material.icons.outlined.Terrain
-import androidx.compose.material.icons.outlined.WaterDrop
-import androidx.compose.material.icons.outlined.Waves
-import androidx.compose.material.icons.outlined.WbSunny
+import com.paperscrape.livewallpaper.ui.icons.automirrored.outlined.DirectionsWalk
+import com.paperscrape.livewallpaper.ui.icons.filled.Air
+import com.paperscrape.livewallpaper.ui.icons.filled.SwipeLeft
+import com.paperscrape.livewallpaper.ui.icons.outlined.AccountBalance
+import com.paperscrape.livewallpaper.ui.icons.outlined.Apartment
+import com.paperscrape.livewallpaper.ui.icons.outlined.Cloud
+import com.paperscrape.livewallpaper.ui.icons.outlined.Cottage
+import com.paperscrape.livewallpaper.ui.icons.outlined.DirectionsCar
+import com.paperscrape.livewallpaper.ui.icons.outlined.Filter
+import com.paperscrape.livewallpaper.ui.icons.outlined.FilterDrama
+import com.paperscrape.livewallpaper.ui.icons.outlined.Flare
+import com.paperscrape.livewallpaper.ui.icons.outlined.House
+import com.paperscrape.livewallpaper.ui.icons.outlined.Landscape
+import com.paperscrape.livewallpaper.ui.icons.outlined.Park
+import com.paperscrape.livewallpaper.ui.icons.outlined.StarBorder
+import com.paperscrape.livewallpaper.ui.icons.outlined.Storefront
+import com.paperscrape.livewallpaper.ui.icons.outlined.Terrain
+import com.paperscrape.livewallpaper.ui.icons.outlined.WaterDrop
+import com.paperscrape.livewallpaper.ui.icons.outlined.Waves
+import com.paperscrape.livewallpaper.ui.icons.outlined.WbSunny
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -63,17 +63,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * Everything the scene is made of, plus how it moves.
- *
- * The fifteen categories and their sub-screens grew out of v2.8's "Scene Objects", and later
- * releases have added to them (automatic colour modes, business hours, night densities, the
- * lake-gated boat controls). What changed: they are grouped the way the scene is built (sky,
- * landscape, things that move) instead of listed in arrival order with a divider after each row;
- * most rows report their own state (Sky, Hills and Mountains describe their contents instead; since
- * v5.13 the four rows of the buildings -- Houses, Towers & offices, Shops, Public buildings -- took the
- * Cities row's place), so the scene is readable without opening fifteen screens; and the four
- * scrolling controls that used to sit between the weather settings and the version number on the
- * home screen now live here, under Motion, labelled as what they are -- global, not per-theme.
+ * Everything the scene is made of, plus how it moves: the categories grouped the way the scene is
+ * built (sky, landscape, things that move), most rows reporting their own state (Sky, Hills and
+ * Mountains describe their contents instead) so the scene reads without opening every screen, and the
+ * scrolling controls under Motion, labelled as what they are: global, not per-theme.
  */
 @Composable
 internal fun WorldSceneScreen(
@@ -85,17 +78,23 @@ internal fun WorldSceneScreen(
     /**
      * Whether the layout this theme draws plants palms of its own -- `SceneObjectLayout.hasPalmSlots`,
      * asked by the caller of the same layout the wallpaper uses. It decides which half of the Palms
-     * switch on the Trees page this theme reads (`SceneCustomization.palmsShown`, v5.10C): on Beach and
+     * switch on the Trees page this theme reads (`SceneCustomization.palmsShown`): on Beach and
      * Desert the switch keeps or removes their palms, on every other theme it puts palms in the
      * ordinary trees' places.
      */
     themeHasPalms: Boolean,
     /**
      * Whether every tree this theme keeps would be a Christmas fir with the palms on
-     * (`SceneObjectLayout.keepsOnlyFirsUnderPalms`, v5.10C2): the Palms switch then has no palm to put
+     * (`SceneObjectLayout.keepsOnlyFirsUnderPalms`): the Palms switch then has no palm to put
      * anywhere, and reads off and locked with the reason.
      */
     palmsOnlyFirs: Boolean,
+    /**
+     * What the theme's street stands under [customization], category by category (`SettingsUiModel.standing`): the
+     * houses, the towers, the trees and the parasols read on only where one stands, at 0 % or above, and say so where
+     * the street has none at all.
+     */
+    standing: StandingObjects,
     prefs: WallpaperPrefs,
     customThemeStore: CustomThemeStore,
     customThemeData: CustomThemeData,
@@ -103,29 +102,14 @@ internal fun WorldSceneScreen(
     onBack: () -> Unit,
 ) {
     var activeSection by remember { mutableStateOf<String?>(null) }
-    // **N1 (v5.7C): the whole-scope reset now asks first, and names what goes.**
-    //
-    // `resetAllCategories` removes this theme's entire customization record -- which is what its
-    // author meant, and is more than the button's name says. "Scene" is this app's own name for
-    // *this* screen, while the seasonal decorations live on `SeasonsScreen` behind their own,
-    // narrower "Reset decorations to defaults"; so a button named after one screen silently
-    // cleared the other. It was also the only whole-scope reset in the app with no confirmation:
-    // "Reset all customised themes" in Advanced & about has one, and so does a theme card's
-    // "Reset to default". This is that missing third dialog, in the same shape as those two.
-    //
-    // Nothing moved and nothing was renamed: the button's label, its position and what it does
-    // once confirmed are byte for byte what they were.
+    // **The whole-scope reset asks first, and names what goes** (`DESIGN_NOTES.md` §12, decision 42):
+    // `resetAllCategories` removes this theme's entire customization record, Seasons & decorations'
+    // too, which is more than the button's name says.
     var confirmSceneReset by remember { mutableStateOf(false) }
-    // **What the forecast is actually doing, not what the switch says.** These two rows and their
-    // sub-screens used to read `settings.liveWeatherEnabled`, so with the switch on and no
-    // location they announced "Driven by Live Weather" and went read-only while Weather & time's
-    // own banner said the scene was running on this theme's weather -- and the theme's weather was
-    // the truthful one. See [LiveWeatherUiState.drivingTheScene], which since v5.10C is never true
-    // while Weather & time's switch reads off: another wallpaper, a fixed hour, no location or key.
-    //
-    // **And while it does, the theme's own weather controls are not drawn** (v5.10D, inventory I-220):
-    // greyed, *Show Clouds* read off with the forecast's clouds on screen.
-    // See [SettingsUiModel.forecastOwnsTheWeatherControls].
+    // **What the forecast is doing, not what the switch says** ([LiveWeatherUiState.drivingTheScene],
+    // never true while Weather & time's switch reads off). While it does, the theme's own weather
+    // controls are not drawn: greyed, *Show Clouds* would read off under the forecast's clouds
+    // ([SettingsUiModel.forecastOwnsTheWeatherControls]).
     val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
     val deviceAccess = rememberDeviceLocationAccess(settings)
     val liveWeatherDriving = SettingsUiModel.forecastOwnsTheWeatherControls(
@@ -147,8 +131,7 @@ internal fun WorldSceneScreen(
 
     SettingsSubScreen(title = "World & scene", onBack = onBack) {
         WorldScenePreview(theme = theme, customization = customization)
-        // What happens to an edit, said as it is (v5.10E, inventory I-219): it stays with this theme.
-        // It said "Keep this look by saving the theme", which read as "unsaved changes are lost".
+        // What happens to an edit, said as it is: it stays with this theme (decision 45).
         SettingsBanner(SettingsUiModel.themeEditsBanner(themeName))
 
         SettingsSectionHeader("Sky")
@@ -208,14 +191,11 @@ internal fun WorldSceneScreen(
 
         SettingsSectionHeader("Landscape")
         SettingsGroup {
-            // **The buildings in four rows** (v5.13, menu G2; the maintainer's *«il resto accetto i
-            // consigliati»* of 2026-10-11): the houses, the towers, the shops and the public buildings,
-            // each a page of its own one tap from here -- the opening hours of the public buildings three
-            // taps from the settings' first page. Until v5.13 one row, Cities, led to a page that held
-            // houses, towers and shops one after another.
+            // **The buildings in four rows** (`DESIGN_NOTES.md` §12, decision 63): the houses, the towers,
+            // the shops and the public buildings, each a page of its own one tap from here.
             SettingsNavigationRow(
                 title = "Houses",
-                supporting = amountSummary(customization.houses.visible, customization.houses.density),
+                supporting = streetSummary("houses", customization.houses.visible, customization.houses.density, standing.houses, standing.themeHasHouses),
                 icon = Icons.Outlined.House,
                 onClick = { activeSection = "houses" },
             )
@@ -224,6 +204,9 @@ internal fun WorldSceneScreen(
                 supporting = SettingsUiModel.towersRowSummary(
                     customization.buildings.visible, customization.buildings.density,
                     customization.towerHoursEnabled, customization.towerOpenHour, customization.towerCloseHour,
+                    towersStand = standing.towers,
+                    towersOnTheme = standing.themeHasTowers,
+                    placesOnTheme = standing.themeHasPlaces,
                 ),
                 icon = Icons.Outlined.Apartment,
                 onClick = { activeSection = "towers" },
@@ -233,6 +216,7 @@ internal fun WorldSceneScreen(
                 supporting = SettingsUiModel.storefrontRowSummary(
                     StorefrontGroup.SHOPS, customization.buildings.visible,
                     customization.shopHoursEnabled, customization.shopOpenHour, customization.shopCloseHour,
+                    placesOnTheme = standing.themeHasPlaces,
                 ),
                 icon = Icons.Outlined.Storefront,
                 onClick = { activeSection = "shops" },
@@ -242,6 +226,7 @@ internal fun WorldSceneScreen(
                 supporting = SettingsUiModel.storefrontRowSummary(
                     StorefrontGroup.PUBLIC, customization.buildings.visible,
                     customization.publicHoursEnabled, customization.publicOpenHour, customization.publicCloseHour,
+                    placesOnTheme = standing.themeHasPlaces,
                 ),
                 icon = Icons.Outlined.AccountBalance,
                 onClick = { activeSection = "publics" },
@@ -258,8 +243,8 @@ internal fun WorldSceneScreen(
                 icon = Icons.Outlined.Terrain,
                 onClick = { activeSection = "mountains" },
             )
-            // Under Mountains because they stand on them (v5.11, the maintainer's choice of
-            // 2026-10-06). The row says what the switch would: on only while houses stand.
+            // Under Mountains because they stand on them (decision 52). The row says what the switch
+            // would: on only while houses stand.
             SettingsNavigationRow(
                 title = "Distant houses",
                 supporting = SettingsUiModel.distantHouses(
@@ -272,34 +257,24 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Trees",
-                supporting = amountSummary(customization.trees.visible, customization.trees.density),
+                supporting = streetSummary("trees", customization.trees.visible, customization.trees.density, standing.trees, standing.themeHasTrees),
                 icon = Icons.Outlined.Park,
                 onClick = { activeSection = "trees" },
             )
             SettingsNavigationRow(
-                // **N2 (v5.7C): "Umbrellas" was two different objects.** This row has always
-                // meant `ObjectCategory.PARASOLS` -- the garden parasol standing beside a house.
-                // The app also draws a *carried* umbrella in a walker's hand whenever it rains
-                // (`PedestrianCarry`), which has no control anywhere, so a user who turned
-                // "Umbrellas" off and then saw umbrellas in the rain was reading the row
-                // correctly and the row was wrong. The name now says which object it is; the
-                // sub-screen says what happens to the other one.
+                // "Parasols", not "Umbrellas": this row is `ObjectCategory.PARASOLS`, the garden
+                // parasol beside a house. The umbrella a walker carries in the rain
+                // (`PedestrianCarry`) has no control; the sub-screen says so.
                 title = "Parasols",
-                supporting = amountSummary(customization.parasols.visible, customization.parasols.density),
+                supporting = streetSummary("parasols", customization.parasols.visible, customization.parasols.density, standing.parasols, standing.themeHasParasols),
                 icon = Icons.Outlined.FilterDrama,
                 onClick = { activeSection = "parasols" },
             )
             SettingsNavigationRow(
                 title = "Lake",
-                // **N4 (v5.7C): the one of the five silent rows that has a state to report.**
-                // The screen's own intent is that "each row reports its own state", and ten of
-                // the fifteen did before this one; with it, eleven do. Lake is the row that
-                // mattered: with the lake off, the screen below it shows four boat-and-dolphin
-                // controls, so a row that only said "Water, sailboats and dolphins" was the reason
-                // that screen read as broken. Sky, Hills and Mountains are deliberately left as they
-                // are -- none of them has a single on/off to report, and inventing one would be worse
-                // than a description (the Cities row, the fourth of them, is the four rows of the
-                // buildings since v5.13, each reporting its own).
+                // The Lake row reports its state: with the lake off the screen below shows four locked
+                // boat-and-dolphin controls, and this line says why. (Sky, Hills and Mountains have no
+                // single on/off to report, so they describe their contents.)
                 supporting = lakeRowSummary(customization.lake),
                 icon = Icons.Outlined.Waves,
                 onClick = { activeSection = "lake" },
@@ -316,7 +291,7 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "People",
-                supporting = densitySummary(customization.people.visible, customization.people.density),
+                supporting = peopleSummary(customization.people.visible, customization.people.density, customization.peopleNightDensity),
                 icon = Icons.AutoMirrored.Outlined.DirectionsWalk,
                 onClick = { activeSection = "people" },
             )
@@ -333,7 +308,7 @@ internal fun WorldSceneScreen(
         }
 
         SettingsSectionHeader("Motion")
-        // **On only while it happens** (v5.10E, inventories I-222 and I-226; `AI_PROJECT_RULES.md` 8.7).
+        // **On only while it happens** (decision 40).
         // *Swipe scroll* waits for the home screen to move the wallpaper with a swipe once -- many never
         // do, this project's phone among them -- and *Parallax strength* and *Scroll the background too*
         // act only on a scene that scrolls: the drift above 0 %, or a swipe that arrives. Off and
@@ -413,36 +388,20 @@ internal fun WorldSceneScreen(
         AlertDialog(
             onDismissRequest = { confirmSceneReset = false },
             title = { Text("Reset $themeName to defaults?") },
-            // The point of the dialog is this sentence: it names the screen whose work also goes.
-            //
-            // Named by **season**, not by object, and deliberately. `resetAllCategories` removes
-            // every customization key this theme has, which on the decorations side is more than
-            // the seven `ObjectCategory` values -- it also takes `halloweenEnabled`,
-            // `horrorSkyEnabled`, the three Christmas switches, the five Halloween ones of v5.16, `santaEnabled`, `flowersEnabled`
-            // and the two palette flags -- and the two fields of the Palms switch, which since
-            // v5.10C2 is on this screen's Trees page and so is "everything on this screen".
-            // (`palmsEnabled` only since v5.8: until then `clearAllThemeCustomizationKeys` skipped
-            // it, and the reset's "off" came back on the theme's next edit; `palmsInsteadOfTrees`
-            // since it exists, v5.10C.) A list of objects would therefore be both
-            // wrong today and one decoration away from being wrong again; the five seasons are the
-            // whole of that screen and cannot go stale. There were six until the Palms switch, all
-            // the Summer season held, moved to the Trees page.
-            //
-            // **And Motion stays** (v5.10E, inventory I-213): it is every theme's, the reset has never
-            // touched it, and the sentence said "everything on this screen" with Motion on it. See
-            // [SettingsUiModel.sceneResetMessage].
+            // The sentence names the screen whose work also goes, by **season**, not by object:
+            // `resetAllCategories` removes every customization key of this theme, on the decorations
+            // side more than the `ObjectCategory` values (the Halloween, Christmas, Santa, flowers and
+            // palette switches), and the Palms switch's two fields, on this screen's Trees page. A list
+            // of objects would go stale one decoration later; the seasons are the whole of that screen.
+            // **Motion stays**: it is every theme's. See [SettingsUiModel.sceneResetMessage].
             text = { Text(SettingsUiModel.sceneResetMessage(themeName)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
                         prefs.resetAllCategories(forThemeId)
-                        // "Reset everything to defaults" clearing only the in-progress scratch
-                        // edit wasn't enough on its own: resolveActiveCustomization() falls back
-                        // to a *saved* override for this theme once the scratch space and the
-                        // theme's archived edit are gone -- which is exactly what the reset
-                        // removes -- so if this built-in theme was ever overridden, the reset
-                        // appeared to do nothing at all: the saved override came straight back.
-                        // Clear that too, if one exists.
+                        // resolveActiveCustomization() falls back to a *saved* override once the
+                        // edits are gone, so on a theme ever overridden the reset would seem to do
+                        // nothing: the override goes too, if one exists.
                         if (customThemeData.overrides.containsKey(forThemeId)) {
                             customThemeStore.clearOverride(forThemeId)
                         }
@@ -461,11 +420,11 @@ internal fun WorldSceneScreen(
         "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
         "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
         "rainbow" -> RainbowSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "houses" -> HousesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "towers" -> TowersSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "shops" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, forThemeId, prefs, scope,
+        "houses" -> HousesSubScreen(customization, standing.houses, standing.themeHasHouses, forThemeId, prefs, scope) { activeSection = null }
+        "towers" -> TowersSubScreen(customization, standing.towers, standing.themeHasTowers, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }
+        "shops" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, standing.themeHasPlaces, forThemeId, prefs, scope,
             onGoToTowers = { activeSection = "towers" }) { activeSection = null }
-        "publics" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, forThemeId, prefs, scope,
+        "publics" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, standing.themeHasPlaces, forThemeId, prefs, scope,
             onGoToTowers = { activeSection = "towers" }) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -474,8 +433,8 @@ internal fun WorldSceneScreen(
             onOpenMountains = { activeSection = "mountains" },
             onOpenHouses = { activeSection = "houses" },
         ) { activeSection = null }
-        "trees" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, forThemeId, prefs, scope) { activeSection = null }
-        "parasols" -> ParasolsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "trees" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, standing.trees, standing.themeHasTrees, standing.onlyFirsEvenAtFull, forThemeId, prefs, scope) { activeSection = null }
+        "parasols" -> ParasolsSubScreen(customization, standing.parasols, standing.themeHasParasols, forThemeId, prefs, scope) { activeSection = null }
         "lake" -> LakeSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "cars" -> CarsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "people" -> PeopleSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -492,33 +451,51 @@ private fun onOffSummary(visible: Boolean, subject: String): String =
 private fun densitySummary(visible: Boolean, density: Float): String =
     if (visible) "On - ${(density * 100).toInt()}%" else "Off"
 
-/**
- * The line under the buildings' slider (v5.10E, inventory I-216): what it thins, and what stays.
- */
+/** The line under the buildings' slider (decision 45): what it thins, and what stays. */
 internal const val BUILDINGS_DENSITY_LINE =
     "Thins out the towers behind the houses. The shops and the public buildings among the houses always " +
         "stay while Show Buildings is on."
 
-/** What *Show Buildings* shows and hides (v5.13): every building that is not a house, the three groups. */
+/** What *Show Buildings* shows and hides: every building that is not a house, the three groups. */
 internal const val BUILDINGS_SWITCH_LINE =
     "All the buildings that are not houses: the towers, the shops and the public buildings"
 
 /**
- * The line over the Buildings colours (v5.11): they are the towers' -- the shops and the public buildings
- * have their own, on their pages.
+ * The line under *Show Buildings*: [BUILDINGS_SWITCH_LINE], or on a street that has only towers ([placesOnTheme] false)
+ * or only places among the houses ([towersOnTheme] false), what it does show there and what the theme lacks. With
+ * neither, the switch is locked and says so itself.
  */
+internal fun buildingsSwitchLine(placesOnTheme: Boolean, towersOnTheme: Boolean): String = when {
+    placesOnTheme && towersOnTheme -> BUILDINGS_SWITCH_LINE
+    towersOnTheme -> "The towers: this theme has no shops and no public buildings"
+    else -> "The shops and the public buildings: this theme has no towers"
+}
+
+/**
+ * The line under the Towers amount: [BUILDINGS_DENSITY_LINE], less what the street does not have -- no place among the
+ * houses, nothing about the shops standing; no tower, nothing to thin.
+ */
+internal fun buildingsDensityLine(placesOnTheme: Boolean, towersOnTheme: Boolean): String = when {
+    placesOnTheme && towersOnTheme -> BUILDINGS_DENSITY_LINE
+    towersOnTheme -> "Thins out the towers behind the houses."
+    placesOnTheme -> "This theme has no towers. The shops and the public buildings among the houses always stay while " +
+        "Show Buildings is on."
+    else -> SettingsUiModel.noneOnThisThemeLine("towers")
+}
+
+/** The line over the Buildings colours: they are the towers'; the shops and the public buildings have their own. */
 internal const val BUILDINGS_COLOUR_LINE =
     "These are the towers' colours - the shops and the public buildings have their own, on their pages. " +
         "Each tower randomly uses Color 1 or Color 2, and blends into its night version as it gets dark."
 
-/** The line over the Houses colours (v5.11): the distant houses on the mountains wear them too. */
+/** The line over the Houses colours: the distant houses on the mountains wear them too. */
 internal const val HOUSES_COLOUR_LINE =
     "Each house randomly uses Color 1 or Color 2, and blends into its night version as it gets dark. " +
         "The distant houses on the mountains wear these colours too."
 
 /**
- * A car density as the slider prints it (v5.10E, inventory I-217): the per cent, and at the bottom
- * "one car", because `CarSelection.countFor` keeps one car driving at 0 %.
+ * A car density as the slider prints it (decision 45): the per cent, and at the bottom "one car",
+ * because `CarSelection.countFor` keeps one car driving at 0 %.
  */
 internal fun carDensityValue(density: Float): String {
     val percent = (density * 100).toInt()
@@ -532,28 +509,44 @@ private fun starsDrawnAmount(density: Float): Float = if (PaperRenderer.starCoun
 private const val NONE_AT_ZERO_SUMMARY = "None at 0%"
 
 /**
- * [densitySummary] for the things the wallpaper draws none of at 0 % -- not "On - 0%", which is what
- * the row said over a scene without one (v5.10C, row 8). The cars and the people keep
- * [densitySummary]: at 0 % there is still a car, and the people have their night density.
+ * [densitySummary] for the things the wallpaper draws none of at 0 % or, for a category of the street, at an
+ * amount that keeps none on this theme ([stands], [StandingObjects]). The cars keep [densitySummary]: at 0 %
+ * there is still a car; the people have [peopleSummary].
  */
-private fun amountSummary(visible: Boolean, amount: Float): String =
-    if (SettingsUiModel.amountSwitch(visible, amount).noneAtZero && visible) NONE_AT_ZERO_SUMMARY
-    else densitySummary(visible, amount)
+private fun amountSummary(visible: Boolean, amount: Float, stands: Boolean = amount > 0f): String {
+    val shown = SettingsUiModel.amountSwitch(visible, amount, stands)
+    return when {
+        shown.noneAtZero && visible -> NONE_AT_ZERO_SUMMARY
+        shown.noneAtThisAmount -> "None at ${(amount * 100).toInt()}% on this theme"
+        else -> densitySummary(visible, amount)
+    }
+}
 
 /**
- * The Lake row's state line (N4, v5.7C).
- *
- * The lake is not a density category, so [densitySummary] does not fit it: what a reader of this
- * row needs is whether there is water and, if there is, what is on it -- which is exactly the
- * question the screen below makes confusing when the answer is "no water". With the lake off the
- * boats and dolphins are deliberately **not** listed: they are not drawn and their controls are
- * locked, so reporting them would re-create the contradiction this round removed.
+ * [amountSummary] for a category of the street, whose theme may have none of [things] at all ([onTheme],
+ * [StandingObjects.themeHasTrees] and the three like it): then the row says so, whatever is stored, as its switch does.
+ */
+private fun streetSummary(things: String, visible: Boolean, amount: Float, stands: Boolean, onTheme: Boolean): String =
+    if (SettingsUiModel.amountSwitch(visible, amount, stands, onTheme).noneOnThisTheme) {
+        SettingsUiModel.noneOnThisThemeSummary(things)
+    } else {
+        amountSummary(visible, amount, stands)
+    }
+
+/** The People row: their day density, or -- both densities at 0 % -- that nobody walks ([SettingsUiModel.people]). */
+private fun peopleSummary(visible: Boolean, dayDensity: Float, nightDensity: Float): String =
+    if (visible && SettingsUiModel.people(visible, dayDensity, nightDensity).noneAtZero) "None at 0% by day and by night"
+    else densitySummary(visible, dayDensity)
+
+/**
+ * The Lake row's state line: whether there is water and, if there is, what floats on it. With no
+ * water the boats and dolphins are **not** listed: they are not drawn and their controls are locked.
  */
 private fun lakeRowSummary(lake: LakeConfig): String {
     if (!lake.visible) return "Off"
-    // At 0 % height there is no water (v5.10E, inventory I-293): "None at 0%", like the other amounts.
+    // At 0 % height there is no water: "None at 0%", like the other amounts.
     if (!lake.drawsWater) return NONE_AT_ZERO_SUMMARY
-    // As their switches show them: at 0 % none floats (v5.10C).
+    // As their switches show them: at 0 % none floats.
     val floating = buildList {
         if (SettingsUiModel.amountSwitch(lake.sailboatsVisible, lake.sailboatsDensity).shownOn) add("sailboats")
         if (SettingsUiModel.amountSwitch(lake.dolphinsVisible, lake.dolphinsDensity).shownOn) add("dolphins")
@@ -566,7 +559,7 @@ private fun lakeRowSummary(lake: LakeConfig): String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Category screens -- v2.8's, in the new shell, plus what later releases added to them
+// Category screens
 // ---------------------------------------------------------------------------------------------
 
 @Composable
@@ -574,7 +567,7 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Sun and moon", onBack) {
         SectionTitle("Sun")
-        // With Halloween's night sky by day the sun is never up (v5.16, inventory I-1027): off and locked, the line says
+        // With Halloween's night sky by day the sun is never up: off and locked, the line says
         // why, the stored choice kept ([SettingsUiModel.showSun], decision 40).
         val sun = SettingsUiModel.showSun(customization)
         SettingSwitchRow(
@@ -592,19 +585,9 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             checked = customization.moon.visible,
             onCheckedChange = { scope.launch { prefs.setMoonVisible(it, forThemeId) } },
         )
-        // **Halloween's moon is always full, so this control says so instead of pretending.**
-        // `PaperRenderer.drawMoonWithPhase` blits `moon_jack_o_lantern` and returns before it
-        // reads `realisticPhases` while the flag is on -- the renderer's own comment carries the
-        // reason -- and until v4.23 this switch stayed live and did nothing.
-        //
-        // Shown off and locked, **and the stored preference is not touched**: nothing here writes
-        // `false`, so turning Halloween back off restores whatever the user had. The rule is
-        // `PeopleDensity.resolveNightDensity`'s -- a settings change may not silently alter what
-        // an existing user set up. See [SettingsUiModel.moonPhases], which is where the whole
-        // derivation lives so it can be read and tested without Compose.
-        //
-        // And with the moon itself hidden (v5.10C, row 7): `drawCelestialBody` returns before it is
-        // drawn, so its phases are a switch with nothing under it -- off and locked, the same rule.
+        // Off and locked, **the stored preference untouched**, while Halloween is on (its carved moon
+        // is always full: `PaperRenderer.drawMoonWithPhase` never reads `realisticPhases` then) or the
+        // moon is hidden (`drawCelestialBody` draws none). See [SettingsUiModel.moonPhases].
         val moonPhases = SettingsUiModel.moonPhases(
             storedRealisticPhases = customization.moon.realisticPhases,
             halloweenEnabled = customization.halloweenEnabled,
@@ -632,11 +615,8 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             "How high the sun and moon's arc rises across the sky.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        // Shown as a plain 0-100%, like the density sliders, and mapped onto the arc-height range
-        // the renderer has always used. The stored value keeps its own scale, so nothing saved
-        // needs migrating -- what changed is that the slider no longer prints an internal number
-        // as if it were a percentage, which is what made "60%" look like it was near the middle
-        // when it was the maximum.
+        // A plain 0-100 %, like the density sliders, mapped onto the renderer's arc-height range: the
+        // stored value keeps its own scale, so nothing saved needs migrating.
         PreferenceSlider(
             label = { shown -> Text("Sun/Cloud Height: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = sunCloudHeightFraction(customization.sky.sunCloudHeight),
@@ -710,7 +690,7 @@ private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String
                 )
             },
         )
-        // Locked with the switch off (v5.10E, inventory I-226): it moved and changed nothing.
+        // Locked with the switch off, where it would move and change nothing.
         PreferenceSlider(
             label = { shown -> Text("# of Stars: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.stars.density,
@@ -725,21 +705,11 @@ private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String
 private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherDriving: Boolean, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Clouds", onBack) {
-        // Live Weather (Weather & time) fully drives cloud density from real conditions while a
-        // forecast is actually in effect -- see LiveWeatherSceneRules.cloudDensity (and the inline
-        // comment at the top of PaperRenderer.drawClouds) on exactly how that override works.
-        // Visibility/density out of reach *then* (greyed until v5.10D, not drawn since), so a manual
-        // edit can't silently do nothing (or worse, look like it worked and then get overwritten on
-        // the next hourly fetch); colors stay editable since Live Weather never touches those.
-        //
-        // v3.1: "then", not "whenever the switch is on". With the switch on but no forecast in
-        // effect -- no location, no API key, a fetch that failed with nothing cached -- this
-        // theme's own settings *are* what the scene is drawing, so locking them locked the only
-        // controls that still did anything.
-        //
-        // v5.10D: while the forecast drives the sky the switch and the amount are not drawn at all: they
-        // hold this theme's values, and greyed they said "Show Clouds" off with the forecast's clouds on
-        // screen (inventory I-220). [SettingsUiModel.forecastOwnsTheWeatherControls].
+        // While a forecast drives the sky (`LiveWeatherSceneRules.cloudDensity`) the switch and the amount
+        // are not drawn: an edit would do nothing, and greyed they would say "Show Clouds" off under the
+        // forecast's clouds ([SettingsUiModel.forecastOwnsTheWeatherControls]). With the switch on and no
+        // forecast in effect (no location, no key, a failed fetch) this theme's settings are what the
+        // scene draws, so they stay. The colours stay editable: Live Weather never touches them.
         if (liveWeatherDriving) {
             Text(
                 "Live Weather is drawing the clouds from the real sky right now: the forecast decides whether " +
@@ -748,7 +718,7 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            // At 0 % no cloud is placed (v5.10C, row 8).
+            // At 0 % no cloud is placed.
             val clouds = SettingsUiModel.amountSwitch(customization.clouds.visible, customization.clouds.density)
             SettingSwitchRow(
                 title = "Show Clouds", subtitle = if (clouds.noneAtZero) NONE_AT_ZERO_LINE else "",
@@ -788,14 +758,9 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     val precip = customization.precipitation
     SettingsFormSubScreen("Rain and snow", onBack) {
-        // See CloudsSubScreen's own comment on this same pattern -- Live Weather fully drives
-        // visibility/type/intensity here (PaperRenderer.drawPrecipitation's own doc comment) and
-        // thunderstorm (LiveWeatherSceneRules.stormActive), so those controls are out of reach while
-        // a forecast is actually in effect. Colors stay editable.
-        //
-        // v5.10D: while the forecast drives, the switch, the type, the intensity and *Thunderstorm* are
-        // not drawn (inventory I-220): greyed, they showed this theme's values -- "Show Rain/Snow" off in
-        // the rain, Thunderstorm on under a clear sky. [SettingsUiModel.forecastOwnsTheWeatherControls].
+        // As on the Clouds page: while a forecast drives the sky it decides visibility, type, intensity
+        // (`PaperRenderer.drawPrecipitation`) and the flashes (`LiveWeatherSceneRules.stormActive`), so
+        // those controls are not drawn ([SettingsUiModel.forecastOwnsTheWeatherControls]). Colours stay.
         if (liveWeatherDriving) {
             Text(
                 "Live Weather is drawing rain, snow and thunderstorms from the real sky right now: the forecast " +
@@ -805,7 +770,7 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            // At 0 % intensity nothing falls (v5.10C, row 8).
+            // At 0 % intensity nothing falls.
             val precipitation = SettingsUiModel.amountSwitch(precip.visible, precip.intensity)
             SettingSwitchRow(
                 title = "Show Rain/Snow",
@@ -819,8 +784,7 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
                     )
                 },
             )
-            // The type and the intensity follow the switch (v5.10E, inventory I-226): with nothing
-            // falling they moved and changed nothing.
+            // The type and the intensity follow the switch: with nothing falling they would change nothing.
             val falling = SettingsUiModel.amountSliderEnabled(precip.visible)
             Text("Type", style = MaterialTheme.typography.bodyMedium)
             SettingsSegmentedChoice(
@@ -857,9 +821,8 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
             onModeChange = { scope.launch { prefs.setPrecipitationSnowAutoMode(it, forThemeId) } },
         )
         // The lightning flashes only with Show Rain/Snow on and Rain selected
-        // (`LiveWeatherSceneRules.stormActive`): with snow, or the switch above off, it was on over a
-        // sky that never flashed (v5.10C, row 7). Off and locked there, the stored value kept. While
-        // Live Weather drives, not drawn (v5.10D): the forecast decides the flashes.
+        // (`LiveWeatherSceneRules.stormActive`): off and locked otherwise, the stored value kept. Under
+        // Live Weather not drawn: the forecast decides the flashes.
         if (!liveWeatherDriving) {
             SectionTitle("Storms")
             val storm = SettingsUiModel.thunderstorm(
@@ -891,7 +854,7 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
     val rainbow = customization.rainbow
     SettingsFormSubScreen("Rainbow", onBack) {
         val shown = SettingsUiModel.amountSwitch(rainbow.visible, rainbow.opacity)
-        // A daylight thing: never shown while Halloween's night sky by day keeps the scene night (v5.16).
+        // A daylight thing: never shown while Halloween's night sky by day keeps the scene night.
         val byDay = SettingsUiModel.showRainbow(customization)
         SettingSwitchRow(
             title = "Show Rainbow",
@@ -925,12 +888,12 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
 }
 
 @Composable
-private fun HousesSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun HousesSubScreen(customization: SceneCustomization, housesStand: Boolean, housesOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Houses", onBack) {
         ObjectCategorySection(
             title = "Houses", config = customization.houses, category = ObjectCategory.HOUSES,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true, showTitle = false,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true, stands = housesStand, onTheme = housesOnTheme, showTitle = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             colourLine = HOUSES_COLOUR_LINE,
         )
@@ -942,38 +905,49 @@ private fun HousesSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 /**
- * The towers' page (v5.13; until then the Buildings section of the Cities page): *Show Buildings*, which
+ * The towers' page: *Show Buildings*, which
  * shows or hides every building that is not a house -- the towers and the six buildings among the
  * houses, one candidate pool -- the Towers amount, the towers' opening hours and their colours.
  */
 @Composable
-private fun TowersSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun TowersSubScreen(customization: SceneCustomization, towersStand: Boolean, towersOnTheme: Boolean, placesOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen(SettingsUiModel.TOWERS_PAGE, onBack) {
-        // **The slider thins the towers only** (v5.10E, inventory I-216): the buildings among the houses
-        // stand whatever it says (`SceneCustomization.keepCandidate` keeps every building candidate below
-        // `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so "Density: 0%" left them all there. It is
-        // called what it moves, and the line under it says what stays. **And its colours are the
-        // towers'** since v5.11: the shops and the public buildings have their own pages.
+        // **The slider thins the towers only**: the buildings among the houses stand whatever it says
+        // (`SceneCustomization.keepCandidate` keeps every building candidate below
+        // `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so it is called what it moves and the line under
+        // it says what stays (decision 45). **Its colours are the towers'**: the shops and the public
+        // buildings have their own pages.
         ObjectCategorySection(
             title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
-            switchSubtitle = BUILDINGS_SWITCH_LINE,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, stands = towersStand,
+            // A street with no tower and no place has no building for the switch to show.
+            onTheme = towersOnTheme || placesOnTheme,
+            switchSubtitle = buildingsSwitchLine(placesOnTheme, towersOnTheme),
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Towers",
             afterDensity = {
                 Text(
-                    BUILDINGS_DENSITY_LINE,
+                    buildingsDensityLine(placesOnTheme, towersOnTheme),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // The towers' own opening hours (v5.12), under the amount of what keeps them.
+                // The towers' own opening hours, under the amount of what keeps them.
                 OpeningHoursGroup(
                     title = "Tower opening hours",
                     line = TOWER_HOURS_LINE,
-                    lockedLine = TOWER_HOURS_LOCKED_LINE,
+                    // A street with no tower at all: neither the switch nor the amount would help. Else Show Buildings
+                    // on and the Towers above 0 %, and still no tower kept on this theme: the amount is why.
+                    lockedLine = if (!towersOnTheme) {
+                        SettingsUiModel.noneOnThisThemeLine("towers")
+                    } else if (customization.buildings.visible && customization.buildings.density > 0f && !towersStand) {
+                        TOWER_HOURS_NO_TOWER_LINE
+                    } else {
+                        TOWER_HOURS_LOCKED_LINE
+                    },
                     state = SettingsUiModel.towerHours(
                         customization.towerHoursEnabled, customization.buildings.visible, customization.buildings.density,
+                        towersStand = towersStand,
                     ),
                     openHour = customization.towerOpenHour,
                     closeHour = customization.towerCloseHour,
@@ -992,7 +966,7 @@ private fun TowersSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 /**
- * The page of the shops or of the public buildings (v5.13): [StorefrontGroupSection] -- the line, the
+ * The page of the shops or of the public buildings: [StorefrontGroupSection] -- the line, the
  * group's opening hours, its colours and its reset. With *Show Buildings* off the line says so and a tap
  * opens the *Towers & offices* page, where that switch is ([onGoToTowers]).
  */
@@ -1000,6 +974,8 @@ private fun TowersSubScreen(customization: SceneCustomization, forThemeId: Strin
 private fun StorefrontGroupSubScreen(
     group: StorefrontGroup,
     customization: SceneCustomization,
+    /** Whether the street has a place among the houses, where the group's buildings stand ([StandingObjects.themeHasPlaces]). */
+    placesOnTheme: Boolean,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
@@ -1016,15 +992,21 @@ private fun StorefrontGroupSubScreen(
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             onGoToBuildings = onGoToTowers,
+            placesOnTheme = placesOnTheme,
             openingHours = {
                 OpeningHoursGroup(
                     title = if (shops) "Shop opening hours" else "Public building opening hours",
                     line = if (shops) SHOP_HOURS_LINE else PUBLIC_HOURS_LINE,
-                    lockedLine = STOREFRONT_HOURS_LOCKED_LINE,
-                    state = if (shops) {
-                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible)
+                    // A street with no place among the houses: no switch would bring the group.
+                    lockedLine = if (placesOnTheme) {
+                        STOREFRONT_HOURS_LOCKED_LINE
                     } else {
-                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible)
+                        SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(group))
+                    },
+                    state = if (shops) {
+                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme)
+                    } else {
+                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme)
                     },
                     openHour = if (shops) customization.shopOpenHour else customization.publicOpenHour,
                     closeHour = if (shops) customization.shopCloseHour else customization.publicCloseHour,
@@ -1042,16 +1024,13 @@ private fun StorefrontGroupSubScreen(
 }
 
 /**
- * One group of opening hours (v5.12): its switch and, while it is on, its two hours. Two groups since
- * the maintainer's *«vorrei inoltre aggiungere uno slide per orari solo grattacieli e solo negozi, al
- * momento è globale per grattacieli e negozi»* (2026-10-09), three since his *«il resto accetto i
- * consigliati»* of 2026-10-11: the towers', the shops' -- the restaurant, the bar and the shop -- and the
- * public buildings' -- the school's; the fire and the police station never close -- each on a page
- * and reset with it.
+ * One group of opening hours (`DESIGN_NOTES.md` §12, decision 62): its switch and, while it is on, its two
+ * hours -- the towers', the shops' (the restaurant, the bar and the shop) or the public buildings' (the
+ * school's; the fire and the police station never close), each on its page and reset with it.
  *
  * The switch reads on only while there is a building of its group to keep the hours
  * ([SettingsUiModel.towerHours], [SettingsUiModel.shopHours], [SettingsUiModel.publicHours];
- * `AI_PROJECT_RULES.md` 8.7); locked, it says what is missing, and the stored choice and hours are kept.
+ * decision 40); locked, it says what is missing, and the stored choice and hours are kept.
  */
 @Composable
 private fun OpeningHoursGroup(
@@ -1104,16 +1083,17 @@ private const val TOWER_HOURS_LINE =
 private const val TOWER_HOURS_LOCKED_LINE =
     "Needs Show Buildings on and Towers above 0%; your choice is kept until then."
 
+/** The towers' group's line while Show Buildings is on and the Towers amount above 0 % keeps no tower on this theme. */
+private const val TOWER_HOURS_NO_TOWER_LINE =
+    "No tower stands at this density on this theme. Raise Towers above; your choice is kept until then."
+
 /** The shops' group's line, with its switch interactive. */
 private const val SHOP_HOURS_LINE =
     "The restaurant, the bar and the shop keep opening hours: outside them the blinds are down, the " +
         "door's shutter is down and nobody stands at the windows; at night the glass stays dark. Houses " +
         "are homes and keep no hours."
 
-/**
- * The public buildings' group's line, with its switch interactive (v5.13): the hours are the school's, the
- * fire and the police station never close (the maintainer, 2026-10-12: *«la pagina deve dirlo»*).
- */
+/** The public buildings' group's line, with its switch interactive: the hours are the school's, the stations never close. */
 private const val PUBLIC_HOURS_LINE =
     "These hours are the school's: outside them the blinds are down, the door's shutter is down and " +
         "nobody stands at the windows; at night the glass stays dark. " +
@@ -1123,7 +1103,7 @@ private const val PUBLIC_HOURS_LINE =
 private const val STOREFRONT_HOURS_LOCKED_LINE =
     "Needs Show Buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your choice is kept until then."
 
-/** Under each group's two hours (v5.14: at the minute, `BusinessHours`). */
+/** Under each group's two hours: kept to the minute (`BusinessHours`, decision 68). */
 private const val HOURS_CLOCK_LINE =
     "At the opening time the lights come on and the people walk in; by the closing time the last have " +
         "walked out and the lights go off. The hours follow the scene's own clock, so a frozen time of " +
@@ -1171,9 +1151,8 @@ private fun HillsSubScreen(customization: SceneCustomization, forThemeId: String
 }
 
 /**
- * The distant houses (v5.11, inventory I-407; the maintainer's choices of 2026-10-06): a switch, an
- * amount, and where their colours come from -- *«nel toggle per accenderle sotto "montagne" va scritto
- * che il colore lo ereditano da un altro menu»*. The switch follows `AI_PROJECT_RULES.md` 8.7 through
+ * The distant houses (`DESIGN_NOTES.md` §12, decision 52): a switch, an amount, and a line saying their
+ * colours come from another page. The switch follows decision 40 through
  * [SettingsUiModel.distantHouses]: off at 0 % with the tap bringing back 50 %, off with no mountain
  * layer on with the tap going to Mountains; the stored choice is never rewritten.
  */
@@ -1258,16 +1237,19 @@ private fun MountainsSubScreen(customization: SceneCustomization, forThemeId: St
 }
 
 /**
- * The trees, and since v5.10C2 the Palms switch: the maintainer, 2026-10-03, *«il flag non deve stare
- * in summer ma in tree»*. The palms stand in the trees' places, so they are set beside *Show Trees* and
- * the density, under the same two rules they had in Seasons & decorations (v5.10C): off and locked
- * while there is no tree to stand in, on only where a palm stands ([SettingsUiModel.palms]).
+ * The trees, and the Palms switch beside *Show Trees* and the density: the palms stand in the trees'
+ * places, so it is off and locked while there is no tree to stand in, and on only where a palm stands
+ * ([SettingsUiModel.palms]).
  */
 @Composable
 private fun TreesSubScreen(
     customization: SceneCustomization,
     themeHasPalms: Boolean,
     palmsOnlyFirs: Boolean,
+    treesStand: Boolean,
+    treesOnTheme: Boolean,
+    /** Every tree the street keeps at 100 % would stand as a Christmas fir under the palms ([StandingObjects.onlyFirsEvenAtFull]). */
+    onlyFirsEvenAtFull: Boolean,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
@@ -1277,22 +1259,28 @@ private fun TreesSubScreen(
     SettingsFormSubScreen("Trees", onBack) {
         ObjectCategorySection(
             title = "Trees", config = customization.trees, category = ObjectCategory.TREES,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = treesStand, onTheme = treesOnTheme,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             afterDensity = {
-                // On every theme since v5.10C, the maintainer's decision of 2026-09-30: on the two
-                // that plant palms it keeps or removes them, as it always did, and on every other
-                // theme it puts palms where the ordinary trees stand -- a Christmas fir stays a fir
-                // (v5.10C2). It starts off there, so nobody finds palms they did not ask for
-                // (`SceneCustomization.palmsInsteadOfTrees`). And they stand where the trees do: off
-                // and locked while there are none, or while every tree left is a Christmas fir (v5.10C2),
-                // the stored choice kept.
-                val palms = SettingsUiModel.palms(customization, themeHasPalms, onlyFirsWouldStand = palmsOnlyFirs)
+                // On every theme (`DESIGN_NOTES.md` §12, decision 39): on the two that plant palms it keeps
+                // or removes them, on every other it puts palms where the ordinary trees stand, a Christmas
+                // fir staying a fir. It starts off there (`SceneCustomization.palmsInsteadOfTrees`), and is
+                // off and locked while no tree stands or every tree left is a Christmas fir; on a street with
+                // no tree at all its line says so, since neither Show Trees nor the density would help, and where
+                // every tree is a fir even at 100 % it names the firs alone.
+                val palms = SettingsUiModel.palms(customization, themeHasPalms, onlyFirsWouldStand = palmsOnlyFirs, treesStand = treesStand)
                 SettingSwitchRow(
                     title = "Palms",
-                    subtitle = if (!palms.interactive && palmsOnlyFirs) {
+                    subtitle = if (!palms.interactive && !treesOnTheme) {
+                        SettingsUiModel.PALMS_NO_TREES_ON_THIS_THEME_LINE
+                    } else if (!palms.interactive && palmsOnlyFirs && onlyFirsEvenAtFull) {
+                        SettingsUiModel.PALMS_ONLY_FIRS_ON_THIS_THEME_LINE
+                    } else if (!palms.interactive && palmsOnlyFirs) {
                         "Every tree left at this density is a Christmas fir, and the firs stay. Raise the " +
                             "density above or turn the Christmas firs off; your choice is kept until then."
+                    } else if (!palms.interactive && customization.trees.visible && customization.trees.density > 0f) {
+                        "No tree stands at this density on this theme, and palms stand where the trees do. Raise " +
+                            "the density above; your choice is kept until then."
                     } else if (!palms.interactive) {
                         "Needs Show Trees above: palms stand where the trees do. Your choice is kept until then."
                     } else if (themeHasPalms) {
@@ -1319,23 +1307,32 @@ private fun TreesSubScreen(
 }
 
 /**
- * Visibility and density for the pedestrians, and nothing else.
- *
- * Deliberately not an [ObjectCategorySection]: that lays out four colour swatches, and nothing
- * here would take them. The people *are* recoloured at run time since v4.30 -- clothes, skin, hair
- * and hat drawn from their region masks -- but by the scene itself, a different combination at
- * every crossing, not by a colour the user picks; the maintainer decided on 2026-09-28 that they
- * stay that way (inventory I-73).
+ * Visibility and density for the pedestrians, and nothing else: not an [ObjectCategorySection], whose
+ * four colour swatches nothing here would take. The people are recoloured by the scene itself, a new
+ * combination at every crossing (`DESIGN_NOTES.md` §12, decision 30), not by a colour the user picks.
  */
 @Composable
 private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     val config = customization.people
     SettingsFormSubScreen("People", onBack) {
+        // With the day and the night density both at 0 % nobody walks at any hour: off, and said, the stored values kept;
+        // a tap brings the day density back to the theme's own (`SettingsUiModel.people`).
+        val peopleShown = SettingsUiModel.people(config.visible, config.density, customization.peopleNightDensity)
         SettingSwitchRow(
             title = "Show people",
-            subtitle = "People walk along the ground between the buildings and the road, and dress for the season.",
-            checked = config.visible,
-            onCheckedChange = { scope.launch { prefs.setCategoryVisible(ObjectCategory.PEOPLE, it, forThemeId) } },
+            subtitle = if (config.visible && peopleShown.noneAtZero) {
+                SettingsUiModel.NO_PEOPLE_AT_ZERO_LINE
+            } else {
+                "People walk along the ground between the buildings and the road, and dress for the season."
+            },
+            checked = peopleShown.shownOn,
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.peopleTap(wanted, config.density, customization.peopleNightDensity, defaultDensityOf(ObjectCategory.PEOPLE, forThemeId)),
+                    setVisible = { prefs.setCategoryVisible(ObjectCategory.PEOPLE, it, forThemeId) },
+                    setAmount = { prefs.setCategoryDensity(ObjectCategory.PEOPLE, it, forThemeId) },
+                )
+            },
         )
         PreferenceSlider(
             label = { shown -> Text("Day density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
@@ -1361,16 +1358,15 @@ private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 @Composable
-private fun ParasolsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun ParasolsSubScreen(customization: SceneCustomization, parasolsStand: Boolean, parasolsOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Parasols", onBack) {
         ObjectCategorySection(
             title = "Parasols", config = customization.parasols, category = ObjectCategory.PARASOLS,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = parasolsStand, onTheme = parasolsOnTheme,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )
-        // The other half of N2: the object this screen does *not* control, named here so the
-        // rename is an answer rather than half of one.
+        // The umbrella this screen does *not* control, named (see the Parasols row).
         SettingsCaption(
             "These are the garden parasols that stand beside the houses. The umbrellas people " +
                 "carry are not one of the scene's objects: they go up by themselves whenever it " +
@@ -1387,13 +1383,14 @@ private fun ParasolsSubScreen(customization: SceneCustomization, forThemeId: Str
 private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Cars", onBack) {
-        // **What the two ends do, said** (v5.10E, inventory I-217): at 0 % one car still drives
-        // (`CarSelection.countFor` is 1 at the bottom), so the slider says "one car" there; and *Show
-        // Cars* off takes the road away with the cars (`SceneObjectRenderer.drawsRoad`), which the line
-        // under it said was "an empty road".
+        // **What the two ends do, said** (decision 45): at 0 % one car still drives (`CarSelection.countFor`
+        // is 1 at the bottom), so the slider says "one car" there; and *Show Cars* off takes the road away
+        // with the cars (`SceneObjectRenderer.drawsRoad`).
         ObjectCategorySection(
             title = "Cars", config = customization.cars, category = ObjectCategory.CARS,
             forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
+            // Not one of the street's categories a theme can lack ([StandingObjects]): a plain switch.
+            stands = true, onTheme = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Day density",
             densityValue = ::carDensityValue,
@@ -1430,7 +1427,7 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Birds", onBack) {
         val birds = SettingsUiModel.amountSwitch(customization.birds.visible, customization.birds.density)
-        // With Halloween's night sky by day only night birds fly (v5.16): off and locked unless Night Birds is on, which
+        // With Halloween's night sky by day only night birds fly: off and locked unless Night Birds is on, which
         // stays a switch -- it is the way out.
         val byDay = SettingsUiModel.showBirds(customization)
         SettingSwitchRow(
@@ -1458,9 +1455,8 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
             valueRange = 0f..1f,
             enabled = flying,
         )
-        // `PaperRenderer.drawBirds` returns before the night is asked while the birds are off, so
-        // this was on over a sky with no bird in it (v5.10C, row 7): off and locked, the stored
-        // value kept, until the birds are back.
+        // `PaperRenderer.drawBirds` returns before the night is asked while the birds are off: off and
+        // locked then, the stored value kept, until the birds are back.
         val nightBirds = SettingsUiModel.dependentSwitch(customization.birds.nightBirds, available = birds.shownOn)
         SettingSwitchRow(
             title = "Night Birds",
@@ -1479,10 +1475,9 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
                 editingTarget = ColorEditTarget("Bird Color ${index + 1}", colorWeight.color) { c -> scope.launch { prefs.setBirdColor(index, c, forThemeId) } }
             }
         }
-        // **Each colour's real share of the flock** (v5.10E, inventory I-218): the sliders are weights,
-        // and "Color 1: 100" read as "all the birds" while three other colours at 100 shared the flock
-        // four ways. The label works the share out from the weight being dragged and the other three as
-        // stored -- what `BirdsConfig.pickColor` draws ([SettingsUiModel.birdColorShares]).
+        // **Each colour's real share of the flock** (decision 45): the sliders are weights, so the label
+        // works the share out from the weight being dragged and the other three as stored -- what
+        // `BirdsConfig.pickColor` draws ([SettingsUiModel.birdColorShares]).
         Text(
             "How often each colour appears: each one's share of the birds is shown beside it, and moving " +
                 "one changes the others' shares.",
@@ -1512,9 +1507,8 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
 private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Lake, boats and dolphins", onBack) {
-        // **At 0 % height there is no lake** (v5.10E, inventory I-293, the maintainer's *«2 - si»* of
-        // 2026-10-04): off, and said, as every other amount at 0 is (v5.10C, row 8), and a tap puts the
-        // theme's own height back. The wallpaper draws no water and nothing on it then
+        // **At 0 % height there is no lake** (decision 45): off, and said, as every other amount at 0, and
+        // a tap puts the theme's own height back. The wallpaper draws no water and nothing on it then
         // (`LakeConfig.drawsWater`).
         val lake = SettingsUiModel.amountSwitch(customization.lake.visible, customization.lake.height)
         SettingSwitchRow(
@@ -1543,20 +1537,16 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             valueRange = 0f..1f,
             enabled = SettingsUiModel.amountSliderEnabled(customization.lake.visible),
         )
-        // **The four controls below follow the lake (v5.7C).** With the lake off nothing floats
-        // on it -- `PaperRenderer.updateLakeBandY` returns before `drawLake` ever reaches the
-        // boats -- and until now both switches still read "on" and both sliders still moved. This
-        // is the app's own pattern for exactly that, the one "Realistic Moon Phases" and the Live
-        // Weather controls already use: grey the control, say why in its subtitle, and **do not
-        // touch the stored value**. See [SettingsUiModel.lakeContents].
+        // **The four controls below follow the lake**: with no water nothing floats on it
+        // (`PaperRenderer.updateLakeBandY` returns before `drawLake` reaches the boats), so they are
+        // greyed, say why, and **the stored values are not touched**. See [SettingsUiModel.lakeContents].
         val lakeContents = SettingsUiModel.lakeContents(
             lakeVisible = lake.shownOn,
             storedSailboatsVisible = customization.lake.sailboatsVisible,
             storedDolphinsVisible = customization.lake.dolphinsVisible,
         )
-        // Worded on the "Realistic Moon Phases" subtitle, which is the sentence this pattern
-        // already uses: what is holding the control, how to release it, and the promise that the
-        // stored value is still there.
+        // Worded like the "Realistic Moon Phases" line: what holds the control, how to release it, and
+        // that the stored value is kept.
         val lakeOffNote = if (lake.noneAtZero && customization.lake.visible) {
             "The lake is at 0% height, so nothing floats on it. Raise Lake Height to set this; your " +
                 "choice is kept until then."
@@ -1564,7 +1554,7 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             "The lake is off, so nothing floats on it. Turn Show Lake on to set " +
                 "this; your choice is kept until then."
         }
-        // And at 0 % none floats (v5.10C, row 8): the switch reads off and says so.
+        // And at 0 % none floats: the switch reads off and says so.
         val sailboats = SettingsUiModel.amountSwitch(lakeContents.sailboatsShownOn, customization.lake.sailboatsDensity)
         SettingSwitchRow(
             title = "Show Sailboats",
@@ -1623,17 +1613,9 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
 }
 
 /**
- * The scene as it currently stands, at the top of the screen that edits it.
- *
- * **The same preview the theme gallery draws**, through the same [ThemeScenePreview] and the same
- * [ThemePreviewGeometry] -- one preview system, not two. What was here before was a 120 dp strip
- * showing three sample objects, each magnified by its own fitting factor so that a house, a tree
- * and a tower of very different real heights would all fit the band. It answered "what colour is
- * my tree" and nothing else, and sitting a tap away from the gallery's mini scenes it read as a
- * leftover from a different app.
- *
- * The day/night control is kept, and is the one thing this call site adds: half the values edited
- * on the screens below are night colours, and a preview fixed at midday cannot show them.
+ * The scene as it currently stands, at the top of the screen that edits it: **the theme gallery's
+ * preview**, through the same [ThemeScenePreview] and [ThemePreviewGeometry], one preview system. The
+ * day/night control is this call site's own: half the values edited below are night colours.
  */
 @Composable
 private fun WorldScenePreview(theme: SceneTheme, customization: SceneCustomization) {

@@ -266,7 +266,7 @@ class UpdateNotificationPolicyTest {
         assertEquals("no check was made on this pass", UpdateCheckSchedule.Next.DONE, UpdateCheckSchedule.afterCheck(null))
     }
 
-    // -- the "switched off in your phone's settings" line (A13, v5.8B) ---------------------------
+    // -- the "switched off in your phone's settings" line --------------------------------------------
 
     @Test
     fun `below Android 13 the app's own notification switch is what blocks, and nothing else`() {

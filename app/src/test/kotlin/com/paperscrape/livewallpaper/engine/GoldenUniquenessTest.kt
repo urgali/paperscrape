@@ -64,9 +64,8 @@ import org.junit.Test
  * It was closed in the pass that followed. `people-group`'s scene was measured against `day`'s
  * field by field — of forty `SceneCustomization` fields exactly two differed, both the people
  * density — so the two were one scene, and `people-group.png` was deleted rather than regenerated.
- * Its `PAVEMENT` focus now rides on `day.png` through `SceneGolden.assertMatches`'s `extraFocus`,
- * which leaves `SharedGoldenScenes.day()` untouched and so leaves the GL suite measuring exactly
- * what it measured before — checked by running it, not by reasoning about it.
+ * The pavement is judged on `day.png`, whose whole frame admits no differing pixel; `SharedGoldenScenes.day()` is
+ * untouched, so the GL suite measures exactly what it measured before.
  *
  */
 class GoldenUniquenessTest {

@@ -31,10 +31,7 @@ class SnowPathTest {
      * snowfall, filed the way Open-Meteo files one: a `snowfall` in centimetres alongside a
      * `precipitation` in millimetres, with `rain` and `showers` both at zero.
      *
-     * The v2.15 on-device run used a second live reading, Mawson (-67.6, 62.87) at 17:15 local,
-     * because this one had stopped snowing by the time the emulator was configured — real weather
-     * moves. Both are captures, not invented bodies; this is the one pinned here because it is the
-     * milder of the two and therefore the harder case for the intensity floor.
+     * A capture, not an invented body, and a mild snowfall: the harder case for the intensity floor.
      */
     private val realSnowfall = """
         {"latitude":-54.5,"longitude":-68.9,"timezone":"America/Argentina/Ushuaia",
@@ -88,7 +85,7 @@ class SnowPathTest {
         }
     }
 
-    /** The separation §12 names: rain is rain, showers are rain, snow is snow. */
+    /** The separation the forecast's kinds keep: rain is rain, showers are rain, snow is snow. */
     @Test
     fun `rain, showers and snow stay separated`() {
         val rain = realSnowfall
@@ -127,7 +124,7 @@ class SnowPathTest {
     // -- weather-driven snow does not dress the scene ---------------------------------------------
 
     /**
-     * The independence §8 asks for, stated as an invariant over the data rather than over pixels:
+     * The winter look kept independent of the weather, stated as an invariant over the data rather than over pixels:
      * nothing a `LiveWeatherSnapshot` carries can reach the winter presentation, because the
      * snapshot has no field that the presentation reads. Roof snow, tree caps and winter clothing
      * are all gated on `SceneCustomization.winterColorsEnabled`, which no weather path writes.
@@ -147,9 +144,9 @@ class SnowPathTest {
      * And the reverse direction: the winter presentation is a palette, and the two are separate
      * fields.
      *
-     * The Winter theme does ship with falling snow — deliberately, because "a theme called Winter
-     * whose weather is off is a theme whose central subject the user has to go and find in a
-     * menu". That is a *theme default setting both fields*, not one field implying the other,
+     * The Winter theme does ship with falling snow, deliberately: a theme called Winter whose
+     * weather is off is a theme whose central subject the user has to go and find in a
+     * menu. That is a *theme default setting both fields*, not one field implying the other,
      * which is what this pins: giving some other theme the winter palette leaves its
      * precipitation exactly where it was.
      */

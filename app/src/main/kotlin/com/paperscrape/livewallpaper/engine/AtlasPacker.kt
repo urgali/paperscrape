@@ -26,9 +26,8 @@ package com.paperscrape.livewallpaper.engine
  * Walking the twelve themes at their own defaults, clear weather, the shipped shelf packer consumed
  * **99 % of the atlas's 2 048 rows while holding 42 % of its area as content**, saturated on the
  * *fifth* theme, and spilled 25 sprites into standalone textures — each one a batch break per
- * frame, which is precisely what the atlas exists to prevent. At full density it spilled 34. The
- * census is in `docs/archive/V4_29_REPORT.md`; `AtlasPackerTest` replays the recorded
- * insertion sequence so the improvement cannot regress unnoticed.
+ * frame, which is precisely what the atlas exists to prevent. At full density it spilled 34. `AtlasPackerTest`
+ * replays a recorded insertion sequence so the improvement cannot regress unnoticed.
  *
  * The skyline is what the shelf packer's comment assumed was not worth writing: about eighty lines,
  * no sorting, and no deferred upload. It is **online** — it takes entries in whatever order the
@@ -101,8 +100,8 @@ class AtlasPacker(
      * v4.28 diagnostics reported. Content area over allocated area — 27 % on the reference scene —
      * counts the padded rectangles and is blind to every texel a packer has stranded. On that same
      * scene the shelf packer had already consumed **55 %** of the rows. Reading the first as the
-     * second is how v4.28 concluded the atlas was "73 % empty" when it was closer to half full, and
-     * `BACKLOG_v4_29.md` item 88 is what keeps both numbers reported side by side.
+     * second is how v4.28 concluded the atlas was "73 % empty" when it was closer to half full, which is why
+     * both numbers are reported side by side.
      */
     val occupiedHeight: Int
         get() {

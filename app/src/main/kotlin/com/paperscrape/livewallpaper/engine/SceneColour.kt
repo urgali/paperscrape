@@ -64,7 +64,12 @@ internal object SceneColour {
     internal fun encodedLuminance(color: Int): Float =
         0.2126f * (color ushr 16 and 0xFF) + 0.7152f * (color ushr 8 and 0xFF) + 0.0722f * (color and 0xFF)
 
-    /** [from] at `ratio` 0, [to] at 1, each channel interpolated and truncated independently. */
+    /**
+     * [from] at `ratio` 0, [to] at 1, each channel interpolated and truncated independently -- the alpha too, so two opaque
+     * colours can come out at 254 between the ends (255 x (1 - ratio) + 255 x ratio is 254.99... at about one ratio in 26):
+     * one level, which the GL backend ignores and the Canvas one draws (`GlSceneTarget.drawSprite`; left so, the seal of
+     * v5.17).
+     */
     fun blendArgb(from: Int, to: Int, ratio: Float): Int {
         val inverse = 1f - ratio
         val a = ((from ushr 24 and 0xFF) * inverse + (to ushr 24 and 0xFF) * ratio).toInt()

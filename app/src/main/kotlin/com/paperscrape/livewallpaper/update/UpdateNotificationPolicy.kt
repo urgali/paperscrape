@@ -133,10 +133,6 @@ object UpdateNotificationPolicy {
      *    `setNotificationsEnabledForPackage` -> `PermissionHelper.setNotificationPermission`, and
      *    `areNotificationsEnabled` is `hasPermission`), so the switch stays on while the permission
      *    becomes DENIED. Nothing would appear, and the row must say so. Blocked.
-     *
-     * Until v5.9F a DENIED permission never counted, so the second case read the normal line and its
-     * promise of a notification: inventory I-54, the defect row A13 had repaired below API 33 and
-     * that the maintainer confirmed on Android 16 on 2026-09-28.
      */
     fun blockedInPhoneSettings(
         permission: NotificationPermission,

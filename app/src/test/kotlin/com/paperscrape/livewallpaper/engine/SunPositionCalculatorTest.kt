@@ -86,11 +86,10 @@ class SunPositionCalculatorTest {
         val shortlyAfter = SunPositionCalculator.compute(6.5f, 6f, 20f).dayBlend
         val wellAfter = SunPositionCalculator.compute(9f, 6f, 20f).dayBlend
 
-        // Half-light, not full dark. This assertion used to demand 0f at sunrise, which is the
-        // shape the v2.12 fix removed: the day arc reached full night at the terminator while the
-        // night arc, one instant earlier, was at full *day* -- a discontinuity that painted a
-        // daylight sky over a rising moon. Both arcs now meet at 0.5 and the ramp continues from
-        // there. See SunPositionCalculator.TERMINATOR_BLEND.
+        // Half-light, not full dark. 0f at sunrise would be the shape where the day arc reaches
+        // full night at the terminator while the night arc, one instant earlier, is at full *day*
+        // -- a discontinuity that paints a daylight sky over a rising moon. Both arcs meet at 0.5
+        // and the ramp continues from there. See SunPositionCalculator.TERMINATOR_BLEND.
         assertEquals("sunrise should be half-light from both sides", 0.5f, atSunrise, tolerance)
         assertTrue("blend should have started rising", shortlyAfter > atSunrise)
         assertTrue("blend should still be rising", wellAfter > shortlyAfter)
@@ -144,6 +143,78 @@ class SunPositionCalculatorTest {
         assertFalse(phase.celestialX.isNaN())
         assertFalse(phase.celestialY.isNaN())
         assertTrue(phase.celestialY.isFinite())
+    }
+
+    // --- compute(): a day or a night shorter than an hour ----------------------------------------
+
+    /**
+     * **Rovaniemi on 21 December: a day of 35 minutes, and the sky does not jump at its sunset.**
+     *
+     * Sunrise 11:59.7 and sunset 12:34.5 by the app's own formula (66.50 N, 25.72 E, UTC+2). A day drawn over an hour's
+     * arc but ended at its true sunset, 58 % of the way along, would put the sky at full day with the sun near the zenith
+     * at 12:34 and at half-light with the moon rising at 12:35, `dayBlend` 0.50 in one minute. The day is drawn the hour
+     * long, so it changes by no more than an ordinary hour's twilight does in a minute.
+     */
+    @Test
+    fun `a day of thirty-five minutes at Rovaniemi does not make the sky jump`() {
+        val sunrise = 11.9957f
+        val sunset = 12.5749f
+        var worst = 0f
+        var at = 0f
+        for (minute in 11 * 60 + 30 until 13 * 60 + 30) {
+            val a = SunPositionCalculator.compute(minute / 60f, sunrise, sunset).dayBlend
+            val b = SunPositionCalculator.compute((minute + 1) / 60f, sunrise, sunset).dayBlend
+            if (kotlin.math.abs(b - a) > worst) {
+                worst = kotlin.math.abs(b - a)
+                at = minute / 60f
+            }
+        }
+        assertTrue("dayBlend moves by $worst in the minute after $at", worst < MOST_IN_A_MINUTE)
+    }
+
+    /**
+     * Every day and every night shorter than an hour, at any hour of the clock, is as smooth as an hour's: minute by
+     * minute the blend moves no more than an hour-long arc's twilight ramp moves it (0.5 over 7.2 minutes, 0.069 a
+     * minute), and the sun gives way to the moon only at the horizon, both of them low.
+     */
+    @Test
+    fun `every day or night shorter than an hour is drawn as smoothly as an hour`() {
+        val random = java.util.Random(20261027)
+        repeat(400) { case ->
+            val sunrise = random.nextFloat() * 24f
+            val length = if (case % 2 == 0) 0.01f + random.nextFloat() * 0.98f else 23.01f + random.nextFloat() * 0.98f
+            val sunset = SunPositionCalculator.wrap24(sunrise + length)
+            var before = SunPositionCalculator.compute(0f, sunrise, sunset)
+            for (minute in 1..24 * 60) {
+                val now = SunPositionCalculator.compute(minute / 60f, sunrise, sunset)
+                val where = "sunrise $sunrise, sunset $sunset, minute $minute"
+                assertTrue(
+                    "$where: dayBlend ${before.dayBlend} -> ${now.dayBlend}",
+                    kotlin.math.abs(now.dayBlend - before.dayBlend) < MOST_IN_A_MINUTE,
+                )
+                if (now.isSunVisible != before.isSunVisible) {
+                    assertTrue("$where: the sun and the moon swap away from the horizon", before.celestialY < 0.06f && now.celestialY < 0.06f)
+                }
+                before = now
+            }
+        }
+    }
+
+    /**
+     * **Polar night is night all day.** `approximateSunriseSunset` answers it as sunrise and sunset both at noon, a day
+     * of no length, and no minute of it has a sun -- not even the minute whose hour is noon exactly, which would show a
+     * sun at the left horizon for one minute at every noon of the polar night where noon falls on a whole minute (a
+     * Custom position at 15 E in UTC+1).
+     */
+    @Test
+    fun `polar night has no minute of sun`() {
+        for (minute in 0 until 24 * 60) {
+            assertFalse("the sun is up at minute $minute of a polar night", SunPositionCalculator.compute(minute / 60f, 12f, 12f).isSunVisible)
+        }
+        assertFalse(SunPositionCalculator.compute(11f, 11f, 11f).isSunVisible)
+        for (minute in 0 until 24 * 60) {
+            assertTrue("the sun has set at minute $minute of a polar day",SunPositionCalculator.compute(minute / 60f, 0f, 24f).isSunVisible)
+        }
     }
 
     // --- approximateSunriseSunset() -----------------------------------------------------------
@@ -206,8 +277,8 @@ class SunPositionCalculatorTest {
     @Test
     fun `longitude within a timezone shifts solar noon`() {
         // Two points sharing UTC+1 but 15 degrees of longitude apart sit an hour apart in solar
-        // time. This is the specific behaviour the implementation notes was previously broken by
-        // discarding the utcOffset term, so it is worth pinning.
+        // time. This is the specific behaviour the implementation notes a discarded utcOffset term
+        // would break, so it is worth pinning.
         val (eastRise, _) = SunPositionCalculator.approximateSunriseSunset(45.0, 15.0, 80, 1.0)
         val (westRise, _) = SunPositionCalculator.approximateSunriseSunset(45.0, 0.0, 80, 1.0)
         assertEquals(
@@ -231,14 +302,14 @@ class SunPositionCalculatorTest {
         }
     }
 
-    // --- Solar days that cross the device's midnight (P2-3) ------------------------------------
+    // --- Solar days that cross the device's midnight ------------------------------------------
     //
     // `solarNoon = 12 - longitude/15 + utcOffset` is not pinned to 12:00: it moves with where a
     // place sits inside its timezone, and with how far that timezone's offset is from its
     // geography. Add a long summer day to a late solar noon and sunset genuinely falls after
-    // midnight; subtract one from an early solar noon and sunrise genuinely falls before it. Until
-    // v3.2 both were forced back inside `0..24` by a `coerceIn`, which does not move the day —
-    // it deletes the part of it that did not fit.
+    // midnight; subtract one from an early solar noon and sunrise genuinely falls before it. A
+    // `coerceIn` forcing both back inside `0..24` does not move the day — it deletes the part of
+    // it that does not fit.
 
     /** Ísafjörður, Iceland (66.07N 23.13W, UTC+0 year-round) in late June: sunset is after midnight. */
     @Test
@@ -246,7 +317,7 @@ class SunPositionCalculatorTest {
         val (sunrise, sunset) = SunPositionCalculator.approximateSunriseSunset(66.07, -23.13, 172, 0.0)
 
         assertTrue("sunrise should be in the small hours, was $sunrise", sunrise in 1f..4f)
-        // The real thing sets around 00:40 the following morning. What must never happen again is
+        // The real thing sets around 00:40 the following morning. What must never happen is
         // 24.0 -- the value a clamp produces, and the one that reads as "sets exactly at midnight".
         assertTrue("sunset should have wrapped past midnight, was $sunset", sunset < sunrise)
         assertTrue("sunset should be in the small hours, was $sunset", sunset in 0f..2f)
@@ -272,7 +343,7 @@ class SunPositionCalculatorTest {
      * A solar noon outside `0..24` entirely.
      *
      * Kiritimati keeps UTC+14 at 157W, so its solar noon lands near 36:30 on an unwrapped clock.
-     * The clamp turned both ends into 23.98 and 24.0 -- a zero-length day at midnight, on an island
+     * A clamp would turn both ends into 23.98 and 24.0 -- a zero-length day at midnight, on an island
      * two degrees from the equator with twelve hours of daylight.
      */
     @Test
@@ -289,7 +360,7 @@ class SunPositionCalculatorTest {
         )
     }
 
-    /** The three reference cities, none of which wraps: the fix must not move an ordinary day. */
+    /** The three reference cities, none of which wraps: the wrapping must not move an ordinary day. */
     @Test
     fun `ordinary locations are unchanged`() {
         data class Case(val name: String, val lat: Double, val lon: Double, val off: Double,
@@ -309,7 +380,7 @@ class SunPositionCalculatorTest {
 
     @Test
     fun `every location and day of year produces a clock time`() {
-        // Widened from the old version of this test, which only checked `0..24`. A wrapped pair is
+        // Every location, offset and season, not only the reference cities. A wrapped pair is
         // still two clock times; what must never appear is a value outside the clock, or a NaN.
         for (latitude in listOf(-89.0, -66.0, -45.0, 0.0, 45.0, 66.0, 89.0)) {
             for (longitude in listOf(-179.0, -157.4, -74.0, 0.0, 30.0, 139.7, 179.0)) {
@@ -369,7 +440,7 @@ class SunPositionCalculatorTest {
 
     @Test
     fun `compute keeps the sun down across midnight when the night wraps`() {
-        // The ordinary case, and the one that must not have moved: light 06:00 to 20:00.
+        // The ordinary case, and the one the wrapping must not move: light 06:00 to 20:00.
         for (hour in listOf(6f, 12f, 19.9f)) {
             assertTrue("up at $hour", SunPositionCalculator.compute(hour, 6f, 20f).isSunVisible)
         }
@@ -440,12 +511,12 @@ class SunPositionCalculatorTest {
         }
     }
 
-    // --- The clock reading that replaced a per-frame Calendar ------------------------------
+    // --- The clock reading that stands in for a per-frame Calendar --------------------------
 
     /**
-     * [SunPositionCalculator.hourAt] is the arithmetic that replaced a `Calendar` on the render
-     * path, so the property that matters is not that it looks right but that it *agrees with the
-     * Calendar it replaced* -- at every instant, in every zone. Anything less and the wallpaper's
+     * The clock's own hour, [SolarDaySchedule.sceneHour] without sun times held, is the arithmetic that stands in for
+     * a `Calendar` on the render path, so the property that matters is not that it looks right but that it *agrees with
+     * the Calendar it stands in for* -- at every instant, in every zone. Anything less and the wallpaper's
      * whole day/night cycle could sit an hour out somewhere without any test noticing.
      *
      * Zones chosen for the cases that break naive arithmetic: a half-hour offset, a
@@ -470,7 +541,7 @@ class SunPositionCalculatorTest {
                 val expected = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60f
                 assertEquals(
                     "$zoneId at $millis",
-                    expected, SunPositionCalculator.hourAt(millis, zone), 0f,
+                    expected, SolarDaySchedule.sceneHour(millis, HeldSunTimes.NONE, zone), 0f,
                 )
                 millis += stride
             }
@@ -482,7 +553,7 @@ class SunPositionCalculatorTest {
         val zone = TimeZone.getTimeZone("Europe/Rome")
         var millis = 1_700_000_000_000L
         repeat(2000) {
-            val hour = SunPositionCalculator.hourAt(millis, zone)
+            val hour = SolarDaySchedule.sceneHour(millis, HeldSunTimes.NONE, zone)
             assertTrue("out of range: $hour", hour >= 0f && hour < 24f)
             // Every representable value is some whole minute of the day.
             val minuteOfDay = Math.round(hour * 60f)
@@ -505,24 +576,14 @@ class SunPositionCalculatorTest {
             val millis = offsetDays * 86_400_000L + 5_400_000L + 37_123L
             calendar.timeInMillis = millis
             val expected = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60f
-            assertEquals(expected, SunPositionCalculator.hourAt(millis, zone), 0f)
+            assertEquals(expected, SolarDaySchedule.sceneHour(millis, HeldSunTimes.NONE, zone), 0f)
         }
     }
 
-    @Test
-    fun `the cached reading matches an uncached one for the current minute`() {
-        val now = System.currentTimeMillis()
-        assertEquals(
-            SunPositionCalculator.hourAt(now, TimeZone.getDefault()),
-            SunPositionCalculator.currentHour24(),
-            0f,
-        )
-    }
-
     /**
-     * `DayPhase.hour24` is the hour the phase was computed for, wrapped onto the clock (v4.22).
+     * `DayPhase.hour24` is the hour the phase was computed for, wrapped onto the clock.
      *
-     * It exists so that anything scheduled on the clock -- the business hours are the first --
+     * It exists so that anything scheduled on the clock -- the business hours among them --
      * reads the hour that moved the sun, `fixedHour` included, instead of a clock of its own.
      * The field must therefore be exactly the input, modulo 24: a phase that reported a
      * different hour than the one that placed the sun would let the shops and the sky disagree
@@ -535,5 +596,10 @@ class SunPositionCalculatorTest {
         }
         assertEquals("a wrapped input reports its clock hour", 1.5f, SunPositionCalculator.compute(hour24 = 25.5f).hour24, 1e-5f)
         assertEquals("a negative input wraps forward", 23f, SunPositionCalculator.compute(hour24 = -1f).hour24, 1e-4f)
+    }
+
+    private companion object {
+        /** A little over what an hour-long arc's twilight moves the blend in a minute: 0.5 / (0.12 x 60) = 0.069. */
+        const val MOST_IN_A_MINUTE = 0.075f
     }
 }

@@ -249,10 +249,10 @@ class AtlasPackerTest {
      * An insertion sequence recorded off the device, so the packing improvement is a standing test
      * rather than a figure in a report nobody re-runs.
      *
-     * **Where it comes from.** A CAPTURE-ONLY build logs every `GlTextureAtlas.add(w, h)` call in
-     * order, tagged with the atlas's identity so the wallpaper-picker's short-lived preview engine
-     * can be told apart from the live one. The walk driver put each of the twelve themes on screen
-     * through `files/capture.txt` for 45 s, at 13:00 and again at 23:00, in one process, **with
+     * **Where it comes from.** A build of this tree with one log line added to `GlTextureAtlas.add`
+     * -- the bitmap's width and height, and the atlas's identity, so the wallpaper picker's
+     * short-lived preview engine can be told apart from the live one -- run on the phone with each
+     * of the twelve themes on screen for 45 s, at 13:00 and again at 23:00, in one process, **with
      * every category visible and every density at 1, raining and in storm** -- the fullest scene
      * the app can draw, which is what an atlas has to be sized against. The leading `1x1` is the
      * flat-fill white pixel `GlTextureCache.registerWhitePixel` packs as every target's first entry.
@@ -263,8 +263,11 @@ class AtlasPackerTest {
      * where the shipped one spilled 117 is being measured either way -- but it is why this is not
      * an inventory of the sprite set. `SpriteGeometryTest` and `SpriteDrawScaleTest` are those.
      *
-     * **Regenerating it** is a device run, described in `docs/archive/V4_29_REPORT.md`
-     * section 1.3. Do not hand-edit it: its value is that nobody chose it.
+     * **Regenerating it** is that run again: add the log line, put the twelve themes on screen as
+     * above (the recording build read the theme to show from a file, `files/capture.txt`, written by
+     * a script on the host; neither is kept), keep the live engine's lines in the order they were
+     * logged, and write them here as `WxH`, ten to a line. Do not hand-edit it: its value is that
+     * nobody chose it.
      */
     private val recordedWalk = """
         1x1 45x45 22x22 240x240 399x198 798x396 105x90 126x25 86x43 27x9

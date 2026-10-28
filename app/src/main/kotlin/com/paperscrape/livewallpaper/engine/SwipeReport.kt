@@ -2,11 +2,11 @@ package com.paperscrape.livewallpaper.engine
 
 /**
  * Whether the home screen has moved the wallpaper with a swipe -- what *Swipe scroll* needs before it
- * can do anything (v5.10E, inventory I-222, the maintainer's *sì* of 2026-09-30 to row 11).
+ * can do anything: the switch reads on only while it does, `DESIGN_NOTES.md` §12, decision 40.
  *
  * *Swipe scroll* follows the offset the home screen reports through `onOffsetsChanged`, and many home
- * screens never report one: the project's own phone has never called it (`CLAUDE.md` §7), and a home
- * screen with a single page has nothing to move. The switch read on there over nothing. Now the
+ * screens never report one: the BV6600's never calls it, and a home
+ * screen with a single page has nothing to move, so the switch would read on there over nothing. The
  * wallpaper writes `WallpaperSettings.swipeReported` the first time it sees the home screen's offset
  * **move between pages**, and the switch reads on only after that (`SettingsUiModel.swipeScroll`).
  *
@@ -16,7 +16,7 @@ package com.paperscrape.livewallpaper.engine
  * rotation can move the value without a swipe. So: an engine that is not a preview ([moved]'s caller
  * decides), a home screen that says it has pages to scroll through (`xOffsetStep` above 0 -- the
  * framework's default is not), and an offset that differs from the first one this engine received with
- * pages by more than [MIN_MOVE] (the read-only review of v5.10E, D5).
+ * pages by more than [MIN_MOVE].
  */
 internal class SwipeReport {
 

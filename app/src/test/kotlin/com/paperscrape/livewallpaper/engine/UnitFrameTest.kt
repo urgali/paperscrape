@@ -7,8 +7,7 @@ import org.junit.Test
 
 /**
  * **Every length system in this project is called `_UNITS` -- [frames] lists them -- and this is what
- * stops two of them being compared.** `BACKLOG_v4_25.md` item 61 is the search that found the class; this is
- * proposal **C** of the three it lists, taken in v4.26.
+ * stops two of them being compared.** It is the third of the three ways below, **C**: a source scan.
  *
  * ### The rule, in one sentence
  *
@@ -16,29 +15,29 @@ import org.junit.Test
  * ([SpriteBlitter.SPRITE_PIXELS_PER_UNIT]), so a number in the car's units and a number in a
  * seated bust's units are different physical lengths that look identical in source. **An
  * expression that mentions two frames and does not contain one of the declared conversions is a
- * defect.** That sentence was already true and enforced by nothing; it is enforced here.
+ * defect**, and this test is what enforces it.
  *
- * It had already been broken twice in one release, in two files, and both times it was found by
- * accident: `build_people_concepts.SEATED_HALF_BAND` (a bust length justified against a car-unit
- * seat pitch, which shipped a whole release of squashed heads) and
- * `VehiclePedestrianScaleTest.WIDEST_SEATABLE_HEAD_BUST_UNITS` (a bust width compared directly
- * against the seat pitch: the margin read as one unit and is eleven).
+ * The two shapes it is built against, one in each of two files:
+ * `build_people_concepts.SEATED_HALF_BAND` (a bust length derived from a car-unit seat pitch,
+ * which squashes the seated heads) and `VehiclePedestrianScaleTest.WIDEST_SEATABLE_HEAD_BUST_UNITS`
+ * (a bust width compared directly against the seat pitch: the margin reads as one unit and is
+ * eleven).
  *
  * ### Why C and not A or B
  *
  * **A**, putting the frame in every name, catches nothing automatically -- it only makes a mixed
- * expression *read* wrong to a human, and the second defect proves a human reads past it. **B**,
- * a `value class` per frame, makes the mistake unrepresentable, but those types reach the draw
- * path where `AI_PROJECT_RULES.md` 5.1 forbids per-frame allocation, so its real cost is the
- * boxing audit of 5.11 rather than the refactor. **C is the only one that keeps working after the
- * next redraw**, and the only one that can be shown to bite by mutating the source.
+ * expression *read* wrong to a human, and the bust-width comparison shows a human reads past it.
+ * **B**, a `value class` per frame, makes the mistake unrepresentable, but those types reach the
+ * draw path, where nothing may be allocated per frame, so its real cost is the boxing audit (a
+ * boxed value is an allocation) rather than the refactor. **C is the only one that keeps working
+ * after the next redraw**, and the only one that can be shown to bite by mutating the source.
  *
- * ### The one thing added to proposal C as the backlog describes it
+ * ### What C adds: locals
  *
- * The backlog's own stated limit on C is that *it sees constants, not local variables* -- and the
- * second defect compared a constant against a local (`val pitch = CAR_PASSENGER_X_UNITS -
- * CAR_HEAD_X_UNITS`), so a constant-only scan would have missed it, exactly as the original scan
- * did. So the frame is **propagated through local `val` declarations**: a `val` whose initialiser
+ * A scan keyed on constants sees *constants, not local variables* -- and the bust-width
+ * comparison is a constant against a local (`val pitch = CAR_PASSENGER_X_UNITS -
+ * CAR_HEAD_X_UNITS`), which a constant-only scan misses. So the frame is **propagated through
+ * local `val` declarations**: a `val` whose initialiser
  * resolves to one frame carries that frame afterwards, and a `val` whose initialiser contains a
  * conversion becomes a conversion itself. Both known defects are inside what this sees, and
  * `the rule bites on a mixed expression` renders that claim falsifiable.
@@ -48,7 +47,7 @@ import org.junit.Test
  * `car_lamp_front` is blitted through [SpriteScale.SCENE_UNITS] inside the car's transform *and*
  * inside the fire engine's, so its own size is a length in **both** frames, and comparing it
  * against either vehicle's numbers is right. That is why a constant declares a *set* of frames
- * rather than one, and why the three sites item 61 read as "mixed and correct" need no exception:
+ * rather than one, and why sites that read as "mixed and correct" need no exception:
  * they are not mixed.
  */
 class UnitFrameTest {
@@ -84,6 +83,7 @@ class UnitFrameTest {
         "flower" to "1/3 px of ground_flowers_bloom / ground_flowers_dry (one canvas, two drawings)",
         "pile" to "1/3 px of leaf_pile",
         "lake" to "1/3 px of the lake band's own sprites",
+        "wave" to "1/3 px of wave_tube_body and wave_tube_crest, the wave's one canvas",
         "objectLocal" to "any scene object's own local units -- a bound over all of them, " +
             "never a length of one of them",
         "metres" to "a metre of the depicted world",
@@ -93,7 +93,7 @@ class UnitFrameTest {
      * **The frame is declared by the name.** Longest matching prefix wins, so `HEAD_CAR_` resolves
      * before `CAR_` and the seated bust is not read as a car. A constant that matches nothing here
      * has to be renamed or given an entry in [overrides] with its reason -- silence is not an
-     * option, which is the half of proposal A this needs to work at all.
+     * option: this is the part of way A that C needs to work at all.
      */
     private val prefixFrames: List<Pair<String, Set<String>>> = listOf(
         "HEAD_CAR_" to setOf("bustCar"),
@@ -106,9 +106,8 @@ class UnitFrameTest {
         "ESTATE_CABIN_" to setOf("car"),
         "ESTATE_GLAZING_" to setOf("car"),
         "LIVERY_" to setOf("car"),
-        // v5.5: renamed from TALLEST_VEHICLE_ when the fire engine was given its own window
-        // in `VehicleScalePixelTest` -- the constant is the tallest CAR and never was the tallest
-        // vehicle, and the frame it is measured in is the car's.
+        // `VehicleScalePixelTest.TALLEST_CAR_UNITS` is the tallest car, not the tallest vehicle (the
+        // fire engine has its own window there), and the frame it is measured in is the car's.
         "TALLEST_CAR_" to setOf("car"),
         "DOOR_ACCESSORY_" to setOf("car"),
         "PERSON_" to setOf("walk"),
@@ -116,7 +115,7 @@ class UnitFrameTest {
         "CHILD_" to setOf("walk"),
         "HOUSE_" to setOf("building"),
         "CHRISTMAS_LIGHT_" to setOf("building"),
-        // v5.12: the chimney smoke's lengths, in the house piece's own frame -- the one its chimney's
+        // The chimney smoke's lengths, in the house piece's own frame -- the one its chimney's
         // point (`BuildingPiece.smokeX/smokeY`) is declared in (`ChimneySmoke`).
         "SMOKE_" to setOf("building"),
         "CLOUD_" to setOf("cloud"),
@@ -127,9 +126,9 @@ class UnitFrameTest {
         "RAINBOW_" to setOf("rainbow"),
         "LIGHTNING_" to setOf("lightning"),
         "SPLASH_" to setOf("splash"),
-        // v5.15: every length of Santa's sleigh group, the sprites' and the cords' (`SantaSleighTable`, the generator).
+        // Every length of Santa's sleigh group, the sprites' and the cords' (`SantaSleighTable`, the generator).
         "SANTA_" to setOf("santaSleigh"),
-        // v5.16: the Headless Horseman's group (`HorsemanTable`, its generator, the drawer and the pumpkins it drops), the
+        // The Headless Horseman's group (`HorsemanTable`, its generator, the drawer and the pumpkins it drops), the
         // scarecrow's own lengths, and the jack-o'-lantern's place by a front door, in the building's piece units.
         "HORSEMAN_" to setOf("horseman"),
         "HORSE_" to setOf("horseman"),
@@ -147,7 +146,7 @@ class UnitFrameTest {
         "WIDTH_" to setOf("preview"),
         "HEIGHT_" to setOf("preview"),
         "HORIZON_" to setOf("preview"),
-        // v5.7: the card's own canvas again, for lengths whose quantity would otherwise read as a
+        // The card's own canvas again, for lengths whose quantity would otherwise read as a
         // sprite's. `CARD_LAKE_BOTTOM_UNITS` is where the water's floor sits on the 320x240
         // description, not a length of any lake sprite, and `LAKE_` above would have classified it
         // as one -- an entry in the wrong frame is worse than no entry, because it makes a mixed
@@ -159,20 +158,20 @@ class UnitFrameTest {
      * The names the prefix table cannot decide, each with the reason it is what it is. **Checked
      * in both directions**: an entry the prefix table already resolves the same way is a stale
      * declaration and fails, so this cannot quietly become an allowlist -- the shape
-     * `SpriteReachabilityTest` established after item 57.
+     * of `SpriteReachabilityTest`'s two-way check.
      */
     private val overrides: Map<String, Pair<Set<String>, String>> = mapOf(
         "DECORATION_BAND_UNITS" to (setOf("building") to
-            "HalloweenDecorationTable's narrowest band of the cobweb and the bat (v5.16), in the piece units of the house or the shop they hang on"),
+            "HalloweenDecorationTable's narrowest band of the cobweb and the jack-o'-lantern, in the piece units of the house or the shop they hang on"),
         "M_UNITS" to (setOf("scarecrow") to
-            "build_scarecrow.py's module (v5.16): the band every part of the scarecrow is drawn in multiples of, in its own units"),
+            "build_scarecrow.py's module: the band every part of the scarecrow is drawn in multiples of, in its own units"),
         "VEHICLE_GROUND_Y_UNITS" to (setOf("car", "firetruck") to
             "the height the shadow is painted at, the same number in each vehicle's own frame: " +
             "drawCar and the fire engine both translate by it"),
         "LAMP_FRONT_W_UNITS" to (setOf("car", "firetruck") to
             "car_lamp_front's own 6x4-unit size. Both vehicles blit that one PNG through " +
-            "SpriteScale.SCENE_UNITS, so its size is a length in both local frames -- item 61 " +
-            "read this site and recorded it as mixed and correct"),
+            "SpriteScale.SCENE_UNITS, so its size is a length in both local frames: comparing it " +
+            "with either vehicle's numbers is right"),
         "LAMP_REAR_W_UNITS" to (setOf("car", "firetruck") to "car_lamp_rear's own 4x4-unit size; see LAMP_FRONT_W_UNITS"),
         "LAMP_H_UNITS" to (setOf("car", "firetruck") to "the shared lamp height; see LAMP_FRONT_W_UNITS"),
         "MAX_OBJECT_HALF_WIDTH_UNITS" to (setOf("objectLocal") to
@@ -181,24 +180,22 @@ class UnitFrameTest {
             "so it is comparable with none of them"),
         "OCCUPANT_BOX_UNITS" to (setOf("building") to
             "renamed nothing: this is a house window's own width, the building frame, which is " +
-            "why the restaurant passes it instead of its own 10.7-unit pane. Item 61 lists it as " +
-            "a name that reads like a bust dimension and is not"),
+            "why the restaurant passes it instead of its own 10.7-unit pane. It reads like a bust " +
+            "dimension and is not"),
         "WIDEST_SEATABLE_HEAD_BUST_UNITS" to (setOf("bustCar") to
-            "measured on the seated bust canvas. Renamed in v4.26 from WIDEST_SEATABLE_HEAD_UNITS, " +
-            "which named neither the quantity's frame nor anything else, and was the second of " +
-            "item 61's two defects"),
-        // v5.9B (I-41): the people generator, read since this release. Its lengths are mostly named
-        // quantity-first, so the prefix table cannot resolve them.
+            "measured on the seated bust canvas; the name says its frame, and a bust width compared " +
+            "directly against the car's seat pitch is the mistake this test exists for"),
+        // The people generator's lengths: mostly named quantity-first, so the prefix table cannot
+        // resolve them.
         "SEATED_HALF_BAND" to (setOf("bustCar") to
-            "half the band a seated head may occupy, in the seated bust's own units -- item 61's first " +
-            "defect: it was 11.0, justified against a seat pitch in car units, and shipped a release of " +
-            "squashed heads. It names no frame and does not end in _UNITS, which is why it has to be " +
-            "declared here to be read at all (item 67)"),
+            "half the band a seated head may occupy, in the seated bust's own units -- once justified " +
+            "against a seat pitch in car units, which shipped a release of squashed heads. It names no " +
+            "frame and does not end in _UNITS, which is why it has to be declared here to be read at all"),
         "SEAT_PITCH_CAR_UNITS" to (setOf("car") to
             "the seat pitch of the narrowest cabin, in the car's units, which the seated band is " +
             "derived from; named quantity-first, CAR is its frame"),
         "SEATED_CLEARANCE_CAR_UNITS" to (setOf("car") to
-            "what v4.24 left between two occupants' ink at that pitch, in car units; named " +
+            "the gap left between two occupants' ink at that pitch, in car units; named " +
             "quantity-first, CAR is its frame"),
         "ADULT_BOX_UNITS" to (setOf("walk") to
             "the adult walker's content box, 246.5 of the walk sprite's 252 px over three -- a " +
@@ -212,7 +209,7 @@ class UnitFrameTest {
 
     /**
      * **The whole set of conversions between frames.** An expression that mentions two frames is
-     * allowed exactly when it contains one of these; that is the rule item 61 states and the only
+     * allowed exactly when it contains one of these; that is the rule, and the only
      * thing this test is checking. `SPRITE_PIXELS_PER_UNIT` is here because it converts a sprite's
      * own pixels into its own units, which is the step every frame is defined by.
      */
@@ -261,9 +258,23 @@ class UnitFrameTest {
     }
 
     /**
+     * **Every frame the prefix table names is one [frames] describes**, as [overrides]' must be: a prefix that resolves its
+     * names to a frame nobody describes classifies them as nothing comparable, and its constants mix with any other
+     * unseen.
+     */
+    @Test
+    fun `every frame the prefix table names is a declared one`() {
+        assertEquals(
+            "these prefixes name a frame UnitFrameTest.frames does not describe",
+            emptyList<String>(),
+            prefixFrames.filterNot { frames.keys.containsAll(it.second) }.map { "${it.first} -> ${it.second}" },
+        )
+    }
+
+    /**
      * No entry in [overrides] restates what the name already says.
      *
-     * Without this the override map turns into the thing item 57 was hidden behind: a list that
+     * Without this the override map turns into an allowlist: a list that
      * only ever grows and that nobody prunes.
      */
     @Test
@@ -302,12 +313,12 @@ class UnitFrameTest {
 
     /**
      * **The rule bites.** A green rule is not a rule until the mutation it exists to catch has
-     * been shown to fail it (`AI_PROJECT_RULES.md` 12.11), and this one is a source scanner, so
+     * been shown to fail it, and this one is a source scanner, so
      * the mutation can be applied to a copy of the source rather than to the tree.
      *
-     * The mutation is the second of item 61's two real defects, in the shape it actually had:
-     * a seated-bust width compared against a seat pitch that is a **local variable** in car units.
-     * That is the shape the original constant-keyed scan could not see.
+     * The mutation is the second of the two shapes the class comment names: a seated-bust width
+     * compared against a seat pitch that is a **local variable** in car units, the shape a
+     * constant-keyed scan cannot see.
      */
     @Test
     fun `the rule bites on a mixed expression`() {
@@ -338,9 +349,9 @@ class UnitFrameTest {
     }
 
     /**
-     * **The generator where the first defect was born is read, and `SEATED_HALF_BAND` with it**
-     * (v5.9B, I-41). The file is among the sources; its statement declaring the band is analysed as a
-     * bust length computed from car lengths; and it passes because the conversion is in it.
+     * **The people generator is read, and `SEATED_HALF_BAND` with it.** The file is among the
+     * sources; its statement declaring the band is analysed as a bust length computed from car
+     * lengths; and it passes because the conversion is in it.
      */
     @Test
     fun `the people generator is read, and SEATED_HALF_BAND is checked`() {
@@ -362,9 +373,9 @@ class UnitFrameTest {
     }
 
     /**
-     * **A local lives in its function** (v5.9B, item 68 / I-41). A local that holds a conversion in
-     * one function used to clear a mixed expression in the next, because the scanner kept one map per
-     * file. The same mistake, in Kotlin and in Python, must now be caught.
+     * **A local lives in its function.** A local that holds a conversion in one function must not
+     * clear a mixed expression in the next, as one map of locals per file would let it: the mix is
+     * caught in Kotlin and in Python.
      */
     @Test
     fun `a local does not outlive its function`() {
@@ -424,21 +435,18 @@ class UnitFrameTest {
      * and no conversion. Comments and string literals are blanked first: a doc comment saying
      * "a bust unit is CAR_OCCUPANT_SCALE of a car unit" is prose, not arithmetic.
      *
-     * **Two things v5.9B added (inventory I-41, items 67 and 68).**
+     * **Two more rules.**
      *
      * *A declared name with a frame of its own is part of its own statement.* `val X_CAR_UNITS =
-     * <bust lengths>` mixes two frames exactly as `a - b` does, and the declared name used to be left
-     * out of its statement altogether. It still is when its only frame would be the one an earlier
-     * local of that name left behind -- the reason it was left out -- but a name the prefix table or
-     * [overrides] resolves is compared with what it is computed from. That is the shape the first of
-     * item 61's defects had, in the generator: `SEATED_HALF_BAND`, a bust length, computed from a seat
-     * pitch in car units.
+     * <bust lengths>` mixes two frames exactly as `a - b` does. A declared name stays out of its
+     * statement only when its only frame would be the one an earlier local of that name left behind;
+     * a name the prefix table or [overrides] resolves is compared with what it is computed from. That is the shape of
+     * `SEATED_HALF_BAND` in the generator: a bust length computed from a seat pitch in car units.
      *
-     * *A local lives in its function.* The propagated frames were one map per file, so a `val` in one
-     * function reached every function after it: two locals called `left` 110 lines apart were one
-     * entry (`RELEASE_HISTORY.md`, v5.6 known limitations), and a local that held a conversion in one
-     * function cleared a mixed expression in the next. Each function body -- a Kotlin `fun` or
-     * `init` block, a Python `def` -- is now a scope of its own, closed where its braces or its
+     * *A local lives in its function.* With one map of propagated frames per file, a `val` in one
+     * function would reach every function after it: two locals called `left` 110 lines apart would be
+     * one entry, and a local that holds a conversion in one function would clear a mixed expression in
+     * the next. Each function body -- a Kotlin `fun` or `init` block, a Python `def` -- is a scope of its own, closed where its braces or its
      * indentation close; what is declared outside every function stays visible to the whole file.
      */
     private fun mixedExpressionsIn(fileName: String, body: String): List<Pair<String, String>> {
@@ -471,7 +479,7 @@ class UnitFrameTest {
                     .mapNotNull { id -> (framesOf(id) ?: localFrame(id))?.let { id to it } }
                     .toList()
                 // ...unless the name declares a frame of its own, which is then what the value
-                // assigned to it has to be in (v5.9B).
+                // assigned to it has to be in.
                 if (declared != null && declaredOwnFrame != null) listOf(declared to declaredOwnFrame) + carriers else carriers
             }
 
@@ -673,8 +681,8 @@ class UnitFrameTest {
             ?.second
     }
 
-    // `_UNITS_WIDE` joined the three in v4.28: `WAVE_UNITS_WIDE` is a length in the wave's own
-    // frame and the scan could not see it, which is the blind spot item 61 exists to close.
+    // `_UNITS_WIDE` is the fourth: `WAVE_UNITS_WIDE` is a length in the wave's own frame, and a scan
+    // that missed it would leave the blind spot this test exists to close.
     private fun isUnitName(name: String): Boolean =
         name.endsWith("_UNITS") || name.endsWith("_UNITS_TALL") ||
             name.endsWith("_UNITS_LONG") || name.endsWith("_UNITS_WIDE")
@@ -690,9 +698,9 @@ class UnitFrameTest {
             .toList()
 
     /**
-     * Every Kotlin source of the app and its tests, and **every Python source under `tools/`**
-     * (v5.9B, I-41): the generators draw the sprites whose units this test is about, and the first
-     * of item 61's two defects was in one of them. Until v5.9B this read the Kotlin alone.
+     * Every Kotlin source of the app and its tests, and **every Python source under `tools/`**: the
+     * generators draw the sprites whose units this test is about, and
+     * `SEATED_HALF_BAND`, one of the two defects the class comment names, is in one of them.
      */
     private fun sources(): List<Pair<File, String>> =
         (
@@ -709,8 +717,8 @@ class UnitFrameTest {
     }
 
     private fun repoRoot(): File {
-        // Walked to null rather than tested through `parentFile`, a platform type: the older shape
-        // compiled with "Java type mismatch: inferred type is 'File?'" (v5.9C, inventory I-10).
+        // Walked to null rather than tested through `parentFile`, a platform type: a loop on
+        // `parentFile` fails to compile with "Java type mismatch: inferred type is 'File?'".
         var dir: File? = File(".").absoluteFile
         while (dir != null) {
             if (File(dir, "app/src/main/res/drawable-nodpi").isDirectory) return dir

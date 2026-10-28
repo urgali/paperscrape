@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""The Halloween moon laughing (v5.16): the face the moon shows for a moment when it laughs, from the moon's own geometry.
+"""The Halloween moon laughing: the face the moon shows for a moment when it laughs, from the moon's own geometry.
 
-The maintainer, 2026-10-21: *«luna/jackolantern ogni tanto si muove/sobbalza/ride»*; of the three ways it was shown
-laughing, *«2 risata (consigliata)»*. This is the same moon -- the full moon's disc and its five craters, the face cut out
-and lit from inside (`moon/build_jack_moon.py`, decision 74) -- with its eyes squeezed shut into two arches and its grin
-thrown open, wide and deep, its two teeth hanging from the top edge; the nose is the moon's own. The renderer shows it for
-a moment now and then (`PaperRenderer`); the drawing is here.
+The moon laughs once a minute (`DESIGN_NOTES.md` §12, decision 81). This is the same moon -- the full moon's disc and its
+five craters, the face cut out and lit from inside (`moon/build_jack_moon.py`, decision 74) -- with its eyes squeezed
+shut into two arches and its grin thrown open, wide and deep, its two teeth hanging from the top edge; the nose is the
+moon's own. The renderer shows it for a moment now and then (`PaperRenderer`); the drawing is here.
 
 It writes, as `build_jack_moon.py` writes the moon's and with its rules, in the moon's 240-px frame (`CANVAS_PIXELS`, its
 middle on the moon's centre):
@@ -18,10 +17,9 @@ middle on the moon's centre):
   `PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X`/`_Y`, which `tests/test_jack_moon_laugh.py` compares with it.
 
 **Every cut, and the paper between two cuts, 11 px of the 240 or more** -- 2 px on the gallery card, as the moon's own
-face. **And no cut leaves a piece of its own**: the arches' four ends are cut square, a few px across, where the drawing
-first shown (inventory I-1022) ended each arch in a point that the scissors' wobble left as a pixel apart at the end of
-the left eye (``registri/23_luna_risata_2px.txt`` of that round: a cut of 1 px at x 62, y 99). And the grin's top edge
-stands 4 px lower between its corners than in the drawing first shown, where the paper between it and the nose was 8 px.
+face. **And no cut leaves a piece of its own**: the arches' four ends are cut square, a few px across, because an arch
+ending in a point is left by the scissors' wobble with a pixel apart at its end (a cut of 1 px). And the grin's top
+edge stands 13 px under the nose's base between its corners ([GRIN]), so the paper between them keeps the 11-px rule.
 
 With ``--res`` the two are rendered with the pipeline's own rasteriser into ``app/src/main/res/drawable-nodpi/``;
 ``--check`` writes nothing and fails, naming every stale file, unless every committed output is what this draws.
@@ -40,6 +38,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 import build_jack_moon as J  # noqa: E402
 from papercut import cut, mirror_x  # noqa: E402
+from paperscrape_assets.raster import same_output  # noqa: E402
 
 REPO, SVG_DIR, RES = J.REPO, J.SVG_DIR, J.RES
 
@@ -48,7 +47,7 @@ REPO, SVG_DIR, RES = J.REPO, J.SVG_DIR, J.RES
 LEFT_EYE = ((-58, -15), (-46, -30), (-30, -34), (-16, -22), (-14.6, -13), (-18.2, -12.4), (-26, -20), (-36, -21), (-46, -12), (-54.6, -10.4))
 
 #: The grin thrown open: wide and deep, its two teeth hanging from its top edge (left corner first). Its top edge between the
-#: corners stands 13 px under the nose's base (the drawing first shown: 9, so 8 px of paper between them; 11 is the rule).
+#: corners stands 13 px under the nose's base, so the paper between them is 11 px or more, the rule.
 GRIN = ((-70, 16), (-40, 25), (-32, 28), (-32, 42), (-18, 42), (-18, 29), (10, 30), (10, 44), (24, 44), (24, 29), (42, 25), (70, 16),
         (60, 52), (32, 76), (-2, 82), (-34, 76), (-60, 54))
 
@@ -63,11 +62,11 @@ def laughing_face():
     return [cut(left, "l-le", 1.0), cut(right, "l-re", 1.0), nose, cut([(cx + x, cy + y) for x, y in GRIN], "l-m", 1.0)]
 
 
-MOON_COMMENT = ("The Halloween moon laughing (v5.16, the maintainer's «2 risata», 2026-10-21): the full moon's disc and five craters, "
+MOON_COMMENT = ("The Halloween moon laughing (DESIGN_NOTES.md §12, decision 81): the full moon's disc and five craters, "
                 "the laughing face (its eyes squeezed into two arches, the grin thrown open, the moon's own nose) cut out of it so "
                 "the sky shows through. Tintable mask, one tone #F4F4F4 and the craters #E1E1E1, in the moon's 240-px frame. Generated "
                 "by tools/assets/moon/build_jack_moon_laugh.py: edit that, not this.")
-LIGHT_COMMENT = ("The light inside the laughing Halloween moon's carved face (v5.16, the maintainer's «2 risata», 2026-10-21): a warm "
+LIGHT_COMMENT = ("The light inside the laughing Halloween moon's carved face (DESIGN_NOTES.md §12, decision 81): a warm "
                  "yellow with an orange rim, as the moon's own. Fixed art, blitted untinted over the moon at ({ox},{oy}) px from its "
                  "centre: trimmed to the face, a transparent pixel round it. Generated by tools/assets/moon/build_jack_moon_laugh.py: "
                  "edit that, not this.")
@@ -103,7 +102,7 @@ def main(argv) -> int:
     res, check = "--res" in argv, "--check" in argv
     out = build()
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

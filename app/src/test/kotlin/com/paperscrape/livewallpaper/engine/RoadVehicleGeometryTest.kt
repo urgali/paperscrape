@@ -5,43 +5,47 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **Is the road too narrow for the cars?** (v3.7 Filone B.)
+ * **Is the road too narrow for the cars?**
  *
- * The report was perceptual — "the road looks too narrow relative to the cars" — so this measures
- * the geometry rather than adjusting it by eye. Everything below is derived from [SceneSpace]'s own
- * published constants and the same arithmetic `SceneObjectRenderer.drawCar` performs, so it moves
- * whenever the scene does and cannot drift into describing a road that no longer exists.
+ * The question is perceptual, so this measures the geometry rather than adjusting it by eye.
+ * Everything below is derived from [SceneSpace]'s own published constants and the same arithmetic
+ * `SceneObjectRenderer.drawCar` performs, so it moves whenever the scene does and cannot drift into
+ * describing a road the scene does not draw.
  *
- * ### What was measured, at [SceneSpace.REFERENCE_SCREEN_HEIGHT_PX]
+ * ### What is measured, at [SceneSpace.REFERENCE_SCREEN_HEIGHT_PX]
  *
  * | quantity | value |
  * |---|---|
  * | lane spacing | 67.2 px |
  * | painted road band | 145.2 px |
- * | car height, far lane / near lane | 61.2 / 70.7 px |
+ * | car height, far lane / near lane | 67.5 / 78.1 px |
  * | fire engine height, near lane | 141.4 px |
- * | **laneSpacing / carHeight** | **1.10 far, 0.95 near** |
- * | **roadBand / carHeight** | **2.37 far, 2.05 near** |
+ * | **laneSpacing / carHeight** | **1.00 far, 0.86 near** |
+ * | **roadBand / carHeight** | **2.15 far, 1.86 near** |
  * | **roadBand / fireEngineHeight** | **1.03** |
+ *
+ * `the measured geometry is the table above` holds every number of it to the code, so the table is what the scene
+ * draws today.
  *
  * ### The verdict
  *
- * **The road is not too narrow, and no geometry was changed.** `ROAD_LANE_NEAR_Y_FRACTION`'s own
- * doc comment states the design target in as many words — *"two lanes have to be about a vehicle
- * apart, not comfortably more"* — and the measured ratio is 0.95 to 1.10. The carriageway is
- * **twice a car tall**, and even the fire engine, the tallest thing that drives on it, fits inside
- * the band with room to spare.
+ * **The road is not too narrow.** `ROAD_LANE_NEAR_Y_FRACTION`'s own
+ * doc comment states the design target — the lanes *"about a vehicle"* apart, because wider *"the
+ * carriageway reads as a dark band dominating the scene"* — and the measured ratio is 0.86 to 1.00. The carriageway is
+ * **about twice a car tall**, and even the fire engine, the tallest thing that drives on it, fits
+ * inside the band with room to spare.
  *
  * What the eye is probably reading is the one asymmetry the measurements do show and which is
  * inherent rather than wrong: a vehicle rises from its own wheel line, so a **near**-lane car sits
- * entirely inside the tarmac while a **far**-lane car's roof clears the top edge by about a third
- * of its height. That is what standing on a surface looks like in this projection; closing it
+ * entirely inside the tarmac while a **far**-lane car's roof clears the top edge by about two
+ * fifths of its height. That is what standing on a surface looks like in this projection; closing it
  * would mean either sinking the far lane or widening the strip until it dominates the scene
- * vertically, which is the exact regression the v76.6 tuning pass narrowed the spacing to fix.
+ * vertically.
  *
- * These are therefore **assertions on the design intent, not a fence around today's numbers**: each
- * bound is wide enough that a deliberate retune passes and a mistake — a lane pair collapsing, a
- * vehicle scale changing by a factor — fails.
+ * The tests after the first are therefore **assertions on the design intent, not a fence around
+ * today's numbers**: each bound is wide enough that a deliberate retune passes and a mistake — a lane
+ * pair collapsing, a vehicle scale changing by a factor — fails. The first holds the table above to
+ * the code, so that a retune which passes them also changes the table.
  */
 class RoadVehicleGeometryTest {
 
@@ -63,25 +67,30 @@ class RoadVehicleGeometryTest {
 
     // -- the measurement itself --------------------------------------------------------------------
 
+    /**
+     * **The table of the class's note is what the code draws**, to its last printed digit: a retune that moves a car, a
+     * lane or the band fails here until the table says what the scene does. The design intent is the tests below, whose
+     * bounds a deliberate retune passes.
+     */
     @Test
-    fun `the measured geometry is on the record`() {
+    fun `the measured geometry is the table above`() {
         val far = carHeightPx(SceneSpace.ROAD_LANE_FAR_Y_FRACTION)
         val near = carHeightPx(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
-        println(
-            "Filone B road geometry @ ${h.toInt()}px: " +
-                "laneSpacing=${"%.1f".format(laneSpacingPx)}px band=${"%.1f".format(bandPx)}px " +
-                "carFar=${"%.1f".format(far)}px carNear=${"%.1f".format(near)}px " +
-                "fireTruckNear=${"%.1f".format(fireTruckHeightPx(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION))}px",
-        )
-        println(
-            "Filone B ratios: laneSpacing/carHeight=${"%.2f".format(laneSpacingPx / far)} far, " +
-                "${"%.2f".format(laneSpacingPx / near)} near; " +
-                "band/carHeight=${"%.2f".format(bandPx / far)} far, ${"%.2f".format(bandPx / near)} near",
-        )
+        val fireTruck = fireTruckHeightPx(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
+        assertEquals("lane spacing, px", 67.2f, laneSpacingPx, 0.05f)
+        assertEquals("painted road band, px", 145.2f, bandPx, 0.05f)
+        assertEquals("car height, far lane, px", 67.5f, far, 0.05f)
+        assertEquals("car height, near lane, px", 78.1f, near, 0.05f)
+        assertEquals("fire engine height, near lane, px", 141.4f, fireTruck, 0.05f)
+        assertEquals("laneSpacing / carHeight, far", 1.00f, laneSpacingPx / far, 0.005f)
+        assertEquals("laneSpacing / carHeight, near", 0.86f, laneSpacingPx / near, 0.005f)
+        assertEquals("roadBand / carHeight, far", 2.15f, bandPx / far, 0.005f)
+        assertEquals("roadBand / carHeight, near", 1.86f, bandPx / near, 0.005f)
+        assertEquals("roadBand / fireEngineHeight", 1.03f, bandPx / fireTruck, 0.005f)
     }
 
     /**
-     * **The design target, stated in `ROAD_LANE_NEAR_Y_FRACTION`'s own comment.** Two lanes about a
+     * **The design target, the one `ROAD_LANE_NEAR_Y_FRACTION`'s own comment states.** Two lanes about a
      * vehicle apart — not two, which reads as a runway, and not a half, which reads as one row.
      */
     @Test
@@ -105,8 +114,7 @@ class RoadVehicleGeometryTest {
         for (lane in listOf(SceneSpace.ROAD_LANE_FAR_Y_FRACTION, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)) {
             val ratio = bandPx / carHeightPx(lane)
             assertTrue("road band is only ${"%.2f".format(ratio)} car heights at lane $lane", ratio >= 1.5f)
-            // And not so deep that the strip takes over the scene, which is the failure the v76.6
-            // pass narrowed the spacing to fix.
+            // And not so deep that the strip takes over the scene.
             assertTrue("road band is ${"%.2f".format(ratio)} car heights, which reads as a runway", ratio <= 4f)
         }
     }
@@ -145,12 +153,11 @@ class RoadVehicleGeometryTest {
     }
 
     /**
-     * The road's width must not depend on how much traffic is on it — the v76.x defect where
-     * thinning the density collapsed the lane span and painted the strip as a hairline.
+     * The road's width must not depend on how much traffic is on it: otherwise thinning the density
+     * would collapse the lane span and paint the strip as a hairline.
      *
-     * Re-asserted here because Filone B is about the road/vehicle relationship, and "the road got
-     * narrower because there are fewer cars" is the one way this project has actually produced a
-     * too-narrow road in the past.
+     * Asserted here too because this class is about the road/vehicle relationship, and fewer cars
+     * narrowing the road is the one way the road can come out too narrow.
      */
     @Test
     fun `a degenerate lane pair still paints a full-width road`() {

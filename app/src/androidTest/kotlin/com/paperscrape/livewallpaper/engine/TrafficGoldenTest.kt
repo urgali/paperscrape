@@ -110,7 +110,7 @@ class TrafficGoldenTest {
      * and therefore keeps saying what it always said: each of these defects would be caught even
      * by the loose gate. Tightening the gate can only make that more true, never less, which is
      * why pinning the old number here is a floor under the claim rather than a stale copy of a
-     * constant. `BACKLOG_v4_31.md` item 104 is why the gate moved.
+     * constant.
      */
     @Test
     fun theGoldenWouldNoticeIfTheTrafficChanged() {

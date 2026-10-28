@@ -50,22 +50,23 @@ class OpenMeteoProviderTest {
         }
     """.trimIndent()
 
+    /** The amounts are the fifteen minutes' of `"interval": 900`, read an hour's: four times (`OpenMeteoQuarterHourTest`). */
     @Test
     fun `every current field is read`() {
         val observation = OpenMeteoProvider.parse(showerResponse)!!
         assertEquals(24.3, observation.temperatureCelsius!!, 0.0001)
         assertEquals(100, observation.cloudCoverPercent)
-        assertEquals(1.0, observation.precipitationMm!!, 0.0001)
+        assertEquals(4.0, observation.precipitationMm!!, 0.0001)
         assertEquals(0.0, observation.rainMm!!, 0.0001)
-        assertEquals(1.0, observation.showersMm!!, 0.0001)
+        assertEquals(4.0, observation.showersMm!!, 0.0001)
         assertEquals(0.0, observation.snowfallCm!!, 0.0001)
         assertEquals(WeatherCondition.SHOWERS, observation.condition)
         assertEquals(WeatherProviderId.OPEN_METEO, observation.source)
     }
 
     /**
-     * A `rain` of exactly 0.0 alongside a positive `showers` is the Florence reading, and the
-     * whole reason the two are separate fields. Zero must survive as zero and not become null.
+     * A `rain` of exactly 0.0 alongside a positive `showers` is a shower's reading, and the whole
+     * reason the two are separate fields. Zero must survive as zero and not become null.
      */
     @Test
     fun `a reported zero is a reading, not an absence`() {
@@ -176,7 +177,8 @@ class OpenMeteoProviderTest {
         for (field in listOf("temperature_2m", "precipitation", "rain", "showers", "snowfall", "weather_code", "cloud_cover")) {
             assertTrue(field, url.contains(field))
         }
-        // Rounded to two decimals on the way out -- SEC-05, see WeatherRequest.coordinate.
+        // Rounded to two decimals on the way out, so the request does not say exactly where the
+        // phone is: see WeatherRequest.coordinate.
         assertTrue(url.contains("latitude=43.78"))
         assertTrue(url.contains("longitude=11.25"))
     }
@@ -188,18 +190,11 @@ class OpenMeteoProviderTest {
     }
 
     /**
-     * **The user's key still does exactly what it did, and that is the half v5.3 had to not break.**
+     * **A set key is trimmed, used verbatim, and routed to the higher-limit customer endpoint.**
      *
-     * Removing the app's baked-in key (v5.3B audit, S1: a `buildConfigField` String is a plain
-     * constant in the dex, so the maintainer's key was readable in every published APK) changed
-     * what a *blank* key means -- it used to fall through to the app's key, and now means the
-     * keyless free tier. It must not have changed what a *set* key means, which is: trimmed, used
-     * verbatim, and routed to the higher-limit customer endpoint.
-     *
-     * The test above it is the other half, and it is worth knowing that it used to be *ambiguous*:
-     * `resolveApiKey("   ")` returned null only because the env var happened to be unset on the
-     * machine running the test. A CI release build with the secret configured would have made it
-     * fail. There is no environment left to depend on.
+     * The app ships no key of its own -- a `buildConfigField` String is a plain constant in the dex,
+     * readable in every published APK -- so a *blank* key means the keyless free tier (the test above),
+     * and neither answer depends on the environment the build or the test runs in.
      */
     @Test
     fun `a user key is used verbatim and routes to the customer endpoint`() {

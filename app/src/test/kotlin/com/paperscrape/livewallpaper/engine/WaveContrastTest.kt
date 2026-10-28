@@ -7,11 +7,11 @@ import org.junit.Test
  * The wave's two papers measured against the water they lie on, over every theme that shows a
  * lake, the clock in five-minute steps and the three weathers that draw waves.
  *
- * A wave (v4.28) is two tintable masks over the mirror: a **body** (the face under the lip) and the
- * **foam**. The first proposal tinted the body toward black by a fixed 40 of luma and the foam
- * toward white by 60, both chosen by eye, and at night the body became a black silhouette -- a
- * rock. This is the v4.27 rain problem again: one direction does not hold along the day, and the
- * numbers have to be placed between a measured floor and a measured signal rather than chosen.
+ * A wave is two tintable masks over the mirror: a **body** (the face under the lip) and the
+ * **foam**. A body carried always toward black by a fixed 40 of luma, and a foam toward white by
+ * 60, turns at night into a black silhouette -- a rock. As with the rain, one direction does not
+ * hold along the day, and the gaps are placed between a measured floor and a measured signal
+ * rather than chosen (DESIGN_NOTES.md §12, decision 32).
  *
  * **The floor.** The mirror is not one colour: it is a vertical gradient from the sky-share tone
  * at the far edge to the lake colour at the near edge, so the water *under one wave* already
@@ -19,7 +19,7 @@ import org.junit.Test
  * that is not distinguishable from the gradient. The floor is that span, measured over the sweep.
  *
  * **The signal.** The daytime frame the maintainer read as a wave ("di giorno passa"): Beach at
- * noon under theme rain, where the body gap was 40 and the foam gap 60. Those two numbers are the
+ * noon under theme rain, where the body gap is 40 and the foam gap 60. Those two numbers are the
  * signal, one per paper.
  *
  * **The gate** sits halfway between floor and signal, as `PRECIPITATION_MIN_LUMA_GAP` does.
@@ -28,13 +28,11 @@ import org.junit.Test
  * the surface is bright enough that black is the shorter road, toward white otherwise. The foam
  * always sits above the body by the foam gate, so the two papers never trade places.
  *
- * **What v4.28 added to the derivation, and why.** The gate is a *floor* -- the least that can be
- * told apart from the gradient -- and the phase-3 photographs aimed the renderer at it everywhere.
- * By day, low sun, rain and storm that was judged enough; at night the three shapes came out
- * "discreet". So the night end of [WaveTint.gapAt] is the **signal** rather than the gate: the
- * other end of the same derivation, the gap that was actually read as a wave. No new number was
- * invented -- what moved is which measured end the renderer aims at, and when. The tests below
- * assert the floor still holds at every point of the crossfade.
+ * **The target.** The gate is a *floor* -- the least that can be told apart from the gradient. By
+ * day the renderer aims at it; at night a wave at the floor reads weak, so the night end of
+ * [WaveTint.gapAt] is the **signal**: the other end of the same derivation, the gap read as a
+ * wave. No third number exists -- the renderer only chooses which measured end it aims at,
+ * crossfading on `dayBlend`. The tests below assert the floor holds at every point of the crossfade.
  */
 class WaveContrastTest {
 
@@ -51,16 +49,15 @@ class WaveContrastTest {
     }
 
     /**
-     * The fraction of the band one wave stands over, **as the shipped gates were derived**.
+     * The fraction of the band one wave stands over, **as the shipped gates are derived**.
      *
-     * The number is the phase-2 shape on the Beach band -- 36 units on a 9 m, 132-unit canvas is
-     * 51.5 px against Beach's 345.6 px of water -- and it is kept here as the *provenance of the
-     * shipped constants*, reproduced rather than asserted from memory so the derivation can be
-     * checked. What the shape that actually ships does to this number is measured separately, in
-     * `the shipped shape stands over more of the band than the derivation assumed`, and it is
-     * larger: that is item 83 of `BACKLOG_v4_28.md`, left as it is on the maintainer's decision of
-     * 2026-09-28 (inventory I-82), because raising the day gate would change every daytime frame he
-     * approved from the phase-3 photographs.
+     * A wave 36 units tall on a 9 m, 132-unit canvas is 51.5 px against Beach's 345.6 px of water
+     * at the reference height. The fraction is the *provenance of the shipped constants*,
+     * reproduced here so the derivation can be checked rather than quoted. The shipped shape stands
+     * over more of the band, measured in
+     * `the shipped shape stands over more of the band than the derivation assumed`, and is left so
+     * on the maintainer's decision of 2026-09-28: raising the day gate would change every daytime
+     * frame he approved.
      */
     private val derivationBandFraction = 0.15f
 
@@ -123,7 +120,7 @@ class WaveContrastTest {
     private fun signalSituation(): Situation =
         all.first { it.theme == "beach" && it.weather == "theme-rain" && kotlin.math.abs(it.hour - 12f) < 0.01f }
 
-    /** The first proposal's body rule at the signal frame: min(40, 0.45 * luma). */
+    /** The body rule of the frame read as a wave, always toward black: min(40, 0.45 * luma). */
     private fun phase2BodyGap(surfaceLuma: Float) = kotlin.math.min(40f, surfaceLuma * 0.45f)
 
     @Test
@@ -145,9 +142,8 @@ class WaveContrastTest {
     /**
      * The night target is the signal, not a third number.
      *
-     * This is the whole of what v4.28 changed about the arithmetic, so it is asserted rather than
-     * left in a comment: if someone later wants a stronger night sea they have to move the signal,
-     * which means re-reading the frame the signal came from.
+     * Asserted rather than left in a comment: a stronger night sea means moving the signal, which
+     * means re-reading the frame the signal came from.
      */
     @Test
     fun `the night target is the measured signal and the day target is the gate`() {
@@ -202,7 +198,7 @@ class WaveContrastTest {
                 val bodyGate = WaveTint.gapAt(s.dayBlend, PaperRenderer.WAVE_BODY_LUMA_GAP, PaperRenderer.WAVE_BODY_LUMA_GAP_NIGHT)
                 val foamGate = WaveTint.gapAt(s.dayBlend, PaperRenderer.WAVE_FOAM_LUMA_GAP, PaperRenderer.WAVE_FOAM_LUMA_GAP_NIGHT)
                 if (l < darkestSurface) { darkestSurface = l; darkestAt = s }
-                // the first proposal: always toward black -> the body luma
+                // The body carried always toward black, by the signal's rule.
                 val phase2Body = l - phase2BodyGap(l)
                 if (phase2Body < 40f) blackOnlyFails++
                 val towardBlack = WaveTint.bodyTowardBlack(l, bodyGate)
@@ -231,8 +227,7 @@ class WaveContrastTest {
      * papers invert: the foam goes dark and the body darker still. The sweep finds it on exactly
      * one theme -- Tundra, whose water is ice (`#BFE3EE`) -- around dawn, and raising the night
      * target widens the window it happens in, because a larger foam gap runs out of white sooner.
-     * That widening is the price of the night sea and it is measured here rather than discovered
-     * later; v4.28 looked at the worst of these situations on the device (see the pass report).
+     * That widening is the price of the night sea, and it is measured here.
      *
      * The assertion is that the arrangement is still *correct* wherever it fires -- both gaps kept,
      * order kept -- and that it stays confined to a theme with no boats and no dolphins on it.
@@ -258,14 +253,13 @@ class WaveContrastTest {
             assertTrue("${s.label}: inverted body must keep its gap from the foam", foam - body >= bodyGate - 0.01f)
             assertTrue("${s.label}: a luma left the 0..255 range", body in 0f..255f && foam in 0f..255f)
         }
-        // **How the inverted case is actually reached, which is not how the sweep is labelled.**
+        // **How the inverted case is reached, which is not how the sweep is labelled.**
         // The three columns are storm *strengths*, not weather settings: "theme-rain" is strength
         // zero, meaning no storm dimming. Tundra's own precipitation is snow, so a wave is never
-        // drawn there by default at all -- the case is reached when a **user** switches Tundra's
+        // drawn there by default -- the case is reached when a **user** switches Tundra's
         // precipitation to rain, which draws rain without dimming the sky. The two live columns dim
         // it, and a dimmed Tundra never gets pale enough to invert: every one of the situations
-        // below is in the undimmed column. That is why the frame photographed for this case is
-        // Tundra with rain switched on by hand rather than under live weather.
+        // below is in the undimmed column, so Tundra with rain switched on by hand is the worst case.
         val dimmedInversions = all.count { s ->
             s.weather != "theme-rain" &&
                 WaveTint.inverted(luma(s.mirrorTop), WaveTint.gapAt(s.dayBlend, PaperRenderer.WAVE_FOAM_LUMA_GAP, PaperRenderer.WAVE_FOAM_LUMA_GAP_NIGHT))
@@ -287,18 +281,18 @@ class WaveContrastTest {
     }
 
     /**
-     * **What the shipped shape really stands over, recorded because it is larger than the
-     * derivation above assumed.**
+     * **What the shipped shape stands over, pinned because it is larger than the derivation above
+     * assumes.**
      *
-     * The gates come from a floor measured with the phase-2 wave on Beach, where a wave covers
-     * 0.15 of the band. WA3 "Tube" is taller, and two of the three themes that draw a lake draw a
-     * much shallower one -- so on those the wave stands over more than half the water and the
-     * gradient under it varies by more than the gate it is asked to beat. This test does not fix
-     * that; it pins the numbers so the situation cannot quietly get worse. Item 83's question was
-     * answered on 2026-09-28 from the first photograph of a small lake: the wave stays (I-82).
+     * The gates come from a floor measured with a wave covering 0.15 of Beach's band. The shipped
+     * wave is taller, and two of the three themes that draw a lake draw a much shallower one -- so
+     * on those the wave stands over more than half the water and the gradient under it varies by
+     * more than the gate it is asked to beat. This test does not fix that; it pins the numbers so
+     * the situation cannot quietly get worse. The wave stays: the maintainer's decision of
+     * 2026-09-28, taken on a photograph of a small lake.
      *
-     * Only three built-in themes show a lake by default, which is also why the sweep is 2 592
-     * situations and not more: 3 themes x 288 five-minute steps x 3 weathers.
+     * Three built-in themes show a lake by default, which is why the sweep is 2 592 situations:
+     * 3 themes x 288 five-minute steps x 3 weathers.
      */
     @Test
     fun `the shipped shape stands over more of the band than the derivation assumed`() {
@@ -320,13 +314,13 @@ class WaveContrastTest {
         println("WAVE SHAPE worst local floor %.2f on %s, against the shipped body gate %.2f"
             .format(worstFloor, worstTheme, PaperRenderer.WAVE_BODY_LUMA_GAP))
         assertTrue(
-            "v4.28 measured the worst local floor at 33.40 on spring. If this has grown, the wave " +
-                "is standing over even more of the water than item 83 recorded and the item needs " +
-                "re-reading, not a new tolerance here. Got $worstFloor on $worstTheme",
+            "The worst local floor measured is 33.40, on spring. If this has grown, the wave " +
+                "is standing over even more of the water than the decision of 2026-09-28 was taken on, and that " +
+                "decision needs re-reading, not a new tolerance here. Got $worstFloor on $worstTheme",
             worstFloor <= 33.5f,
         )
         assertTrue(
-            "this test exists because the local floor exceeds the day gate (item 83, kept on the " +
+            "this test exists because the local floor exceeds the day gate (left so on the " +
                 "maintainer's decision of 2026-09-28); if it stops doing so, this test should say so instead",
             worstFloor > PaperRenderer.WAVE_BODY_LUMA_GAP,
         )

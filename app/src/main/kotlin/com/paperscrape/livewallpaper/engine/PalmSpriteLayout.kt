@@ -3,25 +3,16 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Where a palm's two parts sit, stated once for both the things that draw a palm.
  *
- * ### Why this exists, and why now
+ * ### Why this exists
  *
- * The same reason [TreeSpriteLayout] does, arrived at from the other direction. That object was
- * created because a drift had already happened: the preview's snow cap had been left behind when
- * the renderer's origin moved, and the copy was removed for the one object where it had
- * demonstrably gone wrong. The v3.8 audit then looked at the other 55 shared drawables, found all
- * 55 in exact agreement as plain literals on both sides, and deliberately stopped — hoisting
- * numbers that had never drifted would have guarded against nothing.
- *
- * The palm was two of those 55, and it was safe for exactly as long as nobody moved it. **v5.1
- * moved it**: the crown went from a 40x40-unit canvas to a 56x48 one and the trunk gained a lean,
- * so both origins changed, by hand, in two files, in one pass — which is the state the tree was in
- * the release before it drifted. So the palm joins the tree here rather than being copied
- * correctly one more time and left to chance.
+ * The same reason [TreeSpriteLayout] does: the renderer and the gallery preview both blit a palm,
+ * and an origin written as a literal on each side drifts the first time the artwork moves -- a
+ * crown blitted at the old origin stands beside its trunk. Stated once here, the two cannot
+ * disagree.
  *
  * ### The numbers
  *
- * Every value is re-derived from the v5.1 artwork's own canvas and declared anchor, stated beside
- * it. The palm has **no lift**: unlike a leafy tree, whose crown sways about the point where the
+ * Every value is derived from the artwork's own canvas and declared anchor, stated beside it. The palm has **no lift**: unlike a leafy tree, whose crown sways about the point where the
  * leaves meet the trunk, a palm sways as one rigid body pivoted at its foot, so the preview needs
  * no flattened pair and these offsets are what both sides blit directly.
  */
@@ -41,7 +32,7 @@ internal object PalmSpriteLayout {
      * The canvas is what `paperscrape-assets normalize` leaves, which is the ink plus two pixels
      * of guard on each side rather than the ink: a `SCENE_UNITS` blit is filtered, so the column
      * beside the drawing is the one the sampler reads at the edge, and cropping onto the ink makes
-     * it clamp and read the ink column twice (v4.31, measured on the lake sprites).
+     * it clamp and read the ink column twice (measured on the lake sprites).
      */
     const val TRUNK_X = -8f
     const val TRUNK_Y = -58f
@@ -56,9 +47,9 @@ internal object PalmSpriteLayout {
      * trunk leans, so that point is at (7, -56) in object space and this origin is (7, -56) minus
      * (28, 26).
      *
-     * **One origin for all three, which is what makes the winter crown a choice and not a layer.**
-     * Until v5.1 the frost was white caps blitted on top of the live crown and the two had to
-     * cover each other pixel for pixel; they are three whole drawings now, and a `when` picks one.
+     * **One origin for all three, which is what makes the winter crown a choice and not a layer**:
+     * they are three whole drawings, and a `when` picks one; nothing is laid over another crown
+     * that would have to cover it pixel for pixel.
      */
     const val CROWN_X = -21f
     const val CROWN_Y = -82f

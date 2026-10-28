@@ -3,44 +3,32 @@ package com.paperscrape.livewallpaper.engine
 import org.junit.Test
 
 /**
- * Visual regression for the people system.
+ * Visual regression for the people system: seven frames, each against its committed PNG under
+ * `androidTest/assets/golden`, rendered on a device and looked at before it was committed.
  *
- * ### These were `@Ignore`d, and are not any more
+ * ### What the seven scenes pin
  *
- * v4.1 wrote these scenes and parked every assertion behind `@Ignore`, because a golden is an
- * assertion against a *committed PNG* and the only honest way to produce one is to render on a
- * device -- which that session had none of. v4.2 was done with an emulator, so **every PNG in
- * `androidTest/assets/golden/people-*.png` was rendered by this code on that emulator and looked
- * at before being committed.** The class-level note about how to take them still applies to
- * whoever regenerates them next; what has changed is that there is now something to regenerate
- * *from*.
- *
- * ### What the eight scenes pin
- *
- *  - **people-single / people-group** -- that density selects *groups*, so a low setting yields a
- *    lone figure or a small cluster and a high one fills the pavement.
- *  - **people-overlap** -- the reported depth defect, as a picture. `PeopleOcclusionTest` measures
- *    the ordering; this is the frame a human looks at to see that it reads correctly.
- *  - **people-mixed** -- adults and children of both sexes in one frame, which the v4.0 index-locked
- *    table could not produce and which v4.1 produced only on some themes.
+ *  - **people-single** -- that density selects *groups*, so a low setting yields a lone figure or a
+ *    small cluster. The full pavement of the same theme, at density 1, is the `day` frame
+ *    (`SceneGoldenTest.day`): `sunset`'s defaults draw it, so a scene of its own here would be a
+ *    second PNG of one scene, and a second assertion of `day.png` fails and passes with the first.
+ *  - **people-overlap** -- the depth order of the walkers, as a picture. `PeopleOcclusionTest`
+ *    measures the ordering; this is the frame a human looks at to see that it reads correctly.
+ *  - **people-mixed** -- adults and children of both sexes in one frame.
  *  - **people-window / people-commercial / people-skyscraper** -- busts at house, shopfront and
- *    tower windows. `people-commercial` is the one v4.1 could not have passed: its theme's
- *    commercial frontage had no occupant call site at all.
- *  - **people-skin** -- that more than one tone reaches one frame. The only one of the eight a
+ *    tower windows.
+ *  - **people-skin** -- that more than one tone reaches one frame. The only one of the seven a
  *    numeric test cannot stand in for, because what it pins is a colour rather than a position.
  *
  * ### The pavement band
  *
  * [PAVEMENT] is the strip the walking figures occupy, derived from the two ground lines
  * [SceneSpace.PAVEMENT_FAR_Y_FRACTION] and [SceneSpace.PAVEMENT_NEAR_Y_FRACTION] at
- * [SceneGolden.HEIGHT], opened upward far enough to contain a standing figure's full height. A
- * whole-frame tolerance was blind to a person: [SceneGolden.MAX_DIFFERING_FRACTION] of a 360x800
- * frame was 576 pixels, and a pedestrian at this frame size covers rather fewer. Measured against
- * this band instead, a figure that moves, vanishes or swaps places with another one fails.
- *
- * **The whole-frame budget is zero since v4.31**, so it is no longer blind to anything; this band
- * stays because it is what names the people in a frame that also contains a sky, a road and a
- * lake.
+ * [SceneGolden.HEIGHT], opened upward far enough to contain a standing figure's full height. What
+ * fails a figure that moves, vanishes or swaps places with another is the whole frame, which admits
+ * no differing pixel ([SceneGolden.MAX_DIFFERING_FRACTION]); the band names the people in a frame
+ * that also contains a sky, a road and a lake, and a failing frame says how much of its change fell
+ * inside it.
  *
  * ### Regenerating
  *
@@ -70,15 +58,6 @@ class PeopleGoldenTest {
             label = "pavement",
         )
 
-        /** [PAVEMENT] again, carrying the derived density gate instead of the shared limit --
-         * the v4.22 Phase 5 metric for item 29. Function, not val: [SettingsGates] documents the
-         * derivation and the gate reads clearer built at its use site. */
-        fun pavementDensityGate() = GoldenFocus(
-            left = PAVEMENT.left, top = PAVEMENT.top, right = PAVEMENT.right, bottom = PAVEMENT.bottom,
-            label = "pavement density gate",
-            maxDifferingFraction = SettingsGates.PEOPLE_DENSITY_GATE,
-        )
-
         /** The band the buildings' windows sit in, above the pavement and below the roofline. */
         val FACADES = GoldenFocus(
             left = 0,
@@ -89,14 +68,10 @@ class PeopleGoldenTest {
         )
 
         /**
-         * The `desert` restaurant's shopfront, and nothing else.
-         *
-         * Measured off the rendered frame: the pane sits at x 291..302, y 565..578, and the bust
-         * behind it covers roughly 70 of this rectangle's 360 pixels. That ratio is the point.
-         * [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION] of a rectangle this small is seven pixels, so
-         * the occupant vanishing fails by an order of magnitude -- where the same loss measured
-         * against the whole facade band, let alone the whole frame, would pass comfortably. This
-         * is the assertion v4.1 had no way to make: on every theme its restaurants were empty.
+         * The `desert` restaurant's shopfront, and nothing else: the pane and the bust behind it,
+         * measured off the rendered frame. The occupant vanishing moves pixels the whole frame,
+         * admitting none ([SceneGolden.MAX_DIFFERING_FRACTION]), fails on; this rectangle names the
+         * pane the golden is about, and a failure says how much of the change fell inside it.
          */
         val RESTAURANT_FRONT = GoldenFocus(
             left = 288, top = 562, right = 306, bottom = 582, label = "restaurant frontage",
@@ -121,118 +96,21 @@ class PeopleGoldenTest {
             )
     }
 
-    /** A thinned street. Density this low selects a single group.
+    /**
+     * A thinned street. Density this low selects a single group.
      *
-     * Since v4.22 the frame also carries the **density gate** (Phase 5, item 29): the same
-     * pavement rectangle asserted a second time at [SettingsGates.PEOPLE_DENSITY_GATE], the
-     * derived limit that a density regression — measured, not assumed — cannot pass. The scene's
-     * own [PAVEMENT] focus keeps the limit it always had; the gate is an *additional* assertion
-     * at this site, which is exactly the shape item 29 said closing it would take: a metric
-     * chosen by derivation, the weakest regression and the floor measured, the gate in between
-     * (see `theDensityGateStandsBetweenFloorAndSignal` below, which re-measures on every run).
+     * The density setting is held by this frame against its committed PNG, whole: the density
+     * ignored (0.2 drawn as 1) or every pedestrian hidden moves pixels of it, and the frame admits
+     * no differing pixel ([SceneGolden.MAX_DIFFERING_FRACTION]). The same theme at density 1 is the
+     * `day` frame (`SceneGoldenTest.day`), so the setting is seen changing the picture between two
+     * committed PNGs of one theme that differ in the people density.
      */
     @Test
-    fun `people-single`() = SceneGolden.assertMatches(
-        people(0.2f, name = "people-single"),
-        extraFocus = listOf(pavementDensityGate()),
-    )
+    fun `people-single`() = SceneGolden.assertMatches(people(0.2f, name = "people-single"))
 
     /**
-     * The people-density regressions, measured against the gate on every run.
-     *
-     * The two regressions of the v4.21 item-29 table, re-measured here rather than quoted: the
-     * weakest that must fail (every pedestrian hidden — 0.283% of the band when it was first
-     * measured) and the reported one (the density ignored, 0.2 drawn as 1 — 0.711%). Both must
-     * clear [SettingsGates.PEOPLE_DENSITY_GATE]; the floor under it is the byte-identity of
-     * cross-run captures (v4.22 report), asserted here in its in-process form.
-     */
-    @Test
-    fun theDensityGateStandsBetweenFloorAndSignal() {
-        val gate = pavementDensityGate()
-        val base = SceneGolden.render(people(0.2f, name = "people-single"))
-        val again = SceneGolden.render(people(0.2f, name = "people-single"))
-        org.junit.Assert.assertEquals(
-            "in-process floor must be exact",
-            0.0, SceneGolden.differingFractionIn(base, again, gate), 0.0,
-        )
-        again.recycle()
-
-        val hidden = SceneGolden.render(
-            GoldenScene(
-                name = "people-single",
-                dayPhase = GoldenScene.day(),
-                customise = { it.copy(people = it.people.copy(visible = false, density = 0.2f), peopleNightDensity = 0.2f) },
-            ),
-        )
-        val hiddenFraction = SceneGolden.differingFractionIn(base, hidden, gate)
-        hidden.recycle()
-        val ignored = SceneGolden.render(people(1f, name = "people-single"))
-        val ignoredFraction = SceneGolden.differingFractionIn(base, ignored, gate)
-        ignored.recycle()
-        base.recycle()
-        android.util.Log.i(
-            "GATEDERIVE",
-            "people density: hidden=${"%.4f".format(hiddenFraction * 100)}% " +
-                "ignored=${"%.4f".format(ignoredFraction * 100)}% " +
-                "gate=${"%.4f".format(SettingsGates.PEOPLE_DENSITY_GATE * 100)}%",
-        )
-        org.junit.Assert.assertTrue(
-            "the weakest regression (${hiddenFraction * 100}%) must clear the gate",
-            hiddenFraction > SettingsGates.PEOPLE_DENSITY_GATE,
-        )
-        org.junit.Assert.assertTrue(
-            "the reported regression (${ignoredFraction * 100}%) must clear the gate",
-            ignoredFraction > SettingsGates.PEOPLE_DENSITY_GATE,
-        )
-    }
-
-    /**
-     * A full street, on the same theme as `people-single` — **and it is the `day` frame.**
-     *
-     * ### Why this asserts `day.png` rather than a `people-group.png`
-     *
-     * There was a `people-group` golden until v4.21, built as `people(1f, …)`. That block is a
-     * **no-op at density 1**: `SceneCustomization.DEFAULT` already carries `people(visible = true,
-     * density = 1f)` and `DEFAULT_PEOPLE_NIGHT_DENSITY = 1f`, and `sunset` overrides neither. So it
-     * described `SharedGoldenScenes.day()`'s inputs exactly and its PNG came out byte-identical to
-     * `day.png` — **measured across all forty `SceneCustomization` fields, exactly two differed
-     * between it and `people-single`, both of them the people density.**
-     *
-     * A second PNG of one scene has no way to fail that the first does not already have, so the
-     * PNG went and this assertion moved onto `day.png`, carrying [PAVEMENT] as an extra focus at
-     * the assertion site. `SharedGoldenScenes.day()` is untouched: the GL suite iterates
-     * `scene.focus`, so adding a rectangle there would have changed what `GlSceneGoldenTest`
-     * measures. See `SceneGolden.assertMatches`'s own note and `GoldenUniquenessTest`.
-     *
-     * ### What the pair with `people-single` is, and what it is not
-     *
-     * It is two frames of one theme differing **only** in the people density — that much is
-     * measured, field by field. Their committed PNGs genuinely differ, so the setting demonstrably
-     * changes the picture, and the two frames side by side are what a human looks at to see how.
-     *
-     * **It is not, at today's tolerances, an assertion that the density still works**, and the
-     * previous wording here — "the difference between them *is* what the setting does" — claimed
-     * more than the gates deliver. Measured on this device, rendering `people-single` as if the
-     * density were ignored entirely (0.2 drawn as 1) moves **279 px: 0.711% of the pavement band
-     * against a 2% limit, and 0.097% of the frame against a 0.2% limit. Both gates pass.** Hiding
-     * *every* pedestrian moves 390 px on this frame and 111 px on `people-single`'s, and passes
-     * too. The pavement focus is a guard against a figure being drawn in the wrong *place*, which
-     * moves two rectangles' worth of pixels; it is not a guard against there being fewer of them.
-     *
-     * That gap is older than this change and is unaffected by it — it is the same on either PNG —
-     * so it is recorded as item 29 of `BACKLOG_v4_21.md` rather than closed here by moving a
-     * tolerance, which would be tuning a metric to reach a verdict.
-     */
-    @Test
-    fun `people-at-full-density`() =
-        SceneGolden.assertMatches(SharedGoldenScenes.day(), extraFocus = listOf(PAVEMENT))
-
-    /**
-     * More than one skin tone in one frame.
-     *
-     * `beach` is chosen deliberately: it is the theme the defect was reported from, and the theme
-     * whose six pedestrians were, under v4.1, five girls and a boy on tone 2 with no adult of
-     * either sex. This frame is what that street looks like now.
+     * More than one skin tone in one frame, on `beach`'s full street: a deal that put every
+     * pedestrian on one tone changes this frame.
      */
     @Test
     fun `people-skin`() =
@@ -243,16 +121,13 @@ class PeopleGoldenTest {
      *
      * A different theme from `people-skin`, and therefore a different seed and a different street:
      * two frames drawn by one piece of code is the claim about variety that no single frame can
-     * make. `winter` carries the evenest mix the catalogue produces -- three men, two women, two
-     * boys and two girls.
+     * make. `winter`'s street mixes men, women, boys and girls.
      *
-     * **This frame is also the winter theme's frame, and since v4.21 it is the only one.**
-     * `SceneGoldenTest.themeWinter` described these same inputs — the `customise` block below is a
-     * no-op at density 1, because `winter`'s defaults already carry `people(visible = true,
-     * density = 1f)` — so its PNG came out byte-identical to this one and its whole-frame assertion
-     * could not fail on its own. It was removed; this one keeps the pixels, adds [PAVEMENT], and
-     * inherits its claim: **winter dressing on the whole frame**, coats and hats and settled snow,
-     * asserted here rather than under a second name.
+     * **This frame is also the winter theme's frame, and the only one.** At density 1 by day the
+     * `customise` block of [people] draws what `winter`'s defaults draw, the people visible at
+     * density 1, so a theme golden of `winter` at `day()` would be this PNG under a second name.
+     * This one carries that claim: **winter dressing on the whole frame**, coats and hats and
+     * settled snow.
      */
     @Test
     fun `people-mixed`() =
@@ -261,10 +136,10 @@ class PeopleGoldenTest {
     /**
      * Overlap and depth, as a picture.
      *
-     * `new_year` at 80% is the same scene `PeopleOcclusionTest` measures: the three figures
-     * arriving between 40% and 80% all stand nearer than the three already there, and they cover
-     * pixels those three had painted. This is that frame, so the numeric claim and the picture are
-     * about the same street rather than two different ones.
+     * `new_year` at 80% is the same scene `PeopleOcclusionTest` measures: the figures arriving
+     * between 40% and 80% all stand nearer than those already there, and they cover pixels those
+     * had painted. This is that frame, so the numeric claim and the picture are about the same
+     * street rather than two different ones.
      */
     @Test
     fun `people-overlap`() =
@@ -273,32 +148,14 @@ class PeopleGoldenTest {
     /**
      * Busts at house windows, measured on the facades rather than the whole frame.
      *
-     * On `spring` rather than `sunset`, which is what `people-group` already draws: two goldens of
-     * one frame under two names would double the maintenance and halve the coverage, and the first
-     * version of this file did exactly that -- the two PNGs came out byte-identical.
+     * On `spring` rather than `sunset`, which is what `day` already draws: two goldens of one frame
+     * under two names would double the maintenance and halve the coverage.
      *
-     * ### v5.1 re-authored this PNG, and `spring` is the whole reason
-     *
-     * **This is the only golden in the suite that draws ground flowers**, and nothing in this file
-     * says so. `spring` is the one theme whose defaults carry `flowersEnabled = true`
-     * (`SceneCustomization.defaultCustomizationFor`: *"Spring without flowers is a green summer"*),
-     * `SceneGolden.render` builds its scene from `defaultCustomizationFor(themeId)`, and
-     * `themeId = "spring"` appears exactly once in the whole of `androidTest` -- here.
-     *
-     * v5.1 split the one flower clump into a pair, in bloom and gone over, so an autumn or a
-     * winter scene stops drawing midsummer blooms. This frame is the blooming one, and it moved:
-     * **297 pixels of 288 000 (0.103%) differ by more than 8 per channel from the v5.0 PNG, every
-     * one of them between y 577 and y 622, x 55..350** -- the clumps, and nothing else. Houses,
-     * windows, people, trees, cars, road and sky came out identical pixel for pixel. Re-authored on
-     * the BV6600 with the maintainer's written go-ahead; the same `updateGoldens` run rewrote the
-     * other seven goldens of this class and **all seven came back byte-identical to the committed
-     * files**, which is what says the device reproduced them and only the artwork moved.
-     *
-     * **The lesson is about the check, not the picture.** The question "does any golden draw X?"
-     * was answered by grepping `androidTest` for the name of X's flag. No test names it, and the
-     * conclusion drawn -- that no golden draws flowers -- did not follow: a golden names a
-     * **theme**, and what a theme switches on lives in `defaultCustomizationFor`. Ask the theme,
-     * then ask what the theme turns on. See `BACKLOG_v5_1.md` item 122.
+     * **This golden draws the meadow's flowers in bloom**, though nothing in this file names them:
+     * `spring` is the one theme whose defaults carry `flowersEnabled = true`
+     * (`SceneCustomization.defaultCustomizationFor`), and `SceneGolden.render` builds its scene from
+     * `defaultCustomizationFor(themeId)`. Whether a golden draws something is asked of its theme's
+     * defaults, not of a grep for the flag's name in `androidTest`.
      */
     @Test
     fun `people-window`() = SceneGolden.assertMatches(
@@ -311,18 +168,16 @@ class PeopleGoldenTest {
     )
 
     /**
-     * Somebody behind commercial glass -- the frame v4.1 could not have produced.
+     * Somebody behind commercial glass.
      *
-     * `desert`'s restaurant (tile fraction 0.40, `ShopPlanTable`) has somebody behind its glass, and
-     * the focus is that pane rather than the facade band, because a golden about one bust has to be
-     * measured over the bust. Against v4.1 this rectangle contains an empty window.
+     * `desert`'s restaurant has somebody behind its glass, and the focus is that pane rather than
+     * the facade band, because a golden about one bust has to be measured over the bust. A
+     * restaurant drawn with an empty window fails it.
      *
-     * **This frame is also the desert theme's frame, and since v4.21 it is the only one.** This
-     * scene never used the [people] helper — it is the theme's own defaults at `day()` — which is
-     * exactly what `SceneGoldenTest.themeDesert` was, so the two PNGs were byte-identical and the
-     * second assertion carried nothing the first did not. It was removed; this one keeps the pixels,
-     * keeps [RESTAURANT_FRONT], and inherits its claim: **the desert palette on the whole frame**,
-     * palms and sand and no grass, asserted here rather than under a second name.
+     * **This frame is also the desert theme's frame, and the only one.** This scene does not use
+     * the [people] helper -- it is the theme's own defaults at `day()` -- so a theme golden of
+     * `desert` would be this PNG under a second name. This one carries that claim: **the desert
+     * palette on the whole frame**, palms and sand and no grass.
      */
     @Test
     fun `people-commercial`() = SceneGolden.assertMatches(
@@ -334,7 +189,7 @@ class PeopleGoldenTest {
         ),
     )
 
-    /** Busts in a tower's window grid, at a deliberately sparse rate: four faces over two towers. */
+    /** Busts in the window grids of two `city` towers, at a deliberately sparse rate. */
     @Test
     fun `people-skyscraper`() = SceneGolden.assertMatches(
         GoldenScene(

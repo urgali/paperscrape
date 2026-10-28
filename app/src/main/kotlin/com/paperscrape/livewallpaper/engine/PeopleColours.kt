@@ -15,7 +15,8 @@ package com.paperscrape.livewallpaper.engine
  * rather than that the deal was unfair.
  *
  * Now the colour is a function of *(theme, person, crossing)* and a walker is dealt a fresh one
- * each time it crosses. Age, sex, group, lane, direction and speed are **not** re-dealt:
+ * as its crossings are counted off the scene's clock -- at most once a minute with the real time,
+ * whose hour moves by the minute ([crossingOf]). Age, sex, group, lane, direction and speed are **not** re-dealt:
  * `PedestrianPopulation.build` stays a pure function of theme and density, and the crossing number
  * enters nothing but the colours.
  *
@@ -251,17 +252,21 @@ internal object PeopleColours {
      *
      * The same expression the walk itself uses -- `startFraction + direction * (time * speed +
      * phase)` -- without the `% 1` that turns it into a position, but with the scene clock as the
-     * time where the drawn walk uses `elapsedSeconds`: it steps once per crossing period, not at
-     * the moment the drawn `tileFraction` wraps.
+     * time where the drawn walk uses `elapsedSeconds`: it counts crossing periods of the clock, not
+     * the moments the drawn `tileFraction` wraps. **With *Follow real time* the clock moves once a
+     * minute** -- the scene's hour is read to the minute (`PaperWallpaperService.sceneHourNow`), so
+     * [clockSeconds] steps by 60 -- and the count moves on with it by the periods a minute holds: on
+     * the near row, at 0.026 of the tile a second, one or two (1.56 a minute). Colours are therefore
+     * dealt again at most once a minute, and a crossing can pass with none of its own; with a fixed
+     * hour the count does not move at all.
      *
-     * **It is not, by itself, a moment when nothing is on screen**, and the plan this release was
-     * written from says it is. A walker exists at `x + k * tileWidth` for every whole `k`, so the
-     * wrap hands the figure from one copy to the next and does not move it; whether that instant
-     * is visible depends on `shiftXWrapped`, which scrolls. `PedestrianTileWrapTest` measures it:
-     * over a scroll period the wrap is on screen for a little over half of it. So the caller does
-     * with this what v4.28 does with the umbrella -- holds it until the walker's own draw pass
-     * reports nothing drawn -- and the guarantee comes from the cull that actually happened rather
-     * than from an argument about the geometry.
+     * **It is not, by itself, a moment when nothing is on screen.** A walker exists at
+     * `x + k * tileWidth` for every whole `k`, so the wrap hands the figure from one copy to the next
+     * and does not move it; whether that instant is visible depends on `shiftXWrapped`, which
+     * scrolls. `PedestrianTileWrapTest` measures it: over a scroll period the wrap is on screen for a
+     * little over half of it. So the caller holds the count as it holds the umbrella -- until the
+     * walker's own draw pass reports nothing drawn -- and the guarantee comes from the cull that
+     * actually happened rather than from an argument about the geometry.
      */
     fun crossingOf(
         clockSeconds: Double,

@@ -1,10 +1,6 @@
 package com.paperscrape.livewallpaper.icon
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import androidx.core.content.ContextCompat
 import com.paperscrape.livewallpaper.engine.SeasonalCalendar
 import java.time.LocalDate
 import java.util.concurrent.ExecutorService
@@ -15,26 +11,26 @@ import java.util.concurrent.Executors
  *
  * ### When it looks, and why it is free when it does not
  *
- * Four moments, none of them a timer:
+ * Three moments, none of them a timer, and none at the service's start: the user's calendar arrives
+ * only with (2.), and nothing is applied until it is known ([IconApplyGate]), so a user whose moved
+ * window gives today another icon never sees the factory calendar's go on first.
  *
- * 1. **[start]**, from the service's `onCreate` -- which registers the receiver but applies
- *    nothing yet: the user's calendar arrives only with (3.), and until v5.8C this put the factory
- *    calendar's icon on first, so a user whose moved window gives today a different icon saw it
- *    switch at every service start and switch back a moment later (v5.8B comment audit). Nothing
- *    is applied until the calendar is known ([IconApplyGate]).
- * 2. **`ACTION_DATE_CHANGED`**, which the platform broadcasts at local midnight. A receiver
- *    registered in code costs nothing until it fires: no alarm, no wakelock, no wake-up of its
- *    own, and nothing at all added to the 0.16 % of a core this process costs while invisible
- *    (v5.3B audit). `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` are in the same filter
- *    because "what day is it" can also change without midnight passing.
- * 3. **[onCalendarChanged]**, from the engine's settings collector -- the user moving a window on
+ * 1. **The date broadcasts**: `ACTION_DATE_CHANGED`, which the platform sends at local midnight, and
+ *    `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED`, because "what day is it" can also change
+ *    without midnight passing. They reach [refresh] through the wallpaper service's one receiver for
+ *    them (`PaperWallpaperService.dateReceiver`), which on the same broadcast has every engine choose
+ *    its theme by date again: the icon and the theme change together. That receiver and this
+ *    controller are made in the service's `onCreate` and let go of in its `onDestroy`, so a receiver
+ *    of its own here would live exactly as long and add nothing. A receiver registered in code costs
+ *    nothing until it fires: no alarm, no wakelock, no wake-up of its own.
+ * 2. **[onCalendarChanged]**, from the engine's settings collector -- the user moving a window on
  *    the Holiday calendar screen is a change of date boundaries, and the icon follows those.
- * 4. **[refresh]**, each time an engine becomes visible -- a day may have turned over while it was
+ * 3. **[refresh]**, each time an engine becomes visible -- a day may have turned over while it was
  *    not drawing.
  *
- * A registered receiver is also why this is not a manifest receiver: `ACTION_DATE_CHANGED` is an
- * implicit broadcast, and manifest receivers for those have been refused since Android 8. The
- * process is already alive whenever the wallpaper is set, so there is nothing to wake.
+ * The receiver is registered in code, not in the manifest: `ACTION_DATE_CHANGED` is an implicit
+ * broadcast, and manifest receivers for those have been refused since Android 8. The process is
+ * already alive whenever the wallpaper is set, so there is nothing to wake.
  *
  * ### What is *not* covered, deliberately
  *
@@ -45,13 +41,13 @@ import java.util.concurrent.Executors
  *
  * ### Never on the main thread
  *
- * All of those moments arrive on the main thread -- a service's `onCreate`, an engine's
- * visibility callback, the engine's settings collector, a receiver registered without a
- * `Handler` -- and the work behind them is six `PackageManager` reads plus a write for each alias
- * that changes. That is the main thread of a live wallpaper, where the `Canvas` fallback posts its
- * frames; the same reasoning that keeps a `DataStore` write out of a slider's feedback loop keeps
- * this off it. Everything runs on one single-thread executor, which also means two triggers
- * arriving together are serialised instead of racing to write the same six component states.
+ * All of those moments arrive on the main thread -- the service's receiver, registered without a
+ * `Handler`, an engine's visibility callback, the engine's settings collector -- and the work behind
+ * them is six `PackageManager` reads plus a write for each alias that changes. That is the main
+ * thread of a live wallpaper, where the `Canvas` fallback posts its frames; the same reasoning that
+ * keeps a `DataStore` write out of a slider's feedback loop keeps this off it. Everything runs on one
+ * single-thread executor, which also means two triggers arriving together are serialised instead of
+ * racing to write the same six component states.
  */
 class SeasonalIconController(private val context: Context) {
 
@@ -62,38 +58,9 @@ class SeasonalIconController(private val context: Context) {
 
     /** Written and read only on [worker]; the trigger threads hand it over rather than share it. */
     private val gate = IconApplyGate()
-    private var registered = false
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            refresh()
-        }
-    }
-
-    /**
-     * Registers for the date broadcasts. Today's icon goes on with the first calendar the engine
-     * reports ([onCalendarChanged]), not before -- see (1.) above.
-     */
-    fun start() {
-        if (!registered) {
-            val filter = IntentFilter().apply {
-                addAction(Intent.ACTION_DATE_CHANGED)
-                addAction(Intent.ACTION_TIME_CHANGED)
-                addAction(Intent.ACTION_TIMEZONE_CHANGED)
-            }
-            // All three are protected system broadcasts, so NOT_EXPORTED is both allowed and the
-            // right answer: nothing but the platform may deliver to this receiver.
-            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-            registered = true
-        }
-        refresh()
-    }
-
+    /** Ends the worker, with the service: a trigger after this does nothing. */
     fun stop() {
-        if (registered) {
-            registered = false
-            runCatching { context.unregisterReceiver(receiver) }
-        }
         worker.shutdown()
     }
 

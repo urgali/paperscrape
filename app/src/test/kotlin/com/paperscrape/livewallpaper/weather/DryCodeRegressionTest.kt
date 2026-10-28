@@ -8,12 +8,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The Florence report, pinned end to end.
+ * A weather code that says showers over four measurements at zero draws a dry sky: the measurements
+ * outvote the code, in both directions.
  *
- * **What was observed.** On a clean Android 17 emulator with Custom Location = Florence
- * (43.77925, 11.24626), Live Weather on and Open-Meteo selected, the wallpaper drew rain from a
- * sky the forecast said was completely dry. The captured request and response, from the running
- * app at 13:15 local (Europe/Rome, +7200 s):
+ * The fixture is a real Open-Meteo answer for Custom Location = Florence (43.77925, 11.24626),
+ * captured from the running app at 13:15 local (Europe/Rome, +7200 s):
  *
  * ```
  * GET https://api.open-meteo.com/v1/forecast?latitude=43.77925109863281&longitude=11.246259689331055
@@ -24,13 +23,13 @@ import org.junit.Test
  * ```
  *
  * Four measurements at zero, and a `weather_code` of 80 -- "slight rain showers". Fifteen minutes
- * earlier the same coordinates returned `weather_code: 3` with the same four zeroes, so the code
- * was flipping between "overcast" and "showers" across a dry hour while the measurements never
- * moved. v2.13's mapper let the code overrule all four, and the scene rained.
+ * apart the same coordinates answer `weather_code: 3` with the same four zeroes: the code flips
+ * between "overcast" and "showers" across a dry hour while the measurements do not move, and a
+ * mapper that lets the code overrule all four rains on a dry sky.
  *
  * These tests run the real captured body through the real parser and the real mapper. Nothing here
- * is a hand-built observation: if the parser stops reading a field, or the mapper starts trusting
- * the code again, this fails.
+ * is a hand-built observation: if the parser stops reading a field, or the mapper trusts the code
+ * over the measurements, this fails.
  */
 class DryCodeRegressionTest {
 
@@ -50,10 +49,10 @@ class DryCodeRegressionTest {
     private fun snapshotOf(body: String) =
         WeatherSnapshotMapper.toSnapshot(OpenMeteoProvider.parse(body)!!)
 
-    // -- the reported bug ---------------------------------------------------------------------------
+    // -- a dry sky under a showers code -------------------------------------------------------------
 
     /**
-     * The whole report in one assertion: this exact response must produce a fully clouded sky with
+     * The whole rule in one assertion: this exact response must produce a fully clouded sky with
      * nothing falling from it.
      */
     @Test
@@ -104,8 +103,8 @@ class DryCodeRegressionTest {
     // -- and the reverse must still hold ------------------------------------------------------------
 
     /**
-     * v2.12's bug, which this must not reintroduce: millimetres falling under a code that does not
-     * mention them. The measurement wins in *both* directions -- that is the single rule.
+     * Millimetres falling under a code that does not mention them still fall. The measurement wins
+     * in *both* directions -- that is the single rule.
      */
     @Test
     fun `measured millimetres under an overcast code still rain`() {
@@ -116,7 +115,7 @@ class DryCodeRegressionTest {
         assertEquals(PrecipitationType.RAIN, snapshotOf(body).precipitationType)
     }
 
-    /** The v2.13 Florence shower: rain at zero, the millimetres filed under showers. */
+    /** A shower: rain at zero, the millimetres filed under showers. */
     @Test
     fun `cloud cover with showers rains`() {
         val body = florenceDryUnderShowerCode
@@ -128,11 +127,12 @@ class DryCodeRegressionTest {
         assertTrue(snapshot.precipitationIntensity > 0f)
     }
 
+    /** 0.60 mm in the fifteen minutes of `"interval": 900` is 2.4 mm an hour: 0.3 of the 8 mm/h that is full rain. */
     @Test
     fun `cloud cover with rain rains`() {
         val body = florenceDryUnderShowerCode
-            .replace("\"precipitation\":0.00", "\"precipitation\":2.40")
-            .replace("\"rain\":0.00", "\"rain\":2.40")
+            .replace("\"precipitation\":0.00", "\"precipitation\":0.60")
+            .replace("\"rain\":0.00", "\"rain\":0.60")
         val snapshot = snapshotOf(body)
         assertEquals(PrecipitationType.RAIN, snapshot.precipitationType)
         assertEquals(0.3f, snapshot.precipitationIntensity, 0.0001f)

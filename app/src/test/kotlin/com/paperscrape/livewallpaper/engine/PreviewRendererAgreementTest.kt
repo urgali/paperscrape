@@ -32,7 +32,7 @@ import org.junit.Test
  * the renderer's four-term offset as a folded sum (the tree's exact failure mode), and its lit night
  * facade sat six units right and six down of the wall it is documented to lie exactly on top of.
  * Since v5.0 no building is copied by hand: both sides deal from [NeighbourhoodComposer], and the
- * building case below asserts the same parts at the same coordinates (`RELEASE_HISTORY.md`, v5.0).
+ * building case below asserts the same parts at the same coordinates.
  */
 class PreviewRendererAgreementTest {
 

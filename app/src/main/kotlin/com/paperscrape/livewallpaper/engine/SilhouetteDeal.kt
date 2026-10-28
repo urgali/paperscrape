@@ -1,25 +1,20 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * Which of its category's silhouettes each candidate slot was dealt.
+ * Which of its category's silhouettes each candidate slot was dealt: every theme shows as much of
+ * a population's catalogue as it has slots for, `DESIGN_NOTES.md` §12, decision 38.
  *
- * ### The defect this exists to remove
+ * ### The defect this prevents
  *
- * This is [SeededBalance]'s argument applied to the buildings, and the wording of v4.2's own
- * release note applies to them without a change:
+ * This is [SeededBalance]'s argument applied to the buildings: the app draws **one** seed --
+ * `themeId.hashCode()`, fixed for as long as the theme is selected -- and a fair coin flipped a
+ * few times clumps, and a frozen seed freezes the clump. A silhouette chosen per slot with
+ * `NeighbourhoodComposer.stableFraction(x, d, salt)` -- one hashed value per slot per question,
+ * independent of every other slot -- clumps exactly so on ten candidates: measured on the twelve
+ * shipped theme ids, `autumn` would show **2** of the house catalogue's 10 silhouettes over its
+ * whole scrollable width and `city` 2, four themes three or fewer, and no theme six.
  *
- * > the app draws **one** seed -- `themeId.hashCode()`, fixed for as long as the theme is
- * > selected -- and one seed yields at most twelve people. A fair coin flipped six times clumps,
- * > and a frozen seed freezes the clump.
- *
- * v4.2 fixed it for the people and left the buildings where they were, choosing each one's
- * silhouette with `NeighbourhoodComposer.stableFraction(x, d, salt)` -- one hashed value per slot
- * per question, independent of every other slot. On ten candidates that clumps exactly as the
- * coin did: measured on the twelve shipped theme ids, `autumn` showed **2** of the house
- * catalogue's 10 silhouettes over its whole scrollable width and `city` 2, four themes showed
- * three or fewer, and no theme reached six.
- *
- * ### And a second cause, which re-seeding alone would not have touched
+ * ### And a second cause, which re-seeding alone would not touch
  *
  * `stableFraction` is
  *
@@ -32,28 +27,26 @@ package com.paperscrape.livewallpaper.engine
  * is 0.0625, so `raw` before the salt is **a multiple of 1/16** (1/32 in the back band). The salts
  * are `3.7 * index + 11.3` and `5.1 * index + 23.9`, and adding a constant to a value that is
  * already quantised to 1/16 leaves it on the same 1/16 grid, shifted -- so every slot's question
- * is answered off the *same* sixteen-valued number. The roof choice and the storey count were
- * therefore not two decisions but one: **4 of the house catalogue's 10 silhouettes could not be
- * drawn on any theme at any density**, and never were. Two storeys under a turret, two under a
- * mansard, one under a mansard, and the small house's storey-plus-mansard: four drawings that
- * ship in the APK and that nobody has ever seen.
+ * is answered off the *same* sixteen-valued number. The roof choice and the storey count would
+ * therefore be not two decisions but one: **4 of the house catalogue's 10 silhouettes could not be
+ * drawn on any theme at any density** -- two storeys under a turret, two under a mansard, one
+ * under a mansard, and the small house's storey-plus-mansard: four drawings that ship in the APK.
  *
- * A stratified deal removes both causes at once, because it stops reading `stableFraction` for
+ * A stratified deal removes both causes at once, because it does not read `stableFraction` for
  * this question at all: the catalogue is enumerated from the table, and [SeededBalance.rankOf]
  * -- an integer hash at full resolution -- says which slot gets which entry.
  *
  * ### What it is not
  *
- * Not a correction pass, which is decision **D-4.2-A** restated: nothing here counts the
- * silhouettes already produced and nothing forces "a turret every N". A slot's silhouette is a
- * pure function of `(seed, slot)` and of nothing else, so lowering a category's density still
- * removes particular slots and leaves every survivor exactly the silhouette it had -- the
- * stability contract [CandidateThreshold] documents survives intact, and the density slider still
- * governs **how many**, never **which**.
+ * Not a correction pass: nothing here counts the silhouettes already produced and nothing forces
+ * "a turret every N". A slot's silhouette is a pure function of `(seed, slot)` and of nothing
+ * else, so lowering a category's density removes particular slots and leaves every survivor
+ * exactly the silhouette it had -- the stability contract [CandidateThreshold] documents holds,
+ * and the density slider governs **how many**, never **which**.
  *
  * Not a per-theme rule either. There is no theme id anywhere in this file and no branch that names
- * one: the theme contributes its seed, exactly as it does to the people, and `DESIGN_NOTES.md`'s
- * "a theme's identity lives in its defaults, not in the renderer" is unchanged.
+ * one: the theme contributes its seed, exactly as it does to the people, and a theme's identity
+ * lives in its defaults, not in the renderer.
  *
  * ### Where the deal happens
  *
@@ -62,9 +55,9 @@ package com.paperscrape.livewallpaper.engine
  * follows from its dealt silhouette, and the layout's own shop-visibility pass measures houses by
  * that family -- so a value the generator and the renderer each derived separately is the
  * preview-drift defect `PreviewRendererAgreementTest` exists to catch, one file further back.
- * [StaticSceneObject.UNDEALT] is what a spec nobody dealt carries, and it keeps the pre-v5.5
- * behaviour for exactly those: custom themes saved by an older build, the random-theme generator,
- * and the flat preview, which declares its own identities.
+ * [StaticSceneObject.UNDEALT] is what a spec nobody dealt carries, and its drawing is then hashed
+ * from its position: custom themes saved by an older build, the random-theme generator, and the
+ * flat preview, which declares its own identities.
  */
 internal object SilhouetteDeal {
 
@@ -115,12 +108,12 @@ internal object SilhouetteDeal {
     /**
      * The house catalogue: **one catalogue spanning both families**, small houses first.
      *
-     * One rather than two, because two would leave the maintainer's requirement unmet. The
-     * family a slot resolved to used to come from a hash of its `tileFractionX`, and that hash
-     * clumps the same way everything else on one seed clumps: measured, `spring` drew 8 small
-     * houses and 2 large, `city` and `winter` 8 large and 2 small, and **`autumn` kept 5 houses
-     * at its default density and all five were large** -- a theme with no small house anywhere on
-     * its scrollable width. Dealing the two families' silhouettes separately would have left that
+     * One rather than two, because two would leave every variant on every theme unmet,
+     * `DESIGN_NOTES.md` §12, decision 38. A family taken from a hash of a slot's `tileFractionX`
+     * clumps the same way everything else on one seed clumps: measured, `spring` would draw 8
+     * small houses and 2 large, `city` and `winter` 8 large and 2 small, and **`autumn` would keep
+     * 5 houses at its default density, all five large** -- a theme with no small house anywhere on
+     * its scrollable width. Dealing the two families' silhouettes separately would leave that
      * exactly as it is, since it can only ever redistribute within a family. Dealt as one
      * catalogue, every theme carries the same 4 small and 6 large in a seeded arrangement, which
      * is "all the variants on every theme" said in the only arithmetic that delivers it.
@@ -145,8 +138,7 @@ internal object SilhouetteDeal {
      * Without an arm of its own in [catalogueFor] a school-band candidate falls through to
      * [BARS], which has *two* entries -- so the deal hands it silhouette 1, and
      * `NeighbourhoodComposer.deal` indexes a one-option slot with it and throws
-     * `IndexOutOfBoundsException` on the first frame. Measured in the v5.6D round, where the
-     * school was wired without this arm and the scene crashed rather than drawing a bar.
+     * `IndexOutOfBoundsException` on the first frame.
      */
     val SCHOOLS: List<Silhouette> = enumerate(SceneSpace.SceneVariant.SCHOOL)
 
@@ -188,7 +180,7 @@ internal object SilhouetteDeal {
      *    against ten house silhouettes is therefore all ten, on every theme.
      *  - **The rotation is what a one-slot population needs.** A rank over a single slot is always
      *    0, so without it the corner bar would wear the same frontage on all twelve themes --
-     *    which would be *worse* than the hash it replaces, the one thing this deal is not allowed
+     *    which would be *worse* than a hash per slot, the one thing this deal is not allowed
      *    to be. The rotation is one draw on the theme's seed and nothing else, so the bar varies
      *    by theme and stays fixed within one.
      */

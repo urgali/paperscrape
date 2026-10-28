@@ -1,29 +1,25 @@
 """The check that says when a committed report has stopped describing the shipped artwork.
 
-`BACKLOG_v5_1.md` item 125 opened with two facts established by measurement: nothing tested the
-report generators, and the committed reports were stale. v5.2's documentation pass closed the
-first half. This is the second -- *"nothing detects a stale committed artefact"* -- and the reason
-it is worth a file of its own is the shape of the failure rather than its size.
+A committed report can go stale without any test noticing, and the reason this is worth a file
+of its own is the shape of the failure rather than its size.
 
-`reports/runtime-inventory.json` and `reports/fidelity.json` both described `palmtree_fronds` as a
-120x120 canvas with a 120x111 content box for the whole of v5.1 and into v5.2, while the shipped
-drawing was 168x144 with content 157x119. The v5.1 palm redraw changed the artwork and never
-re-ran `inventory` or `compare`. **No verdict changed and no number looked wrong**, because a
-report that is internally consistent about the wrong sprite is internally consistent: the audit
-that found it found it by measuring the PNG, not by reading the file. A rule in a checklist is
-not a check, and item 125 says so in those words.
+A redraw that does not re-run `inventory` or `compare` leaves `reports/runtime-inventory.json`
+and `reports/fidelity.json` describing the drawing it replaced: `palmtree_fronds` as a 120x120
+canvas with a 120x111 content box, say, while the shipped drawing is 168x144 with content
+157x119. **No verdict changes and no number looks wrong**, because a report that is internally
+consistent about the wrong sprite is internally consistent: only measuring the PNG finds it, not
+reading the file. A rule in a checklist is not a check.
 
-So `validate` now compares whatever of each report is a claim about a PNG -- the inventory's
+So `validate` compares whatever of each report is a claim about a PNG -- the inventory's
 per-file SHA-256 and fidelity's recorded reference size and content box -- against the file that
 ships, and names the sprites. The cases below are about that contract: it must be silent on a
 report that matches, and it must name the sprite and both geometries on a report that does not.
 
-The 750 KB `comparison-sheet.png` is deliberately not compared: item 125 argues that one out, and
-the rasteriser probe already guards the toolchain that draws it.
+`comparison-sheet.png` is deliberately not compared: the rasteriser probe already guards the
+toolchain that draws it.
 
-**v5.5C added the third report.** Item 125 names three committed artefacts and v5.2's check reached
-two: `buildings/budget.json` writes itself into `buildings/`, not into `reports/`, and was simply
-not passed in. Its `shipped_perimeter` block is a claim about the same drawable set the other two
+**The third report** is `buildings/budget.json`, which writes itself into `buildings/`, not into
+`reports/`. Its `shipped_perimeter` block is a claim about the same drawable set the other two
 describe, so it is checked the same way -- and `buildings/budget.md`, which quotes those three
 numbers back in a sentence, is checked against the JSON beside it, because two committed files
 written by one statement can only come apart when somebody edits one of them.
@@ -61,7 +57,7 @@ class StaleReportTest(unittest.TestCase):
         cls.measurements = {m.name: m for m in inventory.measure_directory(RUNTIME_DIR)}
 
     def test_the_committed_reports_describe_the_shipped_artwork(self):
-        """The state the tree must be delivered in, and the one it was NOT in at v5.2's start."""
+        """The state the tree must be delivered in."""
         self.assertEqual([], report.stale_reports(REPORTS_DIR, self.measurements))
 
     def _with_patched_reports(self, patch) -> list[str]:
@@ -73,7 +69,7 @@ class StaleReportTest(unittest.TestCase):
             return report.stale_reports(scratch, self.measurements)
 
     def test_an_inventory_entry_left_behind_by_a_redraw_is_named(self):
-        """The v5.1 palm, replayed: the recorded geometry is the sprite that used to ship."""
+        """A palm redrawn without a new `inventory`: the recorded geometry is the drawing the redraw replaced."""
         def patch(scratch: Path) -> None:
             path = scratch / "runtime-inventory.json"
             data = json.loads(path.read_text())
@@ -140,7 +136,7 @@ class StaleReportTest(unittest.TestCase):
 
 
 class StaleBudgetTest(unittest.TestCase):
-    """The third committed report, reached for the first time in v5.5C."""
+    """The third committed report, `buildings/budget.json`, and the markdown that quotes it."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -158,7 +154,7 @@ class StaleBudgetTest(unittest.TestCase):
         self.assertEqual([], self._with_patched_budget(lambda scratch: None))
 
     def test_a_perimeter_left_behind_by_a_redraw_is_named_with_both_numbers(self):
-        """A building redrawn larger moves `decoded`, and nothing before this said so."""
+        """A building redrawn larger moves `decoded`, and this check is what says so."""
         def patch(scratch: Path) -> None:
             path = scratch / "budget.json"
             data = json.loads(path.read_text())
@@ -201,10 +197,10 @@ class StaleBudgetTest(unittest.TestCase):
     def test_a_markdown_left_behind_when_the_json_was_refreshed_is_named(self):
         """The two files are written together; they come apart when one is edited by hand.
 
-        The figure it corrupts is read out of the committed report rather than typed here: it
-        was `3480876` until v5.6F added the school to the perimeter, and a literal in a fixture
-        is a second copy of a number that has to be kept in step by hand -- which is the class of
-        defect this whole module exists to catch.
+        The figure it corrupts is read out of the committed report rather than typed here: a
+        literal in a fixture is a second copy of a number that has to be kept in step by hand, and
+        it goes stale as soon as a building joins the perimeter -- which is the class of defect
+        this whole module exists to catch.
         """
         def patch(scratch: Path) -> None:
             path = scratch / "budget.md"

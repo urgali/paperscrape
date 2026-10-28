@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the three v4.26 sky-and-water concepts -- Silhouette, Relief, Openwork -- as SVG sources
+"""Builds the three sky-and-water concepts -- Silhouette, Relief, Openwork -- as SVG sources
 and renders them through the project's own rasteriser.
 
 Run from ``tools/assets`` with the pinned venv:
@@ -29,7 +29,7 @@ Two constraints of the scene are written into the geometry rather than left to t
   the mainsail aft of it.
 
 Edges are cut, not struck: every arc is sampled into facets and every vertex carries a small
-deterministic wobble written here into the coordinates (the sky's rule since v4.23). The wobble
+deterministic wobble written here into the coordinates (the sky's rule). The wobble
 and the facet length are chosen per sprite from the size it is *drawn* at on a 720x1440 screen,
 because a cut that is one pixel wide on the screen is not a cut.
 """
@@ -267,7 +267,7 @@ BIRD_AXIS = 18.0
 def bird_silhouette(seed: str):
     """One gull: two tapered wings swept to a point, a spindle body continuous with the head, a
     short wedge of tail. Nothing under the wings, no elbow in the leading edge, no separate head
-    circle -- the three things DESIGN_NOTES says turn this drawing into a bat."""
+    circle -- the three things that turn this drawing into a bat."""
     pts = [
         (2.0, 3.0), (12.0, 5.2), (23.0, 8.6), (33.0, 12.2), (39.0, 14.2),          # left wing, leading edge
         (46.0, 13.8), (52.0, 13.4),                                                # the back
@@ -318,7 +318,7 @@ def bird(style: str) -> Sprite:
 
 # ------------------------------------------------------------------------------ the cloud
 #: 266x132 local units, drawn at 0.72-1.44 of that on the screen. A unit is about a pixel, so
-#: the wobble is 1.2 units and the facets 8-10 -- the moon's own proportions (v4.23).
+#: the wobble is 1.2 units and the facets 8-10 -- the moon's own proportions.
 CLOUD_W, CLOUD_H = 266.0, 132.0
 
 
@@ -382,9 +382,9 @@ def dolphin_belly(seed: str):
 
 def dolphin(style: str, back: str = DOLPHIN_BACK, under: str = DOLPHIN_UNDER,
             belly_under: str = BELLY_UNDER) -> Sprite:
-    """[back] and [under] default to the palette the concept rounds were photographed with.
-    v4.26 ships a lighter pair, derived in `LakeContrastTest`; the concepts keep theirs so the
-    photographs stay reproducible."""
+    """[back] and [under] default to the palette the concepts were photographed with. The
+    shipped dolphin has a lighter pair, derived in `LakeContrastTest`; the concepts keep theirs so
+    the photographs stay reproducible."""
     s = Sprite("dolphin_body", 115, 58, "SCENE_UNITS", "FIXED_ART", "lake")
     if style == "silhouette":
         s.add(dolphin_outline("dolphin-a"), back)

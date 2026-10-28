@@ -8,15 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The artistic pass's invariants, each tied to the thing it is a statement about.
+ * The vehicles' and the shops' invariants, each tied to the drawing it is a statement about.
  *
- * Every one of the defects this release fixes was a number that had drifted away from the drawing
- * it described: a shadow drawn 37 units above the road because the vehicle frame's origin is not
- * the vehicle's ground, a light bar centred nine units off a roof whose span nobody had measured,
- * an awning blitted before the pane it shades. Freezing the *look* would be worthless -- the look
- * is a judgement and it is allowed to change. What these pin is the relationship: where the roof
- * is, the accessory goes; where the glass is, the canopy goes above it; what the cab window
- * measures, the occupant constants say.
+ * Each guards a number against drifting away from the drawing it describes: a shadow drawn at the
+ * vehicle frame's origin, which is not the vehicle's ground, lies 37 units above the road; a roof
+ * accessory placed without the roof's measured span hangs over the windscreen. Freezing the *look*
+ * would be worthless -- the look is a judgement and it is allowed to change. What these pin is the
+ * relationship: where the roof is, the accessory goes; what the cab window measures, the occupant
+ * constants say.
  *
  * So the artwork is read (the SVG sources and the shipped PNGs) rather than restated, and the call
  * sites are read out of the renderer rather than duplicated as a list here.
@@ -29,34 +28,33 @@ class VehicleAndShopFrontTest {
      * The wheels touch the road at [SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS], and the shadow is
      * drawn there.
      *
-     * The constant is only trustworthy if it is the wheels' own number, so that is derived from
-     * the wheel call rather than asserted: centre 28 plus radius 9. The shadow's placement is read
-     * off the source because *where the call sits* is the whole property -- `drawGroundShadow`
-     * draws on the origin, and in `drawCar` the origin is the beltline.
+     * The constant is only trustworthy if it is the wheels' own number, so the chain that puts a
+     * wheel's bottom on it is read off the source, whole lines with the comments taken off: the
+     * centre is the ground line less the radius, every wheel `drawCar` draws is drawn at that centre
+     * with that radius, and `drawWheel`'s tyre is a disc of the radius it is handed. The shadow's
+     * placement is read off the source because *where the call sits* is the whole property --
+     * `drawGroundShadow` draws on the origin, and in `drawCar` the origin is the beltline.
      */
     @Test
     fun `a vehicle's shadow is drawn on the road and not at its beltline`() {
-        val body = drawCarSource()
-        // The wheel is now drawn from a radius and a centre that the ground line itself defines,
-        // which is the property: whatever radius a family's wheel has, its bottom is the road.
+        val body = codeLines(drawCarSource())
+        // Whatever radius a family's wheel has, its bottom is the road.
         assertTrue(
             "the wheel centre must be derived from the ground line and the radius",
             body.contains("val wheelY = VEHICLE_GROUND_Y_UNITS - wheelRadius"),
         )
-        for (radius in listOf(
-            SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS,
-            SceneObjectRenderer.FIRE_TRUCK_WHEEL_RADIUS_UNITS,
-        )) {
-            assertEquals(
-                "a wheel of radius $radius must touch the road",
-                SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS,
-                (SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS - radius) + radius,
-                0.001f,
-            )
+        val wheels = body.filter { it.startsWith("drawWheel(") }
+        assertEquals("the fire engine's inner wheel and the front and rear ones: $wheels", 3, wheels.size)
+        for (wheel in wheels) {
+            assertTrue("a wheel drawn off the ground line's centre or the radius: $wheel", wheel.endsWith(", wheelY, wheelRadius, hubRadius)"))
         }
+        assertTrue(
+            "the tyre is a disc of the wheel's radius about its centre",
+            codeLines(drawSource("drawWheel")).contains("canvas.drawCircle(cx, cy, radius, fillPaint)"),
+        )
         val lift = body.indexOf("canvas.translate(0f, -VEHICLE_GROUND_Y_UNITS)")
         val drop = body.indexOf("canvas.translate(0f, VEHICLE_GROUND_Y_UNITS)")
-        val shadow = body.indexOf("drawGroundShadow(")
+        val shadow = body.indexOfFirst { it.startsWith("drawGroundShadow(") }
         assertTrue("drawCar must still lift the vehicle onto its own frame", lift >= 0)
         assertTrue("the shadow must be put back down on the road first", drop in (lift + 1) until shadow)
     }
@@ -64,11 +62,13 @@ class VehicleAndShopFrontTest {
     /**
      * The three bodies are the drawings the criteria were measured against.
      *
-     * v4.19 replaced one saloon with three, and every occupant number in the pass -- pillar
-     * light, head gap, pane fill, zero pixels outside the glass -- was measured on *these*
-     * pixels. Pinning them by content hash is what makes those measurements mean something
-     * later: a redraw that moves a pillar by two units would keep every constant valid and
-     * every criterion stale.
+     * Every occupant number -- pillar light, head gap, pane fill, zero pixels
+     * outside the glass -- was measured on *these* pixels. Pinning them by a hash of their
+     * pixels is what makes those measurements mean something later: a redraw that moves a
+     * pillar by two units would keep every constant valid and every criterion stale. The
+     * pixels and not the file: a PNG's bytes change with the zlib that compressed it
+     * (`tools/assets` `raster.encode_png`), the drawing does not. The hash is the SHA-256 of the
+     * RGBA bytes row by row, the `pixels_sha256` of `tools/assets/reports/runtime-inventory.json`.
      *
      * If this fails because a body was redrawn on purpose, re-hash it here in the same change
      * and re-run the criteria sweep -- that is the point of the test, not an obstacle to it.
@@ -76,27 +76,29 @@ class VehicleAndShopFrontTest {
     @Test
     fun `the three bodies are the drawings the criteria were measured against`() {
         val expected = mapOf(
-            // v5.6F: the three «Cut-out» bodies, and the criteria sweep was re-run on them --
-            // see `proposte_v5_6b/registri/vano_vetro/` for the nine readings it produced.
-            "car_body_compact.png" to "f69bfd5730502ebee0a4db404defe7af0d4071051b31855d5eeda12c4b741382",
-            "car_body_saloon.png" to "c3f96f055e13f74bb964bdb0dd4dee6bfb1935436722cef32ebbb0e587b35916",
-            "car_body_estate.png" to "7a30fe5464262eb2493bd08740c183a2d9a5b8f1923234a35f85385c759916f9",
+            // The three «Cut-out» bodies the occupant criteria were measured on.
+            "car_body_compact.png" to "0e4ebeac1bda62c6310c2a632942647bf4060a393160927a9bbeb9f8a7f16290",
+            "car_body_saloon.png" to "c9b6458bca8d7086c79f767981a14c8a101b3d888a9e03bbf337374211ea0e4a",
+            "car_body_estate.png" to "9ec597654418d32724e5a400f677aed26a6aa2341e7c07525279439596106432",
         )
         for ((name, sha) in expected) {
-            val bytes = File(drawableDir(), name).readBytes()
-            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
-            assertEquals("$name changed", sha, digest.joinToString("") { "%02x".format(it) })
+            val image = ImageIO.read(File(drawableDir(), name))
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            for (y in 0 until image.height) {
+                for (x in 0 until image.width) {
+                    val argb = image.getRGB(x, y)
+                    digest.update(byteArrayOf((argb shr 16).toByte(), (argb shr 8).toByte(), argb.toByte(), (argb ushr 24).toByte()))
+                }
+            }
+            assertEquals("$name changed", sha, digest.digest().joinToString("") { "%02x".format(it) })
         }
     }
 
     /**
      * The light bar stands on the roof `car_body` actually draws.
      *
-     * The roof is measured rather than restated: the run of columns whose shell reaches the
-     * drawing's highest row. That is the cabin top plus the shoulder pixels either side of it,
-     * which is exactly the surface something can be mounted on, and it moves if the artwork's
-     * cabin moves. The bar used to span -11..9 with its centre nine and a half units ahead of that
-     * run's, eight units of it hanging over the windscreen.
+     * The roof is measured rather than restated ([carRoofSpanFromArtwork]), so it moves if the
+     * artwork's cabin moves: a bar placed off that run hangs over the windscreen or the boot.
      */
     @Test
     fun `the police light bar lies on the cabin roof`() {
@@ -129,19 +131,14 @@ class VehicleAndShopFrontTest {
     /**
      * **The body is one sheet of paper, and the only thing baked into it is the wheels' shadow.**
      *
-     * This method asserted the opposite shape of drawing until v5.6F: that each shell carried a
-     * near-white *lamp housing* at each end and nothing lamp-sized in the middle, which was how a
-     * v4.19 body said where its lenses went. «Cut-out» has no housings -- the lens is a card
-     * glued on the corner -- and no panels, no door lines, no beltline spear and no sill band: at
-     * the scale a car is drawn on this road none of them is a pixel wide, and they are most of
-     * what the redraw removed.
+     * «Cut-out» has no lamp housings -- the lens is a card glued on the corner -- and no panels,
+     * no door lines, no beltline spear and no sill band: at the scale a car is drawn on this road
+     * none of them is a pixel wide.
      *
-     * So the property is now the absence, stated as something that can fail: the shell is white
-     * from end to end except for the crescent each disc casts on it, and **every** non-white
-     * opaque pixel has to be within a wheel's own reach. Measured on the shipped drawings: 226 to
-     * 314 such pixels per body, 100 % of them inside 13 units of a wheel centre or of that
-     * wheel's shadow centre, against a mean grey of 254 over the whole sheet. A panel line
-     * creeping back in fails here rather than costing bytes nobody sees.
+     * So the property is the absence, stated as something that can fail: the shell is white from
+     * end to end except for the crescent each disc casts on it, and **every** non-white opaque
+     * pixel has to be within a wheel's own reach of a wheel centre or of that wheel's shadow
+     * centre. A panel line creeping back in fails here rather than costing bytes nobody sees.
      */
     @Test
     fun `the body is one sheet whose only baked shading is its wheels' shadow`() {
@@ -188,16 +185,15 @@ class VehicleAndShopFrontTest {
      *
      * The cab glass is painted into `firetruck_body` rather than blitted, so the coupling
      * between the drawing and [SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS] has nothing
-     * enforcing it but this. v4.19 stood the windscreen up and lengthened the cab so a
-     * table-sized head could keep daylight to the A-pillar, which moved every number here --
-     * so they are read back off the drawing rather than restated.
+     * enforcing it but this. A redraw of the cab moves every number here, so they are read back
+     * off the drawing rather than restated.
      */
     @Test
     fun `the appliance cab window is the pane the occupant constants are measured from`() {
-        // v5.6F: the cab window is a **hole in the red paper**, not a pane painted on top of
-        // it, so it is the second subpath of the body's own even-odd outline. Reading the glass
-        // sheet behind it instead would be half a unit out on every side, because the sheet is
-        // grown so no seam can open along the cut -- the same construction the cars use.
+        // The cab window is a **hole in the red paper**, not a pane painted on top of it, so it
+        // is the second subpath of the body's own even-odd outline. The glass sheet behind it
+        // would be half a unit out on every side, because the sheet is grown so no seam can open
+        // along the cut -- the same construction the cars use.
         val svg = svgSource("firetruck_body.svg").readText()
         val outline = Regex("""<path fill-rule="evenodd" d="([^"]+)" fill="#D6362E"/>""").find(svg)
         assertTrue("the appliance's outline must be in the drawing", outline != null)
@@ -231,9 +227,8 @@ class VehicleAndShopFrontTest {
     /**
      * The ladder is carried on the body roof, and it is what sets the vehicle's height.
      *
-     * Its lower rail has to land on the roof rather than hover above it -- that was the v4.18
-     * defect this test was written for -- and its top has to be the tallest point, because
-     * [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is measured to it.
+     * Its lower rail has to land on the roof rather than hover above it, and its top has to be
+     * the tallest point, because [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is measured to it.
      */
     @Test
     fun `the ladder sits on the body roof and sets the vehicle's height`() {
@@ -262,13 +257,10 @@ class VehicleAndShopFrontTest {
     /**
      * The appliance rides a twin rear axle, with real daylight between the tyres.
      *
-     * **Why the old version of this test passed with the wheels overlapped: it demanded the
-     * overlap.** Its third assertion read `gap < 2 * radius` under the comment "they must
-     * overlap into a bogie" -- the 40%-of-diameter overlap that made the inner wheel a crescent
-     * with its hub eaten was the asserted design, not a case the test missed. rc2 reverses the
-     * requirement to a real tandem's geometry: centre spacing at least 1.15 diameters, visible
-     * gap between the tyres. The rendered-pixel half of the criterion lives in the instrumented
-     * `TwinAxleSpacingTest`, which measures the drawn circles rather than the constants.
+     * Overlapping wheels make the inner one a crescent with its hub eaten, so the geometry is a
+     * real tandem's: the centres well over a diameter apart, and visible gap between the tyres.
+     * The rendered-pixel half of the criterion lives in the instrumented `TwinAxleSpacingTest`,
+     * which measures the drawn circles rather than the constants.
      */
     @Test
     fun `the appliance rides a twin rear axle spaced like a tandem`() {
@@ -281,13 +273,11 @@ class VehicleAndShopFrontTest {
         val spacing = SceneObjectRenderer.FIRE_TRUCK_WHEEL_X_UNITS -
             SceneObjectRenderer.FIRE_TRUCK_INNER_WHEEL_X_UNITS
         val diameter = 2f * SceneObjectRenderer.FIRE_TRUCK_WHEEL_RADIUS_UNITS
-        // **v5.6F: 1.12 diameters, not 1.15, and the floor moved on a measurement.** The fleet's
-        // tyres grew half a unit with the «Cut-out» redraw while the axle centres stayed where
-        // `firetruck_body.svg` bakes the wheels' own shadows, so the ratio fell from 1.175 to
-        // 1.121. A ratio copied from real lorries is a proxy anyway; what it stands for is the
-        // daylight, and that is asserted twice below -- in units, and in the pixels the daylight
-        // is actually worth in the near lane, which is the reading that decides whether the twin
-        // axle is visible at all.
+        // **1.12 diameters.** The axle centres are where `firetruck_body.svg` bakes the wheels'
+        // own shadows, and with the shipped tyres they are 1.121 diameters apart. A ratio copied
+        // from real lorries is a proxy anyway; what it stands for is the daylight, and that is
+        // asserted twice below -- in units, and in the pixels the daylight is actually worth in
+        // the near lane, which is the reading that decides whether the twin axle is visible at all.
         assertTrue(
             "centre spacing ${spacing}u must be at least 1.12 diameters (${1.12f * diameter}u)",
             spacing >= 1.12f * diameter,
@@ -315,20 +305,14 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * The shell is cut away over each wheel, in the drawing and not only in paint.
+     * No shell is cut away over a wheel, in the drawing and not only in paint.
      *
-     * The saloon used to be a closed outline with a dead straight bottom edge for all 97 units and
-     * the wheels drawn under it: a slab on two discs. v4.19 cut two holes in the paper and stood
-     * the tyres in them.
-     *
-     * **v5.6F cut the holes back out, and this test is the other half of that sentence.** In
-     * «Cut-out» a wheel is a whole disc of card glued *in front of* the body paper, the way the
+     * In «Cut-out» a wheel is a whole disc of card glued *in front of* the body paper, the way the
      * reference photograph builds one, so a hole would show road through the middle of the car
      * wherever the disc did not cover it. The floor line therefore has to be **unbroken from nose
-     * to tail** -- which is a hole's exact negation and, like a hole, cannot be faked by shading.
+     * to tail** -- which, like a hole, cannot be faked by shading.
      *
-     * It is still the drawing that is measured and not a constant: the two tests this replaces
-     * read the shipped PNG's own alpha, and so does this one.
+     * It is the drawing that is measured and not a constant: the shipped PNG's own alpha.
      */
     @Test
     fun `no shell is cut away over a wheel, because the discs lie in front of it`() {
@@ -358,12 +342,11 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * Each wheel is a **whole disc standing on the road**, with about 45 % of it below the paper.
+     * Each wheel is a **whole disc standing on the road**, with 37 % to 50 % of it below the paper.
      *
-     * That share is the silhouette difference between v5.5's wheel and this one, and it is what
-     * the reference photograph's wheels do: a complete circle whose centre sits on the body's own
-     * floor line, so half of it hangs below the car. Measured at 0.37-0.50 on six photographed
-     * cars; the shipped drawing has to land in that band rather than near either end of it.
+     * That share is what the reference photograph's wheels do: a complete circle whose centre sits
+     * on the body's own floor line, so about half of it hangs below the car. Six photographed cars
+     * measure 0.37 to 0.50, and the shipped drawing has to land in that band.
      *
      * The floor is read off the **drawing**, at the wheel's own column, so a redraw that raised
      * or dropped the body's bottom edge is caught here rather than in a constant that would have
@@ -400,11 +383,10 @@ class VehicleAndShopFrontTest {
      * The livery band lies on paper for its whole width.
      *
      * `police_stripe` and `taxi_checker` are blitted onto the shell, and a band running past the
-     * paper would hang over the road. It was the two arch holes that could swallow it until v5.6F
-     * and it is the chamfered nose and tail that can now -- the band is 40 units on a compact
-     * whose floor is 92 -- so the measurement is unchanged and only what it guards against has
-     * moved. Checked on the two bodies that actually wear a livery, the saloon (police) and the
-     * compact (taxi), because those are the only door lines the two sprites have to fit.
+     * paper would hang over the road: the chamfered nose and tail are what can swallow it -- the
+     * band is 40 units on a compact 92 units long. Checked on the two bodies that actually wear a
+     * livery, the saloon (police) and the compact (taxi), because those are the only door lines
+     * the two sprites have to fit.
      */
     @Test
     fun `the livery band lies on the shell for its whole width`() {
@@ -450,8 +432,8 @@ class VehicleAndShopFrontTest {
      * The taxi has a roof sign, and it stands on the roof rather than over the windscreen.
      *
      * Same rule the light bar is held to, measured off the same artwork, because it is the same
-     * roof. Without it a taxi is a yellow car with a chequered band, which at a hundred and forty
-     * pixels is a yellow car.
+     * roof. Without it a taxi is a yellow car with a chequered band, which at the size a car is
+     * drawn is a yellow car.
      */
     @Test
     fun `the taxi carries a roof sign centred on the roof`() {
@@ -477,13 +459,12 @@ class VehicleAndShopFrontTest {
     /**
      * The lamps are dark by day, come up with the windows, and stop short of being a light source.
      *
-     * The ramp is the vehicles' own (`vehicleLampRamp`, called a window's until v5.12); the ceiling is
-     * below its full strength, so a lamp stays a lamp. Zero for the whole first third of the evening is what makes the
-     * feature free at noon, and every call site is behind that zero.
+     * The ramp is the vehicles' own ([SceneObjectRenderer.vehicleLampRamp]); the ceiling is below its full strength, so
+     * a lamp stays a lamp. Zero until the night's glow reaches 0.35 is what makes the feature free
+     * at noon, and every call site is behind that zero.
      */
     @Test
     fun `vehicle lamps are dark by day and lit by night`() {
-        // The ramp is private, so it is exercised through the values it must produce.
         assertEquals("nothing at midday", 0, litVehicleAlphaAt(0f))
         assertEquals("still nothing in the early evening", 0, litVehicleAlphaAt(0.3f))
         assertTrue("coming up by mid-evening", litVehicleAlphaAt(0.6f) > 0)
@@ -532,8 +513,8 @@ class VehicleAndShopFrontTest {
             )
             // And the sprite really is the sheet behind the paper, not the pane: a full unit
             // wider than the hole on each side, which is the half unit the sheet is grown by plus
-            // the half unit of canvas padding. If a redraw ever made them equal again the glass
-            // would stop covering the cut edge and a seam would open along it.
+            // the half unit of canvas padding. Were they equal, the glass would stop covering the
+            // cut edge and a seam would open along it.
             assertEquals(
                 "$shell: the glass sheet starts a unit outside the pane",
                 shell.paneXUnits - 1f, shell.glassSpriteXUnits, 0.001f,
@@ -544,18 +525,16 @@ class VehicleAndShopFrontTest {
     /**
      * The lamp lenses are cards glued on the corners, mostly on the paper and slightly proud.
      *
-     * v4.19 shares one amber sprite and one red sprite across three bodies and the fire engine,
+     * One amber sprite and one red sprite are shared across the three bodies and the fire engine,
      * so registration is not a property of one file pair: each body says where the lenses go, and
      * a lens in the wrong place would sit in the middle of a door. Measured on the shipped pixels
      * rather than on the numbers, so a redraw of either part is caught.
      *
-     * **v5.6F: "entirely on painted shell" became "mostly on it, and reaching the corner".** The
-     * shells bake no housing any more, and «Cut-out» sets each lens half a unit past the nose or
-     * the tail so it reads as the lamp *on* the corner rather than as a sticker behind it --
-     * measured, 14 % to 33 % of a lens's ink is over the chamfer and off the paper, which at 0.88
-     * px per unit in the near lane is the corner pixel and not a floating lamp. What must still
-     * hold is that the lens is a lamp and not a decal: most of it on the paper, and its inner edge
-     * well inside the body.
+     * The shells bake no housing, and «Cut-out» sets each lens half a unit past the nose or the
+     * tail so it reads as the lamp *on* the corner rather than as a sticker behind it: part of a
+     * lens's ink is over the chamfer and off the paper, which in the near lane is the corner pixel
+     * and not a floating lamp. What must hold is that the lens is a lamp and not a decal: most of
+     * it on the paper, and its inner half on the body.
      */
     @Test
     fun `both lamp lenses are glued on the corner the body ends at`() {
@@ -604,34 +583,14 @@ class VehicleAndShopFrontTest {
     // ---------------------------------------------------------------- shop fronts
 
     /**
-     * ### What the five tests that stood here were protecting, and where each went
+     * **A shop is told apart from an unfinished rectangle by its outline, and the two shops from
+     * each other.** The shops are cut-out figures dealt from [NeighbourhoodTable]: none of the
+     * three may fill 92 % or more of its own canvas, and no two of them may be the same drawing.
      *
-     * They were written against the flat shopfronts of v4.18: a wall, a cornice, an awning, a sign
-     * and a window, at literal offsets, read out of `drawRestaurantBuilding` and
-     * `drawBarBuilding`. v5.0 replaced both with cut-out figures dealt from
-     * [NeighbourhoodTable], so there are no offsets to read and no function to read them from.
-     * Each concern is accounted for rather than dropped:
-     *
-     * - *"each shop is capped above its wall, and the two caps differ"* -- **kept, below**, and
-     *   widened: the question was never the cornice, it was whether a shop is told apart from an
-     *   unfinished rectangle by its outline, and that is now asked of the silhouettes themselves.
-     * - *"the restaurant frontage stacks fascia, canopy, glass and door"* -- **gone with the
-     *   drawing.** The pavilion is one cut-out card with its coping, dome sign, awning and steps
-     *   drawn into it; there is no stacking order left to get wrong, because there are no longer
-     *   four sprites to order.
-     * - *"the pub front packs lantern, panes and door inside the painted field"* -- **moved** to
-     *   `tools/assets/tests/test_neighbourhood.py`. That is the containment rule, and it is now
-     *   enforced where the card is drawn: the generator refuses to render a card that leaves its
-     *   host face, for every piece of every family rather than for the bar alone.
-     * - *"both shop fronts have a lit upper storey and glazed street level"* -- **half kept**
-     *   (below: both shops are glazed and their glass follows opening hours) and **half gone**:
-     *   the shops no longer have an upper storey. That is the redraw, not an oversight; see
-     *   `BuildingHeightDeclarationTest`, which measures how much shorter they are.
-     * - *"the shop window's frame survives being tinted"* -- **structurally impossible to fail
-     *   now**, which is why there is no successor. The frame was ink in the same sprite as the
-     *   glass, so a tint multiplied both and could wash the frame out; the frame is now in the
-     *   piece's fixed layer and the glass is a separate mask summed over it. The two cannot be
-     *   multiplied by one colour any more.
+     * What a figure holds is checked where it is drawn: the generator refuses to render a card that
+     * leaves its host face (`tools/assets/tests/test_neighbourhood.py`), and a window's frame is in
+     * the piece's fixed layer with the glass a separate mask summed over it, so one tint cannot
+     * wash both out.
      */
     @Test
     fun `the two shops are told apart from each other and from a plain rectangle`() {
@@ -667,9 +626,9 @@ class VehicleAndShopFrontTest {
     /**
      * Both shops are glazed at street level, and somebody can be behind the glass.
      *
-     * The v4.1 defect was a restaurant with no occupant call site at all; the v4.18 one was a
-     * frontage that read as a slab with a door in it. Both are the same question asked of the
-     * pieces: does this figure have glass, and does it declare a window a bust fits in.
+     * A frontage with no glass reads as a slab with a door in it, and one with no window shows
+     * nobody: the same question asked of every piece of both families -- does this figure have
+     * glass, and does it declare a window a bust fits in.
      */
     @Test
     fun `both shop figures are glazed and populatable`() {
@@ -693,6 +652,7 @@ class VehicleAndShopFrontTest {
             }
         }
     }
+
     /**
      * The appliance carries three silver equipment lockers along its body.
      *
@@ -706,8 +666,8 @@ class VehicleAndShopFrontTest {
         val image = ImageIO.read(File(drawableDir(), "firetruck_body.png"))
         val px = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         // The locker row, in the body's own local units, read through its blit origin.
-        // The locker row sits ABOVE the cream stripe: below it the wheel arches rise to y=13.3
-        // and ate two of the three panels, which is what the v4.19 redraw moved them off.
+        // The locker row sits ABOVE the cream stripe: below it the wheel arches rise into the
+        // row and would cut two of the three panels.
         val row = ((4f - SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS) * px).toInt()
         var runs = 0
         var inRun = false
@@ -717,7 +677,7 @@ class VehicleAndShopFrontTest {
             val g = (argb shr 8) and 0xFF
             val b = argb and 0xFF
             // The locker steel is #C9CDD2, a *cool* grey: b is a few points above r. The paper
-            // rim is neutral (#dcdcdc), so requiring the blue lift is what tells them apart.
+            // rim is a neutral grey, so requiring the blue lift is what tells them apart.
             val silver = (argb ushr 24) >= 200 && r in 185..215 && b > r + 4 && b - r < 20
             if (silver && !inRun) runs++
             inRun = silver
@@ -728,12 +688,9 @@ class VehicleAndShopFrontTest {
 
     // ---------------------------------------------------------------- helpers
 
-    /** `litVehicleAlpha` is private; this is its published behaviour, read off the source. */
-    private fun litVehicleAlphaAt(nightGlow: Float): Int =
-        (vehicleLampRampAt(nightGlow) * 0.8f).toInt()
+    private fun litVehicleAlphaAt(nightGlow: Float): Int = SceneObjectRenderer.litVehicleAlpha(nightGlow)
 
-    private fun vehicleLampRampAt(nightGlow: Float): Int =
-        (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
+    private fun vehicleLampRampAt(nightGlow: Float): Int = SceneObjectRenderer.vehicleLampRamp(nightGlow)
 
     private fun luminanceAt(image: java.awt.image.BufferedImage, x: Int, y: Int): Int {
         val argb = image.getRGB(x, y)
@@ -763,13 +720,10 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * The cabin roof, measured off the shipped `car_body`: the columns whose shell reaches the
-     * drawing's topmost row, in the local units the renderer places accessories in.
-     */
-    /**
-     * The run of roof a given body actually draws: the columns whose shell reaches the drawing's
-     * highest row. That is the cabin top plus the shoulder pixels either side of it, which is
-     * exactly the surface something can be mounted on, and it moves if the artwork's cabin moves.
+     * The run of roof a given body actually draws, in the local units the renderer places
+     * accessories in: the columns whose shell reaches the drawing's highest row. That is the cabin
+     * top plus the shoulder pixels either side of it, which is exactly the surface something can be
+     * mounted on, and it moves if the artwork's cabin moves.
      *
      * The estate is excluded by its callers rather than by this helper: its highest row is the
      * roof rack, not the roof, and it carries no roof accessory anyway.
@@ -781,11 +735,10 @@ class VehicleAndShopFrontTest {
         }
         val highest = tops.min()
         // **Within one unit of the highest row, not exactly on it.** A «Cut-out» roof is a cut
-        // edge: it carries a per-vertex wobble and the saloon's own roof line falls 0.34 units
-        // from front to back, so the single topmost *row* is reached by one end of the run and
-        // not by the other -- measured, the saloon's exact-row reading is -10.3..24.3 for a roof
-        // the drawing runs -20.4..23.6. One unit is the wobble's own amplitude, and reading the
-        // run at that tolerance gives -21.3..26.7, which contains the declaration.
+        // edge: it carries a per-vertex wobble and the saloon's own roof line falls from front to
+        // back, so the single topmost *row* is reached by one end of the run and not by the
+        // other, and an exact-row reading misses part of the roof. One unit is the wobble's own
+        // amplitude, and the run read at that tolerance contains the declared roof.
         val tolerance = SpriteBlitter.SPRITE_PIXELS_PER_UNIT.toInt()
         val columns = tops.indices.filter { tops[it] <= highest + tolerance }
         val toLocal = { px: Int ->
@@ -806,6 +759,13 @@ class VehicleAndShopFrontTest {
     }
 
     private fun drawCarSource(): String = drawSource("drawCar")
+
+    /** [text]'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
 
     private fun drawSource(function: String): String =
         rendererSource().readText()

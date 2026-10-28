@@ -9,8 +9,7 @@ import kotlin.math.roundToInt
  *
  * Until v4.22 the selection was `stableFraction(spec) < density`: an independent coin per
  * candidate, weighted by the slider. On a large population that approximates a density; on ten
- * candidates it deals one fixed hand per fraction — `BACKLOG_v4_20.md` and the v4.19 driver
- * defect are the same arithmetic — and it says nothing about *which* slots survive. At 35% one
+ * candidates it deals one fixed hand per fraction, and it says nothing about *which* slots survive. At 35% one
  * or two cars per lane were kept, but sometimes adjacent slots: two cars 0.32 of a loop apart
  * read as a queue, and the maintainer's report from the device was exactly that — few cars that
  * look like overcrowding. The geometry was never the problem (slots are uniform around the loop

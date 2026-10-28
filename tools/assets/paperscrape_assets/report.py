@@ -3,8 +3,8 @@
 All three are written for every run. The JSON is what the checks read (`stale_reports`), the
 markdown is what a human reviews, and the sheet is the only one of the three that
 can catch the failure the numbers cannot: a reconstruction that scores well and
-still looks wrong. `AI_PROJECT_RULES.md` section 6.8 requires that an asset be
-looked at, not read about, and a metric table is reading about it.
+still looks wrong. An asset is verified by rendering it and looking at it, not by
+reading about it, and a metric table is reading about it.
 
 The sheet composites each sprite over a mid-tone background rather than over
 white or over a checkerboard. These sprites are white silhouettes: on white they
@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+from . import raster
 from .fidelity import FidelityResult
 from .inventory import SpriteMeasurement
 
@@ -85,13 +86,12 @@ def stale_reports(
 ) -> list[str]:
     """Which committed reports no longer describe the shipped artwork.
 
-    **This check exists because both of them were found stale at once, and neither said so.**
-    `reports/runtime-inventory.json` carried the pre-v5.1 palm -- 120x120 px with a 120x111
-    content box -- for the whole of v5.1 and into v5.2, so anyone answering a question about the
-    crown from the report got the geometry of a drawing that had been replaced (168x144, content
-    157x119). `reports/fidelity.json` carried the same pre-v5.1 canvas. Both are the output of a
-    command nobody re-ran after the redraw, and `CLAUDE.md` section 4's advice -- re-measure
-    rather than trust them -- is advice a reader has to already suspect something to follow.
+    **A committed report goes stale without saying so.** `reports/runtime-inventory.json` and
+    `reports/fidelity.json` are the output of a command that has to be re-run after a redraw; left
+    behind, they describe the drawing that was replaced -- a palm at 120x120 px with a 120x111
+    content box where the shipped crown is 168x144, content 157x119 -- and anyone answering a
+    question about the sprite from them gets the old geometry. Advice to re-measure rather than
+    trust them is advice a reader has to already suspect something to follow.
 
     A report going stale is not the defect; a report going stale **in silence** is. So this is run
     by `validate`, which the release checklist runs, and it names the sprites rather than saying
@@ -99,8 +99,8 @@ def stale_reports(
     the number of names tells you at a glance whether a redraw or a whole library moved.
 
     Each report is checked against whatever of itself is a claim about a PNG: the inventory's
-    per-file SHA-256, fidelity's recorded reference size and content box, and -- since v5.5C --
-    the neighbourhood budget's `shipped_perimeter` block.
+    per-file SHA-256, fidelity's recorded reference size and content box, and the
+    neighbourhood budget's `shipped_perimeter` block.
 
     **What the budget half does and does not reach.** `buildings/budget.json` has two parts. Its
     `shipped_perimeter` is a claim about the PNGs in `drawable-nodpi`, so it is checked here, and
@@ -110,9 +110,6 @@ def stale_reports(
     under `buildings/out/`, which are a generator's scratch output, are not committed and are
     excluded from the delivered archive; there is nothing shipped to compare them against, and
     saying so here is better than a check that silently covers half a file.
-
-    Until v5.5C the budget was the one committed report nothing looked at: item 125's second half
-    was closed in v5.2 over two of the three, and the third was named in the item and missed.
     """
     problems: list[str] = []
 
@@ -323,8 +320,8 @@ def fidelity_markdown(results: list[FidelityResult], gaps: list[tuple[str, str]]
     so nothing here has to be exhaustive to be complete. What this document carries is
     what a reader decides something about: the criteria, the verdict counts, and the
     sprites that are *not* in the expected state. An exhaustive list of what is fine is
-    not evidence that it is fine -- the verdict count is -- and printing it cost this
-    report 11 000 of its 13 800 words, 267 of which were the same sentence repeated.
+    not evidence that it is fine -- the verdict count is -- and printing it would take
+    11 000 of the report's 13 800 words, 267 of them one sentence repeated.
     """
     by_verdict: dict[str, int] = {}
     for r in results:
@@ -441,7 +438,12 @@ def comparison_sheet(
     rows: list[tuple[str, np.ndarray, np.ndarray]],
     cell: int = SHEET_CELL,
 ) -> None:
-    """Three columns per sprite: shipped, staged, amplified difference."""
+    """Three columns per sprite: shipped, staged, amplified difference.
+
+    Every pixel is opaque, so the sheet is written as RGB, through :func:`raster.encode_png` like
+    the sprites: the file is committed, and that encoder writes it smaller than Pillow's per-row
+    filters alone.
+    """
     if not rows:
         return
     width = cell * 3
@@ -460,4 +462,4 @@ def comparison_sheet(
                   fill=(220, 226, 232, 255))
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    sheet.convert("RGB").save(path, format="PNG", optimize=False, compress_level=9)
+    path.write_bytes(raster.encode_png(sheet.convert("RGB")))

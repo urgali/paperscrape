@@ -12,52 +12,47 @@ import org.junit.Test
  *
  * ### Why this test exists
  *
- * Twelve gallery cards shipped for eight releases with forty-nine things wrong with them, and no
- * test noticed, because every test that looked at a card asked the same kind of question:
- * `ThemePreviewSceneTest` asks *which sprites are in the list*, `PreviewRendererAgreementTest`
- * asks *whether a building's parts are the deal the wallpaper would deal*. Neither asks where an
- * object stands, and neither asks whether anything is standing in front of it. So a dolphin could
- * be -- and was -- drawn on the sand, and a bar could be 88 % behind a house, with every
- * assertion green.
+ * The other tests that look at a card ask what it contains: `ThemePreviewSceneTest` asks *which
+ * sprites are in the list*, `PreviewRendererAgreementTest` asks *whether a building's parts are the
+ * deal the wallpaper would deal*. Neither asks where an object stands, nor whether anything is
+ * standing in front of it, so a dolphin drawn on the sand or a bar mostly behind a house would leave
+ * both green.
  *
- * The three questions below are the ones nobody was asking. They are run against the same two
- * sources the wallpaper itself runs on: `SceneObjectCatalog` plus the customization's own density
- * filters for what the scene draws, and the **alpha channel of the shipped PNGs** for where the
- * ink of a preview object actually falls. Nothing here restates a number from the other side.
+ * The questions below are run against the same two sources the wallpaper itself runs on:
+ * `SceneObjectCatalog` plus the customization's own density filters for what the scene draws, and
+ * the **alpha channel of the shipped PNGs** for where the ink of a preview object actually falls.
+ * Nothing here restates a number from the other side.
  *
  * - **R1, families.** Every family the scene draws at least once per tile appears on the card, and
  *   the card shows no family the scene does not draw. [EXEMPT_FROM_THE_CARD] lists what is left
  *   out on purpose, each with its reason; [HOUR_DEPENDENT] lists what a card may leave out because
- *   a card is a single hour and the scene is all of them -- but not show with its switch off (the
- *   moon was, with *Moon* off, until v5.15C2: inventory I-974; R9 holds the moon to its hour).
+ *   a card is a single hour and the scene is all of them -- but not show with its switch off (R9
+ *   holds the moon to its hour).
  * - **R2, place.** Every boat and every dolphin has its ink inside the water band.
  * - **R3, sight.** Nothing is more than half covered by something drawn after it.
- * - **R4, colour and landscape** (v5.8B). The card is one real moment of the wallpaper's day, and
- *   every colour it paints the landscape with is the wallpaper's own rule at that moment: the sky
- *   from [SkyGradient], the hills, the mountains and the water blended on the moment's `dayBlend`,
- *   the road from `SceneObjectRenderer.roadColor` -- and there only when
- *   `SceneObjectRenderer.drawsRoad` says the scene has one. R1 to R3 held the objects to the scene
- *   and left all of this to the card, and the card had drifted: Sunset's sky coral where the
- *   wallpaper is never coral, the road a cold grey the wallpaper does not use, dunes on the Desert,
- *   and a sky edit that never reached the card at all.
- * - **R5, the floor** (v5.8E, V3-47). A card car's body ends on the floor the card gives it,
- *   `PREVIEW_CAR_FLOOR_DROP` below its ground line, measured off the body's PNG. The constant that
- *   placed them still described the v4.19 bodies, and all 24 cars of the twelve cards stood 1.75
- *   card units above it.
- * - **R6, the species** (v5.8E, V3-48). A card shows a fir only where the wallpaper can stand one
- *   (`SceneObjectRenderer.drawsFirs`). R1 counts a fir as a tree, so it passed Tundra's card, which
- *   drew a fir for its sparse wood while its wallpaper draws snowy oaks.
- * - **R7, the objects' colours** (v5.9G, inventory I-38). The trees, the cars and the decorations
- *   wear the colours `colorFor` gives at the card's moment, the palms the shade `nightShadeFor`
- *   gives, the clouds `drawClouds`' pair on the same blend, and the windows the glass
- *   `drawNeighbourhoodBuilding` lights, a business's by its opening hours. R4 had stopped at the building
- *   walls, and on every night card everything in front of them kept its noon colours.
- * - **R8, the fixed art on a tinted body** (v5.9G). A pumpkin is carved where `halloweenEnabled`
- *   carves the wallpaper's, and a penguin's belly is the wallpaper's white.
+ * - **R4, colour and landscape.** The card is one real moment of the wallpaper's day, and every
+ *   colour it paints the landscape with is the wallpaper's own rule at that moment: the sky from
+ *   [SkyGradient], the hills, the mountains and the water blended on the moment's `dayBlend`, the
+ *   road from `SceneObjectRenderer.roadColor` -- and there only when `SceneObjectRenderer.drawsRoad`
+ *   says the scene has one. Without it a card's sky, road or ground could drift from the
+ *   wallpaper's while R1 to R3 still passed, and a sky edit could fail to reach the card.
+ * - **R5, the floor.** A card car's body ends on the floor the card gives it,
+ *   `PREVIEW_CAR_FLOOR_DROP` below its ground line, measured off the body's PNG, so a body redrawn
+ *   without the constant following it fails here instead of floating.
+ * - **R6, the species.** A card shows a fir only where the wallpaper can stand one
+ *   (`SceneObjectRenderer.drawsFirs`). R1 counts a fir as a tree, so it alone would pass a card that
+ *   draws a fir where its wallpaper draws snowy oaks.
+ * - **R7, the objects' colours.** The trees, the cars and the decorations wear the colours
+ *   `colorFor` gives at the card's moment, the palms the shade `nightShadeFor` gives, the clouds
+ *   `drawClouds`' pair on the same blend, and the windows the glass `drawNeighbourhoodBuilding`
+ *   lights, a business's by its opening hours. R4 stops at the building walls; without R7 a night
+ *   card could paint everything in front of them in its noon colours.
+ * - **R8, the fixed art on a tinted body.** A pumpkin is carved where `halloweenEnabled` carves the
+ *   wallpaper's, and a penguin's belly is the wallpaper's white.
  *
  * The runs cover the twelve built-ins, customizations no built-in ships (including every
- * landscape colour edited), and **a theme saved under a `custom:` id**, which is where the card's
- * old rule -- palms by theme name -- said oaks while the wallpaper drew palms.
+ * landscape colour edited), and **a theme saved under a `custom:` id**, where a rule keyed on the
+ * theme's name -- palms by theme name -- would draw oaks while the wallpaper draws palms.
  *
  * ### The measurement
  *
@@ -83,20 +78,17 @@ class ThemePreviewTruthTest {
      *   and standing in a differently-shaped one would be the card showing something the scene
      *   does not contain -- the one thing `ThemePreviewScenes` must not do.
      *
-     * **`SANTA` was the second entry and is not any more.** v5.7A named its reason -- a periodic
-     * flyby on a random interval, not a population -- and said in the same breath that the
-     * fireworks are periodic in exactly that way and the card draws those. The maintainer settled
-     * it: the sleigh goes on the card. So the list is down to the one exemption that rests on the
-     * artwork not existing, and `SANTA` is now held to the rule like everything else -- Christmas
-     * is the built-in that carries it, and any theme whose `santaEnabled` is on owes it too.
+     * **`SANTA` is not exempt**, though it is a periodic flyby rather than a population: the
+     * fireworks are periodic in the same way and the card draws those, and the sleigh is on the card
+     * (`DESIGN_NOTES.md` §12, decision 73). So the list holds only the exemption that rests on the
+     * artwork not existing, and any theme whose `santaEnabled` is on owes the card its sleigh.
      */
     private val EXEMPT_FROM_THE_CARD = setOf("PARASOL")
 
     /**
      * Families whose presence depends on the hour rather than on the theme, so their absence cannot be
      * held against a card: a card is one moment. Their presence can: a card shows none of them with its
-     * switch off, which is the scene drawing none at any hour (until v5.15C2 this list exempted both
-     * directions, and the card drew the moon with *Moon* off: inventory I-974).
+     * switch off, which is the scene drawing none at any hour.
      */
     private val HOUR_DEPENDENT = setOf("SUN", "MOON", "CLOUDS")
 
@@ -106,32 +98,30 @@ class ThemePreviewTruthTest {
      * Sprite name prefix to family, longest prefix first.
      *
      * Every drawable a card can emit must match one of these -- `every sprite the card can draw
-     * has a family` asserts it. The rule this replaces had no such assertion and a hole to go with
-     * it: its table said `fire_`, the sprites are `firetruck_body` and `firetruck_ladder`, so the
-     * fire appliance fell into an "unknown" bucket that both the presence check and the coverage
-     * check skipped. A silently unchecked object is worse than an unchecked one.
+     * has a family` asserts it. Without that, a prefix that misses its sprites (`fire_` against
+     * `firetruck_body`) drops an object into an "unknown" bucket that both the presence check and
+     * the coverage check skip. A silently unchecked object is worse than an unchecked one.
      */
     private val FAMILY_BY_PREFIX: List<Pair<String, String>> = listOf(
         "house_large_" to "HOUSE_LARGE",
         "house_small_" to "HOUSE_SMALL",
         "ground_flowers" to "FLOWERS",
         "santa_sleigh" to "SANTA",
-        // v5.15: the sleigh's reindeer, a piece of the same group.
+        // The sleigh's reindeer, a piece of the same group.
         "santa_reindeer_" to "SANTA",
         "star_sparkle" to "LIGHTS",
-        // The wreath on a front door (v5.14C2): the one sprite of a building's Christmas decorations, its bulbs and star
-        // being flat parts.
+        // The wreath on a front door: the one sprite of a building's Christmas decorations, its bulbs and star being flat
+        // parts.
         "deco_wreath" to "DECORATIONS",
-        // v5.16: the Halloween decorations of a house or a shop, a family of their own; the Headless Horseman's pieces, one
-        // group as the sleigh's; and the scarecrow with the light of its head.
+        // The Halloween decorations of a house or a shop, a family of their own; the Headless Horseman's pieces, one group
+        // as the sleigh's; and the scarecrow with the light of its head.
         "deco_cobweb" to "HALLOWEEN_DECORATIONS",
-        "deco_bat" to "HALLOWEEN_DECORATIONS",
         "deco_jack_o_lantern" to "HALLOWEEN_DECORATIONS",
         "horseman_" to "HORSEMAN",
         "scarecrow" to "SCARECROW",
         "restaurant_" to "RESTAURANT",
-        // v5.13: the shop and the two stations, before `police_` -- the police car's livery -- which
-        // would otherwise claim the police station's layers for the traffic.
+        // The shop and the two stations, before `police_` -- the police car's livery -- which would
+        // otherwise claim the police station's layers for the traffic.
         "police_station_" to "POLICE_STATION",
         "fire_station_" to "FIRE_STATION",
         "shop_" to "SHOP",
@@ -183,11 +173,11 @@ class ThemePreviewTruthTest {
         fun add(family: String, n: Int) {
             if (n > 0) out[family] = (out[family] ?: 0) + n
         }
-        // A place among the houses draws, in each copy of the tile, the building the street deals it
-        // (v5.13): in copy 0 -- the stretch the card draws, where a fresh engine starts -- the building at the place's
-        // rank across the tile. Since v5.13B2 a built-in street has five places and
-        // the card three, the middle one by depth of each row of the size table (`StorefrontStreet.cardPlaceOf`):
-        // the other two are left out on purpose (`DESIGN_NOTES.md` §9, "What the card leaves out").
+        // A place among the houses draws, in each copy of the tile, the building the street deals it: in
+        // copy 0 -- the stretch the card draws, where a fresh engine starts -- the building at the place's
+        // rank across the tile. A built-in street has five places and the card three, the middle one by
+        // depth of each row of the size table, the nearer of two (`StorefrontStreet.cardPlaceOf`); the
+        // other two are left out on purpose (`DESIGN_NOTES.md` §12, decision 65).
         val places = StorefrontStreet.places(layout)
         val drawnByTheCard = listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)
             .mapNotNull { StorefrontStreet.cardPlaceOf(places, it) }.toSet()
@@ -230,13 +220,14 @@ class ThemePreviewTruthTest {
         // tree's and the palm's (`drawChristmasLights`, *Lights on the trees*). No trees, no lights -- which is why this
         // reads both switches and the trees'.
         if ((c.christmasTreeLightsEnabled || c.christmasFirsEnabled) && c.trees.visible) add("LIGHTS", 1)
-        // Every building has a front door, and with the Christmas decorations on each carries its wreath (v5.14, decision
-        // 67): the scene's buildings, the towers, the houses and the six among them, as counted above.
+        // Every building has a front door, and with the Christmas decorations on each carries its wreath
+        // (`DESIGN_NOTES.md` §12, decision 67): the scene's buildings, the towers, the houses and the six among
+        // them, as counted above.
         if (c.christmasBuildingLightsEnabled) {
             val buildings = out.filterKeys { k -> k == "TOWER" || k.startsWith("HOUSE_") || Storefront.ALL.any { it.name == k } }.values.sum()
             add("DECORATIONS", buildings)
         }
-        // The Halloween decorations (v5.16) hang on the houses and the three shops, one set a building.
+        // The Halloween decorations hang on the houses and the three shops, one set a building (decision 83).
         if (c.halloweenDecorationsEnabled) {
             val decorated = setOf(Storefront.RESTAURANT.name, Storefront.BAR.name, Storefront.SHOP.name)
             add("HALLOWEEN_DECORATIONS", out.filterKeys { k -> k.startsWith("HOUSE_") || k in decorated }.values.sum())
@@ -286,7 +277,7 @@ class ThemePreviewTruthTest {
         var bottom = -Float.MAX_VALUE
         for (part in item.parts) {
             val ink = inkOf(part.resId) ?: continue
-            // A part drawn [PreviewSprite.scale] times its size from its origin: a wreath (v5.14C2).
+            // A part drawn [PreviewSprite.scale] times its size from its origin: a wreath.
             left = minOf(left, item.x + item.scale * (part.ox + part.scale * ink.left))
             top = minOf(top, item.y + item.scale * (part.oy + part.scale * ink.top))
             right = maxOf(right, item.x + item.scale * (part.ox + part.scale * ink.right))
@@ -340,21 +331,21 @@ class ThemePreviewTruthTest {
                 ))),
             "beach with its palms switched off" to
                 (beach to defaultCustomizationFor("beach").copy(palmsEnabled = false)),
-            // v5.10C: the switch on a theme that plants none, the three the maintainer is shown.
+            // The palms switch on themes that plant none.
             "christmas with palms in place of its trees" to
                 (ThemeCatalog.byId("christmas") to defaultCustomizationFor("christmas").copy(palmsInsteadOfTrees = true)),
             "autumn with palms in place of its trees" to
                 (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true)),
             "winter with palms in place of its trees" to
                 (ThemeCatalog.byId("winter") to defaultCustomizationFor("winter").copy(palmsInsteadOfTrees = true)),
-            // v5.10C2: the firs stay firs among the palms, wherever the Christmas layer stands them.
+            // The firs stay firs among the palms, wherever the Christmas layer stands them (decision 66).
             "autumn with the Christmas lights and palms in place of its trees" to
                 (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)),
             "christmas with palms, its woodland thinned to a scattering" to
                 (ThemeCatalog.byId("christmas") to defaultCustomizationFor("christmas").let {
                     it.copy(palmsInsteadOfTrees = true, trees = it.trees.copy(density = 0.2f))
                 }),
-            // The wallpaper lights a palm too; until v5.10C the card's palm had no lights to show.
+            // The wallpaper lights a palm too, and so must the card's.
             "beach with the Christmas lights on" to
                 (beach to defaultCustomizationFor("beach").copy(christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)),
             "beach with its sea turned off" to
@@ -371,8 +362,8 @@ class ThemePreviewTruthTest {
                 (spring to defaultCustomizationFor("spring").let {
                     it.copy(fallColorsEnabled = true, pumpkins = it.pumpkins.copy(visible = true))
                 }),
-            // v5.16, the three switches *Christmas lights* became, each alone (the mid-round review: the trees' lights alone showed
-            // nothing on a card), and the Halloween theme's new things with Santa beside the Horseman.
+            // *Christmas lights*' three switches, each alone -- the trees' lights alone must still show on a card -- and the
+            // Halloween theme's things, with Santa beside the Horseman.
             "autumn with only the lights on the trees" to
                 (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(christmasTreeLightsEnabled = true)),
             "autumn with only the Christmas firs" to
@@ -391,8 +382,8 @@ class ThemePreviewTruthTest {
                 )),
             "halloween with Santa beside the Horseman" to
                 (ThemeCatalog.byId("halloween") to defaultCustomizationFor("halloween").copy(santaEnabled = true)),
-            // v5.14: every building that keeps hours shut at the card's hour, its blinds and its shutter -- flat cards, the shutter's of the
-            // door's own outline -- on the card.
+            // Every building that keeps hours shut at the card's hour, its blinds and its shutter -- flat cards, the shutter's of the
+            // door's own outline -- on the card (decision 69).
             "autumn with the three groups' hours 13:00-20:00, every building that keeps hours shut" to
                 (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(
                     shopHoursEnabled = true, shopOpenHour = 13f, shopCloseHour = 20f,
@@ -403,8 +394,8 @@ class ThemePreviewTruthTest {
     }
 
     /**
-     * Whether the card is drawn at night: the strip's choice, or the two themes whose subject is the night -- and since v5.16
-     * at every hour where Halloween's night sky by day is in force, whatever the strip asks, as the wallpaper.
+     * Whether the card is drawn at night: the strip's choice, or the two themes whose subject is the night -- and at every
+     * hour where Halloween's night sky by day is in force, whatever the strip asks, as the wallpaper (decision 82).
      */
     private fun cardNight(theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): Boolean =
         (forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)) || c.nightOverDayActive()
@@ -437,14 +428,13 @@ class ThemePreviewTruthTest {
                 out += "$label: R2 a $what is drawn on a card with no water"
                 continue
             }
-            // **The waterline, not the whole body**, and the first draft of this rule had it
-            // wrong: it asked for every pixel to be inside the band, and a sailboat's sail is
-            // above the water in the scene too -- `gatherLakeDecorations`' own comment says a
-            // sail stands about four lane widths above its waterline, and a dolphin is drawn
-            // mid-leap, climbing out of it. What is true of both, and is the thing that went
-            // wrong, is where the object *meets* the water: the bottom of its ink is the line it
-            // floats on, and that line belongs inside the band. Below the band's floor is an
-            // animal on the ground; above its surface is one in the air.
+            // **The waterline, not the whole body.** Every pixel inside the band would be the wrong
+            // rule: a sailboat's sail is above the water in the scene too -- `gatherLakeDecorations`'
+            // own comment says a sail stands about four lane widths above its waterline -- and a
+            // dolphin is drawn mid-leap, climbing out of it. What is true of both is where the
+            // object *meets* the water: the bottom of its ink is the line it floats on, and that
+            // line belongs inside the band. Below the band's floor is an animal on the ground;
+            // above its surface is one in the air.
             //
             // A unit of slack, because the band's edge is a fill and the ink's edge is a
             // measurement, and a hull whose last row of pixels touches the waterline is afloat.
@@ -528,8 +518,8 @@ class ThemePreviewTruthTest {
             for (forceNight in listOf(null, true)) {
                 for (item in drawOrder(ThemePreviewScenes.forTheme(theme, c, forceNight))) {
                     for (part in item.parts) {
-                        // A house's lit window at night is a flat card of the house, no sprite (v5.12); so are a shut
-                        // building's blinds and shutter (v5.14).
+                        // A house's lit window at night is a flat card of the house, no sprite; so are a shut
+                        // building's blinds and shutter.
                         if (part.isFlat) continue
                         val name = nameOf(part.resId)
                         if (familyOf(name) == null) unknown += name
@@ -553,9 +543,9 @@ class ThemePreviewTruthTest {
     }
 
     /**
-     * **R9, the moon** (v5.15C2, inventory I-974). The card shows the moon at night, and with *Halloween* on by day too
-     * (the carved moon, decided: inventory I-936) -- and only while *Moon* is on, as the wallpaper draws it. Every
-     * built-in with *Moon* on and off, *Halloween* on and off, at its own hour, forced to night and forced to day.
+     * **R9, the moon.** The card shows the moon at night, and with *Halloween* on by day too (the carved moon,
+     * `DESIGN_NOTES.md` §12, decision 74) -- and only while *Moon* is on, as the wallpaper draws it. Every built-in with
+     * *Moon* on and off, *Halloween* on and off, at its own hour, forced to night and forced to day.
      */
     @Test
     fun `R9 the card shows the moon where its hour has it, and only with Moon on`() {
@@ -756,10 +746,9 @@ class ThemePreviewTruthTest {
             same("a star", PaperRenderer.STAR_POINT_COLOR, star.colour)
         }
         val palms = scene.items.any { item -> item.parts.any { nameOf(it.resId).startsWith("palmtree_") } }
-        // Whether a palm stands in the scene, read off the slots it keeps (v5.10C2). It was the switch and
-        // the trees' visibility, and that stopped being the same thing when the firs began to stay firs
-        // among the palms: Christmas at 20 % keeps two tree slots and both are firs, so the switch is on
-        // over a scene with no palm in it.
+        // Whether a palm stands in the scene, read off the slots it keeps, not off the switch and the
+        // trees' visibility: the firs stay firs among the palms, so Christmas at 20 % keeps two tree
+        // slots, both firs, and the switch is on over a scene with no palm in it.
         val scenePalms = c.trees.visible && layout.staticObjects.any {
             c.keepCandidate(it) && c.palmSpeciesApplied(it, layout.hasPalmSlots()).type == SceneObjectType.PALM_TREE
         }
@@ -796,8 +785,8 @@ class ThemePreviewTruthTest {
 
     @Test
     fun `an edited sky reaches the card`() {
-        // The whole of D1 in one case: the card used to paint every day sky from the theme's old
-        // arrays, so an edit to the six sky colours never showed on it.
+        // The six sky colours a user edits reach the card: a card that painted its sky from the
+        // theme's own arrays would never show the edit.
         val (autumn, edited) = editedLandscape()
         val scene = ThemePreviewScenes.forTheme(autumn, edited)
         assertEquals(0xFF123456.toInt(), scene.skyTop)
@@ -816,14 +805,14 @@ class ThemePreviewTruthTest {
     }
 
     /**
-     * R7 (v5.9G, inventory I-38): the card's trees, cars, decorations and clouds wear the
-     * wallpaper's colours at the card's moment, and its palms the wallpaper's shade.
+     * R7: the card's trees, cars, decorations and clouds wear the wallpaper's colours at the card's
+     * moment, and its palms the wallpaper's shade.
      *
-     * R4 held the landscape and the building walls to the wallpaper's `dayBlend`, and everything
-     * standing in front of them kept `colorDay1` / `colorDay2`: on the two midnight cards and on the
-     * World & scene strip's night the trees, the cars, the snowmen, the gifts, the penguins, the
-     * rabbits, the eggs and the pumpkins had their noon colours, and the palms their noon light,
-     * while the wallpaper blends every one of them toward night. The expected values are asked of
+     * R4 holds the landscape and the building walls to the wallpaper's `dayBlend`; this holds what
+     * stands in front of them -- the trees, the cars, the snowmen, the gifts, the penguins, the
+     * rabbits, the eggs, the pumpkins and the palms' light -- which the wallpaper blends toward night
+     * as well, so a card painting them in `colorDay1` / `colorDay2` would show noon colours on a
+     * night card. The expected values are asked of
      * the wallpaper's own functions -- `colorFor` for a tinted body, `nightShadeFor` for the palm --
      * over one instance of each of the category's two variants, so the card may wear either of the
      * user's two colours but no colour the wallpaper would not paint at that hour. The clouds have
@@ -832,7 +821,8 @@ class ThemePreviewTruthTest {
      *
      * Two things are left out, each because the wallpaper leaves it out too: the autumn canopy,
      * whose fall palette is the same at every hour on both sides, and the fixed art -- trunks, bare
-     * branches, the fir, snow caps, ribbons, faces -- which does not dim (item 123).
+     * branches, snow caps, ribbons, faces -- which does not dim (`DESIGN_NOTES.md` §12, decision 36).
+     * The fir is left out as well, though the wallpaper shades its green as it shades a palm (`drawFir`).
      */
     private fun checkObjectColours(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>? = null): List<String> {
         val night = cardNight(theme, c, forceNight)
@@ -845,13 +835,13 @@ class ThemePreviewTruthTest {
         val carPaints = VARIANT_CARS.map { c.colorFor(it, d) }.toSet()
         // `drawNeighbourhoodBuilding`'s glass: a house lit by the night alone, a business by the
         // night times its group's opening hours at the card's own hour -- the towers' for a tower, the
-        // shops' or the public buildings' for one of the six among the houses, by what it is (v5.12,
-        // v5.13; [BusinessHours], 1 with a group's switch off).
+        // shops' or the public buildings' for one of the six among the houses, by what it is
+        // ([BusinessHours], 1 with a group's switch off).
         val hour = ThemePreviewScenes.cardHour(theme, night)
         for (item in drawOrder(scene)) {
             val family = item.parts.firstNotNullOfOrNull { familyOf(nameOf(it.resId)) }
             val house = family?.startsWith("HOUSE_") == true
-            // One of the six among the houses keeps its group's hours (v5.13), a tower the towers'.
+            // One of the six among the houses keeps its group's hours, a tower the towers' (decision 62).
             val storefront = Storefront.ALL.firstOrNull { it.name == family }
             val variant = SceneSpace.SceneVariant.entries.firstOrNull { it.name == family }
             val openness = when {
@@ -861,7 +851,7 @@ class ThemePreviewTruthTest {
             }
             for (part in item.parts.filter { it.resId in GLASS_MASKS }) {
                 // A house's glass is the dark glass of its unlit windows at night, and its lit ones are
-                // flat cards over it in the lit glass (v5.12, `drawLitPanes`; by day the two are one colour).
+                // flat cards over it in the lit glass (`drawLitPanes`; by day the two are one colour).
                 val expected = if (house) {
                     SceneObjectRenderer.unlitWindowGlassColor(1f - d)
                 } else {
@@ -874,25 +864,34 @@ class ThemePreviewTruthTest {
                 seen?.let { val k = if (house) "HOUSE_GLASS" else if (openness < 1f && d < 1f) "CLOSED_BUSINESS_GLASS" else "BUSINESS_GLASS"; it[k] = (it[k] ?: 0) + 1 }
             }
             for (part in item.parts.filter { it.decoration && familyOf(nameOf(it.resId)) == "HALLOWEEN_DECORATIONS" }) {
-                // The Halloween decorations (v5.16): only on a card whose wallpaper hangs them, fixed art; the door's candle lit
-                // as the wallpaper lights it at the card's moment, `(1 - dayBlend) * 255`, everything else at its full light.
+                // The Halloween decorations: only on a card whose wallpaper hangs them; the door's jack-o'-lantern fixed art,
+                // its candle lit as the wallpaper lights it at the card's moment, `(1 - dayBlend) * 255`, everything else at its
+                // full light; the cobweb tinted as the wallpaper tints it, by the building's walls at the card's moment -- the
+                // colour its wall masks are summed in ([HalloweenDecorations.webTintOn]).
                 val alpha = if (part.resId == HalloweenDecorationTable.PUMPKIN_LIGHT_RES) ((1f - d) * 255f).toInt().coerceIn(0, 255) else 255
+                val tint = if (part.resId == HalloweenDecorationTable.WEB_RES) {
+                    item.parts.firstOrNull { it.resId in WALL_MASKS }?.tint?.let { HalloweenDecorations.webTintOn(it) }
+                } else {
+                    null
+                }
                 if (!c.halloweenDecorationsEnabled) {
                     out += "$label: R7 a Halloween decoration at x=%.0f on a card whose wallpaper hangs none".format(item.x)
-                } else if (part.tint != null || part.shade != SpriteBlitter.UNTINTED || part.alpha != alpha) {
+                } else if (part.resId == HalloweenDecorationTable.WEB_RES && tint == null) {
+                    out += "$label: R7 a cobweb at x=%.0f on a building with no wall".format(item.x)
+                } else if (part.tint != tint || part.shade != SpriteBlitter.UNTINTED || part.alpha != alpha) {
                     out += "$label: R7 a Halloween decoration at x=%.0f is tinted ${hex(part.tint)} / shaded ${hex(part.shade)} / alpha ${part.alpha}".format(item.x)
                 }
                 seen?.let { it["HALLOWEEN_DECORATION"] = (it["HALLOWEEN_DECORATION"] ?: 0) + 1 }
             }
             if (item.parts.any { it.resId == ScarecrowTable.RES }) {
-                // The scarecrow's candle (v5.16): lit as the wallpaper lights it, `(1 - dayBlend) * 255`, and absent by day.
+                // The scarecrow's candle: lit as the wallpaper lights it, `(1 - dayBlend) * 255`, and absent by day.
                 val want = ((1f - d) * 255f).toInt().coerceIn(0, 255)
                 val got = item.parts.firstOrNull { it.resId == ScarecrowTable.LIGHT_RES }?.alpha ?: 0
                 if (got != want) out += "$label: R7 the scarecrow's candle at x=%.0f at alpha $got, the wallpaper's $want".format(item.x)
                 if (want in 1..254) seen?.let { it["SCARECROW_CANDLE_AT_DUSK"] = (it["SCARECROW_CANDLE_AT_DUSK"] ?: 0) + 1 }
             }
             for (part in item.parts.filter { it.decoration && familyOf(nameOf(it.resId)) != "HALLOWEEN_DECORATIONS" }) {
-                // The Christmas decorations (v5.14C2): only on a card whose wallpaper hangs them (where, and which colour each,
+                // The Christmas decorations: only on a card whose wallpaper hangs them (where, and which colour each,
                 // `CardDecorationsTest`), in its own colours -- the lights' four, the star's gold -- which no hour dims, the
                 // wreath its own drawing untinted.
                 val allowed = SceneObjectRenderer.CHRISTMAS_LIGHT_COLOURS.toSet() + SceneObjectRenderer.STAR_GOLD
@@ -907,8 +906,8 @@ class ThemePreviewTruthTest {
             }
             for (part in item.parts.filter { it.isFlat && !it.decoration }) {
                 if (family == "SANTA") {
-                    // Rudolph's nose (v5.15, `SantaSleighDrawer`): a red disc over the reindeer's own, the wallpaper's red at
-                    // every hour -- the sleigh is drawn at night as by day.
+                    // Rudolph's nose (`SantaSleighDrawer`): a red disc over the reindeer's own, the wallpaper's red at every
+                    // hour -- the sleigh is drawn at night as by day (decision 73).
                     if (part.discRadius <= 0f || part.tint != SantaSleighTable.RUDOLPH_NOSE_COLOUR || part.alpha != 255) {
                         out += "$label: R7 a flat card at x=%.0f is ${hex(part.tint)} on the sleigh, where the wallpaper draws only Rudolph's red nose"
                             .format(item.x)
@@ -917,8 +916,8 @@ class ThemePreviewTruthTest {
                     continue
                 }
                 if (!house) {
-                    // A shut business's blinds and shutter (v5.14, `SceneObjectRenderer.drawShut`): the wallpaper's
-                    // own colours at the card's hour, and only on a building the card shows shut.
+                    // A shut business's blinds and shutter (`SceneObjectRenderer.drawShut`): the wallpaper's own
+                    // colours at the card's hour, and only on a building the card shows shut.
                     val n = 1f - d
                     val shutColours = setOf(
                         SceneColour.blendArgb(SceneObjectRenderer.BLIND_DAY, SceneObjectRenderer.BLIND_NIGHT, n),
@@ -1019,8 +1018,8 @@ class ThemePreviewTruthTest {
         val (autumn, landscape) = editedLandscape()
         fails += checkObjectColours("autumn with every landscape colour edited (forced night)", autumn, landscape, true)
         // Opening hours on, 09:00 to 18:00: the midnight and 19:00 cards find the businesses shut --
-        // every group, then each alone (two groups in v5.12, three since v5.13), so a tower shut beside an
-        // open shop is asked too, and a school shut beside the two stations, which never close.
+        // every group, then each of the three alone, so a tower shut beside an open shop is asked too,
+        // and a school shut beside the two stations, which never close.
         for (id in listOf("autumn", "sunset", "new_year")) {
             val theme = ThemeCatalog.byId(id)
             val base = defaultCustomizationFor(id)
@@ -1036,25 +1035,24 @@ class ThemePreviewTruthTest {
                 fails += checkObjectColours("$id with opening hours 9-18, $name (forced night)", theme, hours, true, seenAtNight)
             }
         }
-        println("v5.9G R7: parts checked on night cards, by category: $seenAtNight")
+        println("ThemePreviewTruthTest: parts checked on night cards, by category: $seenAtNight")
         for ((theme, _) in builtIns()) {
             val night = defaultCustomizationFor(theme.id).let { it.horrorSkyEnabled || theme.hasFireworks }
-            println("v5.9G R7: ${theme.id} card's moment dayBlend = %.4f".format(ThemePreviewScenes.cardPhase(theme, night).dayBlend))
+            println("ThemePreviewTruthTest: ${theme.id} card's moment dayBlend = %.4f".format(ThemePreviewScenes.cardPhase(theme, night).dayBlend))
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
         for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE", "HALLOWEEN_DECORATION")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
-        // And a scarecrow's candle at dusk, half lit (v5.16: Sunset's 19:00).
+        // And a scarecrow's candle at dusk, half lit (Sunset's 19:00).
         assertTrue("R7 never met a scarecrow's candle at dusk: $seenAtTheirMoment", (seenAtTheirMoment["SCARECROW_CANDLE_AT_DUSK"] ?: 0) > 0)
     }
 
     /**
-     * R8 (v5.9G, on the maintainer's answer of 2026-09-29): the fixed art the wallpaper lays on a
-     * tinted body is on the card too -- a pumpkin is carved where `halloweenEnabled` carves the
-     * wallpaper's, and a penguin's belly is the wallpaper's white. The card drew smooth pumpkins on
-     * Halloween under a carved moon, and a belly of `#F7FAFC` where the wallpaper paints `#F3F7FB`.
+     * R8: the fixed art the wallpaper lays on a tinted body is on the card too -- a pumpkin is carved
+     * where `halloweenEnabled` carves the wallpaper's, and a penguin's belly is the wallpaper's white,
+     * [SceneObjectRenderer.PENGUIN_BELLY_COLOR], not a white of the card's own.
      */
     private fun checkFixedArt(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>): List<String> {
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
@@ -1090,7 +1088,7 @@ class ThemePreviewTruthTest {
         fails += checkFixedArt("beach with every decoration out", beach, edited, null, seen)
         fails += checkFixedArt("beach with every decoration out, on Halloween", beach, edited.copy(halloweenEnabled = true), null, seen)
         report(fails)
-        println("v5.9G R8: $seen")
+        println("ThemePreviewTruthTest: $seen")
         for (what in listOf("carved pumpkin", "smooth pumpkin", "penguin belly")) {
             assertTrue("R8 never met a $what: $seen", (seen[what] ?: 0) > 0)
         }
@@ -1180,15 +1178,18 @@ class ThemePreviewTruthTest {
 
         /**
          * How far a car body's last row of ink may miss its floor: a twentieth of a card unit, which
-         * is float rounding and not a pixel (the card is 316 px for 320 units on the BV6600). The
-         * error R5 exists for was 1.75.
+         * is float rounding and not a pixel (the card is 316 px for 320 units on the BV6600).
          */
         const val CARD_FLOOR_TOLERANCE_UNITS = 0.05f
         val WATER_FAMILIES = setOf("SAILBOAT", "DOLPHIN")
 
-        /** R7: every glass mask a building of the neighbourhood can be dealt -- the six among the houses' too (v5.13). */
+        /** R7: every glass mask a building of the neighbourhood can be dealt -- the six among the houses' too. */
         val GLASS_MASKS: Set<Int> = (NeighbourhoodTable.FAMILIES.values + NeighbourhoodTable.STOREFRONTS.values).flatMap { it.slots }.flatMap { it.options + it.heights }
             .flatMap { piece -> piece.parts.filter { it.role == PartRole.GLASS_MASK } }.map { it.res }.toSet()
+
+        /** R7: the wall masks of every building's pieces, which carry the walls' colour (the cobweb's tint reads it). */
+        val WALL_MASKS: Set<Int> = (NeighbourhoodTable.FAMILIES.values + NeighbourhoodTable.STOREFRONTS.values).flatMap { it.slots }.flatMap { it.options + it.heights }
+            .flatMap { piece -> piece.parts.filter { it.role == PartRole.WALL_MASK } }.map { it.res }.toSet()
 
         /** R7: the card's tinted bodies, and the category whose two colours each one wears. */
         val TINTED_BODIES = mapOf(

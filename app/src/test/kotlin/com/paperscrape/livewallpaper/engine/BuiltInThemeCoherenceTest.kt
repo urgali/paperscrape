@@ -216,6 +216,8 @@ class BuiltInThemeCoherenceTest {
             val halloween = theme.id == "halloween"
             assertEquals(theme.id, halloween, c.laughingMoonEnabled)
             assertEquals(theme.id, halloween, c.nightSkyByDayEnabled)
+            // v5.17's still moon, the same way (*«Sì a tutte»* to the table of v5.17A, its row 14, 2026-10-24).
+            assertEquals(theme.id, halloween, c.stillMoonEnabled)
             assertEquals(theme.id, halloween, c.halloweenDecorationsEnabled)
             assertEquals(theme.id, halloween, c.bloodRainEnabled)
             assertEquals(theme.id, halloween, c.headlessHorsemanEnabled)

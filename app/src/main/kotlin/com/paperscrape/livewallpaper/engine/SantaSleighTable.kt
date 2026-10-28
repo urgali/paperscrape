@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * Santa's sleigh (v5.15), in units of the group (the flight line at y 0, the reindeer to the left; the drawer puts the
+ * Santa's sleigh, in units of the group (the flight line at y 0, the reindeer to the left; the drawer puts the
  * group's middle, halfway between [LEFT] and [RIGHT], on the flight point): where each piece blits, where the cords and the gifts start, and how large the group is drawn. **Generated**
  * by `tools/assets/sleigh/build_sleigh.py` from the geometry it draws the SVGs with; edit that script, not this file.
  */
@@ -57,8 +57,8 @@ internal object SantaSleighTable {
     const val SANTA_BOTTOM = -10.20f
 
     /**
-     * How tall Santa is drawn against an adult walking on the near row of the pavement: the maintainer's choice of
-     * 2026-10-19, from the sizes shown beside the people (*«fallo più piccolo, così è gigante rispetto ai pedoni»*).
+     * How tall Santa is drawn against an adult walking on the near row of the pavement
+     * (`DESIGN_NOTES.md` §12, decision 73).
      */
     const val SANTA_TO_PEDESTRIAN = 1.30f
 

@@ -174,12 +174,12 @@ internal class GlSpriteProgram {
                 // a person's region masks need (see `SceneCanvas.drawSprite`).
                 //
                 // Carried in the sign rather than in a ninth float so that **the vertex format, the
-                // batch and the count of `glDrawArrays` stay exactly what they are**: one layer more
-                // costs six vertices in the same batch and no draw call at all. A new attribute
-                // would give the same call count but widen every vertex in the scene by 12.5%, and
-                // a second blend state would end the batch at every layer. The price is that this
-                // sign has to be read together with `GlSceneTarget.drawSprite`, which is why both
-                // ends say so.
+                // batch and the count of draw calls stay exactly what they are**: one layer more
+                // costs a quad -- four vertices, six indices -- in the same batch and no draw call
+                // at all. A new attribute would give the same call count but widen every vertex in
+                // the scene by 12.5%, and a second blend state would end the batch at every layer.
+                // The price is that this sign has to be read together with
+                // `GlSceneTarget.drawSprite`, which is why both ends say so.
                 float cover = step(0.0, v_Color.a);
                 gl_FragColor = vec4(tex.rgb * v_Color.rgb, tex.a * cover) * abs(v_Color.a);
             }

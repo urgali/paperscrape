@@ -63,6 +63,13 @@ data class ThemeShare(
         const val DOCUMENT_KIND = "paperscrape-theme"
 
         /**
+         * The longest theme name, typed in the app or read from a theme file: a longer one is cut to it ([cutToName]).
+         * Far above a name a card can show, and it keeps a file padded to megabytes out of the saved themes, which the
+         * app reads again at every change of one.
+         */
+        const val MAX_NAME_CHARS = 100
+
+        /**
          * Packages the theme [sourceThemeId] currently resolves to, whatever kind it is.
          *
          * Works for a built-in, a built-in the user has overridden, and a standalone saved theme
@@ -85,7 +92,7 @@ data class ThemeShare(
                 sourceThemeId = sourceThemeId,
                 name = name,
                 theme = theme,
-                // Without the scarecrows, which the importer's catalogue lays again (v5.16, [asSaved]).
+                // Without the scarecrows, which the importer's catalogue lays again on the snowmen the file carries ([asSaved]).
                 layout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor).asSaved(),
                 customization = customization,
             )
@@ -171,16 +178,16 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
     val layoutJson = root.optJSONObject("layout")
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
     // A street exported before v5.6 has no school; it gets the one the store gives a theme it saved
-    // then (`addMissingSchool`, inventory I-93). Guarded like the store's step: a street that cannot
+    // then (`addMissingSchool`). Guarded like the store's step: a street that cannot
     // be read whole is left as it came, and the line below decides whether it imports.
     runCatching { addMissingSchool(layoutJson.optJSONArray("staticObjects")) }
     val layout = runCatching { sceneObjectLayoutFromJson(layoutJson) }.getOrNull()
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
-    val name = root.optString("name").takeIf { it.isNotBlank() }
+    val name = root.optString("name").takeIf { it.isNotBlank() }?.let(::cutToName)
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("name"))
-    // The customization block gets the same `runCatching` as the theme and the layout above. It
-    // was the only unguarded call in this function until v5.3, and in `parseAppBackup` too --
-    // see the note at that call site, and `ImportParserFuzzTest`, which is what found it.
+    // The customization block gets the same `runCatching` as the theme and the layout above, as in
+    // `parseAppBackup`: unguarded, a malformed block would throw out of the import instead of
+    // refusing it (`ImportParserFuzzTest`).
     val customization = runCatching { sceneCustomizationFromJson(root.optJSONObject("customization"), theme) }
         .getOrNull()
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("customization"))
@@ -197,6 +204,16 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
             customization = customization,
         ),
     )
+}
+
+/**
+ * [name] at most [ThemeShare.MAX_NAME_CHARS] characters long, cut without a word. Never between the two halves of a
+ * character outside the basic plane (an emoji), which cut there would end in half a character.
+ */
+fun cutToName(name: String): String {
+    if (name.length <= ThemeShare.MAX_NAME_CHARS) return name
+    val end = if (Character.isHighSurrogate(name[ThemeShare.MAX_NAME_CHARS - 1])) ThemeShare.MAX_NAME_CHARS - 1 else ThemeShare.MAX_NAME_CHARS
+    return name.substring(0, end)
 }
 
 /**

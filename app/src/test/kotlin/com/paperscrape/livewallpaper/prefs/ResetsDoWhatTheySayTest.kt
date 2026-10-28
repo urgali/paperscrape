@@ -83,6 +83,8 @@ class ResetsDoWhatTheySayTest {
         // The five Halloween switches of v5.16: the decorations can go on, the Christmas ones being off now.
         prefs.setLaughingMoonEnabled(true, "christmas")
         prefs.setNightSkyByDayEnabled(true, "christmas")
+        // And v5.17's still moon.
+        prefs.setStillMoonEnabled(true, "christmas")
         prefs.setHalloweenDecorationsEnabled(true, "christmas")
         prefs.setBloodRainEnabled(true, "christmas")
         prefs.setHeadlessHorsemanEnabled(true, "christmas")

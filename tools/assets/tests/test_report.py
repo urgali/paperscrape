@@ -203,8 +203,7 @@ def _measurement(name: str, width: int, height: int, **overrides) -> "inventory.
 class InventoryMarkdownTest(unittest.TestCase):
     """`runtime-inventory.md`'s contract.
 
-    Item 125's open half, and it was open for the same reason the fidelity half had been: the
-    generator is called once by `inventory` and read by nobody, so nothing between writing it and
+    The generator is called once by `inventory` and read by nobody, so nothing between writing it and
     a person opening the file can tell a report from an empty string. Demonstrated rather than
     assumed before these cases were written -- with `inventory_markdown` cut down to its title
     line, `unittest discover -s tests` stayed green at 143 of 143 and `validate` exited 0.

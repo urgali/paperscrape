@@ -19,12 +19,10 @@ import kotlin.math.abs
  *
  * ## Why this exists
  *
- * Every Canvas golden goes through [CanvasSceneTarget], which is the right choice and is not in
- * question: a golden produced by drawing code the app does not ship proves nothing about the code
- * it does. The consequence, recorded as P1-4 in the v3.0 assessment, is that [GlSceneTarget] —
- * ~690 lines of hand tessellation, batching, atlas UVs and premultiplied blending, and the backend
- * that actually draws the wallpaper on every device where EGL works — had nothing pinning its
- * output at all.
+ * Every Canvas golden goes through [CanvasSceneTarget], because a golden produced by drawing code
+ * the app does not ship proves nothing about the code it does. That leaves [GlSceneTarget] -- hand
+ * tessellation, batching, atlas UVs and premultiplied blending, and the backend that draws the
+ * wallpaper on every device where EGL works -- for this harness to pin.
  *
  * ## What this is not
  *
@@ -61,50 +59,40 @@ object GlGolden {
     data class Result(val bitmap: Bitmap, val multisampled: Boolean, val renderer: String)
 
     /**
-     * The two comparisons a GL frame has to pass, and where every number in them comes from.
+     * The two comparisons a GL frame has to pass, and what sets their limits.
      *
-     * **Nothing here is guessed.** Each threshold was chosen after rendering all three scenes on an
-     * Android 17 emulator under two very different GL drivers -- the host-GPU translator and
-     * `swiftshader_indirect` -- and against two deliberately broken versions
-     * of the shipped backend. Percentages are the share of the 360x800 frame whose maximum channel
-     * delta reaches the stated level:
+     * Every limit sits above the disagreement of two correct GL drivers drawing the same frame and
+     * below what a deliberately broken backend moves. Two correct implementations differ simply
+     * because they are different rasterisers, and nothing under that floor is detectable by a pixel
+     * test allowed to run on more than one machine. A percentage is the share of the 360x800 frame
+     * whose largest channel delta reaches the stated level; every run logs its own readings under
+     * `CANVASCROSS` and `GLREGION`.
      *
-     * | comparison | >=8 | >=16 | >=32 | >=64 |
-     * |---|---|---|---|---|
-     * | same code, host GPU vs swiftshader | 0.88% | 0.12% | 0.06% | 0.03% |
-     * | GL vs the Canvas golden, healthy | — | 1.85% | 1.01% | 0.21% |
-     * | GL vs the Canvas golden, blend broken | — | 3.14% | 4.13% | 0.55% |
-     * | GL golden vs GL, blend broken | 5.03% | 3.75% | 3.17% | — |
+     * ### [GlTarget]: GL still draws what GL drew
      *
-     * The first row is the floor: two correct implementations of the same backend differ by that
-     * much simply because they are different rasterisers. Nothing below it is detectable by any
-     * pixel test that is allowed to run on more than one machine.
+     * Against a committed `gl-<name>.png`. The strict one, and it can afford to be: at `>=16` two
+     * correct drivers differ by a fraction of its 0.50 %, and a broken blend crosses that limit on
+     * all three scenes.
      *
-     * ### [GlTarget] — "GL still draws what GL drew"
-     *
-     * Against a committed `gl-<name>.png`. This is the strict one, and it can afford to be: the
-     * driver-to-driver floor at `>=16` is 0.12%, so a limit of 0.50% carries four times that as
-     * headroom and still catches the broken blend on all three scenes, by between two and seven
-     * times.
-     *
-     * ### [CanvasCross] — "GL still draws what Canvas draws"
+     * ### [CanvasCross]: GL still draws what Canvas draws
      *
      * Against the Canvas golden the rest of the suite uses. Far looser, necessarily: the two
      * backends approximate the same picture through an analytic rasteriser on one side and hand
-     * tessellation on the other, and the healthy difference is already 1% at `>=32`. What it buys
-     * is the assertion the GL golden cannot make — that the backend which ships has not drifted
-     * away from the one every other golden pins — and it survives a driver change, which the GL
-     * golden may not. Two gates rather than one because a structural regression moves a region of
-     * pixels a long way while a subtle one moves a great many pixels a moderate amount.
+     * tessellation on the other, and a healthy frame already differs at `>=32` by more than the
+     * whole [GlTarget] limit. What it buys is the assertion the GL golden cannot make -- that the
+     * backend which ships has not drifted away from the one every other golden pins -- and it
+     * survives a driver change, which the GL golden may not. Two gates, because a structural
+     * regression moves a region of pixels a long way while a subtle one moves a great many pixels a
+     * moderate amount.
      *
      * ### What neither can see
      *
-     * A change smaller than the driver-to-driver floor. Reducing `drawRadialGlow`'s fan to a single
-     * triangle -- destroying the shape of the sun's glow completely -- moves no pixel by more than
-     * 15/255, because the glow is drawn at alpha 90 over a bright sky; at `>=8` it reaches 0.47%
-     * where two correct drivers already differ by 0.88%. That is a property of the effect, not a
-     * gap to be closed by lowering a threshold: a limit under the driver floor fails on the next
-     * emulator instead of on the next bug.
+     * A change smaller than the driver floor. The sun's glow is drawn at a centre alpha of at most 90
+     * over a bright sky, so reducing `drawRadialGlow`'s fan to a single triangle -- destroying the
+     * glow's shape -- moves no pixel by more than 15/255, and at `>=8` it reaches less of the frame
+     * than two correct drivers already differ by. That is a property of the effect, not a gap to be
+     * closed by lowering a threshold: a limit under the driver floor fails on the next machine
+     * instead of on the next bug. [Region] is the gate that sees it.
      */
     object Tolerance {
         /** Against the committed GL golden: same backend, possibly a different GL driver. */
@@ -114,47 +102,24 @@ object GlGolden {
         }
 
         /**
-         * Against the committed GL golden, **inside a named region only** (v3.7 Filone E).
+         * Against the committed GL golden, **inside a named region only**: what the whole-frame
+         * gates cannot do, for a reason of arithmetic rather than tuning.
          *
-         * This is what the whole-frame gates structurally cannot do, and the reason is arithmetic
-         * rather than tuning. Driver-to-driver disagreement is *spread*: it is anti-aliased edges,
-         * and there are edges everywhere, so it lands at a similar rate in any patch of the frame
-         * you choose. A regression in one effect is *concentrated*: it moves a large share of one
-         * small region and nothing outside it. Divided by the whole frame, 0.47% of a broken glow
-         * is indistinguishable from 0.88% of legitimate driver noise; divided by the glow's own
-         * bounding box, the same regression is an order of magnitude above it.
+         * Driver-to-driver disagreement is *spread*: it is anti-aliased edges, and there are edges
+         * everywhere, so it lands at a similar rate in any patch of the frame. A regression in one
+         * effect is *concentrated*: it moves a large share of one small region and nothing outside
+         * it. Divided by the whole frame, a broken glow is indistinguishable from driver noise;
+         * divided by the glow's own bounding box, the same regression is an order of magnitude
+         * above it.
          *
-         * [CHANNEL] is deliberately **4**, a quarter of the 16 the whole-frame gate uses, because
-         * the blind spot this closes is an effect whose largest error is 15/255. A threshold that
-         * low over the whole frame would be unusable — it sits far under the 0.88% whole-frame
-         * driver floor — and over a region it is not, which is the entire point.
-         *
-         * **Both numbers are measured.** Every row below is the share of the sun-glow region
-         * (254x254 = 64 516 px) whose maximum channel delta reaches the stated level, taken on an
-         * Android 17 emulator against the committed `gl-day.png`:
-         *
-         * | channel | healthy, goldens' own driver | healthy, **different** driver | glow at half intensity | glow fan reduced to a triangle |
-         * |---|---|---|---|---|
-         * | 2 | 0.0000% | 0.3116% | 8.2584% | 10.4160% |
-         * | 3 | 0.0000% | 0.1116% | 5.3134% | 8.6010% |
-         * | **4** | **0.0000%** | **0.0512%** | **2.8164%** | **7.0215%** |
-         * | 6 | 0.0000% | 0.0140% | 0.4449% | 4.2207% |
-         * | 8 | 0.0000% | 0.0031% | 0.0186% | 1.8631% |
-         * | 16 | 0.0000% | 0.0000% | 0.0000% | 0.0000% |
-         *
-         * The "different driver" column is not an estimate: the same frame was rendered under
-         * `swiftshader_indirect`, the software rasteriser the goldens were taken with, and under
-         * the host-GPU translator on a Mesa/radeonsi AMD card — two genuinely different
-         * implementations of the same backend.
-         *
-         * At channel 4 the legitimate variation is 0.0512% and the two deliberate regressions are
-         * 2.82% and 7.02%: a factor of 55 and 137. [MAX_FRACTION] is set at **0.50%**, roughly ten
-         * times the measured driver floor and five times below the subtler of the two regressions.
-         * That is the headroom, stated rather than hoped for.
-         *
-         * **The `>=16` row is why this gate had to exist.** At the channel the whole-frame gate
-         * uses, destroying the glow completely is worth exactly zero pixels. No global limit, at
-         * any fraction, could ever have seen it.
+         * [CHANNEL] is **4**, a quarter of the 16 the whole-frame gate uses, because the effect it
+         * watches, the sun's glow, moves no pixel by more than 15/255 when its shape is destroyed:
+         * at `>=16` that regression is worth no pixel at all, and no whole-frame limit at any
+         * fraction could see it. A channel of 4 over the whole frame would sit far under the
+         * driver floor; over the glow's 254x254 region it does not. [MAX_FRACTION] is **0.50%**:
+         * inside the glow, at channel 4, a second driver's disagreement sits far below it, and the
+         * glow at half intensity or with its fan reduced to a triangle several times above it.
+         * Each region's reading is logged under `GLREGION`, pass or fail.
          */
         object Region {
             const val CHANNEL = 4
@@ -171,13 +136,10 @@ object GlGolden {
     }
 
     /**
-     * Draws [scene] through a real `GlSceneTarget` and returns the framebuffer.
-     *
-     * Throws rather than returning null when EGL cannot be brought up: a silently skipped GL test
-     * is worse than none, because the suite goes green while covering nothing.
+     * What one frame cost the batcher: see [GlSceneTarget.drawCalls]. [vertices] are the triangles' corners
+     * ([GlSceneTarget.drawnVertices]), [written] the distinct vertices written for them ([GlSceneTarget.writtenVertices]).
      */
-    /** What one frame cost the batcher: see [GlSceneTarget.drawCalls]. */
-    data class DrawCount(val drawCalls: Int, val vertices: Long, val sprites: Int)
+    data class DrawCount(val drawCalls: Int, val vertices: Long, val written: Long, val sprites: Int)
 
     /**
      * Renders [scene] and reports what the final frame cost the batcher.
@@ -200,17 +162,27 @@ object GlGolden {
         renderer.draw(gl, scene.dayPhase, clock, 0f)
         gl.endFrame()
         GLES20.glFinish()
-        DrawCount(gl.drawCalls, gl.drawnVertices, gl.spriteBlits)
+        DrawCount(gl.drawCalls, gl.drawnVertices, gl.writtenVertices, gl.spriteBlits)
+    }
+
+    /** What [draw] costs the batcher, drawn alone in a fresh frame: one primitive's triangles and vertices. */
+    fun countPrimitive(draw: (SceneCanvas) -> Unit): DrawCount = withContext { gl ->
+        gl.beginFrame()
+        draw(gl)
+        gl.endFrame()
+        GLES20.glFinish()
+        DrawCount(gl.drawCalls, gl.drawnVertices, gl.writtenVertices, gl.spriteBlits)
     }
 
     /**
-     * The draw calls of one frame of [scene] at each swipe offset of [offsets], in turn, in one context
-     * (v5.13B2): the street swept across its copies, so the places leave the screen and come back with
-     * other buildings. Without the sleigh the scene's clock stands still; only the offset moves. And the vertices each frame
-     * drew (v5.14), so a sweep says how near the batch's end its fullest frame came. With [sleighInFlight] Santa's
-     * sleigh is held in the middle of its crossing at every frame (v5.15, inventory I-934), and the scene's clock moves
-     * [SLEIGH_SWEEP_STEP_SECONDS] a frame (v5.15C2, inventory I-975): the reindeer go through their four poses and the
-     * gifts fall, as on the phone -- with the clock still, a sweep drew two poses and no gift.
+     * The draw calls of one frame of [scene] at each swipe offset of [offsets], in turn, in one context: the
+     * street swept across its copies, so the places leave the screen and come back with other buildings. And the
+     * vertices each frame drew, so a sweep says how near the batch's end its fullest frame came. Without a visitor
+     * in flight the scene's clock stands still and only the offset moves. With [sleighInFlight] Santa's sleigh is
+     * held in the middle of its crossing at every frame, with [horsemanInFlight] the Headless Horseman sets off,
+     * and the scene's clock moves [SLEIGH_SWEEP_STEP_SECONDS] a frame: the reindeer or the horse go through their
+     * four poses and the gifts or the pumpkins fall, as on the phone. With the clock still a sweep would draw two
+     * poses and nothing falling.
      */
     fun countDrawCallsAcross(
         scene: GoldenScene,
@@ -221,8 +193,8 @@ object GlGolden {
         val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
         scene.configure(renderer)
         if (sleighInFlight) renderer.holdSantaSleighForTest(0.5f)
-        // v5.16: the Headless Horseman set off at the part of his crossing his pumpkins fall from, the clock moving a pose a
-        // frame, so his four poses go by and his pumpkins on fire fall.
+        // The Headless Horseman set off throwing his first pumpkin, the clock moving a pose a frame, so his four poses go by
+        // and his pumpkins on fire fall.
         if (horsemanInFlight) renderer.startHeadlessHorsemanFlightForTest()
         renderer.swipeScrollEnabled = true
         val step = if (sleighInFlight || horsemanInFlight) SLEIGH_SWEEP_STEP_SECONDS else 0f
@@ -247,20 +219,20 @@ object GlGolden {
         Sweep(calls, vertices, clocks, gifts, pumpkins)
     }
 
-    /** A sleigh sweep's step: a pose of the gallop (six a second), so its 60 frames go through every pose fifteen times. */
+    /** A visitor sweep's step: one pose of the gallop, six a second, so consecutive frames go through the four poses in turn. */
     const val SLEIGH_SWEEP_STEP_SECONDS = 1f / 6f
 
     /**
      * What a sweep counted, a frame an offset: its draw calls, its vertices, the scene's clock and the gifts falling. The
-     * clock as the frame was given it, a `Double` as [SceneTime] keeps it (v5.15D: kept as a `Float` until then, a pose
-     * worked out from it differed from the drawn one at 40 of 120 frames and reindeer).
+     * clock as the frame was given it, a `Double` as [SceneTime] keeps it: a pose worked out from a `Float` copy of it
+     * differs from the drawn one for some frames.
      */
     class Sweep(
         val calls: IntArray,
         val vertices: LongArray,
         val clocks: DoubleArray,
         val giftsFalling: IntArray,
-        /** The Horseman's pumpkins falling at each frame (v5.16). */
+        /** The Horseman's pumpkins in the air at each frame, thrown from his hand. */
         val pumpkinsFalling: IntArray = IntArray(calls.size),
     )
 
@@ -278,29 +250,29 @@ object GlGolden {
         readFramebuffer()
     }
 
-    /** What one context ended up holding after a sweep, and which of the sleigh's five pieces were among it (v5.15C2). */
+    /** What one context ended up holding after a sweep, and which of the sleigh's five pieces were among it. */
     data class Occupancy(
         val entries: Int,
         val standalone: Int,
         val rowsUsed: Int,
         val sleighPiecesHeld: Int = 0,
-        /** Of the drawings v5.16 added to Halloween -- [HALLOWEEN_PIECES] -- how many the sweep's atlas holds. */
+        /** Of the drawings of Halloween's things -- [HALLOWEEN_PIECES] -- how many the sweep's atlas holds. */
         val halloweenPiecesHeld: Int = 0,
     )
 
     /**
-     * The drawings v5.16 added to Halloween (18): the Horseman's ten pieces (the horse and its legs in four poses, the
-     * rider, the cape), the laughing face and its light, the scarecrow and its light, the cobweb, the bat, the door's
-     * jack-o'-lantern and its light.
+     * The drawings of Halloween's things, nineteen: the Horseman's twelve pieces (the horse and its legs in four poses, the
+     * rider's body, his arm, the pumpkin in his hand, the cape), the laughing face and its light, the scarecrow and its
+     * light, the cobweb, the door's jack-o'-lantern and its light.
      */
     val HALLOWEEN_PIECES: IntArray
         get() = HorsemanTable.HORSE_RES + HorsemanTable.LEGS_RES +
             intArrayOf(
-                HorsemanTable.RIDER_RES, HorsemanTable.CAPE_RES,
+                HorsemanTable.BODY_RES, HorsemanTable.ARM_RES, HorsemanTable.PUMPKIN_RES, HorsemanTable.CAPE_RES,
                 com.paperscrape.livewallpaper.R.drawable.moon_jack_o_lantern_laugh,
                 com.paperscrape.livewallpaper.R.drawable.moon_jack_o_lantern_laugh_light,
                 ScarecrowTable.RES, ScarecrowTable.LIGHT_RES,
-                HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.BAT_RES,
+                HalloweenDecorationTable.WEB_RES,
                 HalloweenDecorationTable.PUMPKIN_RES, HalloweenDecorationTable.PUMPKIN_LIGHT_RES,
             )
 
@@ -312,8 +284,8 @@ object GlGolden {
      * wallpaper left running accumulates, not what one scene needs.
      */
     fun sweepThemes(themeIds: List<String>): Occupancy = withContext { gl ->
-        // Every theme by day, and then (v5.15, inventory I-934) what the sweep's frames never had: Santa's sleigh in
-        // flight, by day and at night, and the Halloween moon with its light at night.
+        // Every theme by day, and then what a theme by day does not draw: Santa's sleigh in flight, by day and at
+        // night, and the Halloween moon with its light at night.
         val sweep = themeIds.map { themeId -> Triple(themeId, GoldenScene.day(), false) } +
             listOf(Triple("christmas", GoldenScene.day(12f), true), Triple("christmas", GoldenScene.night(1f), true), Triple("halloween", GoldenScene.night(22f), false))
         for ((themeId, dayPhase, sleighInFlight) in sweep) {
@@ -322,9 +294,9 @@ object GlGolden {
                 dayPhase = dayPhase,
                 themeId = themeId,
                 customise = { base ->
-                    // The people at their fullest, and since v5.11 the distant houses at 100 % on both
-                    // mountain layers of every theme (Beach and Big City ship theirs off): the most a
-                    // wallpaper left running can have drawn.
+                    // The people at their fullest, and the distant houses at 100 % on both mountain
+                    // layers of every theme, whatever the theme ships: the most a wallpaper left
+                    // running can have drawn.
                     base.copy(
                         people = base.people.copy(visible = true, density = 1f),
                         peopleNightDensity = 1f,
@@ -349,7 +321,7 @@ object GlGolden {
             renderer.draw(gl, scene.dayPhase, clock, 0f)
             gl.endFrame()
             // The sleigh a pose later too: its two reindeer stand two poses apart, so two frames a pose apart put all four
-            // poses in the atlas (v5.15C2, inventory I-975; one frame left two of them out).
+            // poses in the atlas, where one frame holds two of them.
             if (sleighInFlight) {
                 clock += SLEIGH_SWEEP_STEP_SECONDS
                 gl.beginFrame()
@@ -357,9 +329,9 @@ object GlGolden {
                 gl.endFrame()
             }
         }
-        // v5.16: Halloween as it ships with what v5.16 added, at night and at noon with the night by day: the scarecrows, the
-        // decorations, the moon laughing (the scene's clock at 66.5 s, in a laugh) and the Horseman in flight, four frames a
-        // pose apart so his horse's four poses are all in the atlas.
+        // Halloween as it ships, at night and at noon with the night by day: the scarecrows at 100 %, the decorations, the
+        // moon laughing (the scene's clock at 66.5 s, in a laugh) and the Horseman in flight, four frames a pose apart so
+        // his horse's four poses are all in the atlas.
         for (hour in listOf(22f, 12f)) {
             val scene = GoldenScene(
                 name = "sweep-halloween-everything-${hour.toInt()}",
@@ -394,6 +366,12 @@ object GlGolden {
         )
     }
 
+    /**
+     * Draws [scene] through a real `GlSceneTarget` and returns the framebuffer.
+     *
+     * Throws rather than returning null when EGL cannot be brought up: a silently skipped GL test
+     * is worse than none, because the suite goes green while covering nothing.
+     */
     fun render(scene: GoldenScene): Result {
         val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         check(display != EGL14.EGL_NO_DISPLAY) { "no EGL display" }
@@ -435,7 +413,7 @@ object GlGolden {
             val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
             scene.configure(renderer)
 
-            // Warmed up through the same helper the Canvas harness uses, so a scene that needs
+            // Warmed up for the scene's own `warmUpFrames`, as the Canvas harness warms it, so a scene that needs
             // frames to bring its traffic on screen gets the same number of them on both backends.
             // Each warm-up frame is a real begin/draw/end, because a half-frame is not a state the
             // wallpaper is ever in.
@@ -469,9 +447,10 @@ object GlGolden {
     /**
      * Builds the same pbuffer context [render] builds, runs [body] on it, and tears it down.
      *
-     * Factored out for [countDrawCalls] rather than duplicated: a second copy of the EGL setup is a
-     * second place for the config to drift from `GlRenderThread.chooseConfig`, which is the one
-     * thing about this harness that must not drift.
+     * One context for every helper that counts, sweeps or draws once, and the config from the same
+     * [chooseConfig] as [render]: every further copy of the EGL setup would be another place for the
+     * config to drift from `GlRenderThread.chooseConfig`, which is the one thing about this harness
+     * that must not drift.
      */
     private fun <T> withContext(body: (GlSceneTarget) -> T): T {
         val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -644,10 +623,10 @@ object GlGolden {
     }
 
     /**
-     * Region-targeted, against the committed GL golden (v3.7 Filone E).
+     * Region-targeted, against the committed GL golden.
      *
-     * Uses the scene's own [GoldenScene.focus] list -- the same mechanism the Canvas suite already
-     * has for a sprite too small for a whole-frame budget to see. A scene with no focus region is
+     * Uses the scene's own [GoldenScene.focus] list: the rectangles that name what the scene is about, which on the
+     * Canvas golden only name (its whole frame admits no differing pixel) and here are a gate. A scene with no focus region is
      * simply not covered by this gate, which is correct: naming a region is a claim about what the
      * scene is *for*, and inventing one for every scene would produce assertions nobody could
      * justify.
@@ -729,34 +708,22 @@ object GlGolden {
     /**
      * The pixels a cross-driver comparison may judge: everything not within one pixel of an edge.
      *
-     * ### Why the whole-frame count was the wrong measurement
+     * ### Why not the whole frame
      *
-     * Measured on a OnePlus 6T (Adreno 630) against goldens captured on the reference emulator's
-     * software GL, the three GL scenes failed at 1.108%, 1.290% and 1.682% against a 0.500% gate --
-     * and the frames were **byte-identical between two commits on the same phone**, so the variable
-     * was the GPU. Characterising the difference rather than assuming it:
-     *
-     *  - the median difference among differing pixels is **1**;
-     *  - **99.8% / 98.2% / 86.4%** of the pixels over the threshold lie within one pixel of an edge
-     *    in one image or the other;
-     *  - away from every edge there remain **6 / 65 / 660** pixels out of 288 000;
-     *  - no whole-frame translation reduces the count, so nothing has moved -- each silhouette is
-     *    placed slightly differently.
-     *
-     * That is sub-pixel edge rasterisation: two conformant rasterisers disagreeing about which side
-     * of a boundary a pixel falls on. It is not composition, ordering, blending or shader precision.
-     *
-     * This art style is the worst possible case for a whole-frame count. The scene is flat colour
-     * meeting flat colour along hard edges, so a half-pixel of edge placement produces a *maximal*
-     * per-channel delta -- up to 139 here -- along every silhouette in the frame, and the frame is
-     * nothing but silhouettes. The metric was measuring how much outline a scene contains.
+     * Two conformant rasterisers disagree about which side of a boundary a pixel falls on: each
+     * silhouette is placed slightly differently, with nothing moved and nothing composed, ordered,
+     * blended or shaded differently. This art style is the worst case for a whole-frame count. The
+     * scene is flat colour meeting flat colour along hard edges, so half a pixel of edge placement
+     * makes a *maximal* per-channel delta along every silhouette, and the frame is nothing but
+     * silhouettes: counted over the whole frame, the difference between two GPUs measures how much
+     * outline a scene contains.
      *
      * ### What this does instead
      *
-     * The threshold is **unchanged and still strict**; what changes is which pixels it is applied
-     * to. A pixel is judged unless it is within one pixel of a luminance step in either image. A
-     * real regression -- a sprite moved, a colour wrong, an object missing, a tint dropped, a layer
-     * reordered -- changes flat interiors over large areas, which is exactly what survives the mask.
+     * The threshold stays strict; what the mask sets is which pixels it is applied to. A pixel is
+     * judged unless it is within one pixel of a luminance step in either image. A real regression --
+     * a sprite moved, a colour wrong, an object missing, a tint dropped, a layer reordered -- changes
+     * flat interiors over large areas, which is exactly what survives the mask.
      * `GlGoldenMetricTest` mutates a frame in each of those ways and checks that each is still
      * caught.
      *
@@ -821,112 +788,28 @@ object GlGolden {
     }
 
     /**
-     * Pixels differing by [channel] or more, counted only where [InteriorMask] allows.
-     *
-     * Returns the count and how much of the frame was masked, because the caller has to fail on the
-     * second as well as on the first.
-     */
-    /**
      * How much of the actual frame's outline has no counterpart within one pixel of the golden's.
      *
      * [InteriorMask] deliberately ignores edges, which leaves one thing it cannot see: an object
      * that **moved**. Sliding a band of skyline three pixels sideways maps flat colour onto the same
      * flat colour almost everywhere, so only the silhouettes change -- and those are exactly the
-     * pixels the mask drops. Measured: 0.075% of interiors, well inside the limit. That is a real
-     * regression the interior check would forgive, so it is not the whole check.
+     * pixels the mask drops: the interior check forgives that regression, so it is not the whole check.
      *
      * This is the other half, and it is structural rather than photometric: take both edge maps,
      * allow every golden edge one pixel of slack, and count the actual's edge pixels that still land
      * outside. A driver placing the same edge half a pixel differently is absorbed by the slack; an
      * object three pixels from where it belongs is not, because its whole outline is.
      *
-     * Measured on the OnePlus 6T against the emulator-captured goldens, which is the difference that
-     * must pass:
+     * [MAX_DISPLACED_FRACTION] sits at 3%: over twice the largest gap measured between two GPU
+     * vendors ([CHARACTERISED_MAX_DISPLACED_FRACTION]), and under what a band slid three pixels or an
+     * erased object displaces. `GlGoldenMetricTest` holds both ends of that.
      *
-     * | | edge displacement |
-     * |---|---|
-     * | `gl-day`, Adreno vs emulator | 1.18% |
-     * | `gl-lake-busy` | 1.07% |
-     * | `gl-thunderstorm` | 0.92% |
-     * | a whole-frame one-pixel shift | **0.00%** |
-     * | a 150-row band slid three pixels | **13.68%** |
-     * | an object erased | 3.39% |
-     *
-     * [MAX_DISPLACED_FRACTION] sits at 3%: over twice the worst driver difference measured, and a
-     * quarter of the smallest real drift. `GlGoldenMetricTest` holds both ends of that.
-     *
-     * ### v4.21: the three GL goldens are authored on the device now, and the gap changed sign
-     *
-     * The tree redraw moved all three by 8.8% of their outline — a real change, four times the
-     * worst driver difference, and nothing a tolerance should absorb. Regenerating them needed the
-     * emulator that authored them, and this machine has none: no `/dev/kvm`, no system image. The
-     * two obvious answers were both bad — regenerate somewhere else and take the result on trust,
-     * or ship three red tests.
-     *
-     * **The third answer is the one the table above already contained.** The Adreno-versus-emulator
-     * gap is symmetric: it is a property of the pair, not of one side. Authoring on the OnePlus 6T
-     * makes the device side exact and leaves the emulator side displaced by the same 0.92–1.18%
-     * that the device side used to carry — comfortably inside the same untouched 3% gate. Nothing
-     * was widened and nothing was excused; the reference environment moved from the emulator to the
-     * device, deliberately, and this paragraph is the record of it.
-     *
-     * Two things follow, and the second is a debt:
-     *
-     *  - `GlDriverGapGuardTest` keeps working unchanged and now reports ~0 on the device and the
-     *    characterised gap on the emulator, which is the same guard read from the other end.
-     *  - **The emulator side is unverified.** It is a derivation from a measured symmetric gap, not
-     *    an observation, and it cannot be observed here. The first run on a machine with an
-     *    emulator must confirm all three still pass there; until it does, that is a declared
-     *    limitation and is recorded as such in `BACKLOG_v4_21.md`.
-     *
-     * ### The paragraph above stopped being true in v4.26, and was not corrected until v5.0
-     *
-     * **The references have not been Adreno frames since v4.26.** `BACKLOG_v4_26.md` item 71
-     * re-captured all three on this device's **PowerVR Rogue GE8320** — the sky and water redraw
-     * moved the Canvas frames by 17.1 / 23.9 / 13.0%, and against the Adreno references the GL
-     * suite read **6.31 / 9.51 / 3.192%** against limits of 3.00 / 3.00 / 0.500%, which no driver
-     * could have matched. The maintainer ratified it in v4.27, and v4.28 re-authored `gl-day` once
-     * more on the same device for the bird. The v4.21 paragraph above is kept because it is the
-     * record of why the reference environment moves at all; it is not the current state.
-     *
-     * ### v5.0: re-authored on the BV6600, and item 56 closes
-     *
-     * v5.0 redrew every building from a blank sheet, and the three references failed at
-     * **21.21 / 19.49 / 21.64%** of their outline against the 3% gate — six to seven times the
-     * worst driver difference ever recorded here. They portrayed a neighbourhood that does not
-     * exist: flat facades where the scene now deals cut-out paper. Same cause as v4.26, second
-     * time: the scene moved, not the driver. No tolerance was touched to absorb it.
-     *
-     * Re-authored on the BV6600 on **2026-09-13**, one frame per scene through the shipped
-     * `GlSceneTarget`, then re-verified with the flag off so the Canvas cross-check and the region
-     * gates judged them as committed files.
-     *
-     * **What this costs, stated exactly rather than overstated.** *Nothing that was not already
-     * spent.* The cross-driver observation was given up in v4.26 and ratified in v4.27
-     * (`BACKLOG_v4_27.md` item 78, closed as a decision in v5.4: only a second GPU vendor could meet it).
-     * What v5.0 actually gives up is the *last reason to keep item 56 open* — and that reason had
-     * been void for three releases, because the thing it protected was already gone.
-     *
-     * **What is genuinely at risk is these numbers**, which now survive only here and in
-     * [GlDriverGapGuardTest]:
-     *
-     * | measured | on | when |
-     * |---|---|---|
-     * | 1.18 / 1.07 / 0.92% | OnePlus 6T, Adreno 630, against emulator-captured references | when this metric was derived; carried in v4.18's release notes (prepared 2026-09-01) |
-     * | 1.2–1.4% | OnePlus 6T, Adreno 630 | v4.19's re-measurement (prepared 2026-09-03) |
-     * | ~0 device / 0.92–1.18% emulator, *derived* | OnePlus 6T authoring, emulator side never observed | v4.21 (prepared 2026-09-03) |
-     * | **0.00 / 0.00 / 0.00%** | BV6600, PowerVR Rogue GE8320, Android 10 | v5.0 (2026-09-13) |
-     *
-     * The last row is not a rounding. The committed file and the freshly rendered frame are
-     * produced by the same driver on the same machine, so [MAX_DISPLACED_FRACTION] guards against a
-     * difference that has no source. **[GlDriverGapGuardTest] reads ~0 and will keep reading ~0
-     * until a second driver exists**, and there is no second driver to move it to: the maintainer's
-     * personal phone is what an update is proved on, not a test device.
-     *
-     * The gap itself is not gone — two conformant rasterisers still disagree at an edge, and the
-     * numbers above are what that disagreement measured. What is gone is the *observation* of it,
-     * and it has been gone since v4.26. Recorded as item 56 in `BACKLOG_v5_0.md`, closed there as a
-     * decision and not as a fix.
+     * The committed `gl-*.png` are drawn on the BV6600's PowerVR Rogue GE8320, one frame per scene
+     * through the shipped `GlSceneTarget`. The committed file and the freshly rendered frame come
+     * from the same driver on the same machine, so this reads 0.00% on them, and
+     * [GlDriverGapGuardTest] keeps reading it until a second GPU vendor exists. An outline displaced
+     * past the gate means the scene moved, not the driver: the references are drawn again from the
+     * new scene, and the tolerance is never raised to absorb it.
      */
     internal object EdgeDisplacement {
 
@@ -934,32 +817,21 @@ object GlGolden {
         const val MAX_DISPLACED_FRACTION = 0.03
 
         /**
-         * The band the **characterised driver gap** must stay inside -- item 1 of
-         * `BACKLOG_v4_19.md`, closed in v4.20 as a guard rather than as a fix.
+         * The band the **characterised driver gap** must stay inside, kept as a guard so that a gap
+         * between two GPUs is watched rather than rediscovered.
          *
-         * The goldens were authored on the emulator's reference driver and the phone's Adreno 630
-         * placed edges differently, so on the device every one of them arrived with a displacement
-         * that was not a regression and never would be. That gap was measured, it was under the
-         * gate, and closing it properly would have meant per-driver golden sets -- double the
-         * maintenance and an ambiguous answer to "which is *the* golden". So it stayed, and what
-         * changed is that it was watched instead of rediscovered.
+         * The references and the frame are drawn by the same driver, the BV6600's PowerVR Rogue
+         * GE8320, so this bounds a measurement that reads **0.00%** until a second driver exists;
+         * the day one does, it is the number that says whether the new driver's edges stay inside
+         * the band two GPUs were measured in.
          *
-         * **Since v4.26 there is nothing on the other side of it.** The references are authored on
-         * the only driver available -- the BV6600's PowerVR Rogue GE8320 -- so this constant bounds
-         * a measurement that reads **0.00%** and will keep reading it until a second driver exists.
-         * It is kept, unchanged, because the day one does exist it is the number that says whether
-         * the new driver is inside the band the old one was; see [EdgeDisplacement]'s v5.0 section
-         * for the four historical figures and where each was taken.
-         *
-         * **Where 2% comes from.** The gap measured 1.18 / 1.07 / 0.92% on a OnePlus 6T (Adreno
-         * 630) when the metric was derived and 1.2-1.4% when v4.19 re-measured it there, against a
-         * [MAX_DISPLACED_FRACTION] of 3%. Two percent sits about 40% above the worst figure ever
-         * recorded -- far enough that
-         * ordinary variation between driver revisions does not reach it -- and a third below the
-         * gate, so it fires while the gate still has headroom and someone can look at *why* the
-         * gap grew before a golden run starts failing outright. It is a smoke alarm, not a limit:
-         * nothing is permitted or forbidden by it that [MAX_DISPLACED_FRACTION] does not already
-         * decide.
+         * **Where 2% comes from.** Between a OnePlus 6T's Adreno 630 and references drawn by the
+         * emulator's software GL the gap measured 0.92 to 1.4% of the outline (2026-09). Two percent
+         * sits above that, far enough that ordinary variation between driver revisions does not
+         * reach it, and a third below [MAX_DISPLACED_FRACTION]'s 3%, so it fires while the gate
+         * still has headroom and the gap's growth can be looked at before a golden run fails
+         * outright. It is a smoke alarm, not a limit: nothing is permitted or forbidden by it that
+         * [MAX_DISPLACED_FRACTION] does not already decide.
          */
         const val CHARACTERISED_MAX_DISPLACED_FRACTION = 0.02
 
@@ -1019,6 +891,12 @@ object GlGolden {
         return EdgeDisplacement.of(expectedPixels, actualPixels, WIDTH, HEIGHT)
     }
 
+    /**
+     * Pixels differing by [channel] or more, counted only where [InteriorMask] allows.
+     *
+     * Returns the count and how much of the frame was masked, because the caller has to fail on the
+     * second as well as on the first.
+     */
     internal fun countAtLeastInInteriors(
         expected: Bitmap,
         actual: Bitmap,

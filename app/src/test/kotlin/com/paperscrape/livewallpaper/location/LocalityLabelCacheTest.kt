@@ -90,7 +90,7 @@ class LocalityLabelCacheTest {
         assertNull("Custom needs no device provider", LocationSource.of(custom).deviceKind)
     }
 
-    // -- caching (section 10 of the brief) --------------------------------------------------------
+    // -- caching ----------------------------------------------------------------------------------
 
     /** The same coordinates must never cost a second lookup. */
     @Test
@@ -126,7 +126,7 @@ class LocalityLabelCacheTest {
      * A fix that moved less than the threshold is the same place.
      *
      * ~300 m north of the first fix: further than GPS jitter, well inside the town, and exactly the
-     * kind of movement that used to cost a lookup.
+     * kind of movement that must not cost a lookup.
      */
     @Test
     fun `a small move reuses the label`() = runBlocking {

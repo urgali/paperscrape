@@ -13,8 +13,8 @@ import kotlin.math.abs
 
 /**
  * The sunrise and sunset are worked out again when the day or the UTC offset moves, whatever the
- * location source -- the defect of the v5.7 assessment (M5), which a device without root cannot
- * reproduce because it cannot move its own date. These tests are that proof.
+ * location source; and the phone is asked, or forgotten, by the rules of
+ * DESIGN_NOTES.md §12, decision 41. A device without root cannot move its own date, so these tests are the proof.
  */
 class SolarDayScheduleTest {
 
@@ -61,10 +61,7 @@ class SolarDayScheduleTest {
 
     // ------------------------------------------------ every source recomputes once the day is over
 
-    /**
-     * One pass, with the arguments a real-time scene with a usable phone position passes unless a test
-     * says otherwise (v5.10D added the fixed hour, the phone's permission and the held phone position).
-     */
+    /** One pass, with the arguments a real-time scene with a usable phone position passes unless a test says otherwise. */
     private fun tick(
         liveWeatherEnabled: Boolean,
         deviceSource: Boolean,
@@ -91,7 +88,7 @@ class SolarDayScheduleTest {
 
     @Test
     fun `a Custom position recomputes a stale day, with Live Weather off`() {
-        // The case nothing reached before v5.8.
+        // Live Weather off and a Custom position: only this pass recomputes the day.
         assertEquals(
             Action.RECOMPUTE_FROM_HELD_POSITION,
             tick(liveWeatherEnabled = false, deviceSource = false, weatherAttemptDue = false, hasPosition = true, dayIsStale = true),
@@ -100,7 +97,7 @@ class SolarDayScheduleTest {
 
     @Test
     fun `a Custom position recomputes a stale day, with Live Weather on`() {
-        // Custom never went through refreshDeviceFix, so Live Weather on did not help it either.
+        // Custom does not go through refreshDeviceFix, so Live Weather on does not recompute it either.
         for (due in listOf(false, true)) {
             assertEquals(
                 "weatherAttemptDue=$due",
@@ -111,16 +108,18 @@ class SolarDayScheduleTest {
     }
 
     @Test
-    fun `the phone's position recomputes a stale day, with Live Weather off`() {
+    fun `the phone's position asks the phone again for a stale day, with Live Weather off`() {
+        // Not recomputed from the position held: a new offset is most often a phone that moved
+        // (`StaleDayAsksThePhoneTest`).
         assertEquals(
-            Action.RECOMPUTE_FROM_HELD_POSITION,
+            Action.ASK_DEVICE,
             tick(liveWeatherEnabled = false, deviceSource = true, weatherAttemptDue = true, hasPosition = true, dayIsStale = true),
         )
     }
 
     @Test
     fun `the phone's position with Live Weather on still asks the device when a refresh is due`() {
-        // The one path that worked, unchanged: a due refresh asks for a fix, and the fix recomputes.
+        // A due refresh asks for a fix, and the fix recomputes.
         for (stale in listOf(false, true)) {
             assertEquals(
                 "dayIsStale=$stale",
@@ -128,9 +127,9 @@ class SolarDayScheduleTest {
                 tick(liveWeatherEnabled = true, deviceSource = true, weatherAttemptDue = true, hasPosition = true, dayIsStale = stale),
             )
         }
-        // And between refreshes a stale day is recomputed from the fix already held.
+        // And between refreshes a stale day asks the phone too, rather than reusing the fix held.
         assertEquals(
-            Action.RECOMPUTE_FROM_HELD_POSITION,
+            Action.ASK_DEVICE,
             tick(liveWeatherEnabled = true, deviceSource = true, weatherAttemptDue = false, hasPosition = true, dayIsStale = true),
         )
     }
@@ -145,7 +144,7 @@ class SolarDayScheduleTest {
             )
         }
         // Without a position: nothing to work out from a Custom or no source. A phone source asks
-        // instead since v5.10D (`a phone source with no position asks, Live Weather on or off`).
+        // instead (`a phone source with no position asks, Live Weather on or off`).
         for (weather in listOf(false, true)) {
             assertEquals(
                 "no position, nothing to work out (weather=$weather)",
@@ -155,13 +154,13 @@ class SolarDayScheduleTest {
         }
     }
 
-    // ------------------------------------------------------------- v5.10D: rows 5 and 6
+    // ------------------------------------------- a phone source with no position, and the fixed hour
 
     @Test
     fun `a phone source with no position asks, Live Weather on or off`() {
         // The ask costs a read of the system's cached position; a real request is the throttle's to
-        // allow, once an hour (`LocationRequestRhythmTest`). Before v5.10D a phone source with Live
-        // Weather off and no position was asked only by a settings change.
+        // allow, once an hour (`LocationRequestRhythmTest`). Without it, a phone source with Live
+        // Weather off and no position would be asked only by a settings change.
         for (weather in listOf(false, true)) for (due in listOf(false, true)) for (stale in listOf(false, true)) {
             assertEquals(
                 "weather=$weather due=$due stale=$stale",
@@ -173,7 +172,7 @@ class SolarDayScheduleTest {
 
     @Test
     fun `at a fixed hour nothing is asked and nothing is recomputed`() {
-        // The maintainer's row 6: at a fixed hour no position counts (the scene draws the default day).
+        // DESIGN_NOTES.md §12, decision 41: at a fixed hour no position counts (the scene draws the default day).
         for (weather in listOf(false, true)) for (device in listOf(false, true)) for (due in listOf(false, true))
             for (has in listOf(false, true)) for (stale in listOf(false, true)) {
                 assertEquals(
@@ -242,9 +241,9 @@ class SolarDayScheduleTest {
     }
 
     /**
-     * **«anche se ha già una posizione»** (the maintainer, 2026-10-04): a try that is due after a search
-     * that found nothing asks the phone with a position held too, and with Live Weather off -- where
-     * nothing else would have asked (v5.10E, `LocationRequestThrottle.retryDue`).
+     * **«anche se ha già una posizione»** (DESIGN_NOTES.md §12, decision 41, 2026-10-04): a try that is due
+     * after a search that found nothing asks the phone with a position held too, and with Live Weather off
+     * -- where nothing else would ask (`LocationRequestThrottle.retryDue`).
      */
     @Test
     fun `a try that is due asks the phone, with a position held and Live Weather off too`() {
@@ -255,7 +254,7 @@ class SolarDayScheduleTest {
                 tick(weather, deviceSource = true, weatherAttemptDue = false, hasPosition = has, dayIsStale = false, deviceRetryDue = true),
             )
         }
-        // Without it, a held position and Live Weather off ask nothing: the case v5.10D left still.
+        // Without it, a held position and Live Weather off ask nothing.
         assertEquals(Action.NOTHING, tick(false, true, false, true, false, deviceRetryDue = false))
     }
 
@@ -276,7 +275,7 @@ class SolarDayScheduleTest {
         val gps = com.paperscrape.livewallpaper.location.LocationSource.GPS
         val network = com.paperscrape.livewallpaper.location.LocationSource.NETWORK
         val custom = com.paperscrape.livewallpaper.location.LocationSource.CUSTOM
-        // The read-only review of v5.10D: every engine start "changed" the source from none to GPS.
+        // An engine's first settings move the source from none to the stored one: that is not the user's choice.
         assertFalse("an engine's start is not a choice", SolarDaySchedule.userChoseSource(appliedBefore = false, previous = none, requested = gps))
         assertTrue(SolarDaySchedule.userChoseSource(appliedBefore = true, previous = none, requested = gps))
         assertTrue(SolarDaySchedule.userChoseSource(appliedBefore = true, previous = custom, requested = network))
@@ -299,7 +298,7 @@ class SolarDayScheduleTest {
 
     @Test
     fun `at 19 00 on 3 October a fixed hour at Milan was dusk and is daylight now`() {
-        // The photograph of row 6, as numbers: the same 19:00, the located day against the default.
+        // Decision 41 as numbers: the same 19:00, the located day against the default.
         val (rise, set) = SunPositionCalculator.approximateSunriseSunset(45.4642, 9.19, dayOfYear = 276, utcOffsetHours = 2.0)
         val located = SunPositionCalculator.compute(hour24 = 19f, sunriseHour = rise, sunsetHour = set)
         val default = SunPositionCalculator.compute(hour24 = 19f)

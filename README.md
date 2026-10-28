@@ -30,7 +30,9 @@ moving on its own.
   holidays and the four seasons — can start and end where you want, and Easter's length is
   adjustable either side of a Sunday the app works out for you. A stretch you leave uncovered
   shows the theme you picked yourself, and the settings say so. One button puts it all back.
-- **Custom themes.** Save your own, built on any of the twelve, and keep them.
+- **Custom themes.** Save your own, built on any of the twelve, and keep them; share one as a file, or back up the whole
+  app. A theme's name holds up to 100 characters, typed or read from a file. A backup or a restore is not made while the
+  settings or the saved themes cannot be read, and the settings say so.
 - **Every part of the scene is adjustable.** Houses, towers, trees, garden parasols, cars,
   people, mountains, clouds, stars, rainbows, the lake and its boats and dolphins: each can be
   shown, hidden, thinned out, and — where the artwork allows it — recoloured, with separate day
@@ -44,7 +46,9 @@ moving on its own.
   alike on the screen, and they change only as the scenery scrolls: coming back to the home screen finds the
   same ones. Small houses far away on the mountains can be
   turned on, in the houses' colours, on both sides of the mountains. (The umbrellas people carry follow the rain and have no switch
-  of their own.)
+  of their own.) A switch reads on only while what it promises happens: one that can do nothing -- at an amount where
+  nothing stands, or on a random or saved theme whose street has no trees, houses, parasols, towers or shops at all --
+  reads off with a line that says why, and your choice is kept.
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
@@ -53,18 +57,23 @@ moving on its own.
   tree in three a fir in tiers with lights and presents); the gallery cards show them too. A theme has
   either the Christmas decorations or the Halloween ones, never both: the first turned on stays, and the
   other's switch says the first are on. A decoration with nothing to hang on — no tree for the trees'
-  lights and the firs, no house or building for the Halloween decorations, and none on the mountains
-  either for the buildings' lights — reads off, and its line says what to turn on.
+  lights and the firs, no house or shop for the Halloween decorations, and no house, other building
+  or house on the mountains for the buildings' lights — reads off, and its line says what to turn on, or that the theme has none. The firs
+  grow among leafy trees only: on a street of palms (Beach, Desert) they need *Palms* off.
 - **Halloween**, with a switch for each thing. *Halloween* carves a jack-o'-lantern's face into the
   full moon, lit from inside, strips the trees to bare branches, withers the palms and carves a face on
   every pumpkin; the **horror sky** turns the sky near-black with a hard orange horizon. Beside them:
   the **laughing moon** (about once a minute the carved moon throws its face open and laughs), the
   **night sky by day** (the whole scene stays night all day, the carved moon in the sun's place; the
-  shops keep their real hours), **Halloween decorations** (cobwebs, purple bats and a jack-o'-lantern lit at night
-  on the houses and the shops), **scarecrows** with a carved pumpkin for a head where the snowmen stand,
-  the **Headless Horseman** galloping across the sky about once a minute and dropping pumpkins on fire,
-  and **blood rain** (red, thicker drops when it rains; your rain colours come back when it is off). The
-  laughing moon and the night sky by day are the carved moon's, so they need *Halloween* and the moon on.
+  shops keep their real hours), **moon stays in place** (the carved moon stands still in the middle, low over the roofs
+  under the clouds, instead of crossing the sky; without the night sky by day it comes out after sunset and fades before
+  sunrise where it stands), **Halloween decorations** (a cobweb in a corner of every roof, dark on light walls and light
+  on dark ones, turning from one to the other over about ten minutes at dusk and at dawn, and a jack-o'-lantern lit at
+  night by every front door, on the houses and the shops), **scarecrows** with a carved pumpkin for a head where the
+  snowmen stand, the **Headless Horseman** galloping across the sky about once a minute and throwing pumpkins on fire
+  from his hand, and **blood rain** (red, thicker drops when it rains, the forecast's rain under Live Weather too; your
+  rain colours come back when it is off). The laughing moon, the night sky by day and the still moon are the carved
+  moon's, so they need *Halloween* and the moon on.
   The Halloween theme starts with all of it on; every switch can be turned off afterwards, in any
   combination, and none touches winter or the autumn palette.
 - **Parallax.** Swiping between home screens scrolls the world, with nearer things
@@ -84,11 +93,15 @@ moving on its own.
 - **Weather.** Rain, snow and cloud cover per theme — or Live Weather, which replaces
   them with the real conditions where you are, fetched from Open-Meteo (no account
   needed), WeatherAPI.com or OpenWeather (free account, own API key). If no location is available,
-  or the chosen provider needs a key it does not have, it says so and falls back to the
-  theme's own weather rather than quietly asking the other service.
+  or the chosen provider needs a key it does not have or refuses the one it has, it says so and falls back to the
+  theme's own weather rather than quietly asking the other service. A request the provider refuses is asked again at
+  the next hourly refresh. The rain falls from the clouds: with the clouds off or at 0 %, or a clear forecast,
+  over the whole sky, and as the clouds come or go it narrows under them or spreads out with their fade, never in a
+  jump. The drops are thin strokes with square ends.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
-  on (the Christmas theme starts with it on); the Headless Horseman, the same way (the Halloween theme
-  starts with him on), and never in the sky with the sleigh when both are on; fireworks, lightning and birds.
+  on (the Christmas theme starts with it on); the Headless Horseman, the same way, throwing pumpkins on fire from his
+  hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks,
+  lightning and birds.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   its lowest a single sporadic car — with a night amount of its own that the road fades to at
   dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
@@ -115,9 +128,8 @@ sprites from an SVG, the people and the buildings from the two generators that w
 Two things in the scene are not sprites at all but **hairlines struck over a surface the scene
 recomputes** — the water's cut edge and the falling rain — and neither can carry a colour of its
 own. Both derive one per frame, far enough from what is behind them to be seen and no further, to a
-separation measured across the twelve themes rather than chosen: the shoreline in v4.26 and the
-rain in v4.27. Neither is tuned per theme — one derivation covers all of them, and the worst theme
-is the one that sets it.
+separation measured across the twelve themes rather than chosen. Neither is tuned per theme — one
+derivation covers all of them, and the worst theme is the one that sets it.
 
 ---
 
@@ -165,7 +177,12 @@ sprite pixels are shared with the rest of the process.
 **Updates.** Advanced & about checks the GitHub Releases API, downloads the release's own APK,
 verifies it against the SHA-256 the release publishes, and hands it to Android's installer, which
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
-downloads or installs without an explicit tap.
+downloads or installs without an explicit tap. A phone with no installer, browser or file picker for a
+button is told so in a line, and the settings stay open.
+
+*Check for updates when I open PaperScrape* checks each time the settings are opened -- from the launcher
+icon, or from the recent apps after Home -- and not when you come back to them from a page they opened
+(the release page, the file picker, the installer) or turn the screen on again with them in front.
 
 The app can also *tell* you a release exists: with both *Check for updates when I open
 PaperScrape* and *Notify me about new versions* switched on (both are off by default), Android's own
@@ -196,7 +213,7 @@ them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
 answer, and a number kept by hand in a document goes stale.)
 
-**People are a special case, since v4.30.** A person is not shipped once per colour. Each shape is a
+**People are a special case.** A person is not shipped once per colour. Each shape is a
 **fixed layer** plus up to four **weight masks** — skin, head, shirt, trousers — and the renderer
 composes `fixed + Σ (mask × colour)` at the blit, adding each mask rather than laying it over. Both
 are written by `tools/generate_people_layers.py`, which also generates the engine's lookup table, so
@@ -288,7 +305,7 @@ unused because no v1.2 was ever released.
 
 - Read `ARCHITECTURE.md` before changing anything: §3 is the authority on the two rendering
   backends, and nothing about the draw path should be inferred without it. Nothing in the
-  draw path allocates per frame, and new code must not: since v5.10 a steady frame creates no
+  draw path allocates per frame, and new code must not: a steady frame creates no
   object, and an instrumented test that counts them over every built-in theme fails if one does.
 - Sizes and ground positions come from `SceneSpace`. If something draws at the wrong
   size, the fix is its entry in the size table, never a correction at the call site.

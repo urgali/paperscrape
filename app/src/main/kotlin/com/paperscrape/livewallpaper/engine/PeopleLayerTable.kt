@@ -3,8 +3,8 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * Which drawables make up each person, now that a person is **drawn rather than shipped in every
- * colour** (v4.30).
+ * Which drawables make up each person, who is **drawn rather than shipped in every colour**
+ * (`DESIGN_NOTES.md` §12, decision 27).
  *
  * A shape is `[fixed, skin, head, top, bottom]`: the fixed art, then one weight mask per
  * colourable region, `0` where the shape has no such region. The engine draws the fixed layer and
@@ -91,12 +91,11 @@ internal object PeopleLayerTable {
     )
 
     /**
-     * The carrying pose: `[kind][season][frame]`, **all four families since v5.4H**.
+     * The carrying pose: `[kind][season][frame]`, **all four families**.
      *
-     * It was two families, and `PedestrianCarry.canHold` is written to read this array's own length
-     * rather than a copy of the number -- so the children started carrying the moment the artwork
-     * landed here, with no second edit and no rule to change. That was the arrangement v5.4E left
-     * behind on purpose.
+     * `PedestrianCarry.canHold` reads this array's own length rather than a copy of the number, so
+     * which families carry is decided by the artwork written here, with no second edit and no rule
+     * to change.
      */
     val CARRY = arrayOf(
         arrayOf(
@@ -160,10 +159,9 @@ internal object PeopleLayerTable {
     /**
      * The window busts: `[kind]`, **summer only**.
      *
-     * There is no season axis any more, and its absence is the closure of `BACKLOG_v4_25.md` item
-     * 57. Indoors the season index was always 0 -- *the hat belongs to the street, not to the room
-     * behind the pane* -- so the winter column named twelve recolours no draw path could reach.
-     * They are retired, and so is the column that pretended otherwise.
+     * No season axis: a person at their window is indoors -- *the hat belongs to the street, not to
+     * the room behind the pane* -- so a window bust wears the same clothes in every theme, and the
+     * winter busts are not converted into layers (`RETIRED` in `tools/generate_people_layers.py`).
      */
     val WINDOW = arrayOf(
         intArrayOf(R.drawable.person_man_summer_head_window_fx, R.drawable.person_man_summer_head_window_ms, R.drawable.person_man_summer_head_window_mh, R.drawable.person_man_summer_head_window_mt, 0),

@@ -18,22 +18,26 @@ import kotlinx.coroutines.sync.Mutex
 
 /**
  * The update check the phone's own job scheduler runs, every three hours, with the screen off and
- * whatever the wallpaper (v5.15, the maintainer's *«S sì»* of 2026-10-19). The rules are
+ * whatever the wallpaper (`DESIGN_NOTES.md` §12, decision 72). The rules are
  * [UpdateCheckSchedule]'s; this is the Android half: the job itself, and [UpdateCheckJobs], which
  * schedules and cancels it.
  *
  * A run reads the two update switches and whether the phone would show the notification, asks GitHub
  * ([UpdateChecker.checkForUpdate], with the reply kept from the last check, so an unchanged list costs
- * no download) and posts the one notification a release gets ([UpdateNotifier.post]) -- what the
- * wallpaper engine's loop did until v5.15, and nothing more.
+ * no download) and posts the one notification a release gets ([UpdateNotifier.post]) -- and nothing
+ * more. The wallpaper engine does not check.
  */
 class UpdateCheckJobService : JobService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var running: Job? = null
+
+    /** The runs in progress, by job: the periodic one and the one run can run together on this service. */
+    private val running = RunsById()
 
     override fun onStartJob(params: JobParameters): Boolean {
-        running = scope.launch {
+        val jobId = params.jobId
+        // Dispatched, not started here: the run is in [running] before its first line runs.
+        val run = scope.launch {
             // A run the phone took back ([onStopJob]) ends here, with no `jobFinished`: the phone has it already.
             val next = try {
                 UpdateCheckJobs.runOnce(applicationContext)
@@ -44,20 +48,60 @@ class UpdateCheckJobService : JobService() {
             }
             jobFinished(params, next == UpdateCheckSchedule.Next.RETRY)
         }
+        running.started(jobId, run)
+        run.invokeOnCompletion { running.ended(jobId, run) }
         return true
     }
 
-    /** The phone takes the job back (the network went, or its window closed): try again on the back-off. */
+    /**
+     * The phone takes the job back (the network went, or its window closed): that job's run is cancelled, and no
+     * other, and the phone tries it again on the back-off.
+     */
     override fun onStopJob(params: JobParameters): Boolean {
-        running?.cancel()
+        running.stop(params.jobId)
         return true
     }
+}
+
+/**
+ * [UpdateCheckJobService]'s runs in progress, **by job id**. The periodic job and the one run can be
+ * running on the one service at once, and the phone stops each by its own `JobParameters`. With one `Job` for the
+ * whole service -- the last one started -- stopping one job would cancel the other's run, perhaps already over, and
+ * leave the stopped one going without its wakelock, to post a notification the phone had stopped it for.
+ *
+ * Synchronised: the two callbacks come on the main thread, and a run's end is told from the thread it ends on.
+ */
+internal class RunsById {
+    private val runs = HashMap<Int, Job>()
+
+    /** [run] is [jobId]'s now. */
+    @Synchronized
+    fun started(jobId: Int, run: Job) {
+        runs[jobId] = run
+    }
+
+    /** [run] of [jobId] is over: forgotten, unless a newer run of the same job has taken its place. */
+    @Synchronized
+    fun ended(jobId: Int, run: Job) {
+        if (runs[jobId] === run) runs.remove(jobId)
+    }
+
+    /** The phone stops [jobId]: its run is cancelled, and no other. */
+    fun stop(jobId: Int) {
+        val run = synchronized(this) { runs.remove(jobId) }
+        // Outside the lock: a cancel can complete the run at once, and its end comes back to [ended].
+        run?.cancel()
+    }
+
+    /** The job ids with a run in progress. */
+    @Synchronized
+    fun inProgress(): Set<Int> = runs.keys.toSet()
 }
 
 /** Schedules, cancels and runs [UpdateCheckJobService]'s job; the decisions are [UpdateCheckSchedule]'s. */
 object UpdateCheckJobs {
 
-    /** One check at a time in this process (inventory I-945): a second run ends at once. */
+    /** One check at a time in this process: a second run ends at once. */
     private val checking = Mutex()
 
     /**
@@ -68,8 +112,8 @@ object UpdateCheckJobs {
      * switches from the store, never from a screen's state: the screen's first value is a fresh install's,
      * with both off; and a read that fails leaves the job as it is. Safe to call as often as one likes.
      *
-     * It also makes the notification channel ([UpdateNotifier.ensureChannel]): an update from v5.14 restarts
-     * the wallpaper, and the channel of before goes -- its "off" carried over -- with nothing opened.
+     * It also makes the notification channel ([UpdateNotifier.ensureChannel]): an update of the app restarts
+     * the wallpaper, and an older version's channel goes -- its "off" carried over -- with nothing opened.
      */
     fun reconcile(context: Context, userTurnedOn: Boolean = false, checkAtOnce: Boolean = true) {
         val app = context.applicationContext
@@ -78,14 +122,14 @@ object UpdateCheckJobs {
 
     internal suspend fun reconcileNow(context: Context, userTurnedOn: Boolean, checkAtOnce: Boolean = true): UpdateCheckSchedule.Reconcile {
         UpdateNotifier.ensureChannel(context)
-        // Null for a read that failed for a passing reason (inventory I-968): the job is left as it is.
+        // Null for a read that failed for a passing reason: the job is left as it is.
         val switches = WallpaperPrefs(context).readUpdateSwitches()
         val wanted = switches?.let { UpdateCheckSchedule.wanted(it.automaticCheck, it.notifications) }
         val scheduler = context.getSystemService(JobScheduler::class.java) ?: return UpdateCheckSchedule.Reconcile.NOTHING
         val pending = scheduler.getPendingJob(UpdateCheckSchedule.PERIODIC_JOB_ID)
         val action = UpdateCheckSchedule.reconcile(wanted, pending?.intervalMillis, pending?.flexMillis)
         when (action) {
-            // Due in the last quarter hour of each period, so first a period from now: never at once (I-956).
+            // Due in the last quarter hour of each period, so first a period from now: never at once.
             UpdateCheckSchedule.Reconcile.SCHEDULE -> scheduler.schedule(
                 JobInfo.Builder(UpdateCheckSchedule.PERIODIC_JOB_ID, ComponentName(context, UpdateCheckJobService::class.java))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
@@ -121,8 +165,8 @@ object UpdateCheckJobs {
     }
 
     /**
-     * One check, as the wallpaper engine's loop made it until v5.15: what [UpdateCheckSchedule.afterCheck]
-     * asks of the scheduler next. Nothing here throws but the store's write, which is caught.
+     * One check, returning what [UpdateCheckSchedule.afterCheck] asks of the scheduler next. Nothing here
+     * throws but the store's write, which is caught.
      *
      * - **the two switches**, read from the store at every run, so turning either off stops the next one
      *   (and the job is cancelled with it); a read that fails leaves the job and tries again on the back-off;
@@ -163,7 +207,7 @@ object UpdateCheckJobs {
             val info = (result as? UpdateCheckResult.Available)?.info ?: return next
 
             // **The snooze is honoured, not routed around.** "Remind me later -> In a month" is keyed to
-            // the version tag, so a month on v5.6 does not hide v5.7 -- and a notification that ignored it
+            // the version tag, so a month on one release does not hide the next -- and a notification that ignored it
             // would be the app answering a question the user has already answered.
             val snooze = updatePrefs.readSnoozeState()
             val post = UpdateNotificationPolicy.shouldPost(

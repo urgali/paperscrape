@@ -12,10 +12,10 @@ import org.junit.Test
  * Two defects, one migration, and the same story behind both: a generator was corrected and the
  * themes already on disk were not.
  *
- * - **Duplicate storefronts**, item 9 of `BACKLOG_v4_19.md`. Pass six made the catalogue emit
+ * - **Duplicate storefronts**. Pass six made the catalogue emit
  *   exactly one restaurant and one bar per tile and added the dedup; a theme saved before it can
  *   still carry two of the same shop on one tile, and has been able to for four releases.
- * - **Duplicate special vehicles**, items 11 and 14. v4.20 capped the types where they are rolled,
+ * - **Duplicate special vehicles**. v4.20 capped the types where they are rolled,
  *   which does nothing for a theme rolled earlier -- and eight of the twelve *shipped* themes were
  *   in that state, so a user's saved copies of them are too.
  *
@@ -180,8 +180,7 @@ class PrePassSixThemeMigrationTest {
      * a shape the migration has no business understanding, and each must leave that entry as it
      * found it while still repairing the healthy theme beside it.
      *
-     * The *reader* was separately all-or-nothing about a malformed entry until v5.9A (item 18,
-     * `BACKLOG_v4_20.md`); it now reads entry by entry and keeps the one that fails, byte for byte,
+     * The *reader* reads entry by entry and keeps the one that fails, byte for byte,
      * which the next test and `UnreadableSavedThemeTest` hold.
      */
     @Test
@@ -216,7 +215,7 @@ class PrePassSixThemeMigrationTest {
      * The end-to-end half of the same property. Until v5.9A the reader's only answer to a damaged
      * entry was `CustomThemeData.EMPTY`, and this test accepted it; now the entry that fails is
      * carried and written back as it was, so the document it came from must come out of a
-     * read-and-write with that entry's text still in it (item 18).
+     * read-and-write with that entry's text still in it.
      */
     @Test
     fun `a damaged entry is read or kept, and never costs the store`() {

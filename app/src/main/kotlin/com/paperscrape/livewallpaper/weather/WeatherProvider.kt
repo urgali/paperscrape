@@ -13,8 +13,8 @@ enum class WeatherProviderId(
      * What the three-way selector shows.
      *
      * Separate from [displayName] because a segmented control gives each option a third of the
-     * width, and "WeatherAPI.com" does not fit in a third: it wrapped to two lines and the label
-     * overflowed the control's own outline. Prose still says the full name -- the key screen is
+     * width, and "WeatherAPI.com" does not fit in a third: it wraps to two lines and the label
+     * overflows the control's own outline. Prose says the full name -- the key screen is
      * titled "WeatherAPI.com API key" -- because there the width is not the constraint.
      */
     val shortName: String = displayName,
@@ -96,7 +96,14 @@ enum class WeatherFailure {
     /** The plan's request budget is spent. Also not worth retrying soon. */
     RATE_LIMITED,
 
-    /** Any other non-200. */
+    /**
+     * The provider answered and refused the request itself: a 4xx other than the key's (401, 403, and Open-Meteo's 400
+     * whose reason is the key), the limit's (429) and a request that took too long (408). The same request gets the
+     * same answer, so it is not worth retrying soon either.
+     */
+    REQUEST_REFUSED,
+
+    /** Any other non-200: a server's error (5xx), a 408, a status no provider documents. Worth trying again soon. */
     HTTP_ERROR,
 
     /** A 200 whose body was not the shape this provider's parser expects. */

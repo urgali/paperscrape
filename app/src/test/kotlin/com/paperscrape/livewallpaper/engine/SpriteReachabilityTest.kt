@@ -98,7 +98,7 @@ class SpriteReachabilityTest {
         val text = sources.associateWith { it.readText() }
         val whole = text.values.joinToString("\n")
 
-        // **Counted with the comments stripped out, and that is `BACKLOG_v4_25.md` item 58.**
+        // **Counted with the comments stripped out.**
         //
         // The rule is "a name that occurs once occurs only in its own declaration". It counted
         // occurrences in the raw text, so **a mention inside a KDoc block satisfied it** --

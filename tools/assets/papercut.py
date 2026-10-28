@@ -3,7 +3,7 @@
 The same move the fir's generator makes (`fir/build_fir.py`): every outline is a polygon whose vertices are nudged by
 a hash of the shape's name and the vertex's index -- the scissors' small wobble, never a random draw, so a run
 redraws the same bytes -- and every piece of paper a flat colour, its relief an *under-paper*, the same cut moved
-down and to the right in a darker tone of the piece's own colour (`DESIGN_NOTES.md` §2, "An outline goes outside").
+down and to the right in a darker tone of the piece's own colour: an outline goes outside the piece, never over it.
 """
 from __future__ import annotations
 

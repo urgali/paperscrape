@@ -5,10 +5,10 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 485 |
-| Unique contents | 485 |
-| Bytes on disk | 1455.4 KB |
-| Decoded `ARGB_8888` | 49.14 MB |
+| Files | 486 |
+| Unique contents | 486 |
+| Bytes on disk | 1127.7 KB |
+| Decoded `ARGB_8888` | 49.11 MB |
 | Of which transparent padding | 18.95 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
@@ -55,9 +55,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `car_window_estate` | 267x81 | RGBA | 1,1,266,80 | 3 % | 3 | yes |
 | `car_window_saloon` | 183x81 | RGBA | 1,1,181,80 | 4 % | 3 | yes |
 | `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
-| `deco_bat` | 60x27 | RGBA | 2,2,58,26 | 17 % | 1 | yes |
 | `deco_bulb` | 24x24 | RGBA | 0,0,24,24 | 0 % | 1 | yes |
-| `deco_cobweb` | 63x63 | RGBA | 2,2,61,61 | 12 % | 1 | yes |
+| `deco_cobweb` | 57x57 | RGBA | 2,2,55,55 | 14 % | 1 | yes |
 | `deco_jack_o_lantern` | 48x48 | RGBA | 2,2,46,46 | 16 % | 20 | yes |
 | `deco_jack_o_lantern_light` | 30x27 | RGBA | 1,0,29,26 | 10 % | 1 | yes |
 | `deco_wreath` | 30x30 | RGBA | 1,1,29,30 | 10 % | 11 | yes |
@@ -88,7 +87,9 @@ from the shipped PNGs; nothing is copied from documentation.
 | `horseman_legs_1` | 132x87 | RGBA | 2,2,132,87 | 4 % | 37 | yes |
 | `horseman_legs_2` | 114x72 | RGBA | 0,0,113,72 | 1 % | 37 | yes |
 | `horseman_legs_3` | 162x90 | RGBA | 0,2,162,90 | 2 % | 33 | yes |
-| `horseman_rider` | 96x198 | RGBA | 0,0,96,198 | 0 % | 174 | yes |
+| `horseman_rider_arm` | 36x57 | RGBA | 1,1,34,56 | 12 % | 10 | yes |
+| `horseman_rider_body` | 84x123 | RGBA | 0,0,84,123 | 0 % | 120 | yes |
+| `horseman_rider_pumpkin` | 51x54 | RGBA | 1,0,51,54 | 2 % | 46 | yes |
 | `house_distant_chalet_fx` | 93x75 | RGBA | 0,2,93,73 | 5 % | 24 | yes |
 | `house_distant_chalet_mg` | 57x42 | RGBA | 2,1,57,40 | 10 % | 1 | yes |
 | `house_distant_chalet_mw` | 93x75 | RGBA | 0,2,93,73 | 5 % | 1 | yes |

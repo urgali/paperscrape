@@ -3,7 +3,7 @@
 The verdicts exist because "identical" and "looks the same" are different claims
 and the difference matters. A reconstructed sprite that is one alpha unit off
 along a curve is not identical, and calling it identical would put a number in
-`RELEASE_HISTORY.md` that nobody could reproduce.
+a report that nobody could reproduce.
 
 Verdicts
 --------

@@ -7,30 +7,29 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * A crowded frame is **one** `glDrawArrays`, and a person drawn in five layers does not change that.
+ * A crowded frame is **one** draw call (`glDrawElements`), and a person drawn in five layers does not change that.
  *
  * ### The claim, and why it is counted rather than reasoned about
  *
- * v4.30 draws a person as fixed art plus up to four weight masks. The plan it was written from
- * predicted the obvious consequence -- *"a pedestrian is one draw today; in layers it becomes three,
- * and with twelve people that is twenty-four more draw calls a frame"* -- and that prediction is
- * wrong, for a reason that only became true in v4.29.
+ * A person is drawn as fixed art plus up to four weight masks. The obvious estimate -- *"a pedestrian
+ * in layers is three draws, and with twelve people that is twenty-four more draw calls a frame"* -- is
+ * wrong, because of where the batch is cut.
  *
  * [GlSceneTarget] accumulates vertices in one batch and empties it **only when the texture changes**.
- * Since v4.29 every sprite the scene draws lives in a single atlas (332 sprites then;
- * `GlAtlasOccupancyTest` keeps it so) and there are no standalone textures left, so
+ * Every sprite the scene draws lives in a single atlas (`GlAtlasOccupancyTest` keeps it so) and there
+ * are no standalone textures, so
  * the texture never changes; a flat fill samples a white texel from that same atlas. A layer more is
  * therefore six vertices in the batch that was already open, and no draw call at all.
  *
  * Two things make that true rather than lucky, and both are deliberate:
  *
  *  - the additive contribution travels in the **sign of the vertex alpha**, not in a blend state.
- *    `glBlendFunc(GL_ONE, GL_ONE)` would have been the obvious way to add, and it would have emptied
- *    the batch at every layer -- two draws per pedestrian, which is exactly the cost the plan feared;
+ *    `glBlendFunc(GL_ONE, GL_ONE)` would be the obvious way to add, and it would empty
+ *    the batch at every layer -- two draws per pedestrian, which is exactly the cost the estimate expects;
  *  - the masks are in the atlas like everything else, because they are ordinary sprites.
  *
- * The arithmetic has been wrong twice on this project, so this counts on the device instead
- * ([GlSceneTarget.drawCalls]).
+ * Where the batch is cut decides the count, and an estimate of it is easy to get wrong, so this counts
+ * on the device instead ([GlSceneTarget.drawCalls]).
  */
 @RunWith(AndroidJUnit4::class)
 class GlDrawCallTest {
@@ -40,8 +39,8 @@ class GlDrawCallTest {
         val worst = mutableListOf<String>()
         for (scene in crowded()) {
             val counted = GlGolden.countDrawCalls(scene)
-            worst += "${scene.name}: ${counted.drawCalls} draw(s), ${counted.vertices} vertices, " +
-                "${counted.sprites} sprite blits"
+            worst += "${scene.name}: ${counted.drawCalls} draw(s), ${counted.vertices} triangle corners, " +
+                "${counted.written} vertices written, ${counted.sprites} sprite blits"
             assertEquals(
                 "${scene.name} took ${counted.drawCalls} draw calls. A person is drawn in layers " +
                     "and the batch must still survive them: see this class's own doc for the two " +
@@ -52,11 +51,59 @@ class GlDrawCallTest {
         }
         // Printed once every scene has passed (a failing one names its own count in the assertion): the number is the measurement the release reports.
         println("GlDrawCallTest: " + worst.joinToString(" | "))
+        java.io.File(GlGolden.outputDir(), "gl_draw_counts.txt").appendText("crowded: " + worst.joinToString(" | ") + "\n")
         assertTrue("no crowded scene was rendered", worst.isNotEmpty())
     }
 
     /**
-     * **And a person walking out of a window, cut to its pane, is still in the one batch** (v5.12): a
+     * **The batch is drawn with an index, and every shared corner is written once**: the triangles, their order and
+     * their floats are the ones a vertex for every corner would draw -- a primitive names one corner for each vertex that
+     * would write, and the batch is cut at the same places -- while a quad writes its four corners once and a fan its
+     * centre and each rim point once. One primitive at a time, then a crowded frame, where every sprite and disc is a
+     * quad: fewer vertices written than corners named, the triangles a whole number, one draw.
+     */
+    @Test
+    fun theBatchWritesASharedCornerOnceAndDrawsTheSameTriangles() {
+        val fill = android.graphics.Paint().apply { color = 0xFF336699.toInt(); style = android.graphics.Paint.Style.FILL }
+        val stroke = android.graphics.Paint().apply { color = 0xFF993366.toInt(); style = android.graphics.Paint.Style.STROKE; strokeWidth = 4f }
+        val line = android.graphics.Paint().apply { color = 0xFF669933.toInt(); strokeWidth = 3f; strokeCap = android.graphics.Paint.Cap.SQUARE }
+        val seen = ArrayList<String>()
+        fun check(name: String, corners: Long, written: Long, draw: (SceneCanvas) -> Unit) {
+            val c = GlGolden.countPrimitive(draw)
+            seen += "$name: ${c.vertices} corners, ${c.written} written"
+            assertEquals("$name: triangle corners", corners, c.vertices)
+            assertEquals("$name: vertices written", written, c.written)
+            assertEquals("$name: draws", 1, c.drawCalls)
+        }
+        check("a filled rectangle", 6, 4) { it.drawRect(10f, 10f, 110f, 60f, fill) }
+        check("a stroked rectangle, four quads", 24, 16) { it.drawRect(10f, 10f, 110f, 60f, stroke) }
+        check("a line with square ends", 6, 4) { it.drawLine(10f, 10f, 200f, 90f, line) }
+        // The sky's gradient rectangle, drawn once a frame, writes a vertex for each of its six corners.
+        check("a gradient rectangle", 6, 6) { it.drawVerticalGradientRect(0f, 0f, 360f, 200f, 0xFF000000.toInt(), 0xFFFFFFFF.toInt()) }
+        // A fan of n slices: 3n corners, its centre and n + 1 rim points written.
+        for ((name, draw) in listOf<Pair<String, (SceneCanvas) -> Unit>>(
+            "a circle" to { it.drawCircle(180f, 300f, 40f, fill) },
+            "an oval" to { it.drawOval(100f, 100f, 260f, 180f, fill) },
+            "a radial glow" to { it.drawRadialGlow(180f, 300f, 60f, 0xFFFFDD88.toInt(), 200) },
+        )) {
+            val c = GlGolden.countPrimitive(draw)
+            seen += "$name: ${c.vertices} corners, ${c.written} written"
+            assertEquals("$name: whole triangles", 0L, c.vertices % 3)
+            assertEquals("$name: the centre and the rim once each", c.vertices / 3 + 2, c.written)
+        }
+        for (scene in crowded()) {
+            val c = GlGolden.countDrawCalls(scene)
+            seen += "${scene.name}: ${c.vertices} corners, ${c.written} written, ${c.drawCalls} draw(s)"
+            assertEquals("${scene.name}: whole triangles", 0L, c.vertices % 3)
+            assertTrue("${scene.name}: ${c.written} vertices written for ${c.vertices} corners", c.written < c.vertices)
+            assertEquals(1, c.drawCalls)
+        }
+        println("GlDrawCallTest indexed: " + seen.joinToString(" | "))
+        java.io.File(GlGolden.outputDir(), "gl_draw_counts.txt").appendText("indexed: " + seen.joinToString(" | ") + "\n")
+    }
+
+    /**
+     * **And a person walking out of a window, cut to its pane, is still in the one batch**: a
      * cut sprite is a smaller quad from the same atlas entry ([SceneCanvas.drawSpriteClipped]), so it
      * changes no state. Autumn at night, at the first second somebody is seen walking -- found by
      * drawing the scene as the golden harness configures it, a second at a time, until a frame has a
@@ -114,14 +161,7 @@ class GlDrawCallTest {
     }
 
     /**
-     * Three streets at full density, on the three themes the layer investigation photographed.
-     *
-     * People **and** cars, because a car's seated busts are drawn in layers too and the batch has to
-     * survive a person alternating with a vehicle, a building and a tree -- which is the case a
-     * scene of nothing but pedestrians would not exercise.
-     */
-    /**
-     * **And while the places among the houses come and go** (v5.13B2): each crowded scene swept by the swipe
+     * **And while the places among the houses come and go**: each crowded scene swept by the swipe
      * offset across three tiles of the street, sixty frames, so each of the five places leaves the screen
      * and comes back as another copy, with the building the street deals that copy, three times -- every
      * frame one draw.
@@ -141,26 +181,26 @@ class GlDrawCallTest {
     }
 
     /**
-     * **And a Christmas street** (v5.14): the roofs' strings, the wreaths, the towers' stars, the sill strings, the fir
+     * **And a Christmas street**: the roofs' strings, the wreaths, the towers' stars, the sill strings, the fir
      * A's lights, the trees' -- Christmas as a fresh install leaves it, and Autumn and Winter with the three Christmas
-     * switches on (*Christmas lights* until v5.16) -- by day and at one in the morning, with the theme's snow and the night's stars, swept across three tiles of
+     * switches on -- by day and at one in the morning, with the theme's snow and the night's stars, swept across three tiles of
      * the street as above: one draw everywhere. And with everything on (the people at their most, the distant houses at
      * 50 % with their bulbs, the three groups' hours 13:00-20:00 so every building that keeps hours is shut, blinds and
      * shutters -- the fire and the police station never close), by day
      * and at night, in Christmas, Autumn and Winter; and at night with everything at its very most -- the snow falling
-     * at 100 %, every star, the distant houses at 100 % -- in Christmas and Winter. One draw everywhere. Since v5.15 the
+     * at 100 %, every star, the distant houses at 100 % -- in Christmas and Winter. One draw everywhere. The
      * last two again with Santa's sleigh held in the middle of its crossing above them, and Halloween at 22:00 with its
-     * lit moon and the sleigh (inventory I-934): the sleigh, its cords, Rudolph's nose, the reindeer in all four of their
+     * lit moon and the sleigh: the sleigh, its cords, Rudolph's nose, the reindeer in all four of their
      * poses and the gifts falling -- the sweep's clock moves a pose a frame there ([GlGolden.SLEIGH_SWEEP_STEP_SECONDS]),
-     * and the test checks the poses went by and gifts fell (v5.15C2, inventory I-975: with the clock still, two poses and
-     * no gift were all the sweep drew).
+     * and the test checks the poses went by and gifts fell (with the clock still, the sweep would draw two poses and
+     * no gift).
      *
      * Every bulb, every snowflake and every point star is a disc ([SceneCanvas.drawDisc]: a quad of the atlas sampling
      * `deco_bulb`, 6 vertices) and every wreath a quad of `deco_wreath`, not drawn shapes (24 to 36). Drawn as shapes,
-     * the 5.13's sill strings alone took Christmas at night past the batch's [GlSceneTarget.MAX_VERTICES] at 16 offsets
-     * of these 60, at the factory settings (13 956 vertices, measured on the BV6600 with the 5.13's own build); and with
-     * everything on, the theme's snow (2 592 vertices of a frame) and the stars (1 320) still did at 4 to 6 (12 672) until
-     * they were discs too (inventory I-730). The most vertices a frame takes is printed, which is what this test is for.
+     * the sill strings alone take Christmas at night past the batch's [GlSceneTarget.MAX_VERTICES] at 16 offsets
+     * of these 60, at the factory settings (13 956 vertices, measured on the BV6600); and with
+     * everything on, the theme's snow (2 592 vertices of a frame) and the stars (1 320) do at 4 to 6 (12 672) unless
+     * they are discs too. The most vertices a frame takes is printed, which is what this test is for.
      */
     @Test
     fun aChristmasStreetIsStillASingleDrawCall() {
@@ -189,13 +229,15 @@ class GlDrawCallTest {
     }
 
     /**
-     * **Halloween with everything v5.16 added is still one draw where the 5.15 drew it in one** (v5.16): the theme as it
-     * ships -- the scarecrows, the cobwebs, the bats and the jack-o'-lanterns, the laughing moon, the night by day -- with the
-     * people at their most and the Headless Horseman in flight through his four poses dropping his pumpkins on fire, at
-     * 22:00 and at noon (night, by the night by day), and once more with Santa's sleigh flying too. Swept along the street
-     * and the clock, as the Christmas street above. **Under heavy rain** the 5.15 already drew two batches, the drops being
-     * hairlines; the blood rain is the same drops thicker, so it must take the same draws as the theme's own rain at every
-     * position -- which is what is asserted there.
+     * **Halloween with everything on is one draw**: the theme as it ships -- the scarecrows, a cobweb a roof and the
+     * jack-o'-lanterns, the laughing moon, the night by day -- with the people at their most and the Headless Horseman in
+     * flight through his four poses throwing his pumpkins on fire from his hand, at 22:00 and at noon (night, by the night
+     * by day), and once more with Santa's sleigh flying too. Swept along the street and the clock, as the Christmas street
+     * above. **Under heavy rain** the blood rain is the same drops thicker: at every position it is one draw, as the theme's
+     * own rain is, and it draws exactly the triangle corners the theme's rain draws. The two sweeps draw the same street at the
+     * same moments, the clock still, so nothing but the rain tells them apart, and a drop is one quad of 6 corners however
+     * thick ([GlSceneTarget.drawLine], square ends): a count, not a picture, so no tolerance -- a drop drawn twice, or one
+     * drop more, is 6 corners apart.
      */
     @Test
     fun aHalloweenStreetWithItsNewThingsIsStillASingleDrawCall() {
@@ -227,7 +269,7 @@ class GlDrawCallTest {
             val poses = sweep.clocks.map { t -> SceneTime(t).frameIndex(HeadlessHorsemanDrawer.POSES_PER_SECOND, 0f, 4) }.toSet()
             assertEquals("${scene.name}: the horse's poses the sweep's clock went through", setOf(0, 1, 2, 3), poses)
         }
-        // Heavy rain, the theme's and the blood's: the same draws at every position.
+        // Heavy rain, the theme's and the blood's: one draw and the same corners at every position.
         for (hour in listOf(22f, 12f)) {
             val rainy: (Boolean) -> GoldenScene = { blood ->
                 GoldenScene(
@@ -249,7 +291,13 @@ class GlDrawCallTest {
             seen += "halloween-rain-${hour.toInt()}: the theme's rain ${theme.calls.min()}..${theme.calls.max()} draws " +
                 "(at most ${theme.vertices.max()} vertices), the blood rain ${blood.calls.min()}..${blood.calls.max()} " +
                 "(at most ${blood.vertices.max()})"
-            assertEquals("the blood rain takes the theme rain's draws at every position", theme.calls.toList(), blood.calls.toList())
+            assertTrue("the theme's rain at ${hour.toInt()}:00 swept across the street: ${theme.calls.toList()}", theme.calls.all { it == 1 })
+            assertTrue("the blood rain at ${hour.toInt()}:00 swept across the street: ${blood.calls.toList()}", blood.calls.all { it == 1 })
+            assertEquals(
+                "the blood rain draws the theme rain's triangle corners at every position, at ${hour.toInt()}:00",
+                theme.vertices.toList(),
+                blood.vertices.toList(),
+            )
         }
         println("GlDrawCallTest Halloween: " + seen.joinToString(" | "))
     }
@@ -305,8 +353,8 @@ class GlDrawCallTest {
                 },
             )
         }
-        // v5.15 (inventory I-934): the same streets at their most with Santa's sleigh held in flight above them -- its
-        // reindeer, cords and sleigh in the batch, and its gifts falling (the sweep's clock moves, v5.15C2) -- and Halloween
+        // The same streets at their most with Santa's sleigh held in flight above them -- its
+        // reindeer, cords and sleigh in the batch, and its gifts falling (the sweep's clock moves) -- and Halloween
         // at night with its moon lit and the sleigh too.
         val withTheSleigh = atItsMost.map { scene ->
             GoldenScene(
@@ -324,6 +372,13 @@ class GlDrawCallTest {
         return asInstalled + everything + atItsMost + withTheSleigh
     }
 
+    /**
+     * Three streets at full density, on three themes: the city, spring and winter.
+     *
+     * People **and** cars, because a car's seated busts are drawn in layers too and the batch has to
+     * survive a person alternating with a vehicle, a building and a tree -- which is the case a
+     * scene of nothing but pedestrians would not exercise.
+     */
     private fun crowded() = listOf("city", "spring", "winter").map { theme ->
         GoldenScene(
             name = "crowd-$theme",

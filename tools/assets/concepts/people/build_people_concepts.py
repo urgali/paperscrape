@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws the people: the three v4.25 concepts -- Stencil, Relief, Doll -- as SVG sources rendered
+"""Draws the people: the three concepts -- Stencil, Relief, Doll -- as SVG sources rendered
 through the project's own rasteriser, and, through ``family("relief_eyes")`` and
 ``trim_to_content``, the shipped figures ``tools/generate_people_layers.py`` decomposes.
 
@@ -12,14 +12,13 @@ whole family -- four characters x (three walk frames x two seasons + a window bu
 seasons + a car bust x two seasons) = 40 sprites -- and ``sprites.concept.json`` in the
 registry's own schema, measured off the rendered pixels.
 
-The concepts were drawn on the canvases that shipped then (walk 123x255, window 159x171, car
-141x132), so no call site, anchor or byte of the decoded budget moved, exactly as the v4.23 sky
-concepts did; the shipped family is trimmed to its content (117x252, 147x171, 114x126).
+The concepts are drawn on the full canvases (walk 123x255, window 159x171, car 141x132); the
+shipped family is trimmed to its content (117x252, 147x171, 114x126).
 Edges are cut, not struck: every shape is a polygon whose vertices carry a small
 deterministic wobble written here into the coordinates. No feature is thinner than three
 units, because the GL backend minifies with a plain bilinear tap and no mipmaps, and at the ~1:8
 reduction a walker gets anything thinner flickers; the reduced copies ``SpriteDetailLevel`` picks
-per draw halve that flicker without removing it, so the rule stays.
+per draw halve that flicker without removing it, so the rule holds.
 
 Skin is one flat colour per character, which is what lets ``region_of`` give it a mask of its
 own; the tone is chosen at the blit (``PeopleColours.SKIN``).
@@ -60,11 +59,11 @@ WINTER = {
     "boy": dict(top="#3F8A4A", bottom="#3A3F4A", belt=CREAM, shoe="#5A3E2B", hat="#3F8A4A"),
     "girl": dict(top="#F2A03C", bottom="#3A3F4A", belt="#BF4130", shoe="#5A3E2B", hat="#E4623E"),
 }
-# ------------------------------------------------------------- the four colourable regions (v4.30)
-#: The regions whose colour v4.30 resolves at draw time instead of shipping a copy per value.
+# ------------------------------------------------------------- the four colourable regions
+#: The regions whose colour the engine resolves at draw time instead of shipping a copy per value.
 #:
 #: One mask per region per shape, and the engine recomposes ``fixed + sum(mask * colour)``. Four of
-#: them is a decision, not a limit that fell out of the format: see `V4_30_REPORT.md`.
+#: them is a decision (`DESIGN_NOTES.md` §12, decision 27), not a limit that fell out of the format.
 REGION_SKIN, REGION_HEAD, REGION_TOP, REGION_BOTTOM = "skin", "head", "top", "bottom"
 REGIONS = (REGION_SKIN, REGION_HEAD, REGION_TOP, REGION_BOTTOM)
 
@@ -186,26 +185,21 @@ def shade_weight(fill: str, base: str) -> float:
 
 KINDS = ("man", "woman", "boy", "girl")
 ADULT = {"man": True, "woman": True, "boy": False, "girl": False}
-#: What a child measures against an adult, chosen by the maintainer from the v4.30 phase-1
-#: photographs (the v4.30 phase-1 delivery note).
+#: What a child measures against an adult (`DESIGN_NOTES.md` §12, decision 34).
 #:
-#: 70 % still read as a short adult at 1x and 60 % was a dot at night in Big City; 65 % is the
+#: 70 % reads as a short adult at 1x and 60 % is a dot at night in Big City; 65 % is the
 #: first proportion at which the child reads as a child *beside* the adult and still has a figure.
-#: It replaces the 77.9 % the set shipped until v4.29, which was the proportion of a ten-year-old
-#: and, more to the point, had the adult's own 31 % of leg.
 CHILD_OF_ADULT = 0.65
 
 #: Where a child's content starts in the 84-unit canvas, on the metre that calls the adult 80.
 #:
-#: 84 - 62 until v4.30, when the children were redrawn at [CHILD_OF_ADULT] of an adult. Derived
-#: from that one number rather than restated, because this is the fourth place it lives -- the
-#: other three are `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest` and
+#: Derived from [CHILD_OF_ADULT] rather than restated, because this is the fourth place it lives
+#: -- the other three are `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest` and
 #: `PrecipitationScaleTest` -- and three of four is how a silent inconsistency starts.
 #:
-#: **Only the two unshipped concepts read it now.** The shipped child ([walker_relief_child])
-#: derives its crown from the adult's measured box instead, which is the metre the maintainer
-#: judges the proportion on; this stays so Stencil and Doll keep drawing a child of the same
-#: height as the one that ships.
+#: **Only the two unshipped concepts read it.** The shipped child ([walker_relief_child])
+#: derives its crown from the adult's measured box instead, which is the metre the proportion is
+#: judged on; this keeps Stencil and Doll drawing a child of the same height as the one that ships.
 CHILD_TOP = 84 - round(CHILD_OF_ADULT * 80)
 ADULT_TOP = 84 - 80
 
@@ -222,7 +216,7 @@ def wobble(seed: str, index: int, amplitude: float) -> tuple[float, float]:
 class CutPoints(list):
     """A cut polygon that remembers **which piece of the figure it is**.
 
-    v4.30 resolves four colours at draw time, and the masks that carry them have to say which
+    The engine resolves four colours at draw time, and the masks that carry them have to say which
     pixels belong to the hair, the shirt and the trousers. That question is answered *by piece*
     and not by colour: the man's hair, his shoes, his eyes and his ground shadow are all painted
     ``#2B2A33`` (`DARK`), so a decomposition that asks "which pixels are hair-coloured" hands back
@@ -266,14 +260,13 @@ def shade(color: str, t: float = 0.22) -> str:
     return mix(color, DARK, t)
 
 
-#: The face variant asked for in phase 2: Concept B drawn exactly as it was, plus a hint of eyes.
+#: The face variant: Concept B drawn exactly as it is, plus a hint of eyes.
 #:
-#: B dropped the face for one reason only -- at the ~1:7 reduction a walker gets, a two-pixel mark
-#: appeared and disappeared as the figure moved, because the GL backend minified with a single
-#: bilinear tap and no pre-reduced copy. v4.25 removes that constraint (see SpriteDetailLevel), so
-#: the question "does a face read at this size" can finally be answered by looking instead of being
-#: settled by the sampler. Both families are generated so the maintainer can compare them on the
-#: same scenes at the size they are actually seen at.
+#: B has no face for one reason only -- at the ~1:7 reduction a walker gets, a single bilinear tap
+#: with no pre-reduced copy makes a two-pixel mark appear and disappear as the figure moves. The
+#: reduced copies `SpriteDetailLevel` picks lift that constraint, so whether a face reads at this
+#: size is answered by looking rather than settled by the sampler. Both families are generated so
+#: they can be compared on the same scenes at the size they are actually seen at.
 EYED = {"relief_eyes": "relief"}
 
 
@@ -415,12 +408,12 @@ def add_eye_hint(s: Sprite) -> None:
         return
     hx, hy, rx, ry = s.head
     # Sized from the *narrower* half-axis: the seated bust's head is tall and narrow, and taking the
-    # radius from its height alone gave two marks wider than the gap between them, which merged into
+    # radius from its height alone gives two marks wider than the gap between them, which merge into
     # one blot.
     r = round(min(rx, ry) * 0.17, 2)
     # **The space between the eyes is one eye wide**, and that is a screen measurement rather than a
-    # taste: at 2.7 the gap was 1.25 local units, which on the walker's measured draw factor is
-    # 0.53 of a screen pixel. Half a pixel cannot separate anything, so the pair rendered as one
+    # taste: at 2.7 the gap would be 1.25 local units, which on the walker's measured draw factor is
+    # 0.53 of a screen pixel. Half a pixel cannot separate anything, so the pair would render as one
     # dark bar -- a visor rather than two eyes. At four the gap is 1.52 px, the same as each eye,
     # and the three read as three.
     gap = r * 4.0
@@ -513,12 +506,12 @@ def walker_stencil(kind: str, season: str, frame: int) -> Sprite:
 
 
 
-#: The adult's own box, in units, on the metre the maintainer measures with.
+#: The adult's own box, in units, on the metre the proportion is judged on.
 #:
 #: The non-transparent box of the shipped `person_man_summer_walk0` and `person_woman_summer_walk0`
 #: is 247 and 246 px tall on the 252-px canvas: 82.17 units on average. **It includes the ground
 #: shadow under the feet and the hair above the skull**, because that is what a box is, and taking
-#: the crown-to-sole height instead measured 75.5 % for a figure built to 70 %.
+#: the crown-to-sole height instead measures 75.5 % for a figure built to 70 %.
 ADULT_BOX_UNITS = 246.5 / 3.0
 
 #: How far a child's summer headwear stands above the head oval, so the content top lands on the
@@ -533,15 +526,14 @@ CHILD_SUMMER_RISE = {"boy": 1.5, "girl": 2.5}
 #: The child's geometry at [CHILD_OF_ADULT], in the pre-trim 41x85 frame.
 #:
 #: Adult, for comparison: head_ry 11.5 rx 10.5, neck 2, torso 25.5, legs 27, arm 22 x 5.5,
-#: leg_w 6.5, stride 6.5, swing 5, sw 11.5, hw 10 / 14.5, foot 5.0 -- 3.5 heads tall. The shipped
-#: child had head_ry 9.5 rx 9.0, neck 2, torso 17.5, legs 21, arm 16 x 4.5, stride 6.5, swing 5.
+#: leg_w 6.5, stride 6.5, swing 5, sw 11.5, hw 10 / 14.5, foot 5.0 -- 3.5 heads tall.
 #:
-#: Three things are deliberate and none of them is a scale factor:
+#: Three things are deliberate (decision 34) and none of them is a scale factor:
 #:
 #:  - **the head does not shrink.** A five-year-old's head is 85-90 % of an adult's and the body
-#:    far less, so the head keeps the size the shipped child had and the height comes off the legs
-#:    and the torso. That also leaves the walker's head where the seated and window busts declare
-#:    it (`OccupantHeadFitTest`), which is why those two families are untouched by this change;
+#:    far less, so the head keeps its 9.5 x 9.0 and the height comes off the legs and the torso.
+#:    That also leaves the walker's head where the seated and window busts declare it
+#:    (`OccupantHeadFitTest`);
 #:  - **the legs go before the torso**, which is the proportion that actually changes with age;
 #:  - **the stride and the arm swing shorten with the legs**, or the child strides like an adult.
 CHILD_GEOMETRY = dict(
@@ -558,7 +550,7 @@ def walker_relief_child(kind: str, season: str, frame: int) -> Sprite:
     """The Relief child, built from the feet up at [CHILD_OF_ADULT] of the adult.
 
     A separate function rather than a branch inside [walker_relief] because almost nothing is
-    shared any more: the skeleton is derived from the target box downwards -- crown, head, neck,
+    shared: the skeleton is derived from the target box downwards -- crown, head, neck,
     torso -- and the legs are whatever is left to the ground, so the box lands on the proportion
     by construction instead of being tuned towards it.
     """
@@ -799,10 +791,8 @@ def bust_window(style: str, kind: str, season: str) -> Sprite:
     cx = 26.8
     adult = ADULT[kind]
     head_ry = 18.0 if adult else 16.5
-    # 14.0 and 13.0 until v4.25's proportion pass: the window busts measured 0.83-1.18 of width
-    # over height against the 1.05-1.47 of the family they replaced, narrow by a fifth, for the
-    # same reason the seated ones were narrow by a half. Nothing constrains a head at a window --
-    # there is no second occupant beside it -- so this is simply the proportion the drawing wants.
+    # About as wide as it is tall. Nothing constrains a head at a window -- there is no second
+    # occupant beside it -- so this is simply the proportion the drawing wants.
     head_rx = 18.0 if adult else 17.0
     head_cy = 3 + head_ry + (3 if season == "winter" else 0)
     chin = head_cy + head_ry
@@ -830,11 +820,9 @@ def bust_car(style: str, kind: str, season: str, rise: float = 0.0) -> Sprite:
 
     **[rise] is what makes that declaration true.** Headwear is drawn relative to the head oval
     and every piece stands proud of it by its own amount -- a cushion of hair lobes by about two
-    units, a hat by rather less. Left to itself the topmost ink lands wherever that puts it: on
-    the first v4.25 build the four adults' crowns measured 0.00, 2.67, 0.00 and 2.67 against a
-    declared 2.0, and the crown-to-chin block they define spread over four units where the test
-    that reads it allows one and a half. Nothing in the concept asks for the man's hair to sit
-    two units above his own hat; the generator was simply not drawing what it declared.
+    units, a hat by rather less. Left to itself the topmost ink lands wherever that puts it: the
+    four adults' crowns at 0.00, 2.67, 0.00 and 2.67 against a declared 2.0, and the crown-to-chin
+    block they define spread over four units where the test that reads it allows one and a half.
 
     So the head is pushed down by exactly the amount its own headwear rises and shortened by the
     same amount, leaving the chin where it was. [build] measures the rise on a first pass and
@@ -849,18 +837,15 @@ def bust_car(style: str, kind: str, season: str, rise: float = 0.0) -> Sprite:
     adult = ADULT[kind]
     crown = 2.0 if adult else 5.5
     chin = 37.0
-    # No hat reservation. It used to push the head down six units in winter so a hat could sit
-    # above it; `rise` now does that job from the headwear each member actually wears, which is
-    # also why the boy -- whose winter headwear is a hood drawn behind the head, not a hat on
-    # top of it -- no longer ends up four and a half units short of every other child.
+    # No hat reservation: `rise` pushes the head down by the headwear each member actually wears.
+    # A fixed six units in winter would leave the boy -- whose winter headwear is a hood drawn
+    # behind the head, not a hat on top of it -- four and a half units short of every other child.
     head_top = crown + rise
     head_ry = (chin - head_top) / 2
-    # **A head is as round here as it is anywhere else the same person is drawn.** These were 9.0
-    # and 8.5, against 14.0 and 13.0 for the same head at a window, and the seated family shipped
-    # at 0.61-0.72 of width over height where every other placement of the same people sits near
-    # 1.0. The reason was [SEATED_HALF_BAND] being read in the wrong unit; with the band right,
-    # the oval is drawn at the proportion the artwork has everywhere else and the band is no
-    # longer the thing that shapes it.
+    # **A head is as round here as it is anywhere else the same person is drawn**: every other
+    # placement of the same people sits near 1.0 of width over height. With [SEATED_HALF_BAND] in
+    # the right unit the band does not shape the oval, which is drawn at the proportion the artwork
+    # has everywhere else.
     head_rx = 13.8 if adult else 12.8
     head_cy = head_top + head_ry
     # shoulders and (Relief, Doll) the seatbelt that says "in a car"
@@ -896,27 +881,23 @@ CUT_MAX_WOBBLE = 0.35
 CAR_UNITS_PER_BUST_UNIT = 0.5255
 
 #: The seat pitch, in the car's units: `SceneObjectRenderer` seats the driver at -7.75 and the
-#: passenger at 13.75 of the narrowest cabin. It was 23 until v4.25 re-derived it -- see
-#: `SceneObjectRenderer.CAR_HEAD_X_UNITS`. No piece of this artwork is clamped by the band at
-#: either value, so the shipped sprites are byte-identical across the change; the constant is
-#: updated because the derivation below reads it, not because a pixel moves.
+#: passenger at 13.75 of the narrowest cabin -- see `SceneObjectRenderer.CAR_HEAD_X_UNITS`. The
+#: derivation below reads it.
 SEAT_PITCH_CAR_UNITS = 21.5
 
-#: What v4.24 left between two occupants' ink at that pitch, in car units, and the reason the
+#: The gap left between two occupants' ink at that pitch, in car units, and the reason the
 #: number is two rather than nothing: two heads that merge draw one silhouette with four eyes.
-#: v4.24's own worst case is a child beside an adult, which cleared 2.05.
+#: The worst case is a child beside an adult.
 SEATED_CLEARANCE_CAR_UNITS = 2.0
 
 #: Half the band a seated head may occupy, in the bust's own units.
 #:
-#: **This was 11.0, and it was the wrong unit.** The band is in *bust* units and the seat pitch it
-#: is justified against is in *car* units, and a bust unit is [CAR_UNITS_PER_BUST_UNIT] of a car
-#: unit -- so a 22-unit band is 11.6 car units against a pitch of 23, and the constraint was
-#: twice as tight as the car actually is. The head was then drawn to fit it: `head_rx` came out
-#: at 9.0 where the window bust of the same person is 14.0, and the seated head shipped 20.7
-#: units wide against the 37.0 of the family it replaced, at the same height. A head squeezed to
-#: fit a window is exactly the per-asset correction `AI_PROJECT_RULES.md` forbids; the cause was
-#: on the car's side of the comparison and this is where it is fixed.
+#: **The band is in *bust* units and the seat pitch it is justified against is in *car* units**,
+#: and a bust unit is [CAR_UNITS_PER_BUST_UNIT] of a car unit: without the conversion the band is
+#: about twice as tight as the car actually is, and a head drawn to fit it comes out squeezed
+#: (`head_rx` 9.0 where the window bust of the same person is 14.0). Squeezing the head is a
+#: per-asset patch that leaves the shared cause to break the next figure; the cause is on the
+#: car's side of the comparison, and this is where it is converted.
 SEATED_HALF_BAND = (SEAT_PITCH_CAR_UNITS - SEATED_CLEARANCE_CAR_UNITS) / CAR_UNITS_PER_BUST_UNIT / 2
 
 
@@ -932,9 +913,8 @@ def in_band(hx, x, r, narrow):
         return x
     # **The under-paper counts.** Relief draws every piece a second time, offset down and to the
     # right by [RELIEF_OFFSET], so a piece whose own outline stops exactly on the band still puts
-    # ink past it. Forgetting that left the family a unit and a half over the seat pitch after the
-    # band rule was already in place -- the rule was right and the edge it measured was the wrong
-    # one.
+    # ink past it. Without it the family stands a unit and a half over the seat pitch with the
+    # band rule in place -- the rule right and the edge it measures the wrong one.
     # The wobble counts too, for the same reason: `cut` writes a displacement of up to
     # [CUT_MAX_WOBBLE] into every point, so a polygon placed exactly on the band draws a third of a
     # unit past it on whichever points happened to wobble outward.
@@ -949,12 +929,11 @@ def add_hair(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal, n
     inside 22 units of width for the car family."""
     side = 0 if frontal else 1   # three-quarter: hair mass toward -x
     reach = 1.5 if narrow else 3.0
-    # **The hair follows the head.** The crown lobes were written as absolute offsets from the
-    # eye axis, tuned against the head each bust had when the concept was drawn -- 9.0 units of
-    # radius seated, 14.0 at a window. A head drawn wider than that keeps the same small cushion
-    # of hair on top, which reads as a wig two sizes down rather than as a wider head. Every
-    # horizontal extent below is therefore a multiple of the head's own radius. The vertical ones
-    # are not: the head is no taller than it was.
+    # **The hair follows the head.** The crown lobes are offsets from the eye axis tuned against a
+    # head of 9.0 units of radius seated and 14.0 at a window (the divisor of `k`). A wider head
+    # under the same small cushion of hair reads as a wig two sizes down rather than as a wider
+    # head, so every horizontal extent below is a multiple of the head's own radius. The vertical
+    # ones are not: the head's height is the one they are tuned against.
     k = rx / (9.0 if narrow else 14.0)
     if season == "summer":
         if drawing_style(style) == "relief":
@@ -962,8 +941,8 @@ def add_hair(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal, n
                 "man": [(hx - 5 * k, hy - ry + 3, 6.5 * k, 4.5), (hx + 2.5 * k, hy - ry + 1.5, 6.5 * k, 4.5), (hx - rx + 1.5 * k, hy - 5, 3.5 * k, 6.5)],
                 # The inner lock is dropped on the seated bust (`narrow`): there it falls across
                 # the cheek and ends level with the jaw, which narrows the face exactly where the
-                # crown-to-chin measurement reads its width -- her block measured four units short
-                # of the other three adults' for that reason alone. The outer lock keeps the
+                # crown-to-chin measurement reads its width, and would leave her block four units
+                # short of the other three adults'. The outer lock keeps the
                 # silhouette; nothing else about her hair changes.
                 "woman": [(hx - 4 * k, hy - ry + 2.5, 7.5 * k, 5), (hx + 4 * k, hy - ry + 2, 6 * k, 4.5), (in_band(hx, hx - rx - 0.5, 4.0 * k, narrow), hy + 2, 4.0 * k, 12)]
                 + ([] if narrow else [(hx - rx + 3 * k, hy + 9, 4 * k, 6)])
@@ -972,13 +951,13 @@ def add_hair(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal, n
                 # Her crown lobes follow the head; her bunches do not. A bunch hangs *beside* a
                 # head rather than covering it, so scaling it with the skull both makes it a
                 # different drawing and pushes it into the seat band -- which then pulls it back
-                # over her own cheek, which is where it was ending up.
+                # over her own cheek.
                 "girl": [(hx - 3 * k, hy - ry + 2.5, 7.5 * k, 5), (hx + 3.5 * k, hy - ry + 2, 6 * k, 4.5), (in_band(hx, hx - rx - reach + 1, 3.2 if narrow else 4, narrow), hy + 4, 3.2 if narrow else 4, 7), (in_band(hx, hx + rx + reach - 1, 3.2 if narrow else 4, narrow), hy + 4, 3.2 if narrow else 4, 7)],
             }[kind]
             # Every lobe through the band, not only the ones that sit at the side: the woman's
             # crown lobe is seven and a half units across and centred four off the axis, so it
-            # reached further out than either of her side pieces did. Clamping the list rather
-            # than the pieces that happened to overflow is what stops this being whack-a-mole.
+            # reaches further out than either of her side pieces. Clamping the list rather than
+            # the pieces that happen to overflow is what stops this being whack-a-mole.
             for i, (lx, ly, lrx, lry) in enumerate(lobes):
                 s.add(cut(oval(in_band(hx, lx, lrx, narrow), ly, lrx, lry, 10), seed + f"lobe{i}"),
                       hair if kind != "boy" else gar["cap"])
@@ -1042,12 +1021,12 @@ def behind_head(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal
 # ------------------------------------------------------------------------------ driver
 WALKERS = {"stencil": walker_stencil, "relief": walker_relief, "doll": walker_doll}
 
-#: The name each style had when its busts were drawn, **which is part of their wobble seed**.
+#: Each style's seed name, **which is part of its busts' wobble seed**.
 #:
 #: [bust_window] and [bust_car] seed every cut with the sprite name plus the style name, so the
-#: style name is written into every vertex of every bust. The styles were renamed into English in
-#: v5.9F (rule 15.2); feeding the new names to the seed would have moved every bust of every
-#: family by up to [CUT_MAX_WOBBLE], including the shipped ones. These strings are the seed input
+#: style name is written into every vertex of every bust. The styles are named in English (rule
+#: 15.2); feeding those names to the seed would move every bust of every family by up to
+#: [CUT_MAX_WOBBLE], including the shipped ones. These strings are the seed input
 #: that keeps the drawing byte-identical, not names: they are not shown, written or looked up
 #: anywhere else. The walkers are seeded by the sprite name alone and do not read this.
 SEED_STYLE = {"stencil": "stampino", "relief": "rilievo", "doll": "bambola"}
@@ -1111,9 +1090,7 @@ def trim_to_content(sprites: list, style: str) -> None:
 
     Done here, at authoring time, rather than by cropping the rendered PNGs afterwards. A crop
     afterwards leaves the SVG describing a canvas the PNG no longer has, so `render` stops
-    reproducing what ships -- and `tools/assets`' own `normalize --apply` cannot fix that for this
-    family, because it resolves a source by sprite name and six of these are drawn from a file
-    named after the base they replaced.
+    reproducing what ships.
 
     The trim is quantised to whole local units, which is what keeps every sprite on the authoring
     grid: a crop of a fraction of a unit would put the artwork half a source pixel off it.

@@ -9,22 +9,23 @@ import org.junit.Test
 /**
  * **Halloween overrides the moon-phase control; it does not overwrite the user's preference.**
  *
- * ### The behaviour this is about, and where it already lived
+ * ### The behaviour this is about
  *
  * `PaperRenderer.drawMoonWithPhase` blits `moon_jack_o_lantern`, always full, and returns before
  * it ever reads `moon.realisticPhases` while `halloweenEnabled` is on. That is correct and carries
  * its own derivation in the renderer: a carved face that waxed and waned would be a lit fraction
  * of a grin, which reads as a rendering fault rather than as a decoration. **Nothing here changes
- * that.** What v4.23 changed is the settings row, which stayed live and clickable while the
- * renderer ignored it -- and a control that moves without effect is worse than an absent one,
- * because it teaches the user that the setting does not work.
+ * that.** What this holds is the settings row: live and clickable while the renderer ignores it,
+ * it would be a control that moves without effect, which is worse than an absent one, because it
+ * teaches the user that the setting does not work.
  *
  * ### Two halves, and why neither proves the invariant alone
  *
  * The claim has two parts, and they fail in different places.
  *
  * **The rule** is [SettingsUiModel.moonPhases]: shown off and locked while Halloween is on, the
- * stored value otherwise. It is a pure function of two booleans, so it is asserted directly --
+ * stored value otherwise. With the moon shown (its default), it is a pure function of two booleans,
+ * so it is asserted directly --
  * every one of the four combinations, plus the property that matters most, which is that the
  * *stored* value is never what decides interactivity.
  *
@@ -50,7 +51,7 @@ import org.junit.Test
  * The rule it comes from is written down already, in `PeopleDensity.resolveNightDensity`: any
  * default that silently changes what an existing user had set up "is not something a settings
  * refactor is entitled to do". Writing `false` into the preference to make the switch look right
- * would be exactly that, and it is the reason condition U exists in this pass's brief.
+ * would be exactly that.
  */
 class MoonPhaseControlTest {
 
@@ -82,8 +83,7 @@ class MoonPhaseControlTest {
      * Stated separately from the two cases above because it is the property a future edit is most
      * likely to break: making interactivity depend on the stored value as well would produce a
      * switch that is locked *on* for a user who had phases enabled, which looks reasonable and is
-     * the same dead end v3.0's Live Weather switch was in ([LiveWeatherUiState]
-     * carries that history).
+     * a dead end: a switch showing a setting the scene does not draw, with no way to change it.
      */
     @Test
     fun `only Halloween decides whether the control is locked`() {

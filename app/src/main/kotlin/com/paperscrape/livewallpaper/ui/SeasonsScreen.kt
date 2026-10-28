@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.AcUnit
-import androidx.compose.material.icons.outlined.CardGiftcard
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Egg
-import androidx.compose.material.icons.outlined.LocalFlorist
+import com.paperscrape.livewallpaper.ui.icons.filled.Tune
+import com.paperscrape.livewallpaper.ui.icons.outlined.AcUnit
+import com.paperscrape.livewallpaper.ui.icons.outlined.CardGiftcard
+import com.paperscrape.livewallpaper.ui.icons.outlined.DarkMode
+import com.paperscrape.livewallpaper.ui.icons.outlined.Egg
+import com.paperscrape.livewallpaper.ui.icons.outlined.LocalFlorist
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import kotlinx.coroutines.CoroutineScope
@@ -32,10 +33,9 @@ import kotlinx.coroutines.launch
 /**
  * The five seasons decorations are grouped under. Presentation only; no flag knows about it.
  *
- * There was a sixth, Summer, and the Palms switch was all it held. The maintainer moved the switch
- * to the Trees page of World & scene on 2026-10-03 (*«il flag non deve stare in summer ma in
- * tree»*, v5.10C2): the palms stand in the trees' places, so they are set where the trees are. A
- * Summer row left behind would have counted nothing and opened an empty page.
+ * No sixth, Summer: the Palms switch would be all it held, and that switch is on the Trees page of
+ * World & scene (`DESIGN_NOTES.md` §12, decision 39): the palms stand in the trees' places, so they
+ * are set where the trees are. A Summer row would count nothing and open an empty page.
  */
 private enum class Season(val title: String) {
     WINTER("Winter"),
@@ -48,19 +48,23 @@ private enum class Season(val title: String) {
 /**
  * Seasonal palette and decorations for the theme currently showing.
  *
- * v2.8 put all of this on one flat screen: two palette switches that silently cancelled each
- * other, a "Christmas" heading with the Flowers switch underneath it (a spring decoration), a
- * "Halloween" heading, and then six fully expanded category blocks -- roughly sixty controls in
- * one scroll, with each block's season named thousands of pixels above it.
+ * Not one flat screen: there, two palette switches would silently cancel each other, the Flowers
+ * switch (a spring decoration) would sit under a "Christmas" heading beside a "Halloween" one, and
+ * six fully expanded category blocks would make roughly sixty controls in one scroll, with each
+ * block's season named thousands of pixels above it.
  *
- * The flags are untouched. The palette is one choice because the two flags were always mutually
+ * The screen only groups the flags. The palette is one choice because its two flags are mutually
  * exclusive (see [SettingsUiModel]); each decoration keeps its own switch, in the season a user
  * would look for it under; and density and colours are one level down, which is how every Scene
- * Objects category has always worked.
+ * Objects category works.
  */
 @Composable
 internal fun SeasonsScreen(
     customization: SceneCustomization,
+    /** The street the theme draws: what the lights and the Halloween decorations hang on ([SettingsUiModel.christmasTreeDecoration]). */
+    themeLayout: SceneObjectLayout,
+    /** What that street stands under [customization]: a decoration's switch reads on only where one stands. */
+    standing: StandingObjects,
     forThemeId: String,
     themeName: String,
     prefs: WallpaperPrefs,
@@ -68,12 +72,12 @@ internal fun SeasonsScreen(
     onBack: () -> Unit,
 ) {
     var openSeason by remember { mutableStateOf<Season?>(null) }
-    // "Reset decorations to defaults" asks first, as the scene's reset does (v5.10E, inventory I-214).
+    // "Reset decorations to defaults" asks first, as the scene's reset does (decision 42).
     var confirmDecorationsReset by remember { mutableStateOf(false) }
     val palette = SettingsUiModel.seasonalPalette(customization.fallColorsEnabled, customization.winterColorsEnabled)
 
     SettingsSubScreen(title = "Seasons & decorations", onBack = onBack) {
-        // What happens to an edit, said as it is (v5.10E, inventory I-219): kept with this theme.
+        // What happens to an edit, said as it is (decision 45): kept with this theme.
         SettingsBanner(SettingsUiModel.themeEditsBanner(themeName))
 
         SettingsSectionHeader("Seasonal palette")
@@ -148,34 +152,35 @@ internal fun SeasonsScreen(
 
         SettingsSectionHeader("Decorations")
         SettingsGroup {
-            // Each decoration as its switch shows it: at 0 % density none is drawn, so it is off
-            // here too (v5.10C, row 8).
-            fun shown(c: ObjectVariantConfig) = SettingsUiModel.amountSwitch(c.visible, c.density).shownOn
+            // Each decoration as its switch shows it: where none stands -- at 0 % density, or at an amount that keeps
+            // none on this theme -- it is off here too.
+            fun shown(c: ObjectVariantConfig, stands: Boolean) = SettingsUiModel.amountSwitch(c.visible, c.density, stands).shownOn
             SeasonRow(Season.WINTER, Icons.Outlined.AcUnit, listOf(
-                "Snowmen" to shown(customization.snowmen),
-                "Penguins" to shown(customization.penguins),
+                "Snowmen" to shown(customization.snowmen, standing.snowmen),
+                "Penguins" to shown(customization.penguins, standing.penguins),
             )) { openSeason = Season.WINTER }
             SeasonRow(Season.CHRISTMAS, Icons.Outlined.CardGiftcard, listOf(
-                "Lights on the buildings" to SettingsUiModel.christmasBuildingDecoration(customization.christmasBuildingLightsEnabled, customization).shownOn,
-                "Lights on the trees" to SettingsUiModel.christmasTreeDecoration(customization.christmasTreeLightsEnabled, customization).shownOn,
-                "Christmas firs" to SettingsUiModel.christmasTreeDecoration(customization.christmasFirsEnabled, customization).shownOn,
+                "Lights on the buildings" to SettingsUiModel.christmasBuildingDecoration(customization.christmasBuildingLightsEnabled, customization, themeLayout).shownOn,
+                "Lights on the trees" to SettingsUiModel.christmasTreeDecoration(customization.christmasTreeLightsEnabled, customization, themeLayout).shownOn,
+                "Christmas firs" to SettingsUiModel.christmasFirs(customization.christmasFirsEnabled, customization, themeLayout).shownOn,
                 "Santa" to customization.santaEnabled,
-                "Gifts" to shown(customization.gifts),
+                "Gifts" to shown(customization.gifts, standing.gifts),
             )) { openSeason = Season.CHRISTMAS }
             SeasonRow(Season.HALLOWEEN, Icons.Outlined.DarkMode, listOf(
                 "Halloween" to customization.halloweenEnabled,
                 "Laughing moon" to SettingsUiModel.laughingMoon(customization).shownOn,
                 "Night sky by day" to SettingsUiModel.nightSkyByDay(customization).shownOn,
+                "Moon stays in place" to SettingsUiModel.stillMoon(customization).shownOn,
                 "Horror sky" to customization.horrorSkyEnabled,
-                "Halloween decorations" to SettingsUiModel.halloweenDecorations(customization).shownOn,
-                "Pumpkins" to shown(customization.pumpkins),
-                "Scarecrows" to shown(customization.scarecrows),
+                "Halloween decorations" to SettingsUiModel.halloweenDecorations(customization, themeLayout).shownOn,
+                "Pumpkins" to shown(customization.pumpkins, standing.pumpkins),
+                "Scarecrows" to shown(customization.scarecrows, standing.scarecrows),
                 "Headless Horseman" to customization.headlessHorsemanEnabled,
                 "Blood rain" to customization.bloodRainEnabled,
             )) { openSeason = Season.HALLOWEEN }
             SeasonRow(Season.EASTER, Icons.Outlined.Egg, listOf(
-                "Bunnies" to shown(customization.bunnies),
-                "Eggs" to shown(customization.easterEggs),
+                "Bunnies" to shown(customization.bunnies, standing.bunnies),
+                "Eggs" to shown(customization.easterEggs, standing.easterEggs),
             )) { openSeason = Season.EASTER }
             SeasonRow(Season.SPRING, Icons.Outlined.LocalFlorist, listOf(
                 "Flowers" to customization.flowersEnabled,
@@ -191,13 +196,12 @@ internal fun SeasonsScreen(
     }
 
     if (confirmDecorationsReset) {
-        // **What this screen shows, and nothing else** (v5.10E, inventory I-214 and I-294): the palette
-        // and the piles under it, the five seasons' decorations with their densities and colours, and
-        // their switches -- in one write (`WallpaperPrefs.resetDecorations`). Until v5.10E the button
-        // reset without asking, left the snow and leaf piles where they were, and took the palms, whose
-        // switch is on the Trees page of World & scene since v5.10C2: "Reset Trees to default" takes
-        // them now. resetAllCategories() would also wipe this theme's houses, trees and the rest, which
-        // is not what "reset" means here; that one lives on World & scene.
+        // **What this screen shows, and nothing else** (decision 42): the palette and the piles under
+        // it, the five seasons' decorations with their densities and colours, and their switches -- in
+        // one write (`WallpaperPrefs.resetDecorations`), after asking. Not the palms, whose switch is on
+        // the Trees page of World & scene: "Reset Trees to default" takes them. resetAllCategories()
+        // would also wipe this theme's houses, trees and the rest, which is not what "reset" means
+        // here; that one lives on World & scene.
         AlertDialog(
             onDismissRequest = { confirmDecorationsReset = false },
             title = { Text("Reset $themeName's decorations?") },
@@ -216,6 +220,8 @@ internal fun SeasonsScreen(
         SeasonDetailScreen(
             season = season,
             customization = customization,
+            themeLayout = themeLayout,
+            standing = standing,
             forThemeId = forThemeId,
             prefs = prefs,
             scope = scope,
@@ -227,11 +233,10 @@ internal fun SeasonsScreen(
 /**
  * One season's row: its decorations, and how many of them the wallpaper is drawing. Each pair's
  * flag is what the switch shows, not what is stored -- a decoration at 0 % density counts as off,
- * as its switch does (v5.10C, [SettingsUiModel.amountSwitch]).
+ * as its switch does ([SettingsUiModel.amountSwitch]).
  *
- * It had a second form until v5.10C, a sentence in place of the count for a season whose
- * decorations could not appear on the theme at all: the palms, which grew only where the layout
- * planted them. They can be switched on anywhere now, and since v5.10C2 from the Trees page.
+ * Always a count: every decoration a season holds can be switched on on any theme, so no season
+ * needs a sentence saying its decorations cannot appear.
  */
 @Composable
 private fun SeasonRow(
@@ -254,7 +259,7 @@ private fun SeasonRow(
  * One season's own screen: its switches, and a way into the density/colour options of any
  * decoration that has them.
  *
- * No per-season reset: the only two resets this area has ever had are the whole-screen one on
+ * No per-season reset: the only two resets this area has are the whole-screen one on
  * [SeasonsScreen] and each category's own "Reset X to default" inside its options, and inventing
  * a third would change what "reset" means here.
  */
@@ -262,6 +267,8 @@ private fun SeasonRow(
 private fun SeasonDetailScreen(
     season: Season,
     customization: SceneCustomization,
+    themeLayout: SceneObjectLayout,
+    standing: StandingObjects,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
@@ -273,53 +280,52 @@ private fun SeasonDetailScreen(
         SettingsGroup(modifier = Modifier.padding(top = 12.dp)) {
             when (season) {
                 Season.WINTER -> {
-                    DecorationRows("Snowmen", customization.snowmen, ObjectCategory.SNOWMEN, forThemeId, prefs, scope) { openOptions = it }
-                    DecorationRows("Penguins", customization.penguins, ObjectCategory.PENGUINS, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Snowmen", customization.snowmen, standing.snowmen, ObjectCategory.SNOWMEN, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Penguins", customization.penguins, standing.penguins, ObjectCategory.PENGUINS, forThemeId, prefs, scope) { openOptions = it }
                 }
                 Season.CHRISTMAS -> {
-                    // The three switches *Christmas lights* became (v5.16, the maintainer's *«interruttori per ogni cosa;
-                    // lo stesso dobbiamo avere anche per natale»*, 2026-10-21), each line all it does; each greyed with the
-                    // reason while the Halloween decorations are on (`DecorationExclusion`: the first on wins).
+                    // *Christmas lights* as three switches (`DESIGN_NOTES.md` §12, decision 76), each line all it does;
+                    // each greyed with the reason while the Halloween decorations are on (`DecorationExclusion`: the
+                    // first on wins).
                     ChristmasDecorationRow(
                         title = "Lights on the buildings",
                         line = CHRISTMAS_BUILDING_LIGHTS_LINE,
-                        state = SettingsUiModel.christmasBuildingDecoration(customization.christmasBuildingLightsEnabled, customization),
+                        state = SettingsUiModel.christmasBuildingDecoration(customization.christmasBuildingLightsEnabled, customization, themeLayout),
                         onCheckedChange = { scope.launch { prefs.setChristmasBuildingLightsEnabled(it, forThemeId) } },
                     )
                     ChristmasDecorationRow(
                         title = "Lights on the trees",
                         line = CHRISTMAS_TREE_LIGHTS_LINE,
-                        state = SettingsUiModel.christmasTreeDecoration(customization.christmasTreeLightsEnabled, customization),
+                        state = SettingsUiModel.christmasTreeDecoration(customization.christmasTreeLightsEnabled, customization, themeLayout),
                         onCheckedChange = { scope.launch { prefs.setChristmasTreeLightsEnabled(it, forThemeId) } },
                     )
                     ChristmasDecorationRow(
                         title = "Christmas firs",
                         line = CHRISTMAS_FIRS_LINE,
-                        state = SettingsUiModel.christmasTreeDecoration(customization.christmasFirsEnabled, customization),
+                        state = SettingsUiModel.christmasFirs(customization.christmasFirsEnabled, customization, themeLayout),
                         onCheckedChange = { scope.launch { prefs.setChristmasFirsEnabled(it, forThemeId) } },
                     )
                     SettingsSwitchRow(
                         title = "Santa",
-                        // v5.15, the maintainer's «Tieni il ritmo, cambia la scritta» (2026-10-19): a flight starts 25 to
-                        // 60 s after the last one ended (`SantaSleighEffect`), so "occasionally" said less than the truth.
+                        // The line says the rhythm as it is: a flight starts 25 to 60 s after the last one ended
+                        // (`SantaSleighEffect`), so "occasionally" would say less than the truth.
                         supporting = "Santa's sleigh flies across the sky about once a minute, dropping gifts",
                         checked = customization.santaEnabled,
                         onCheckedChange = { scope.launch { prefs.setSantaEnabled(it, forThemeId) } },
                     )
-                    DecorationRows("Gifts", customization.gifts, ObjectCategory.GIFTS, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Gifts", customization.gifts, standing.gifts, ObjectCategory.GIFTS, forThemeId, prefs, scope) { openOptions = it }
                 }
                 Season.HALLOWEEN -> {
                     SettingsSwitchRow(
                         title = "Halloween",
-                        // What the switch does, all of it (`DESIGN_NOTES.md` §16): the moon, the trees -- not one standing
-                        // as a Christmas fir -- the palms and the pumpkins. Until v5.15 the line named the first two only;
-                        // the line the maintainer approved (2026-10-20), and still the whole of it: what v5.16 added has a
-                        // switch of its own below (*«interruttori per ogni cosa»*, 2026-10-21).
+                        // What the switch does, all of it: the moon, the trees -- not one standing as a Christmas fir
+                        // -- the palms and the pumpkins. Every other Halloween thing has a switch of its own below
+                        // (`DESIGN_NOTES.md` §12, decision 75).
                         supporting = HALLOWEEN_LINE,
                         checked = customization.halloweenEnabled,
                         onCheckedChange = { scope.launch { prefs.setHalloweenEnabled(it, forThemeId) } },
                     )
-                    // The two that are the carved moon's: greyed with the reason while Halloween or Moon is off
+                    // The three that are the carved moon's: greyed with the reason while Halloween or Moon is off
                     // (`SettingsUiModel.laughingMoon`, the rule of Realistic Moon Phases), the stored choice kept.
                     val laughing = SettingsUiModel.laughingMoon(customization)
                     SettingsSwitchRow(
@@ -337,13 +343,22 @@ private fun SeasonDetailScreen(
                         enabled = nightByDay.interactive,
                         onCheckedChange = { scope.launch { prefs.setNightSkyByDayEnabled(it, forThemeId) } },
                     )
+                    // The still moon, the carved moon's too: right under the night by day, greyed by their rule.
+                    val stillMoon = SettingsUiModel.stillMoon(customization)
+                    SettingsSwitchRow(
+                        title = "Moon stays in place",
+                        supporting = halloweenMoonLine(STILL_MOON_LINE, stillMoon),
+                        checked = stillMoon.shownOn,
+                        enabled = stillMoon.interactive,
+                        onCheckedChange = { scope.launch { prefs.setStillMoonEnabled(it, forThemeId) } },
+                    )
                     SettingsSwitchRow(
                         title = "Horror sky",
                         supporting = "Near-black overhead with a hard orange horizon. A separate switch, so you can have either on its own.",
                         checked = customization.horrorSkyEnabled,
                         onCheckedChange = { scope.launch { prefs.setHorrorSkyEnabled(it, forThemeId) } },
                     )
-                    val decorations = SettingsUiModel.halloweenDecorations(customization)
+                    val decorations = SettingsUiModel.halloweenDecorations(customization, themeLayout)
                     SettingsSwitchRow(
                         title = "Halloween decorations",
                         supporting = when {
@@ -355,9 +370,9 @@ private fun SeasonDetailScreen(
                         enabled = decorations.interactive,
                         onCheckedChange = { scope.launch { prefs.setHalloweenDecorationsEnabled(it, forThemeId) } },
                     )
-                    DecorationRows("Pumpkins", customization.pumpkins, ObjectCategory.PUMPKINS, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Pumpkins", customization.pumpkins, standing.pumpkins, ObjectCategory.PUMPKINS, forThemeId, prefs, scope) { openOptions = it }
                     DecorationRows(
-                        "Scarecrows", customization.scarecrows, ObjectCategory.SCARECROWS, forThemeId, prefs, scope,
+                        "Scarecrows", customization.scarecrows, standing.scarecrows, ObjectCategory.SCARECROWS, forThemeId, prefs, scope,
                         about = SCARECROWS_LINE, optionsLine = "Density",
                     ) { openOptions = it }
                     SettingsSwitchRow(
@@ -375,8 +390,8 @@ private fun SeasonDetailScreen(
                     )
                 }
                 Season.EASTER -> {
-                    DecorationRows("Easter Bunnies", customization.bunnies, ObjectCategory.BUNNIES, forThemeId, prefs, scope) { openOptions = it }
-                    DecorationRows("Easter Eggs", customization.easterEggs, ObjectCategory.EASTER_EGGS, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Easter Bunnies", customization.bunnies, standing.bunnies, ObjectCategory.BUNNIES, forThemeId, prefs, scope) { openOptions = it }
+                    DecorationRows("Easter Eggs", customization.easterEggs, standing.easterEggs, ObjectCategory.EASTER_EGGS, forThemeId, prefs, scope) { openOptions = it }
                 }
                 Season.SPRING -> {
                     SettingsSwitchRow(
@@ -414,7 +429,7 @@ private fun SeasonDetailScreen(
 }
 
 /**
- * The lines under the three switches *Christmas lights* became (v5.16), each everything its switch does: the buildings'
+ * The lines under the three switches of *Christmas lights* (decision 76), each everything its switch does: the buildings'
  * -- the bulbs along the roofs and the strings under the sills, the wreath on every front door, the star on every tower,
  * the three bulbs of every distant house (`drawDecorations`, `drawWindowLights`, `PaperRenderer.drawDistantHouseLights`);
  * the trees' -- the lights of the leafy trees and of the palms (`drawTree`, `drawPalmTree`); the firs' -- one tree in
@@ -428,34 +443,38 @@ internal const val CHRISTMAS_TREE_LIGHTS_LINE = "Blinking lights on the trees an
 internal const val CHRISTMAS_FIRS_LINE =
     "One tree in three becomes a Christmas fir, with its lights, a star on top and presents at its foot"
 
-/** The line under *Halloween* (v5.15, approved 2026-10-20): its four things, and no more (`DESIGN_NOTES.md` §16). */
+/** The line under *Halloween*: its four things -- the moon, the trees, the palms, the pumpkins -- and no more (decision 75). */
 internal const val HALLOWEEN_LINE =
     "The moon with a carved face lit from inside, bare branches on the leafy trees, withered palms, and a face carved on every pumpkin"
 
 /**
- * The lines under the six switches v5.16 added to Halloween beside *Halloween*, each everything it does: the laugh
+ * The lines under the switches of the Halloween page beside *Halloween*, each everything it does: the laugh
  * (`LaughingMoon`: once a minute of wallpaper on screen, for two seconds), the night by day
  * (`PaperRenderer.nightOverDay`: the whole scene night at every hour, the moon on the sun's path, the opening hours the
- * clock's), the decorations (`SceneObjectRenderer.drawHalloweenDecorations`: the houses and the three shops, open or
+ * clock's), the still moon (`PaperRenderer.stillMoon`: low over the roofs under the clouds, in the middle; at every hour
+ * with the night by day, else from after sunset to before sunrise, coming out and fading where it stands), the decorations (`SceneObjectRenderer.drawHalloweenDecorations`: the houses and the three shops, open or
  * shut), the scarecrows (the snowmen's places, `SceneObjectCatalog.scarecrowsAt`), the Horseman (`HeadlessHorsemanEffect`:
- * the sleigh's rhythm, out of the sleigh's way) and the blood rain (`PaperRenderer.drawPrecipitation`).
+ * the sleigh's rhythm, out of the sleigh's way, the pumpkins thrown from his hand) and the blood rain (`PaperRenderer.drawPrecipitation`).
  */
 internal const val LAUGHING_MOON_LINE =
     "About once a minute the Halloween moon throws its face open and laughs for a moment, shaking with it"
 internal const val NIGHT_SKY_BY_DAY_LINE =
     "The whole scene stays night all day: the Halloween moon takes the sun's place, lit windows and night colours. " +
         "The shops keep their real opening hours."
+internal const val STILL_MOON_LINE =
+    "The Halloween moon stays still, low over the roofs under the clouds, instead of crossing the sky. " +
+        "Without Night sky by day it comes out after sunset and fades before sunrise, where it stands."
 internal const val HALLOWEEN_DECORATIONS_LINE =
-    "Cobwebs at the ends of the roofs, purple bats under them and a jack-o'-lantern by every front door, lit at night, " +
+    "A cobweb in a corner of every roof and a jack-o'-lantern by every front door, lit at night, " +
         "on the houses and the shops, open or shut"
 internal const val SCARECROWS_LINE = "Scarecrows with a carved pumpkin for a head, where the snowmen stand"
 internal const val HEADLESS_HORSEMAN_LINE =
-    "The Headless Horseman gallops across the sky about once a minute, dropping pumpkins on fire"
+    "The Headless Horseman gallops across the sky about once a minute, throwing pumpkins on fire from his hand"
 internal const val BLOOD_RAIN_LINE =
     "When it rains, the rain is red and its drops twice as thick. Your rain colours are kept for when this is off; " +
         "snow stays snow."
 
-/** The line under *Laughing moon* or *Night sky by day*: what it does, or -- locked -- what holds it. */
+/** The line under *Laughing moon*, *Night sky by day* or *Moon stays in place*: what it does, or -- locked -- what holds it. */
 private fun halloweenMoonLine(line: String, state: HalloweenMoonSwitchUiState): String = when {
     state.needsHalloween -> "Needs Halloween above: it is the carved moon's. Your choice is kept until then."
     state.needsMoon -> "Needs Show Moon in World & scene, Sun and moon. Your choice is kept until then."
@@ -463,7 +482,7 @@ private fun halloweenMoonLine(line: String, state: HalloweenMoonSwitchUiState): 
 }
 
 /**
- * A Christmas decoration's switch: greyed, with the reason, while the Halloween decorations are on (v5.16) -- or while
+ * A Christmas decoration's switch: greyed, with the reason, while the Halloween decorations are on (decision 77) -- or while
  * nothing stands to carry it (no tree for the trees' two, no house or building for the buildings' lights).
  */
 @Composable
@@ -488,12 +507,14 @@ private fun ChristmasDecorationRow(
 
 /**
  * A decoration that has density and colours: its switch, then a way into those. [about], when given, says what it is
- * before its density (the scarecrows', v5.16), and [optionsLine] what its options hold -- "Density" for one with no colours.
+ * before its density (the scarecrows'), and [optionsLine] what its options hold -- "Density" for one with no colours.
  */
 @Composable
 private fun DecorationRows(
     title: String,
     config: ObjectVariantConfig,
+    /** Whether one stands at its density on this theme ([StandingObjects]). */
+    stands: Boolean,
     category: ObjectCategory,
     forThemeId: String,
     prefs: WallpaperPrefs,
@@ -502,20 +523,22 @@ private fun DecorationRows(
     optionsLine: String = "Density and colours",
     onOpenOptions: (ObjectCategory) -> Unit,
 ) {
-    // At 0 % density none is drawn: off, and said, and a tap brings them back at the theme's own
-    // density (v5.10C, row 8; inventory I-211).
-    val shown = SettingsUiModel.amountSwitch(config.visible, config.density)
+    // Where none stands -- at 0 % density, or at a density that keeps none on this theme -- it reads off, the line says
+    // so, and a tap brings them back at the theme's own density.
+    val shown = SettingsUiModel.amountSwitch(config.visible, config.density, stands)
     SettingsSwitchRow(
         title = title,
         supporting = if (shown.noneAtZero) {
             NONE_AT_ZERO_LINE
+        } else if (shown.noneAtThisAmount) {
+            SettingsUiModel.noneAtThisAmountLine(config.density)
         } else {
             (about?.let { "$it. " } ?: "") + "Density ${(config.density * 100).toInt()}%"
         },
         checked = shown.shownOn,
         onCheckedChange = { wanted ->
             scope.applyAmountTap(
-                SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId)),
+                SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId), stands),
                 setVisible = { prefs.setCategoryVisible(category, it, forThemeId) },
                 setAmount = { prefs.setCategoryDensity(category, it, forThemeId) },
             )
@@ -530,7 +553,7 @@ private fun DecorationRows(
 }
 
 /**
- * The v2.8 category block on a screen of its own: density, colours and the category's own reset.
+ * The category block ([ObjectCategorySection]) on a screen of its own: density, colours and the category's own reset.
  *
  * **Without the "Show X" switch**, which [DecorationRows] has already put on the season's screen
  * one tap back, against the same `config.visible` and the same `setCategoryVisible`. Two switches
@@ -567,7 +590,9 @@ private fun DecorationOptionsScreen(
             scope = scope,
             showTitle = false,
             showVisibilitySwitch = false,
-            // The scarecrows' drawing is fixed art (v5.16): their options are their density.
+            // No switch here, the season's screen has it; and every street has every decoration's candidates.
+            stands = true, onTheme = true,
+            // The scarecrows' drawing is fixed art: their options are their density.
             showColours = category != ObjectCategory.SCARECROWS,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )

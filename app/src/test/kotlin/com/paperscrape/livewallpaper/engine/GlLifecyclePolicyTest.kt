@@ -9,7 +9,7 @@ import org.junit.Test
  * The GL lifecycle rules, driven as a state machine rather than watched on a device.
  *
  * A wallpaper surface is destroyed and recreated at the framework's discretion, and the sequence
- * that exposed both defects fixed here -- destroy, create, destroy, create -- is one no gesture on
+ * that exposes both defects these rules prevent -- destroy, create, destroy, create -- is one no gesture on
  * an emulator reliably produces. Driving the decision directly is what makes "after N cycles
  * nothing has grown" a statement a test can make at all.
  *
@@ -20,7 +20,7 @@ class GlLifecyclePolicyTest {
 
     /**
      * A stand-in for the engine's own bookkeeping: how many render threads it has built, and
-     * whether one is currently live. Exactly the two facts ARC-01 was about.
+     * whether one is currently live. Exactly the two facts the one-thread-per-engine rule is about.
      */
     private class EngineModel(var canvasFallback: Boolean = false) {
         var threadsCreated = 0
@@ -81,13 +81,13 @@ class GlLifecyclePolicyTest {
         }
     }
 
-    // ------------------------------------------------------------------ ARC-01
+    // ------------------------------------------------------------------ one render thread per engine
 
     /**
-     * The defect, stated as the thing that was wrong: one render thread per *surface*.
+     * The defect, stated as the thing that must not happen: one render thread per *surface*.
      *
-     * Every destroy/create cycle used to build another `GlRenderThread`, and nothing stopped the
-     * previous one -- so a thread, an EGL context and every uploaded texture were abandoned per
+     * A destroy/create cycle that built another `GlRenderThread`, with nothing stopping the
+     * previous one, would abandon a thread, an EGL context and every uploaded texture per
      * cycle, for the life of the process.
      */
     @Test
@@ -103,7 +103,7 @@ class GlLifecyclePolicyTest {
         assertTrue(engine.hasThread)
     }
 
-    /** Growth is what the leak looked like, so assert the shape and not just the endpoint. */
+    /** Growth is what the leak looks like, so assert the shape and not just the endpoint. */
     @Test
     fun `the thread count does not grow with the number of cycles`() {
         val counts = listOf(1, 5, 20, 100).map { cycles ->
@@ -155,13 +155,13 @@ class GlLifecyclePolicyTest {
         )
     }
 
-    // ------------------------------------------------------------------ ARC-05
+    // ------------------------------------------------------------------ context rebuilds
 
     /**
      * A device that never managed a frame is the only case that ends GL for good.
      *
-     * That was the *only* case the old code intended to handle, and the only one it distinguished:
-     * every other failure took the same path and latched the engine into the Canvas fallback.
+     * Every other failure is worth a rebuild: latching the engine into the Canvas fallback on any of
+     * them would end GL over one unlucky frame.
      */
     @Test
     fun `a context that never worked is not rebuilt`() {
@@ -170,32 +170,63 @@ class GlLifecyclePolicyTest {
     }
 
     /**
-     * ARC-05-res, assessed and left as it is.
+     * **Four incidents days apart do not end GL; four in a row still do.**
      *
-     * The budget is per **engine**, not per incident: it is never reset after a recovery. That
-     * reads like an oversight and is not one. Resetting it would mean a GPU that resets on every
-     * frame gets rebuilt on every frame -- an endless retry against hardware that is not coming
-     * back, which on a live wallpaper is a busy thread and no picture, the failure the bound exists
-     * to prevent. Making it per-incident instead would need a notion of "how long since the last
-     * one", i.e. a decay, i.e. a timer this engine does not otherwise need.
-     *
-     * What the current shape costs is narrow: an engine that survives three *separate*, genuinely
-     * recovered driver resets falls back to Canvas on the fourth. Engines are recreated on every
-     * surface destroy/create cycle -- rotation, unlock, opening the wallpaper picker -- so three
-     * independent incidents inside one engine's life is not a case that shows up in practice.
-     *
-     * Recorded as a test rather than a comment so the reasoning is executable, and so that anyone
-     * who decides to reset the counter has to delete an assertion that says why not to.
+     * An engine lives as long as the wallpaper stays set -- days -- and has one render thread for all of it: a rotation,
+     * an unlock or the wallpaper picker gives the thread a new surface ([GlLifecyclePolicy.SurfaceAction.REUSE_THREAD])
+     * and builds no engine. A budget never given back would make the fourth GL incident of the wallpaper's whole
+     * life -- a driver reset, a window gone the instant before `onSurfaceDestroyed` -- the end of GL, and the wallpaper
+     * would draw on the Canvas fallback, which costs more, until it is set again. Giving it back needs no timer: a count
+     * of the frames drawn since the last rebuild does it, and a GPU that fails at every frame never draws them.
      */
     @Test
-    fun `the rebuild budget is per engine and deliberately not reset after a recovery`() {
-        // One incident: recovered, and the engine keeps GL.
-        assertTrue(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 0))
-        // Three separate incidents, each recovered: still GL, budget now spent.
-        assertTrue(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 2))
-        // The fourth is where it stops, whether or not the three before it recovered.
-        assertFalse(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 3))
-        assertFalse(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 99))
+    fun `four incidents days apart do not end GL, four in a row still do`() {
+        val apart = GlLifecyclePolicy.RebuildBudget()
+        repeat(10) { incident ->
+            assertTrue("incident ${incident + 1}, ten minutes after the one before, ended GL", apart.rebuildAfterFailure(hadWorkingContext = true))
+            repeat(18_000) { apart.frameDrawn() }
+        }
+        assertEquals(0, apart.rebuilds)
+
+        val inARow = GlLifecyclePolicy.RebuildBudget()
+        repeat(GlLifecyclePolicy.MAX_CONTEXT_REBUILDS) {
+            assertTrue(inARow.rebuildAfterFailure(hadWorkingContext = true))
+            repeat(GlLifecyclePolicy.FRAMES_THAT_RESTORE_THE_BUDGET - 1) { inARow.frameDrawn() }
+        }
+        assertFalse("a GPU that fails again within the stretch is rebuilt for ever", inARow.rebuildAfterFailure(hadWorkingContext = true))
+
+        val everyFrame = GlLifecyclePolicy.RebuildBudget()
+        var rebuilt = 0
+        repeat(100) { if (everyFrame.rebuildAfterFailure(hadWorkingContext = true)) rebuilt++ }
+        assertEquals("a GPU that fails at every frame", GlLifecyclePolicy.MAX_CONTEXT_REBUILDS, rebuilt)
+
+        assertFalse("a context that never worked", GlLifecyclePolicy.RebuildBudget().rebuildAfterFailure(hadWorkingContext = false))
+    }
+
+    /** The stretch is counted from the last rebuild, so it is given back exactly when the stretch is complete. */
+    @Test
+    fun `the budget comes back after the stretch of frames and not a frame before`() {
+        val budget = GlLifecyclePolicy.RebuildBudget()
+        assertTrue(budget.rebuildAfterFailure(hadWorkingContext = true))
+        assertTrue(budget.rebuildAfterFailure(hadWorkingContext = true))
+        repeat(GlLifecyclePolicy.FRAMES_THAT_RESTORE_THE_BUDGET - 1) { budget.frameDrawn() }
+        assertEquals(2, budget.rebuilds)
+        budget.frameDrawn()
+        assertEquals(0, budget.rebuilds)
+        assertTrue("the stretch is longer than a GPU that keeps failing lasts", GlLifecyclePolicy.FRAMES_THAT_RESTORE_THE_BUDGET >= 100)
+    }
+
+    /** The surface's size travels in one value, so a width is never read with another surface's height. */
+    @Test
+    fun `a surface size is read back as it was written`() {
+        for (width in intArrayOf(0, 1, 360, 720, 1080, 1440, 4096, Int.MAX_VALUE)) {
+            for (height in intArrayOf(0, 1, 800, 1440, 2424, 3200, 8192, Int.MAX_VALUE)) {
+                val size = GlLifecyclePolicy.surfaceSize(width, height)
+                assertEquals(width, GlLifecyclePolicy.surfaceWidth(size))
+                assertEquals(height, GlLifecyclePolicy.surfaceHeight(size))
+            }
+        }
+        assertEquals(0L, GlLifecyclePolicy.surfaceSize(0, 0))
     }
 
     /** A context that has drawn is worth rebuilding: the hardware has already proved it can. */
@@ -222,12 +253,12 @@ class GlLifecyclePolicyTest {
         assertTrue("the bound has to actually allow retries", GlLifecyclePolicy.MAX_CONTEXT_REBUILDS > 0)
     }
 
-    // ------------------------------------------------------------------ ARC-06
+    // ------------------------------------------------------------------ memory trim
 
     /**
      * A trim must not touch GL outside a prepared frame -- the defect, stated as the rule.
      *
-     * It used to be a queued Runnable, and the loop drains queued work at the top: before any
+     * Queued as a Runnable, it would run where the loop drains queued work, at the top: before any
      * context is current, and in the surface-gone branch immediately after the context has been
      * unbound. This drives the loop's two decision points in the order the loop reaches them.
      */
@@ -282,16 +313,16 @@ class GlLifecyclePolicyTest {
         assertTrue("the engine must eventually fall back rather than retry for ever", reported)
     }
 
-    // ------------------------------------------- EGL surface ownership (B3 final review)
+    // ------------------------------------------------------------------ EGL surface ownership
 
     /**
-     * The defect this review found, written as the interleaving that produces it.
+     * The defect, written as the interleaving that produces it.
      *
      * The engine delivers destroy and create back to back. If the render thread is mid-frame or
      * parked it never runs in between, so it never observes the null holder and the loop's
-     * surface-gone branch -- the only thing that released the EGL surface on a window swap -- is
-     * simply skipped. `ensureEglSurface` then asked only "do I have a surface?", said yes, and kept
-     * drawing into the window that had gone away.
+     * surface-gone branch -- without the ownership check, the only thing that releases the EGL surface
+     * on a window swap -- is simply skipped. An `ensureEglSurface` that asked only "do I have a surface?"
+     * would say yes, and keep drawing into the window that has gone away.
      */
     @Test
     fun `a window replaced while the render thread was busy does not reuse its EGL surface`() {
@@ -311,7 +342,7 @@ class GlLifecyclePolicyTest {
         assertFalse("and must no longer be marked stale", egl.stale)
     }
 
-    /** The ordinary case must not be spoiled by the fix: a live window keeps its surface. */
+    /** The ordinary case must not be spoiled by the ownership check: a live window keeps its surface. */
     @Test
     fun `a window that is still there keeps the surface it already has`() {
         val egl = EglModel()
@@ -376,4 +407,71 @@ class GlLifecyclePolicyTest {
             GlLifecyclePolicy.surfaceCreated(hasThread = false, canvasFallback = true),
         )
     }
+
+    /**
+     * **The render loop gives the budget back as it shows frames, and only then.** The budget above comes back only
+     * through [GlLifecyclePolicy.RebuildBudget.frameDrawn], so the loop must call it for every frame it swaps to the
+     * surface, and for no frame whose `eglSwapBuffers` failed: such a frame showed nothing, and a GPU that failed at
+     * every swap would earn its rebuilds back by failing. Read off `GlRenderThread.kt`, comments taken off, whole lines
+     * compared: the one call is made on `drawFrame`'s answer, and `drawFrame` answers true only from a swap that went
+     * through.
+     */
+    @Test
+    fun `the render loop counts toward the budget only the frames it swapped`() {
+        val lines = glRenderThreadSource()
+        assertEquals(
+            "the one call that gives the budget back, made on the frame's answer",
+            listOf("if (drawFrame(frameTime, anchorTickNanos)) rebuildBudget.frameDrawn()"),
+            codeOf(lines).filter { it.contains("rebuildBudget.frameDrawn()") },
+        )
+        val start = lines.indexOfFirst { it.startsWith("    private fun drawFrame(") }
+        assertTrue("GlRenderThread draws its frames in drawFrame", start >= 0)
+        val drawFrame = codeOf(lines.subList(start, (start until lines.size).first { lines[it] == "    }" } + 1))
+        assertEquals("private fun drawFrame(frameTimeNanos: Long, frameTickNanos: Long): Boolean {", drawFrame.first())
+        assertEquals(
+            "drawFrame answers true for a swap that went through, false after one that failed, and nothing else",
+            listOf("if (EGL14.eglSwapBuffers(eglDisplay, eglSurface)) return true", "return false"),
+            drawFrame.filter { it.contains("return") },
+        )
+    }
+
+    @Test
+    fun `a context lost at the swap is a rebuild the budget counts`() {
+        // The swap that reports the context lost drops it, and the next pass builds a new one: that is a rebuild like one
+        // after a failed prepareFrame, and without the budget a GPU losing its context at every swap would rebuild forever.
+        val lines = glRenderThreadSource()
+        val start = lines.indexOfFirst { it.trim() == "EGL14.EGL_CONTEXT_LOST -> {" }
+        assertTrue("drawFrame handles a lost context", start >= 0)
+        val branch = codeOf(lines.subList(start, (start until lines.size).first { lines[it].trim() == "}" } + 1))
+        assertEquals(
+            "the lost context's branch",
+            listOf(
+                "EGL14.EGL_CONTEXT_LOST -> {",
+                "target.onContextLost()",
+                "releaseEgl()",
+                "if (!rebuildBudget.rebuildAfterFailure(hadWorkingContext)) reportUnavailable()",
+                "}",
+            ),
+            branch,
+        )
+    }
+
+    /** `GlRenderThread.kt`, line by line. */
+    private fun glRenderThreadSource(): List<String> {
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, prefix + "src/main/kotlin/com/paperscrape/livewallpaper/engine/GlRenderThread.kt")
+                if (f.isFile) return f.readLines()
+            }
+            dir = dir.parentFile
+        }
+        error("GlRenderThread.kt not found")
+    }
+
+    /** [lines] trimmed, with every comment taken off: a line comment cut, a KDoc or block comment line dropped. */
+    private fun codeOf(lines: List<String>): List<String> =
+        lines.map { it.substringBefore("//").trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") }
+            .filter { it.isNotEmpty() }
 }

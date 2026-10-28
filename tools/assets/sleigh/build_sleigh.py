@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
-"""Santa, his sleigh and his reindeer (v5.15), drawn again from nothing, from one geometry.
+"""Santa, his sleigh and his reindeer, drawn from one geometry.
 
-The maintainer, 2026-10-18: *«... possiamo anche rifarlo da 0»*; 2026-10-19: *«il disegno di babbo natale deve essere
-rivisto, compresa slitta e renne, non solo babbo natale»*. Of the first three groups drawn (a Santa in profile, small
-beside his sleigh), *«non mi piace nessuno dei disegni, rifanne di nuovi partendo da 0 e mantenendo lo stile paper
-cutout / il disegno deve essere cozy e si deve capire che è babbo natale»*; of the second three, *«va bene B ma fai la
-slitta un poco più alta, babbo natale deve sembrare seduto (come in A e C) e non in piedi»* (2026-10-19). This is B
-with its side raised: **Santa faces us**, as the library's people do -- a round face with two dot eyes, rosy cheeks
+The drawing is `DESIGN_NOTES.md` §12, decision 73, in the paper cut-out style, cosy and plainly Santa: he sits in his
+sleigh, its side raised so he reads as seated, not standing. **Santa faces us**, as the library's people do -- a round face with two dot eyes, rosy cheeks
 and a round nose, a white beard that fills his chest, a red hat flopping to one side with its pompom, a round red coat
 with its white fur and a black belt with a gold buckle -- one hand waving, the other holding the reins; he sits in a
 red sleigh with gold scrolls, a gold band and gold runners, whose side rises to just under his belt, with presents
 piled behind him; two chubby reindeer with red collars and gold bells gallop in front, Rudolph leading with his red
-nose. To the round's table the same day: *«fallo più piccolo, così è gigante rispetto ai pedoni»*, and at night as it
-is (no shade); the size is [SANTA_TO_PEDESTRIAN], chosen by the maintainer from the sizes shown beside the people.
+nose. At night it is drawn as by day (no shade); the size is [SANTA_TO_PEDESTRIAN], in proportion to the people
+(decision 73).
 
 The pieces, all fixed art and `SCENE_UNITS` (3 px a unit), each trimmed to its content on the 3x grid:
 
@@ -30,10 +26,10 @@ across ([thick]); ``tests/test_sleigh.py`` erodes every colour of the group as t
 pose, the second reindeer half a stride behind, both bobbing, the sleigh swaying, and the cords in the renderer's order --
 and finds every piece 2 px wide somewhere, and measures the buckle's four bars and its hole where they show. That is why
 the second reindeer stands 42 units behind Rudolph: at 40 his front legs cut Rudolph's tail to a sliver at one moment of the
-stride; why the buckle stands a little high on the belt, its lower bar above the sleigh's rim and its frame going on under it (until v5.15C2 the rim cut
-that bar to 1.66 px); and why the reins pass behind the reindeer, leaving the fist at its top (until v5.15C2 they were drawn
-over everything, from the fist's middle to the collars' middles, and cut the glove, the front scroll, Rudolph's bell and the
-second reindeer's head into pieces under 2 px).
+stride; why the buckle stands a little high on the belt, its lower bar above the sleigh's rim and its frame going on under
+it (a buckle on the rim keeps 1.66 px of that bar); and why the reins pass behind the reindeer, leaving the fist at its top
+(drawn over everything, from the fist's middle to the collars' middles, they cut the glove, the front scroll, Rudolph's
+bell and the second reindeer's head into pieces under 2 px).
 
 It writes, from one run (and, with ``--res``, the five PNGs rendered from the SVGs):
 
@@ -43,8 +39,8 @@ It writes, from one run (and, with ``--res``, the five PNGs rendered from the SV
 
 ``--check`` writes nothing and fails unless every committed output is what this draws (``tests/test_sleigh.py``
 makes the same comparison). ``--preview-size R DIR`` draws the group as it would be at another size -- Santa R times a
-pedestrian's height, its bands thickened for that size -- into DIR, and nothing into the tree: how the sizes shown to the
-maintainer were drawn.
+pedestrian's height, its bands thickened for that size -- into DIR, and nothing into the tree: a size to set beside the
+people before choosing it.
 
 Usage, from ``tools/assets`` with the venv's interpreter:
 
@@ -61,6 +57,7 @@ ASSETS = HERE.parent
 sys.path.insert(0, str(ASSETS))
 from papercut import (Sheet, capsule, content_box, cut, darker, ellipse, move, polyline_band,  # noqa: E402
                       render_body, rotate, svg_document)
+from paperscrape_assets.raster import same_output  # noqa: E402
 
 REPO = ASSETS.parent.parent
 SVG_DIR = ASSETS / "sources" / "svg"
@@ -70,7 +67,7 @@ PX = 3  # SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
 # ------------------------------------------------------------------ the size, and what it asks of the drawing
 #: How tall Santa is drawn -- his hat's top to the sleigh's rim, what is seen of him -- against an adult walking on the
-#: near row of the pavement: the maintainer's choice (2026-10-19, from the sizes shown beside the people).
+#: near row of the pavement: `DESIGN_NOTES.md` §12, decision 73.
 SANTA_TO_PEDESTRIAN = 1.3
 
 #: An adult walking on the near row of the pavement on the BV6600, in px: `SceneSpace.PERSON_METRES_TALL` (1.75 m) at
@@ -137,14 +134,13 @@ DEER = dict(rx=13.6, ry=8.6, body="#94603A", belly="#E4C291", antler="#E7D2A8", 
 DEER_NOSE_RADIUS = 2.4
 #: The far legs stand this far out from the near ones, in units (the front ones further forward, the back ones further
 #: back), and turn this far from them, in degrees: so each shows as a leg of its own beside the near one in every pose,
-#: never as a sliver of paper behind it (the 2 px rule; the drawing photographed in v5.15A turned them 14 degrees and did
-#: not move them).
+#: never as a sliver of paper behind it (the 2 px rule).
 FAR_LEG_SHIFT = 3.0
 FAR_LEG_SPLAY = 10
 #: How far behind the near antler the far one stands, in units: enough that its beam shows, not only its tips.
 FAR_ANTLER_OFFSET = 4.4
-#: Where a rein ends on the collar, from the collar's middle, in units: its front, towards the head. From the middle, the
-#: rein to Rudolph showed for a moment as a scrap between the second reindeer's head and Rudolph's back (v5.15C2).
+#: Where a rein ends on the collar, from the collar's middle, in units: its front, towards the head. Ending at the middle,
+#: the rein to Rudolph shows for a moment as a scrap between the second reindeer's head and Rudolph's back.
 REIN_ON_COLLAR = (-2.0, 0.0)
 
 
@@ -273,9 +269,8 @@ def santa(s: Sheet, x: float, y: float):
     # The belt and its buckle go down behind the sleigh's rim (RIM_Y, 4.2 units above Santa's middle), which is added after
     # Santa. The buckle -- a gold frame round a black hole, each band [SANTA_MIN_BAND_UNITS] -- stands with its hole
     # [BUCKLE_LOWER_BAR_SHOWS] above the rim, so at least [SANTA_MIN_BAND_UNITS] of its lower bar shows whatever the rim's
-    # cut does, and its frame goes on under the rim; the belt is drawn a unit taller than in v5.15B, so the hole stays on it
-    # (the frame's top bar stands above the belt, as it did) (until v5.15C2 the buckle sat on the rim, which left 1.33 units
-    # of its lower bar, 1.66 px on the BV6600).
+    # cut does, and its frame goes on under the rim; the belt is tall enough that the hole stays on it (the frame's top bar
+    # stands above the belt). A buckle sitting on the rim would leave 1.33 units of its lower bar, 1.66 px on the BV6600.
     s.add(P(cut([(-12.4, -8.8), (12.4, -8.8), (12.6, -3.8), (-12.6, -3.8)], "s-belt", 0.12)), BELT)
     f, hole = thick(2.0), thick(2.0)
     bw = max(3.2, hole / 2 + f)
@@ -290,9 +285,9 @@ def santa(s: Sheet, x: float, y: float):
     s.add(P(cut(ellipse(15.2, -27.6, 2.9, 3.4, 12, 10), "s-mitten2", 0.08)), MITTEN)
     s.add(P(cut(ellipse(12.8, -26.4, 1.4, 2.2, 8, -30), "s-thumb", 0.06)), MITTEN)
     s.add(P(cut(ellipse(0.0, -26.0, 8.4, 8.0, 16), "s-face", 0.15)), SKIN)
-    # The beard's lowest four points 0.6 units higher than the drawing of v5.15B: so the white of the coat's fur between the
-    # beard and the buckle, raised in v5.15C2, keeps a square of 2 px on the BV6600 at its middle (the rule
-    # `tests/test_sleigh.py` holds); towards its ends it narrows, as in v5.15B's drawing.
+    # The beard's lowest four points stand high enough that the white of the coat's fur between the beard and the buckle
+    # keeps a square of 2 px on the BV6600 at its middle (the rule `tests/test_sleigh.py` holds); towards its ends it
+    # narrows.
     beard = [(-9.4, -26.0), (-9.6, -21.0), (-8.0, -17.0), (-6.0, -14.4), (-3.6, -13.2), (-1.2, -14.2), (1.2, -13.0), (3.6, -14.0),
              (6.0, -14.6), (8.0, -17.2), (9.6, -21.0), (9.4, -26.0), (6.4, -23.0), (3.0, -22.0), (-3.0, -22.0), (-6.4, -23.0)]
     s.relief(P(cut(beard, "s-beard", 0.2)), WHITE, drop=drop(0.5, 0.8), k=0.86)
@@ -333,8 +328,8 @@ RIM_Y = 7.8
 BUCKLE_LOWER_BAR_SHOWS = 2.25
 
 #: Where the reins leave Santa's fist, from its middle, in units: at its top, towards the reindeer, so they cross only the
-#: top of the sleigh's front scroll, which stays one piece (v5.15C2: from the fist's middle they cut the glove and the
-#: scroll into pieces under 2 px).
+#: top of the sleigh's front scroll, which stays one piece (from the fist's middle they cut the glove and the scroll into
+#: pieces under 2 px).
 REIN_GRIP = (-1.8, -1.6)
 
 #: The presents piled behind Santa, back to front: (x, y, w, h, box, ribbon, seed, turn, bow). Each stands clear enough
@@ -352,9 +347,8 @@ def sleigh():
     """The red sleigh with gold scrolls, Santa in it and the presents piled behind him."""
     s = Sheet()
     red = "#BE2F29"
-    # The maintainer, on the second drawing (2026-10-19): *«va bene B ma fai la slitta un poco più alta, babbo natale deve
-    # sembrare seduto (come in A e C) e non in piedi»*: the side rises to just under his belt, so the rim hides his lap;
-    # the presents behind him stand a little higher to stay in sight.
+    # Santa reads as sitting, not standing (`DESIGN_NOTES.md` §12, decision 73): the side rises to just under his belt, so
+    # the rim hides his lap; the presents behind him stand high enough to stay in sight.
     for g in PRESENTS:
         present(s, *g)
     hand, hat_top = santa(s, 32.0, 12.0)
@@ -393,7 +387,7 @@ def build():
     sheet, pts = sleigh()
     body = sheet.body()
     box = content_box(body, (-12, -50, 100, 92), PX)
-    svg = svg_document(body, box, PX, "Santa's sleigh (v5.15, the maintainer's «B» with the side raised, 2026-10-19): the "
+    svg = svg_document(body, box, PX, "Santa's sleigh with its side raised (DESIGN_NOTES.md §12, decision 73): the "
                        "sleigh, Santa facing us and the presents, fixed art. Generated by tools/assets/sleigh/build_sleigh.py: "
                        "edit that, not this.")
     out[SVG_DIR / "santa_sleigh.svg"] = svg.encode()
@@ -411,7 +405,7 @@ def build():
         dbody = dsheet.body()
         dbox = content_box(dbody, (-36, -40, 60, 64), PX)
         name = f"santa_reindeer_{pose}"
-        dsvg = svg_document(dbody, dbox, PX, f"A reindeer of Santa's sleigh (v5.15), pose {pose} of the four of its gallop, "
+        dsvg = svg_document(dbody, dbox, PX, f"A reindeer of Santa's sleigh, pose {pose} of the four of its gallop, "
                             "facing left, its body's middle at (0,0); Rudolph is this with a red nose the renderer draws over "
                             "it. Fixed art. Generated by tools/assets/sleigh/build_sleigh.py: edit that, not this.")
         out[SVG_DIR / f"{name}.svg"] = dsvg.encode()
@@ -438,7 +432,7 @@ def kotlin_table(t) -> str:
 import com.paperscrape.livewallpaper.R
 
 /**
- * Santa's sleigh (v5.15), in units of the group (the flight line at y 0, the reindeer to the left; the drawer puts the
+ * Santa's sleigh, in units of the group (the flight line at y 0, the reindeer to the left; the drawer puts the
  * group's middle, halfway between [LEFT] and [RIGHT], on the flight point): where each piece blits, where the cords and the gifts start, and how large the group is drawn. **Generated**
  * by `tools/assets/sleigh/build_sleigh.py` from the geometry it draws the SVGs with; edit that script, not this file.
  */
@@ -492,8 +486,8 @@ internal object SantaSleighTable {{
     const val SANTA_BOTTOM = {f(t["santa_bottom"])}
 
     /**
-     * How tall Santa is drawn against an adult walking on the near row of the pavement: the maintainer's choice of
-     * 2026-10-19, from the sizes shown beside the people (*«fallo più piccolo, così è gigante rispetto ai pedoni»*).
+     * How tall Santa is drawn against an adult walking on the near row of the pavement
+     * (`DESIGN_NOTES.md` §12, decision 73).
      */
     const val SANTA_TO_PEDESTRIAN = {f(SANTA_TO_PEDESTRIAN)}
 
@@ -541,7 +535,7 @@ def main(argv) -> int:
         print(f"SANTA_UNITS_TALL is {SANTA_UNITS_TALL}, the drawing measures {measured:.2f}: correct it")
         return 1
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

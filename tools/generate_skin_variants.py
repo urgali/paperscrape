@@ -60,13 +60,12 @@ SEASONS = ["summer", "winter"]
 # Until v4.20 clothing *was* family. Every woman bust wore the same top and every man bust the
 # same one, so a viewer who could tell the two apart at all could tell them apart by colour, and
 # the pairing rule ("the passenger is never the driver's own family") meant a car was reliably one
-# of each. Item 5 of BACKLOG_v4_19.md.
+# of each.
 #
 # **Which colour is the garment was measured, not assumed.** The bust was 141x132 and its shoulders
 # occupy y 111-127; the colour that fills that band is the clothing. The others nearby are not:
 # the woman's yellow sits at y 27-44, which is a *headband*, and the man's winter blue at y 3-46 is
-# his hat, with his scarf at y 96-122. The backlog entry called the yellow part of her outfit,
-# which is where that came from. Each garment is a single flat colour on all four busts, which is
+# his hat, with his scarf at y 96-122. Each garment is a single flat colour on all four busts, which is
 # why this needs no machinery beyond the recolour that already generates the skin tones.
 #
 # **The second outfit is the other adult family's garment for that season**, so nothing is
@@ -102,8 +101,7 @@ GARMENT_EDGE_DEPTH = 2
 # **This map is not decoration: without it this script cannot run at all.** v4.19 deleted four of
 # the sources the loop below requires and did not tell the loop, so `generate_skin_variants.py`
 # has been exiting on `source missing: person_man_summer_head_car.png` ever since -- the tool
-# the registry points at for regenerating variants could not regenerate anything. Recorded in
-# BACKLOG_v4_20.md as found during that pass.
+# the registry points at for regenerating variants could not regenerate anything.
 #
 # The value is `(heir suffix, the tone index the heir carries)`, because a recolour needs to know
 # which colour it is moving *from*.

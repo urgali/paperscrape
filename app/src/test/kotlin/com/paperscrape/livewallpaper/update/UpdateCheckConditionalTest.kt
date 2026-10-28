@@ -14,15 +14,14 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * **"Has anything changed?"** -- the update check asks GitHub with the `ETag` of its last answer, and
- * while nothing has changed it downloads nothing (v5.10D, the maintainer's *sì* of 2026-09-30 to row 16
- * of the v5.10A table, inventory I-244).
+ * while nothing has changed it downloads nothing.
  *
- * Until v5.10D every check downloaded the whole first page of the release list -- 252 KB to read,
- * ~51 KB on the wire, measured 2026-10-03 -- and the app checks every three hours since the same
- * round (from the phone's job scheduler since v5.15). GitHub's real reply to a conditional request is a 304 with no body
- * (`consegna_v5_10d/registri/rete/`); these tests stand a loopback server that keeps the same
- * contract, so what is asserted is the bytes the client asks for and what it concludes, not a mock of
- * the checker.
+ * Without the condition every check would download the whole first page of the release list -- 252 KB
+ * to read, ~51 KB on the wire, measured 2026-10-03 -- and the app checks about every three hours, from
+ * the phone's job scheduler (`DESIGN_NOTES.md` §12, decision 72). GitHub's real reply to a conditional
+ * request is a 304 with no body as measured on the wire; these tests stand a loopback server that keeps
+ * the same contract, so what is asserted is the bytes the client asks for and what it concludes, not a
+ * mock of the checker.
  */
 class UpdateCheckConditionalTest {
 
@@ -51,7 +50,7 @@ class UpdateCheckConditionalTest {
                 val sent = exchange.requestHeaders.getFirst("If-None-Match")
                 conditions += sent
                 // Recorded before the reply goes out: the client may read it and the test assert on
-                // these lists before this thread runs another line (a mutation run caught the race).
+                // these lists before this thread runs another line.
                 if (sent == etag) {
                     bodyBytes += 0
                     exchange.responseHeaders.add("ETag", etag)
@@ -238,10 +237,10 @@ class UpdateCheckConditionalTest {
     }
 
     /**
-     * The three callers since v5.15 -- the update job of the phone's scheduler, the settings screen's check and the
+     * The three callers -- the update job of the phone's scheduler, the settings screen's check and the
      * button -- each pass the store, so each asks "has anything changed?" and each keeps GitHub's limit; only the button
      * the user has just pressed asks inside it (`honourLimit = false`), and the settings screen's check when a tapped
-     * notification asked. The wallpaper engine checks no more.
+     * notification asked. The wallpaper engine does not check.
      */
     @Test
     fun `the three callers in the app pass the store`() {

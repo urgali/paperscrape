@@ -10,20 +10,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **A switch shows on only if what it promises is happening** (v5.10C) -- the maintainer's rule of
- * 2026-09-29, *«l'utente normale non legge, vede il toggle e si arrabbia perché non funziona»*, applied
- * by his decisions of 2026-09-30 to rows 4, 7, 8 and 9 of the v5.10A table: Live Weather, the switches
- * that depend on another one, the switches at 0 %, and a theme picked while the calendar chooses.
- * Row 1, *Notify me*, is `NotifySwitchTruthTest`; the palms, `PalmsOnEveryThemeTest` (and where their
- * switch stands since v5.10C2, `PalmsSwitchOnTheTreesPageTest`).
+ * **A switch shows on only if what it promises is happening** (`DESIGN_NOTES.md` §12, decision 40):
+ * Live Weather, the switches that depend on another one, the switches at 0 %; and a theme picked while
+ * the calendar chooses asks first. *Notify me* is `NotifySwitchTruthTest`; the palms,
+ * `PalmsOnEveryThemeTest` (and where their switch stands, `PalmsSwitchOnTheTreesPageTest`).
  *
  * Every rule is a pure function in [SettingsUiModel], asserted here over its inputs; that the screens
  * draw from it is asserted on their source, as the project does for Compose code it cannot run on
- * the JVM (`MoonPhaseControlTest`).
+ * the JVM (`MoonPhaseControlTest`): whole lines with the comments taken off.
  */
 class SwitchesTellTheTruthTest {
 
-    // ------------------------------------------------------------------ Live Weather (row 4)
+    // ------------------------------------------------------------------ Live Weather
 
     private fun weather(
         enabled: Boolean = true,
@@ -48,7 +46,7 @@ class SwitchesTellTheTruthTest {
             LiveWeatherBlocker.NOT_THE_WALLPAPER to weather(isTheWallpaper = false),
             LiveWeatherBlocker.REJECTED_KEY to weather(status = LiveWeatherStatus.REJECTED_API_KEY),
             LiveWeatherBlocker.LOCATION_UNAVAILABLE to weather(mode = LocationMode.GPS, status = LiveWeatherStatus.NO_LOCATION),
-            // v5.10D: read from the phone by the screen (`DeviceLocationRowTest`).
+            // Read from the phone by the screen (`DeviceLocationRowTest`).
             LiveWeatherBlocker.LOCATION_NOT_ALLOWED to weather(mode = LocationMode.GPS, devicePositionUsable = false),
         )
         assertEquals("every reason is covered", LiveWeatherBlocker.entries.toSet() - LiveWeatherBlocker.NONE, held.keys)
@@ -124,7 +122,7 @@ class SwitchesTellTheTruthTest {
         }
     }
 
-    // ------------------------------------------------------------------ depending on another (row 7)
+    // ------------------------------------------------------------------ depending on another
 
     @Test
     fun `Realistic Moon Phases is off and locked while the moon is hidden, and its choice comes back`() {
@@ -150,15 +148,15 @@ class SwitchesTellTheTruthTest {
     @Test
     fun `Thunderstorm reads on exactly when the renderer flashes, and is left to the forecast while it drives`() {
         // Held to the renderer's own rule, not to a sentence: `stormActive`'s theme path, every
-        // combination. The intensity is not in it -- the renderer flashes at 0 % too (I-292).
+        // combination. The intensity is not in it -- the renderer flashes at 0 % too.
         for (stored in listOf(true, false)) for (visible in listOf(true, false)) for (isRain in listOf(true, false)) {
             val ui = SettingsUiModel.thunderstorm(stored, precipitationVisible = visible, precipitationIsRain = isRain)
             val flashes = com.paperscrape.livewallpaper.engine.LiveWeatherSceneRules.stormActive(null, visible, isRain, stored)
             assertEquals("stored=$stored visible=$visible rain=$isRain", flashes, ui.shownOn)
             assertEquals("locked exactly where it can do nothing", visible && isRain, ui.interactive)
         }
-        // Under a forecast the row is not drawn since v5.10D (it stood locked with the stored value,
-        // which could read on under a clear sky): `ForecastWeatherControlsTest`.
+        // Under a forecast the row is not drawn: locked with the stored value, it could read on
+        // under a clear sky (`ForecastWeatherControlsTest`).
     }
 
     @Test
@@ -179,7 +177,7 @@ class SwitchesTellTheTruthTest {
         assertFalse(SettingsUiModel.palms(beach.copy(trees = beach.trees.copy(visible = false)), layoutPlantsPalms = true, onlyFirsWouldStand = false).shownOn)
     }
 
-    // ------------------------------------------------------------------ at 0 % (row 8)
+    // ------------------------------------------------------------------ at 0 %
 
     @Test
     fun `a switch at 0 percent reads off, says so, and comes back with the slider`() {
@@ -228,10 +226,62 @@ class SwitchesTellTheTruthTest {
         assertEquals("snowmen at 0% counted as on", 0, SettingsUiModel.decorationsOn(snowmenAtZero))
         val snowmen = none.copy(snowmen = none.snowmen.copy(visible = true, density = 0.3f))
         assertEquals(1, SettingsUiModel.decorationsOn(snowmen))
-        // The palms are not a decoration since v5.10C2: `PalmsSwitchOnTheTreesPageTest`.
+        // The palms are not a decoration: `PalmsSwitchOnTheTreesPageTest`.
     }
 
-    // ------------------------------------------------------------------ the calendar (row 9)
+    /**
+     * **A decoration its switch shows off and locked is not counted on** (`DESIGN_NOTES.md` §12, decision 77). With
+     * *Show Trees* off, *Lights on the trees* and *Christmas firs* read off and
+     * locked on their page; with no house and no building, *Halloween decorations*, and *Lights on the buildings* too while no
+     * house stands on the mountains either: the home screen's line counts each as its switch shows it, as Seasons &
+     * decorations does -- Christmas as it ships with the trees off is 4 on, the two of the trees not among them, not 6.
+     * Every built-in theme, every switch on, under each way of having nothing to hang them on: the count is
+     * the count with the four set to what their switches show.
+     */
+    @Test
+    fun `a decoration locked for want of a tree or a house is not counted on`() {
+        val christmas = defaultCustomizationFor("christmas")
+        assertEquals("Christmas as it ships", 6, SettingsUiModel.decorationsOn(christmas))
+        assertEquals("Christmas with the trees off: the lights on the trees and the firs read off", 4,
+            SettingsUiModel.decorationsOn(christmas.copy(trees = christmas.trees.copy(visible = false))))
+        assertEquals("the trees at 0 %", 4, SettingsUiModel.decorationsOn(christmas.copy(trees = christmas.trees.copy(density = 0f))))
+        for (theme in ThemeCatalog.ALL) {
+            val base = defaultCustomizationFor(theme.id)
+            val ways = listOf(
+                "as it ships" to base,
+                "no trees" to base.copy(trees = base.trees.copy(visible = false)),
+                "no houses, no buildings" to base.copy(houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false)),
+                "nothing on the mountains either" to base.copy(
+                    houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false),
+                    distantHouses = base.distantHouses.copy(visible = false),
+                ),
+            )
+            for ((way, c0) in ways) for (halloweenSide in listOf(false, true)) {
+                val c = if (halloweenSide) {
+                    c0.copy(halloweenDecorationsEnabled = true, christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false)
+                } else {
+                    c0.copy(halloweenDecorationsEnabled = false, christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true)
+                }
+                val shown = c.copy(
+                    christmasBuildingLightsEnabled = SettingsUiModel.christmasBuildingDecoration(c.christmasBuildingLightsEnabled, c).shownOn,
+                    christmasTreeLightsEnabled = SettingsUiModel.christmasTreeDecoration(c.christmasTreeLightsEnabled, c).shownOn,
+                    christmasFirsEnabled = SettingsUiModel.christmasTreeDecoration(c.christmasFirsEnabled, c).shownOn,
+                    halloweenDecorationsEnabled = SettingsUiModel.halloweenDecorations(c).shownOn,
+                )
+                assertEquals("${theme.id}, $way, ${if (halloweenSide) "Halloween's" else "Christmas's"}", SettingsUiModel.decorationsOn(shown), SettingsUiModel.decorationsOn(c))
+            }
+        }
+        val noHouses = christmas.copy(
+            houses = christmas.houses.copy(visible = false), buildings = christmas.buildings.copy(visible = false),
+            distantHouses = christmas.distantHouses.copy(visible = false),
+        )
+        assertEquals("Christmas with nothing to hang the buildings' lights on", 5, SettingsUiModel.decorationsOn(noHouses))
+        val halloween = defaultCustomizationFor("halloween")
+        val bare = halloween.copy(houses = halloween.houses.copy(visible = false), buildings = halloween.buildings.copy(visible = false))
+        assertEquals("Halloween's decorations with no house or building", SettingsUiModel.decorationsOn(halloween) - 1, SettingsUiModel.decorationsOn(bare))
+    }
+
+    // ------------------------------------------------------------------ the calendar
 
     @Test
     fun `a pick the calendar would hide asks first, and only that one`() {
@@ -246,36 +296,53 @@ class SwitchesTellTheTruthTest {
 
     @Test
     fun `the screens draw these switches from the rules`() {
-        val weather = source("ui/WeatherTimeScreen.kt")
+        val weather = codeLines("ui/WeatherTimeScreen.kt")
         assertTrue(weather.contains("checked = liveWeather.shownOn,"))
-        assertTrue(weather.contains("SettingsUiModel.liveWeatherTap(liveWeather)"))
-        assertFalse("the raw flag must not reach the switch", weather.contains("checked = settings.liveWeatherEnabled,"))
-        for (tap in LiveWeatherTap.entries) assertTrue("$tap not handled", weather.contains("LiveWeatherTap.${tap.name} ->"))
+        assertTrue(weather.contains("when (SettingsUiModel.liveWeatherTap(liveWeather)) {"))
+        assertFalse("the raw flag must not reach the switch", weather.any { "checked = settings.liveWeatherEnabled" in it })
+        for (tap in LiveWeatherTap.entries) assertTrue("$tap not handled", weather.any { it.startsWith("LiveWeatherTap.${tap.name} ->") })
 
-        val home = source("ui/SettingsScreen.kt")
+        val home = codeLines("ui/SettingsScreen.kt")
         assertTrue(home.contains("supportingIsAccent = liveWeather.shownOn,"))
-        assertTrue(home.contains("SettingsUiModel.pickNeedsCalendarQuestion(calendarThemeId, pickedThemeId = null)"))
-        assertTrue(home.contains("SettingsUiModel.decorationsOn(customization)"))
+        assertTrue(home.contains("if (SettingsUiModel.pickNeedsCalendarQuestion(calendarThemeId, pickedThemeId = null)) {"))
+        assertTrue(home.contains("return when (val decorations = SettingsUiModel.decorationsOn(customization, themeLayout)) {"))
+        assertTrue(home.contains("val standing = SettingsUiModel.standing(themeLayout, customization)"))
 
-        val gallery = source("ui/ThemeGalleryScreen.kt")
-        assertEquals("both card kinds go through the question", 2, Regex("""onSelect = \{ pick\(""").findAll(gallery).count())
-        assertFalse(gallery.contains("onSelect = { scope.launch { prefs.setTheme("))
+        val gallery = codeLines("ui/ThemeGalleryScreen.kt")
+        assertEquals(
+            "both card kinds go through the question, and nothing else picks a card",
+            listOf("onSelect = { pick(builtin.id) },", "onSelect = { pick(entry.id) },"),
+            gallery.filter { it.startsWith("onSelect = ") },
+        )
 
-        val world = source("ui/WorldSceneScreen.kt")
-        for (rule in listOf("SettingsUiModel.thunderstorm(", "SettingsUiModel.dependentSwitch(customization.birds.nightBirds", "moonVisible = customization.moon.visible")) {
+        val world = codeLines("ui/WorldSceneScreen.kt")
+        for (rule in listOf(
+            "val storm = SettingsUiModel.thunderstorm(",
+            "val nightBirds = SettingsUiModel.dependentSwitch(customization.birds.nightBirds, available = birds.shownOn)",
+            "moonVisible = customization.moon.visible,",
+        )) {
             assertTrue("World & scene does not use $rule", world.contains(rule))
         }
         // Every amount switch of World & scene and Seasons goes through the 0 % rule -- the lake's
-        // height too since v5.10E (inventory I-293).
-        assertEquals(8, Regex("""SettingsUiModel\.amountTap\(""").findAll(world).count())
-        val seasons = source("ui/SeasonsScreen.kt")
-        assertTrue(seasons.contains("checked = shown.shownOn,"))
-        val section = source("ui/SceneCategorySections.kt")
+        // height too.
+        assertEquals(8, world.count { it.startsWith("SettingsUiModel.amountTap(") })
+        assertTrue(codeLines("ui/SeasonsScreen.kt").contains("checked = shown.shownOn,"))
+        val worldCode = world.joinToString("\n")
         for (noneAtZero in listOf("ObjectCategory.HOUSES", "ObjectCategory.TREES", "ObjectCategory.PARASOLS")) {
-            assertTrue("$noneAtZero is not marked none-at-zero", Regex("""category = $noneAtZero,[^)]*noneAtZero = true""").containsMatchIn(world))
+            assertTrue("$noneAtZero is not marked none-at-zero", Regex("""category = $noneAtZero,[^)]*noneAtZero = true""").containsMatchIn(worldCode))
         }
-        assertTrue(section.contains("checked = if (noneAtZero) shown.shownOn else config.visible,"))
+        assertTrue(
+            codeLines("ui/SceneCategorySections.kt")
+                .contains("checked = if (noneOnTheme) false else if (noneAtZero) shown.shownOn else config.visible,"),
+        )
     }
+
+    /** The app's source file [path], its lines trimmed, without comments: a line comment cut off, a comment line dropped. */
+    private fun codeLines(path: String): List<String> =
+        source(path).lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
 
     private fun source(path: String): String {
         val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/$path"

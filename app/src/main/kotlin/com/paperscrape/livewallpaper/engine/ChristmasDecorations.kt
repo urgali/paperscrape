@@ -1,10 +1,10 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * Where a building's Christmas decorations hang (v5.14, decision 67): **one sequence for the wallpaper and the gallery
+ * Where a building's Christmas decorations hang (`DESIGN_NOTES.md` §12, decision 67): **one sequence for the wallpaper and the gallery
  * card**, so the two cannot hang them in different places. `SceneObjectRenderer.drawDecorations` and its sill strings
  * draw what this yields at the scene's moment -- the bulbs blinking -- and `ThemePreviewScenes` lays the same points out
- * as parts of the card's buildings, still and lit (v5.14C2, ROADMAP A186). Every place is in the building's own
+ * as parts of the card's buildings, still and lit. Every place is in the building's own
  * piece units, from its feet, as the generator wrote it into `NeighbourhoodTable.kt`:
  *
  * - the roof's string: a bulb on every point of the top piece's roofline ([BuildingPiece.roofX], every 6 units along it);
@@ -164,4 +164,31 @@ internal object ChristmasDecorations {
     /** The cord's width in units, and its colour: a dark green, two thirds opaque. */
     const val STRING_CORD_WIDTH = 1.1f
     const val STRING_CORD_COLOUR = 0xB0203528.toInt()
+}
+
+/**
+ * The blink of the bulbs of a building's sill strings ([ChristmasDecorations.forEachStringBulb]): bulb k of every sill of a
+ * building blinks alike, `0.55 + 0.45 sin(1.6 t + 3.1 seed + 1.7 k)` of the building's idle seed, so the four values are
+ * worked out at the first sill of the building a frame and read back at the others -- the same floats.
+ */
+internal class SillBlink {
+    private val blink = FloatArray(ChristmasDecorations.STRING_BULBS)
+    private var building: Any? = null
+    private var seconds = Double.NaN
+
+    /** Bulb [bulb]'s blink, 0.55 to 1, of [building] (whose idle seed is [idleSeed]) at [elapsed]. */
+    fun at(building: Any, idleSeed: Float, elapsed: SceneTime, bulb: Int): Float {
+        if (this.building !== building || seconds != elapsed.seconds) {
+            for (k in 0 until ChristmasDecorations.STRING_BULBS) blink[k] = of(idleSeed, elapsed, k)
+            this.building = building
+            seconds = elapsed.seconds
+        }
+        return blink[bulb]
+    }
+
+    companion object {
+        /** The blink worked out directly. */
+        fun of(idleSeed: Float, elapsed: SceneTime, bulb: Int): Float =
+            0.55f + 0.45f * elapsed.sinAt(1.6f, idleSeed * 3.1f + bulb * 1.7f)
+    }
 }

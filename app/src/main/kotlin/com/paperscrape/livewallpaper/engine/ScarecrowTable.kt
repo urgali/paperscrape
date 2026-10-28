@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * The Halloween scarecrow (v5.16), in units from the foot of its pole: where its two pieces blit, and how tall it is.
+ * The Halloween scarecrow, in units from the foot of its pole: where its two pieces blit, and how tall it is.
  * **Generated** by `tools/assets/scarecrow/build_scarecrow.py` from the geometry it draws the SVGs with; edit that
  * script, not this file.
  */

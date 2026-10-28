@@ -11,7 +11,7 @@ import org.junit.Test
  *
  * `SceneObjectRenderer.drawSeatedOccupant` blits every bust with `scale(-scale, scale)` because the
  * artwork is drawn three-quarter with the hair toward -x -- so the face looks toward +x, which in a
- * vehicle's local frame is its rear (`BACKLOG_v4_25.md` item 62). That mirror is only right while
+ * vehicle's local frame is its rear. That mirror is only right while
  * the drawing faces this way. This reads the premise off the PNGs, on the JVM and in seconds; the
  * behaviour itself -- every occupant looking the way the vehicle travels -- is asserted on the
  * device by `OccupantFacingTest`, which reverses red if the mirror is taken out.

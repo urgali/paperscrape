@@ -1,16 +1,16 @@
-"""The Halloween moon (v5.15): `moon/build_jack_moon.py` draws it and its light, from one geometry.
+"""The Halloween moon: `moon/build_jack_moon.py` draws it and its light, from one geometry.
 
-The maintainer chose the moon «C», the face lit (2026-10-19). These hold that the two SVG sources and the two PNGs the
+The moon with the face lit (`DESIGN_NOTES.md` §12, decision 74). These hold that the two SVG sources and the two PNGs the
 pipeline renders of them are the generator's output today; that the moon's edge is the full moon's own; that every
 piece of each tone -- the disc, each crater -- and each cut of the face holds a square of 11 px of the 240 (2 px on the
 gallery card) somewhere in it, and that the paper between two cuts is 11 px of the 240 across or more, measured on a
-rendering without antialiasing (the paper is one piece with the disc, which the first rule cannot see: since v5.15D; the
-grin's teeth are measured on the generator's corners, its docstring says how long, and the first one's 1.8 to 2.1 px on the
-card is the maintainer's choice);
+rendering without antialiasing (the paper is one piece with the disc, which the first rule cannot see; the grin's teeth
+are measured on the generator's corners, its docstring says how long, and the first one's 1.8 to 2.1 px on the card is
+kept by decision 74);
 that the light lies inside the cuts,
 and that its orange rim is 2 px wide on the BV6600's wallpaper all along every cut, its corners and the teeth included --
-no yellow nearer the cut's edge than that (until v5.15C2 it was held "somewhere in every cut", and was 0.2 to 0.6 px at the
-corners and none along the teeth); and that the renderer blits the light where the generator trimmed it to.
+no yellow nearer the cut's edge than that, not only "somewhere in every cut", which a rim thin at the corners and missing
+along the teeth would pass; and that the renderer blits the light where the generator trimmed it to.
 
 Run from `tools/assets/`: python3 -m unittest discover -s tests
 """
@@ -32,7 +32,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(TOOL_ROOT / "moon"))
 
 import build_jack_moon  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 RENDERER = TOOL_ROOT.parent.parent / "app" / "src" / "main" / "kotlin" / "com" / "paperscrape" / "livewallpaper" / "engine" / "PaperRenderer.kt"
 
@@ -87,11 +87,12 @@ class JackMoonTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what moon/build_jack_moon.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what moon/build_jack_moon.py writes: run it with --res")
 
     def test_the_edge_is_the_full_moons(self):
         """The Halloween moon's own source carries the full moon's 40 cuts as its edge: read off `moon_full.svg`, here, and
-        looked for in `moon_jack_o_lantern.svg` (until v5.15C2 this looked for `moon_full`'s first point in `moon_full`)."""
+        looked for in `moon_jack_o_lantern.svg` (looked for in `moon_full` itself, they would be found whatever the
+        Halloween moon drew)."""
         full = (build_jack_moon.SVG_DIR / "moon_full.svg").read_text()
         points = [tuple(float(v) for v in p.split(",")) for p in re.search(r'<polygon points="([^"]+)" fill="#F4F4F4"', full).group(1).split()]
         self.assertEqual(40, len(points))
@@ -125,8 +126,8 @@ class JackMoonTest(unittest.TestCase):
 
     def test_the_paper_between_two_cuts_is_two_pixels_or_more_on_the_card(self):
         """Between any two cuts of the face -- an eye and the nose, the nose and the grin -- the paper is 11 px of the 240
-        across or more, 2 px on the card: the nearest pixels of two different cuts are farther apart than that (v5.15D: the
-        paper is one piece with the disc, so the erosion of every piece passed it whatever the cuts did)."""
+        across or more, 2 px on the card: the nearest pixels of two different cuts are farther apart than that (the paper
+        is one piece with the disc, so the erosion of every piece would pass it whatever the cuts did)."""
         side = math.ceil(2.0 / (CARD_PX / build_jack_moon.W))
         from PIL import ImageDraw
         disc = Image.new("L", (build_jack_moon.W, build_jack_moon.W), 0)

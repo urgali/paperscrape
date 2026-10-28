@@ -11,19 +11,17 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * **A leaping dolphin is painted behind the wave and the boat that are nearer than it** (v5.9B,
- * inventory row I-02, item 84).
+ * **A leaping dolphin is painted behind the wave and the boat that are nearer than it**.
  *
- * The frame is a real one, found by v5.9B's probe (`consegna_v5_9b/registri/i02_sonda/`): **Beach at
+ * The frame is a real one: **Beach at
  * its factory settings, in a thunderstorm, on the BV6600's own 720x1440 surface, 80.37 s into the
  * scene.** A dolphin at the top of a small leap stands in front of a breaker and of a sailboat whose
- * waterlines are both lower on the screen -- nearer -- than its belly. Until v5.9B the three kinds were
- * keyed by three different points and the dolphin's was 16.9 px off the other two, so v5.9A painted it
- * last: across the wave and across the sail. `LakeLanes.visibleWaterline` keys all three where their
- * drawings meet the water.
+ * waterlines are both lower on the screen -- nearer -- than its belly. `LakeLanes.visibleWaterline` keys
+ * all three kinds where their drawings meet the water; keyed by three different points, the dolphin's
+ * would be 16.9 px off the other two and it would be painted last: across the wave and across the sail.
  *
  * `LakeLanesTest` holds the arithmetic on the JVM; this holds the renderer to it, because the order is
- * decided inside `PaperRenderer`, which the JVM cannot run (B5). It reads the real draw sequence
+ * decided inside `PaperRenderer`, which the JVM cannot run. It reads the real draw sequence
  * through a recording `SceneCanvas` -- no pixels -- after walking the scene clock up to the frame at
  * the loop's own 30 fps, which is what gives every wave slot the membership it has on screen.
  */
@@ -69,10 +67,10 @@ class LakeWaterlineOrderTest {
         val dolphinWaterline = dolphin.y + belly
 
         // The breaker the dolphin stands in front of: its base is nearer than the dolphin's belly, by
-        // less than the 16.9 px the old keys disagreed by, and it spans the animal.
+        // less than the 16.9 px that keys at three different points disagree by, and it spans the animal.
         val wave = frame.blits.withIndex().filter { it.value.res == R.drawable.wave_tube_body }
             .firstOrNull { abs(it.value.x - dolphin.x) < 60f && it.value.y > dolphinWaterline && it.value.y < dolphinWaterline + (hullDrop - belly) }
-        assertTrue("no wave in this frame is in the band the old keys got wrong -- re-find the frame with the probe", wave != null)
+        assertTrue("no wave in this frame stands in the band where keys at different points would disagree -- re-find the frame with the probe", wave != null)
         assertTrue(
             "the wave's base (${wave!!.value.y}) is nearer than the leaping dolphin's belly ($dolphinWaterline), " +
                 "so the wave must be painted after the dolphin; it was painted at ${wave.index} and the dolphin at $dIndex",
@@ -114,7 +112,7 @@ class LakeWaterlineOrderTest {
             val c = -m[0] * sn + m[2] * cs; val d = -m[1] * sn + m[3] * cs
             m[0] = a; m[1] = b; m[2] = c; m[3] = d
         }
-        // A sprite cut to a box (v5.12, a person walking out of a window) is recorded as the blit it is.
+        // A sprite cut to a box (a person walking out of a window) is recorded as the blit it is.
         override fun drawSpriteClipped(
             resId: Int,
             source: SpriteSource,
@@ -145,7 +143,7 @@ class LakeWaterlineOrderTest {
     }
 
     private companion object {
-        /** 80.367 s at 30 fps: the probe's frame (`registri/i02_sonda/report.tsv`, beach-storm). */
+        /** 80.367 s at 30 fps: the frame of Beach in a thunderstorm described above. */
         const val FRAME = 2411
     }
 }

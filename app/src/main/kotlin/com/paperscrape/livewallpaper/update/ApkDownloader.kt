@@ -2,6 +2,8 @@ package com.paperscrape.livewallpaper.update
 
 import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
 import com.paperscrape.livewallpaper.readAtMost
+import com.paperscrape.livewallpaper.ui.MissingApp
+import com.paperscrape.livewallpaper.ui.startActivityOrSay
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.PackageInfo
@@ -66,7 +68,7 @@ sealed interface UpdateDownloadResult {
  * offered to the system installer.
  *
  * Uses `HttpURLConnection` and no new library, the same as [UpdateChecker] and
- * [com.paperscrape.livewallpaper.weather.WeatherHttp]: the app still has no HTTP client
+ * [com.paperscrape.livewallpaper.weather.WeatherHttp]: the app has no HTTP client
  * dependency. The download goes to the app's own cache directory, which means the system can
  * reclaim it and a failed or abandoned attempt costs nothing permanent.
  */
@@ -95,11 +97,11 @@ object ApkDownloader {
     /**
      * Deletes every downloaded APK whose release is not newer than the one running, and anything
      * else in the downloads folder that is not a release's APK. Run off the main thread when the app
-     * starts (v5.10B).
+     * starts.
      *
      * The file handed to the installer has to outlive the handover -- the installer reads it through
-     * the `FileProvider` while its own screen is open -- so nothing deleted it, and once installed it
-     * stayed in the cache until the next download, about 2.9 MB (v5.9's APK) for a file with no
+     * the `FileProvider` while its own screen is open -- so nothing deletes it then, and once installed
+     * it would stay in the cache until the next download, about 2.9 MB for a file with no
      * further use. When the running version is at least the file's, the install has happened (or a
      * newer one has): the file goes. One newer than the running version is an install that may still
      * be pending, and it stays.
@@ -124,6 +126,10 @@ object ApkDownloader {
      * The checksum comes first deliberately: if it is missing there is no point spending a user's
      * data on an APK that could not be installed anyway.
      *
+     * **Nothing here touches the disk on the caller's thread**, which is the settings screen's main
+     * thread: clearing the folder and finding where the file goes are on the IO dispatcher with the
+     * download.
+     *
      * [onPhase] is called from a background dispatcher, so it must be safe to call from there; the
      * Advanced screen writes Compose snapshot state, which is.
      */
@@ -134,14 +140,19 @@ object ApkDownloader {
     ): UpdateDownloadResult {
         val apkAsset = info.apkAsset ?: return UpdateDownloadResult.NoApkAsset
         val checksumAsset = info.checksumAsset ?: return UpdateDownloadResult.NoChecksumAsset
-        clearCache(context)
-        return downloadAndVerifyTo(
-            apkUrl = apkAsset.downloadUrl,
-            checksumUrl = checksumAsset.downloadUrl,
-            target = apkFileFor(context, info.tagName),
-            onPhase = onPhase,
-        )
+        return withContext(Dispatchers.IO) {
+            clearCache(context)
+            downloadAndVerifyTo(
+                apkUrl = apkAsset.downloadUrl,
+                checksumUrl = checksumAsset.downloadUrl,
+                target = apkFileFor(context, info.tagName),
+                onPhase = onPhase,
+            )
+        }
     }
+
+    /** [clearCache] on the IO dispatcher, for a caller on the main thread: the settings screen turning a download away. */
+    suspend fun discard(context: Context) = withContext(Dispatchers.IO) { clearCache(context) }
 
     /**
      * The whole download, with no `Context` anywhere in it, so the parts that actually go wrong can
@@ -183,8 +194,8 @@ object ApkDownloader {
         return try {
             connection = open(url)
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
-            // Bounded like every other body this app reads (SEC-03): a checksum file is one line,
-            // and until v5.8C this was the one HTTP body still read with no cap at all.
+            // Bounded like every other body this app reads: a checksum file is one line, and an
+            // uncapped read here would be the one HTTP body this app reads with no cap at all.
             connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
         } catch (_: Exception) {
             null
@@ -219,7 +230,7 @@ object ApkDownloader {
                         // cache first anyway.
                         coroutineContext.ensureActive()
                         // `< 0` rather than `<= 0`: `InputStream.read` returns 0 only for a
-                        // zero-length buffer, and treating 0 as end-of-stream would have turned a
+                        // zero-length buffer, and treating 0 as end-of-stream would turn a
                         // stream that returned it into a silently truncated download whenever the
                         // server sent no Content-Length for the size check to catch.
                         val read = input.read(buffer)
@@ -244,10 +255,10 @@ object ApkDownloader {
             }
             digest.digest().joinToString("") { "%02x".format(it) }
         } catch (cancellation: CancellationException) {
-            // Kept deliberately, and deliberately **not** claimed to fix anything today: removing
-            // this branch changes no observable behaviour, because `withContext` re-throws on a
-            // cancelled job whatever this function returns, and a mutation test confirmed the
-            // suite still passes without it. It is here because the generic `catch (Exception)`
+            // Deliberate, and deliberately **not** claimed to fix anything: removing this
+            // branch changes no observable behaviour, because `withContext` re-throws on a
+            // cancelled job whatever this function returns, and the suite passes without it
+            // (a mutation shows it). It is here because the generic `catch (Exception)`
             // below would otherwise swallow a `CancellationException`, and the first edit that
             // adds work after that catch would turn a cancelled download into a silent success.
             target.delete()
@@ -294,6 +305,22 @@ object ApkInstaller {
     fun installPermissionIntent(context: Context): Intent =
         Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData("package:${context.packageName}".toUri())
 
+    /**
+     * **The last safety check on a downloaded file** ([ApkSafety.verdict]: its package, its version and its
+     * signature against the installed copy's), **on the IO dispatcher**. It parses the whole package twice and
+     * checks its signature over every byte -- a few hundred milliseconds on a slow phone -- and the settings
+     * screen asks it from its main thread, where that long a wait freezes "Verifying..." and can make Android
+     * say the app is not responding.
+     */
+    suspend fun verdict(context: Context, apk: File): InstallVerdict = withContext(Dispatchers.IO) {
+        ApkSafety.verdict(
+            expectedPackage = context.packageName,
+            installedVersionCode = installedVersionCode(context),
+            downloaded = identify(context, apk),
+            signedByThisApp = signedByThisApp(context, apk),
+        )
+    }
+
     /** What the downloaded file claims to be, read without installing it. */
     fun identify(context: Context, apk: File): ApkIdentity? {
         val info = context.packageManager.getPackageArchiveInfo(apk.absolutePath, 0) ?: return null
@@ -310,7 +337,13 @@ object ApkInstaller {
      * Whether [apk] carries the same signing certificate as the copy of this app already installed.
      *
      * `null` when either side cannot be read, which the verdict treats as "not verified" rather than
-     * as permission: an unreadable signature is exactly the case not to wave through. SEC-01.
+     * as permission: an unreadable signature is exactly the case not to wave through.
+     *
+     * **The file is read with `GET_SIGNATURES` beside `GET_SIGNING_CERTIFICATES` on Android 9 and 10**:
+     * there `getPackageArchiveInfo` collects a file's certificates only for the old flag, and with the new
+     * one alone `signingInfo` comes back empty: the verdict would be "not signed by whoever built the copy on
+     * this phone" for every release. From Android 11 either flag collects them. Measured on the BV6600
+     * (Android 10): `signingInfo` null with the new flag alone, present with both.
      */
     fun signedByThisApp(context: Context, apk: File): Boolean? {
         val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -319,7 +352,13 @@ object ApkInstaller {
             @Suppress("DEPRECATION")
             PackageManager.GET_SIGNATURES
         }
-        val downloaded = context.packageManager.getPackageArchiveInfo(apk.absolutePath, flag) ?: return null
+        val archiveFlag = if (Build.VERSION.SDK_INT in Build.VERSION_CODES.P until Build.VERSION_CODES.R) {
+            @Suppress("DEPRECATION")
+            flag or PackageManager.GET_SIGNATURES
+        } else {
+            flag
+        }
+        val downloaded = context.packageManager.getPackageArchiveInfo(apk.absolutePath, archiveFlag) ?: return null
         val installed = runCatching {
             context.packageManager.getPackageInfo(context.packageName, flag)
         }.getOrNull() ?: return null
@@ -358,6 +397,10 @@ object ApkInstaller {
      * The file lives in the app's cache, which no other process can read by path, so it is shared
      * through a `FileProvider` content URI with a read grant attached to the intent -- the only
      * way to pass a file to the installer since `file://` URIs were banned in API 24.
+     *
+     * On a phone with no app that installs packages -- a work profile, a kiosk -- the start throws
+     * `ActivityNotFoundException`, which would close the settings: it says so instead
+     * ([MissingApp.INSTALLER]), and the settings stay as they were.
      */
     fun launchInstall(context: Context, apk: File) {
         val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", apk)
@@ -366,7 +409,7 @@ object ApkInstaller {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(intent)
+        context.startActivityOrSay(intent, MissingApp.INSTALLER)
     }
 
     private fun String.toUri(): Uri = Uri.parse(this)

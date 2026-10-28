@@ -9,80 +9,63 @@ android {
     // API 37 = Android 17. This is a *compile-time* setting only: it says which android.jar
     // the code is compiled and linked against, and it is what androidx.core 1.19 and the
     // Compose 1.12 line require (`minCompileSdk=37` in their AAR metadata). It changes no
-    // runtime behaviour on its own -- the platform's behaviour gates read `targetSdk`, which
-    // was deliberately held at 36 while this upgrade landed so it could not move the app's
-    // behaviour. That hold ended in v4.0: `targetSdk` is 37 below, equal to this.
+    // runtime behaviour on its own -- the platform's behaviour gates read `targetSdk`, which is
+    // 37 below, equal to this.
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.paperscrape.livewallpaper"
         minSdk = 26 // Android 8.0 - required for adaptive icons & modern WallpaperService features
-        // **Raised to 37 in v4.0**, which is the whole point of that release: the app now opts
-        // into Android 17's behaviour changes rather than running under Android 16's rules.
-        // Assessed change by change against this app's actual code in v3.8 and again from the
-        // v3.9 baseline in v4.0 -- see RELEASE_HISTORY.md. Nothing needed a fix: no reflection, no
-        // LAN access, no native libraries, no notifications (then: v5.7 added the one update
-        // notification, whose Android 13 permission update.UpdateNotificationPolicy handles), no
+        // **37: the app opts into Android 17's behaviour changes** rather than running under
+        // Android 16's rules. Assessed change by change against this app's actual code, nothing
+        // needs a fix: no reflection, no LAN access, no native libraries, one notification (the
+        // update's, whose Android 13 permission update.UpdateNotificationPolicy handles), no
         // SMS/contacts/audio/Bluetooth, no orientation or resizability declarations, and every
         // `startActivity` is from a visible Activity. The two that are not decidable by reading
         // code -- certificate transparency enforced by default, and ECH -- are network behaviour
         // on the five HTTPS hosts Live Weather, the city geocoder and the updater use, and were
         // exercised at runtime.
         targetSdk = 37
-        // **Two numbers doing two different jobs — see AI_PROJECT_RULES.md §11.A.**
+        // **Two numbers doing two different jobs, never tied together.**
         //
         // `versionName` names the release and is what a Git tag must equal: CI reads it out of
         // this file and fails the release if the tag disagrees. `versionCode` is Android's own
-        // install counter, checked by nothing but the installer, and only has to increase.
+        // install counter, checked by nothing but the installer, and only has to increase: it
+        // answers "is this newer than what is installed", not "which release is this", and has no
+        // obligation to be contiguous, only monotonic.
         //
-        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23, v3.3 → 24, v3.4 → 25, v3.5 → 26, v3.6 → 27, v3.7 → 28, v3.8 → 29. Three is skipped
-        // because no v1.2 was ever released; the counter has no obligation to be contiguous, only
-        // monotonic, and leaving the gap is more honest than renumbering a release that never was.
+        // Android refuses to install a lower `versionCode` over a higher one, and the only way past
+        // that is to uninstall first -- which clears the DataStore, where settings and custom themes
+        // live.
         //
-        // Android refuses to install a lower `versionCode` over a higher one, so up to v5.12 (75) anything
-        // still carrying the pre-release internal builds (which reached 76) had to be uninstalled first —
-        // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        //
-        // **v5.0 is a rename, not a second bump.** This release was prepared as 4.32 and renamed
-        // for the neighbourhood redraw, which is a change of visual language rather than a tweak
-        // to the old drawing. It was never tagged and never published, so no user ever saw a 4.32
-        // and the published sequence runs v4.31 → v5.0 with nothing missing. `versionCode` stays
-        // at the 63 this round's Phase 0 set: it answers "is this newer than what is installed",
-        // not "which release is this", and bumping it twice in one round is exactly how v4.31
-        // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
-        //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74, v5.12 → 75, v5.13 → 76, v5.14 → 77, v5.15 → 78, v5.16 → 79. Ordinary bumps: one release, one step.
-        versionCode = 79
-        versionName = "5.16"
+        // **One release, one step.** A counter bumped twice in the making of one release is how a
+        // build installed for a comparison runs into `adb install -r`'s silent refusal of a
+        // downgrade.
+        versionCode = 80
+        versionName = "5.17"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
-        // Until v5.3 the maintainer's own Open-Meteo key arrived here from a
-        // PAPERSCRAPE_OPENMETEO_API_KEY env var, populated by a GitHub Secret in CI, and went into
-        // BuildConfig via `buildConfigField`. The comment that stood here said it was "never
-        // committed in plaintext", which was **true and completely misleading**: it was never in
-        // the repository, and it was in every published APK. A `buildConfigField` of type String
-        // becomes a **string constant in the dex**, and R8 renames classes and methods, not string
-        // literals -- so the key sat in the string table between `ATOMIC` and `AUTUMN` where
-        // `strings` on a downloaded APK finds it in one command. The v5.3B audit demonstrated it
-        // by building with a marker and reading the marker back out of the minified `classes.dex`.
+        // A key kept out of the repository is still in every published APK if it goes into
+        // BuildConfig: a `buildConfigField` of type String becomes a **string constant in the dex**,
+        // and R8 renames classes and methods, not string literals -- so a key put there sits in the
+        // string table where `strings` on a downloaded APK finds it in one command. A marker put in
+        // the field is read back out of the minified `classes.dex`.
         //
         // Shipping a secret to every user is not a thing a build file should make easy, so the
-        // mechanism is gone rather than merely unused: there is no env var to set and no field to
-        // read. The maintainer decided in v5.3 to drop the app's own access to the higher-limit
-        // endpoint (his key) rather than run a proxy for it; a user's own key still reaches it (below).
+        // mechanism does not exist: there is no env var to set and no field to read. The app has no
+        // access of its own to Open-Meteo's higher-limit endpoint and runs no proxy for one; a
+        // user's own key reaches it (below).
         //
-        // **Nothing about Live Weather changes for a user.** Open-Meteo's free tier needs no key
+        // **Live Weather works without a key.** Open-Meteo's free tier needs none
         // (`OpenMeteoProvider` builds the keyless api.open-meteo.com URL), and a user who enters
-        // their own key in Settings (`WallpaperPrefs.liveWeatherApiKey`) still reaches the
-        // higher-limit customer-api.open-meteo.com endpoint exactly as before -- see
-        // `OpenMeteoProvider.resolveApiKey`, which is where that precedence actually lives. (The
-        // comments here, in WallpaperPrefs and in WeatherTimeScreen all used to point at a
-        // `WeatherRepository.resolveApiKey` that has never existed.)
+        // their own key in Settings (`WallpaperPrefs.liveWeatherApiKey`) reaches the
+        // higher-limit customer-api.open-meteo.com endpoint -- see
+        // `OpenMeteoProvider.resolveApiKey`, which is where that precedence lives.
 
-        // Needed by the golden-image tests in `src/androidTest`, which are the only instrumented
-        // tests the project has. They render scenes through `CanvasSceneTarget` into a real
-        // `Bitmap` on a device, which is why they cannot be JVM tests: `SceneCanvas` passes
+        // Needed by the instrumented tests in `src/androidTest`: among them the golden images, which
+        // render scenes on a device into a real `Bitmap` -- through `CanvasSceneTarget`, and the GL
+        // ones through `GlSceneTarget` --, which is why they cannot be JVM tests: `SceneCanvas` passes
         // `android.graphics.Paint` through, and the unit-test classpath's mockable android.jar
         // has no working Paint to read a colour back out of.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -91,21 +74,17 @@ android {
         // with a cost.**
         //
         // Two transitive AndroidX dependencies (`androidx.graphics.path` and DataStore's shared
-        // counter) ship a `.so` per ABI, and AGP packages all four by default. Measured by
-        // building both ways rather than estimated: the release APK went from **2 732 518 B to
-        // 2 665 676 B, -66 842 B, -2.45 %**, eight `.so` down to four and 467 entries down to 463.
-        // (A few of those bytes belong to the other v5.3 repairs in the same build -- the removed
-        // BuildConfig field, the manifest attribute; the four x86 `.so` themselves are 37 444 B of
-        // content, and 16 KiB alignment padding is the rest. The v5.3B audit isolated the ABI
-        // change alone at -66 866 B.) For scale: the v5.3 dependency round added **16 756 B**
-        // closing 41 netty advisories, and that was argued over line by line. A live wallpaper's
+        // counter, which `packaging` below leaves out on every ABI) ship a `.so` per ABI, and AGP
+        // packages all four by default. Measured by building both ways rather than estimated, the
+        // two x86 ABIs cost the release APK **66 866 B**: four `.so` of 37 444 B of content, and
+        // 16 KiB alignment padding for the rest -- eight `.so` against four. A live wallpaper's
         // installed base is ARM phones.
         //
-        // **What it costs:** the APK no longer installs on an x86 emulator, which is the normal
+        // **What it costs:** the APK does not install on an x86 emulator, which is the normal
         // way to try an app on a development machine. There is no emulator installed here
-        // (CLAUDE.md §3: no `emulator` package, no system image, no AVD) and CI uses none, so
-        // nothing in the current workflow notices -- but it is a door being closed, and the
-        // maintainer closed it knowing that. Adding "x86_64" back to this list is all it takes to
+        // (no `emulator` package, no system image, no AVD) and CI uses none, so
+        // nothing in the current workflow notices -- but it is a door closed, on purpose and
+        // knowing that. Adding "x86_64" back to this list is all it takes to
         // reopen it, at the measured price.
         ndk {
             // Lint's ChromeOsAbiSupport asks for x86_64 back; the paragraph above is why it is not.
@@ -120,7 +99,7 @@ android {
             // @Deprecated("Use `directories` mutable set instead"). Both append to the set the
             // source set already carries, so this is the same declaration in the current API and
             // resolves to the same two directories -- verified by printing the resolved set
-            // before and after the edit.
+            // both ways.
             java.directories.add("src/androidTest/kotlin")
         }
     }
@@ -144,8 +123,8 @@ android {
         // is intentionally public). Populate these locally via `export` before running
         // `./gradlew assembleRelease`, or via the RELEASE_* GitHub Secrets consumed by the
         // `release` CI job (see .github/workflows/android-build.yml and
-        // scripts/generate-release-keystore.sh for how to create your own keystore -- Claude
-        // deliberately did not generate one on your behalf, since a release signing key is the
+        // scripts/generate-release-keystore.sh for how to create your own keystore -- none is
+        // generated or committed here, since a release signing key is the
         // app's permanent identity and should only ever exist on your own machine and in your
         // own GitHub Secrets, never pass through a third party).
         //
@@ -186,13 +165,13 @@ android {
         }
         // **The build the CPU protocol is measured on, and the reason it is committed.**
         //
-        // `BACKLOG_v4_22.md` item 32's protocol needs a build that is what users run: a debug build
-        // is not (R8 off, no shrinking, and v4.26 measured that a conclusion drawn on one — "+4.5
-        // points of CPU for every PNG substituted" — was a property of the debug build and not of
+        // The CPU protocol needs a build that is what users run: a debug build
+        // is not (R8 off, no shrinking: a CPU cost measured on one -- "+4.5 points of CPU for every
+        // PNG substituted" -- has proved to be a property of the debug build and not of
         // the artwork), and a real release build cannot be signed on a development machine because
-        // the release key only exists on the maintainer's. So every measuring session used to write
-        // these lines by hand and delete them afterwards, and in v4.25 the deletion is the step that
-        // failed: the block reached the delivery ZIP and the published tag.
+        // the release key only exists on the maintainer's. Written by hand for each measuring
+        // session and deleted afterwards, these lines are one forgotten deletion away from the
+        // delivery ZIP and a published tag.
         //
         // It is committed rather than remembered because a rule enforced by remembering is a rule
         // that fails on the session that forgets, and because two sessions measuring the same thing
@@ -221,8 +200,8 @@ android {
 
     // No explicit kotlin { compilerOptions { jvmTarget = ... } } needed: with built-in Kotlin
     // (AGP 9.0+, see the plugins{} comment above), jvmTarget defaults to
-    // android.compileOptions.targetCompatibility above. The old `android.kotlinOptions{}` DSL
-    // this replaces is deprecated -- see
+    // android.compileOptions.targetCompatibility above. The `android.kotlinOptions{}` DSL
+    // is deprecated -- see
     // https://developer.android.com/build/migrate-to-built-in-kotlin#migration-steps-migrate-kotlin-options
 
     buildFeatures {
@@ -230,15 +209,33 @@ android {
         buildConfig = true // exposes BuildConfig.VERSION_CODE/VERSION_NAME for the in-app version row
     }
 
+    // **English only, the libraries' strings too.** The app is English-only, on purpose,
+    // and without this filter Compose and Material3 still bring
+    // their own accessibility labels -- "On", "Off", "Selected", "Tab", "Switch", "Dialog" and the
+    // like, the words TalkBack reads -- in 74 languages: about 105 KB of `resources.arsc`, which an APK
+    // stores uncompressed. With it, TalkBack reads those labels in English on a phone in any language,
+    // as it reads the rest of the app.
+    androidResources {
+        localeFilters += "en"
+    }
+
     packaging {
+        jniLibs {
+            // **DataStore's native counter, which nothing loads.** `datastore-preferences` ships
+            // `libdatastore_shared_counter.so` for `MultiProcessDataStoreFactory`; this app keeps
+            // its stores in one process, and R8 leaves no code in the release dex that loads the
+            // library -- 34 KB of the APK with its 16 KiB alignment. `ApkPackagingContractTest`
+            // fails if a source starts using the multi-process factory, which would need it back.
+            excludes += "**/libdatastore_shared_counter.so"
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            // **Nine library files nothing in this app reads (v5.8).** The Kotlin standard library
+            // **Nine library files nothing in this app reads.** The Kotlin standard library
             // ships `kotlin/**/*.kotlin_builtins` for `kotlin-reflect`, which this app does not
             // depend on, and kotlinx-coroutines ships `DebugProbesKt.bin` for its JVM debug agent,
-            // which cannot attach on Android. Measured on the published v5.7 APK: 13 199 B
+            // which cannot attach on Android. Measured on a published APK: 13 199 B
             // compressed, 55 735 B decompressed, and no reference to either name anywhere in
-            // `classes.dex` (assessment v5.7, C23; re-read with `dexdump` by v5.8A).
+            // `classes.dex` (read with `dexdump`).
             excludes += "/kotlin/**.kotlin_builtins"
             excludes += "/DebugProbesKt.bin"
         }
@@ -263,33 +260,47 @@ android {
     }
 }
 
+// **The libraries' `META-INF/*.version` files stay out of the builds that are not debuggable.**
+// Seventy of them, a few bytes each and about 13 KB with their zip entries, read by one thing only:
+// Android Studio's App Inspection, which attaches to a debuggable app. The debug build keeps them,
+// so the inspectors still work on it; `release` and `perf` -- what a user installs, and the build
+// measured as if it were -- leave them out. Per variant because `packaging` is one block for every
+// build type.
+androidComponents {
+    for (notDebuggable in listOf("release", "perf")) {
+        onVariants(selector().withBuildType(notDebuggable)) { variant ->
+            variant.packaging.resources.excludes.add("/META-INF/*.version")
+        }
+    }
+}
+
 // **The Dependabot alerts the root script's buildscript force cannot reach.**
 //
 // The root `build.gradle.kts` forces the *plugin* classpath. AGP also puts its own tooling on
 // configurations that belong to **this project**, and `androidLintTool` -- the lint tool's
-// classpath -- is one of them. The root block does not touch it, and after AGP 9.4.0 and the
-// root forces landed, `./gradlew :app:dependencies` still showed three alerted coordinates alive
-// on exactly that configuration and nowhere else:
+// classpath -- is one of them. The root block does not touch it, and without this block, with
+// AGP 9.4.0 and the root forces, `./gradlew :app:dependencies` shows three alerted coordinates
+// alive on exactly that configuration and nowhere else:
 //
 //   org.apache.commons:commons-lang3:3.16.0     CVE-2025-48924   (MODERATE)
 //   org.bouncycastle:bcpkix-jdk18on:1.80.2      CVE-2026-5588    (MODERATE)
 //   org.bouncycastle:bcprov-jdk18on:1.80.2      CVE-2026-0636    (MODERATE)
 //
 // plus `org.apache.httpcomponents:httpclient:4.5.6` (CVE-2020-13956), which the plugin classpath
-// had already lifted to 4.5.14 by ordinary conflict resolution -- so on that classpath it looked
-// fixed while `androidLintTool`, where nothing else asks for httpclient, quietly kept 4.5.6.
-// Reading only `buildEnvironment` would have called this round finished with four alerts open.
+// lifts to 4.5.14 by ordinary conflict resolution -- so on that classpath it looks
+// fixed while `androidLintTool`, where nothing else asks for httpclient, quietly keeps 4.5.6.
+// Reading only `buildEnvironment` leaves all four alerts open.
 //
 // The versions match the root block deliberately: the same artifact resolving to two different
 // versions in one build is how you end up debugging a `NoSuchMethodError` that only lint sees.
 // Bouncy Castle's three jars move as a set for the same reason.
 //
-// **v5.5C raised the three Bouncy Castle jars from 1.84 to 1.85**, for the repository's last two
-// Dependabot alerts -- CVE-2026-8763 / GHSA-9pwp-9qqc-pr26 (CRITICAL) and CVE-2026-13506 /
-// GHSA-qp49-qgx5-5m26 (HIGH), both on bcprov, both first patched in 1.85. The root block carries
-// the full reasoning; this one is raised with it because `androidLintTool` resolves
-// `bcprov-jdk18on` on its own and the root force does not reach here. The two MODERATE alerts
-// listed above stay covered: 1.85 is past the 1.84 that patched them.
+// **The three Bouncy Castle jars are at 1.85**, for two Dependabot alerts -- CVE-2026-8763 /
+// GHSA-9pwp-9qqc-pr26 (CRITICAL) and CVE-2026-13506 / GHSA-qp49-qgx5-5m26 (HIGH), both on bcprov,
+// both first patched in 1.85. The root block carries the full reasoning; this one moves with it
+// because `androidLintTool` resolves `bcprov-jdk18on` on its own and the root force does not reach
+// here. The two MODERATE alerts listed above are covered too: 1.85 is past the 1.84 that patched
+// them.
 //
 // `configureEach` rather than `getByName("androidLintTool")` because AGP creates that
 // configuration lazily; naming it eagerly resolves it during configuration. Forcing across every
@@ -310,18 +321,18 @@ configurations.configureEach {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
-    implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("androidx.activity:activity-compose:1.13.0")
 
-    // Jetpack Compose (settings UI)
+    // Jetpack Compose (settings UI). No `ui-tooling`: the project has no `@Preview`.
     implementation(platform("androidx.compose:compose-bom:2026.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    // `Icons` and the core icons the settings draw. material3 does not depend on it, so it is named
+    // here. The other icons are vectors of the app's own in `ui/`, not the 11 398 classes of
+    // `material-icons-extended`, which every debug build dexes and every R8 run reads.
+    implementation("androidx.compose.material:material-icons-core")
 
     // DataStore for wallpaper preferences
     implementation("androidx.datastore:datastore-preferences:1.2.1")
@@ -329,9 +340,9 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    // The virtual clock `AwaitOnceTest` measures its timeouts on (`runTest`, v5.8). It asserted
-    // real elapsed time and failed once on a busy machine -- 5 337 ms against a 3 000 ms bound
-    // (item 143, `ROADMAP.md` row A12) -- which is how a gate teaches people to re-run until green. Test-only:
+    // The virtual clock `AwaitOnceTest` measures its timeouts on (`runTest`). A test asserting
+    // real elapsed time fails on a busy machine -- 5 337 ms against a 3 000 ms bound, once --
+    // which is how a gate teaches people to re-run until green. Test-only:
     // it is never packaged into the APK, and it is the same library and version as the
     // `kotlinx-coroutines-android` above, so it brings no new vendor to watch.
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -355,14 +366,13 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }
 
-// **The sprite artwork is an input to the unit tests, and Gradle could not see it.**
+// **The sprite artwork is an input to the unit tests, and Gradle cannot see it on its own.**
 //
 // `SpriteGeometryTest`, `SpriteTintClassTest` and the fidelity checks read the PNGs out of
-// `res/drawable-nodpi` at runtime rather than through a resource reference, so nothing connected
-// them to the test task's up-to-date checks. Editing a sprite and running `test` reported
-// UP-TO-DATE and told you the old artwork still passed -- which it did, because it was never
-// re-read. It cost a `--rerun-tasks` every time somebody remembered, and a wrong green when
-// nobody did.
+// `res/drawable-nodpi` at runtime rather than through a resource reference, so nothing connects
+// them to the test task's up-to-date checks. Undeclared, editing a sprite and running `test`
+// reports UP-TO-DATE and says the old artwork still passes -- which it does, because it is never
+// re-read: a `--rerun-tasks` every time somebody remembers, and a wrong green when nobody does.
 //
 // Declaring the directory is the whole fix. `RELATIVE` path sensitivity because the tests care
 // about file names and contents, not about where the checkout lives.
@@ -372,20 +382,19 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
     // The same problem one file over. `InternetInventoryTest` reads AndroidManifest.xml to check the
     // INTERNET inventory against the source, and a manifest-only edit changes nothing Gradle already
-    // tracks as an input to the unit tests -- so removing a host from the inventory left the test
-    // UP-TO-DATE and green.
+    // tracks as an input to the unit tests -- so, undeclared, removing a host from the inventory
+    // leaves the test UP-TO-DATE and green.
     inputs.file(layout.projectDirectory.file("src/main/AndroidManifest.xml"))
         .withPropertyName("appManifest")
         .withPathSensitivity(PathSensitivity.RELATIVE)
     // And the same problem again, one directory up. `BuildTypeDeclarationTest` and
     // `ShippedApkContractTest` read **this file** and the workflow files; neither is anything
-    // Gradle already tracks as an input here, so a build-script edit left the unit tests
-    // UP-TO-DATE and green without executing a line of either. `BuildTypeDeclarationTest`'s own
-    // KDoc records three mutations that all appeared to be caught by nothing for this reason, and
-    // until then CLAUDE.md §7 carried it as a standing trap with "run with --rerun-tasks" as the workaround.
+    // Gradle already tracks as an input here, so, undeclared, a build-script edit leaves the unit
+    // tests UP-TO-DATE and green without executing a line of either, and the only workaround is to
+    // run every time with --rerun-tasks.
     //
-    // It is a two-line fix rather than a habit, so v5.3 declares them. The cost is that editing
-    // a build script now re-runs the unit tests, which is the correct answer: a test that reads a
+    // It is a two-line declaration rather than a habit. The cost is that editing a build script
+    // re-runs the unit tests, which is the correct answer: a test that reads a
     // file and does not re-run when that file changes is not checking the file.
     inputs.file(layout.projectDirectory.file("build.gradle.kts"))
         .withPropertyName("appBuildScript")
@@ -393,11 +402,12 @@ tasks.withType<Test>().configureEach {
     inputs.dir(rootProject.layout.projectDirectory.dir(".github/workflows"))
         .withPropertyName("ciWorkflows")
         .withPathSensitivity(PathSensitivity.RELATIVE)
-    // **And the sources the tests read as text** (v5.9C). Changing a Kotlin file recompiles it, but a
+    // **And the sources the tests read as text.** Changing a Kotlin file recompiles it, but a
     // change to a comment that keeps every line where it was compiles to the same classes, so the
-    // unit tests' inputs do not change -- and the guards that read comments (`SpriteMeasurementClaimTest`,
-    // `UnitFrameTest`) were answered from the build cache: a wrong sprite size planted in a comment
-    // came back green, `testDebugUnitTest FROM-CACHE`, without the test running. The instrumented
+    // unit tests' inputs do not change -- and, undeclared, the guards that read comments
+    // (`SpriteMeasurementClaimTest`, `UnitFrameTest`) are answered from the build cache: a wrong
+    // sprite size planted in a comment comes back green, `testDebugUnitTest FROM-CACHE`, without
+    // the test running. The instrumented
     // sources, the Python generators and the sprite registry under `tools/` and the other resources
     // are read by tests too (`UnitFrameTest`, `SpriteReachabilityTest`, `VehicleAndShopFrontTest`,
     // `SeasonalIconManifestTest`) and compile into nothing the unit tests see. Declared, an edit to
@@ -411,9 +421,9 @@ tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/androidTest/kotlin"))
         .withPropertyName("instrumentedSources")
         .withPathSensitivity(PathSensitivity.RELATIVE)
-    // And the goldens (v5.14D): `GoldenUniquenessTest` hashes `src/androidTest/assets/golden/*.png`, assets of the
-    // instrumented APK that nothing above declares -- a change to the goldens alone left the unit tests UP-TO-DATE, so two
-    // identical goldens came back green without the test running.
+    // And the goldens: `GoldenUniquenessTest` hashes `src/androidTest/assets/golden/*.png`, assets of the
+    // instrumented APK that nothing above declares -- undeclared, a change to the goldens alone leaves the unit tests
+    // UP-TO-DATE, and two identical goldens come back green without the test running.
     inputs.dir(layout.projectDirectory.dir("src/androidTest/assets"))
         .withPropertyName("instrumentedAssets")
         .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -426,7 +436,7 @@ tasks.withType<Test>().configureEach {
     })
         .withPropertyName("assetTooling")
         .withPathSensitivity(PathSensitivity.RELATIVE)
-    // And the release notes (v5.10D): `UpdateNotesWholeTest` reads `release-notes/*.md` to show the
+    // And the release notes: `UpdateNotesWholeTest` reads `release-notes/*.md` to show the
     // update dialog gets every release's note whole, and nothing above declares them.
     inputs.dir(rootProject.layout.projectDirectory.dir("release-notes"))
         .withPropertyName("releaseNotes")

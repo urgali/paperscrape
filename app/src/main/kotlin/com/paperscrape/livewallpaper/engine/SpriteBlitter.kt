@@ -17,7 +17,7 @@ import com.paperscrape.livewallpaper.R
  * The convention is a property of the asset, so the asset declares it too: the `scale` field of its
  * entry in `tools/assets/sources/sprites.json`. The caller still names it here, and the asset
  * pipeline's `validate` checks the two agree at every call site it can resolve
- * (`AI_PROJECT_RULES.md` 7.2).
+ * (nothing in a PNG says which convention it was authored at).
  */
 enum class SpriteScale {
     /**
@@ -31,9 +31,7 @@ enum class SpriteScale {
      * Authored at literal on-screen pixel size, so the bitmap is blitted with no division of its
      * own -- at whatever scale the caller's surrounding `canvas.scale()` already established, the
      * same way every raw-pixel procedural shape in the renderer works. Sun, moon and birds. (The
-     * star sparkle is a [SCENE_UNITS] sprite.) The sleigh belonged here until the V2 asset set
-     * redrew it on the authoring grid; it is now a [SCENE_UNITS] sprite scaled by its own call
-     * site.
+     * star sparkle is a [SCENE_UNITS] sprite, and so is the sleigh, scaled by its own call site.)
      */
     CANVAS_PIXELS,
 }
@@ -44,13 +42,10 @@ enum class SpriteScale {
  * a part is drawn -- a person walking out of a window, cut to its pane -- goes through [drawClipped], and the
  * small round dots -- snowflakes, point stars, Christmas bulbs -- through [drawDisc].
  *
- * Both renderers used to carry their own copies of this, one pair of functions per scale
- * convention, which meant the same four-line blit existed six times over and the paint flags, the
- * tint mode, the paint-state hygiene and the oversample factor each had more than one definition to
- * keep in step. They had already drifted: one copy cleared the colour filter before drawing, one
- * after, one not at all, and only one pair accepted an alpha argument. Nothing visible depended on
- * those differences -- each variant was internally consistent with its own callers -- but each was
- * a way for the next caller to get a different result from an identically named function.
+ * One path, so the paint flags, the tint mode, the paint-state hygiene and the oversample factor
+ * each have one definition. Copies of the blit drift apart -- one clearing the colour filter before
+ * drawing, one after, one not at all -- and each copy is a way for the next caller to get a
+ * different result from an identically named function.
  *
  * The tint colour and the alpha are passed explicitly on every blit rather than left as paint state,
  * so no blit can inherit either from whatever was drawn before it. How they are applied is the
@@ -62,13 +57,13 @@ enum class SpriteScale {
  * baked-in shading at all. The sprites bake in subtle darker "paper fold" mottling -- never
  * anything lighter than the sprite's own base tone -- and `MULTIPLY` (`result = tint * source`,
  * alpha untouched) is what lets that mottling survive the tint as gentle shading instead of being
- * flattened away. The trade-off is that the on-screen colour is no longer bit-exact to the hex the
+ * flattened away. The trade-off is that the on-screen colour is not bit-exact to the hex the
  * user picked: it is darkened by a few percent wherever mottling sits. The mottling is deliberately
  * low-strength and confined to individual object sprites rather than applied as a full-scene
- * overlay, so the deviation stays minor, but it is real. Measured on the BV6600's GPU on 2026-09-27
- * (v5.9D), the real renderer at noon: a tree's crown shows the picked colour a median of 1.1 to 6.6
+ * overlay, so the deviation stays minor, but it is real. Measured on the BV6600's GPU on 2026-09-27,
+ * the real renderer at noon: a tree's crown shows the picked colour a median of 1.1 to 6.6
  * units of L* darker over seven colours, exactly what the multiplication predicts, while a car's
- * body shows the picked colour itself (`DESIGN_NOTES.md` §3, rule 3).
+ * body shows the picked colour itself: the body sprite is flat where the tint lands.
  *
  * Nothing here allocates: this runs for every sprite of every frame.
  */
@@ -86,8 +81,8 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * Releases the decoded pixels once a backend holds a durable copy of them.
      *
      * Only the GPU backend calls this, and only after a successful texture upload. Holding both the
-     * bitmap and the texture was up to ~17 MB of heap duplicating what the GPU already had, and the
-     * cache re-decodes on demand, so being wrong here costs one decode.
+     * bitmap and the texture would be up to ~17 MB of heap duplicating what the GPU already has, and
+     * the cache re-decodes on demand, so being wrong here costs one decode.
      */
     override fun onSpriteUploaded(resId: Int) {
         SpriteCache.release(resId)
@@ -101,8 +96,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * trunk, a taxi's chequer stripe -- rather than a mask meant to be tinted at runtime.
      *
      * [alpha] exists for fixed art that fades rather than recolours: the rainbow's daylight
-     * fade, a firework burst dying out, a lightning bolt decaying. Those used to be procedural
-     * shapes whose paint carried the alpha; as sprites they still need it, and routing them
+     * fade, a firework burst dying out, a lightning bolt decaying. Routing them
      * through [drawTinted] with a white tint would say "tinted with the identity colour", which
      * is exactly the wording the fixed-art/tintable split exists to make unambiguous.
      *
@@ -117,7 +111,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * **Pass a neutral grey.** Nothing enforces it here, because there is no cheap way to, but a
      * coloured value through this argument is a tint wearing a shade's name and belongs in
      * [drawTinted] where the registry and `SpriteTintClassTest` can both see it. The callers are
-     * [SceneObjectRenderer.drawPalmTree] and, since v5.14, [SceneObjectRenderer.drawFir] (both
+     * [SceneObjectRenderer.drawPalmTree] and [SceneObjectRenderer.drawFir] (both
      * through `drawShadedSprite`), whose grey is derived from the scene's own day/night pair rather
      * than chosen; the gallery card's palm and fir pass the same grey.
      */
@@ -177,7 +171,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * ones [originX] and [originY] are in. [SceneCanvas.drawSpriteClipped] is the operation; this puts
      * the box through the same oversample [blit] puts the origin through. [tintColor] [UNTINTED] for
      * fixed art; [additive] as for [drawTintedAdded]. A person walking out of a window, or into it, is
-     * the one caller (v5.12).
+     * the one caller.
      */
     fun drawClipped(
         canvas: SceneCanvas,
@@ -219,7 +213,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
 
     /**
      * A disc of [colour] at [alpha], [radius] either side of ([cx], [cy]) in the caller's own coordinates: every
-     * falling snowflake, every point star and every Christmas bulb (v5.14). [SceneCanvas.drawDisc] is the operation --
+     * falling snowflake, every point star and every Christmas bulb. [SceneCanvas.drawDisc] is the operation --
      * a quad of the atlas on the GPU, the circle itself on a Canvas -- and this names its drawing: `deco_bulb`, a white
      * disc 8 units (24 px) across that fills its box, the one disc both backends agree on (`DiscAgreementTest`). It is
      * authored larger than any disc is drawn -- a flake 0.30 m across is 18 px on a 3200-pixel screen, a tower's bulb
@@ -286,8 +280,8 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
          *
          * The value is baked into the sprites themselves at generation time, so this constant and
          * the generation scripts must always agree -- changing it invalidates the whole asset set
-         * rather than rescaling it. It is defined here, once: each renderer used to keep its own
-         * copy, with a comment instructing the reader to keep the two in sync by hand.
+         * rather than rescaling it. It is defined here, once, so no copy of it can fall out of
+         * step.
          */
         const val SPRITE_PIXELS_PER_UNIT = 3f
     }

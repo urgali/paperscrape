@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * system has attached one, which is the `mEngine` the command line checks, and the wallpaper
  * service runs in the app's own process (the manifest gives it no `android:process`), so the
  * settings screen can count them. The preview engine the picker runs is left out: it draws a
- * preview, not the wallpaper. Measured on the BV6600 in all three states (ROADMAP row A20).
+ * preview, not the wallpaper. Measured on the BV6600 in all three states.
  *
  * **It also counts the engines drawing with `Canvas`** (v5.10B), previews included: those read
  * [SpriteCache] on every frame, so it is the one thing that stops the settings screen giving the

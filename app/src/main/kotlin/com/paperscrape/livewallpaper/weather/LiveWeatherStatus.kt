@@ -4,10 +4,10 @@ package com.paperscrape.livewallpaper.weather
  * What Live Weather is actually doing right now, written by the wallpaper service and read by the
  * settings screen.
  *
- * It replaces v2.13's single `liveWeatherFallbackActive` flag, which could only say "the scene is
- * running on the theme's own weather" and not why. With a second provider there are now reasons
- * that need different answers from the UI -- a missing key is something the user can fix in one
- * tap, a dropped request is something to wait out -- and a boolean cannot carry that.
+ * A status and not a flag: a flag could only say "the scene is running on the theme's own weather"
+ * and not why, and the reasons need different answers from the UI -- a missing key is something
+ * the user can fix in one tap, a dropped request is something to wait out -- which a boolean cannot
+ * carry.
  *
  * Stored by [storageId] for the same reason [WeatherProviderId] is: an enum's order is not a
  * storage format.
@@ -37,22 +37,23 @@ enum class LiveWeatherStatus(val storageId: String) {
     MISSING_API_KEY("missing_api_key"),
 
     /**
-     * The selected provider **answered**, and rejected the key it was given (HTTP 401/403).
+     * The selected provider **answered**, and rejected the key it was given (HTTP 401, a 403 that is not a spent quota,
+     * or Open-Meteo's 400 whose reason is the key: [WeatherHttp.statusToFailure]).
      *
      * The sibling of [MISSING_API_KEY], and separated from [FAILED]/[STALE] for the reason
      * [WeatherHttp.statusToFailure] already gives for classifying 401 apart from a transport
      * error: the service was reached and gave a definite answer, and retrying sooner does not
-     * change it, so the loop keeps its hourly interval. Collapsing it into [FAILED] is what made a
-     * rejected key report itself as *"could not be reached"*, which says the opposite of what
-     * happened and sends the user looking at their connection instead of at their key.
+     * change it, so the loop keeps its hourly interval. Collapsed into [FAILED], a rejected key
+     * would report itself as *"could not be reached"*, which says the opposite of what happened and
+     * sends the user looking at their connection instead of at their key.
      *
      * This is not a hypothetical state. **OpenWeather does not accept a newly created free key
      * immediately** -- its own error-401 FAQ says a new key takes a couple of hours to become
      * active -- so a user who has just signed up, pasted a perfectly correct key and turned the
-     * provider on gets a 401 for a key that is not wrong, merely not live yet. Open-Meteo needs no
-     * key at all and WeatherAPI.com's works the moment it is issued, which is why this only ever
-     * bit OpenWeather in practice -- and the hourly retry is what lets such a key start working on
-     * its own, with nothing for the user to do.
+     * provider on gets a 401 for a key that is not wrong, merely not live yet; the hourly retry is
+     * what lets such a key start working on its own, with nothing for the user to do. WeatherAPI.com's
+     * key works the moment it is issued, and Open-Meteo's free tier takes none: a key of its own that
+     * it does not know comes back as a 400 whose reason is the key, which is this state too.
      */
     REJECTED_API_KEY("rejected_api_key"),
 
@@ -69,26 +70,50 @@ enum class LiveWeatherStatus(val storageId: String) {
      * the scene to the theme's manual settings, so the last known-good conditions stay up.
      */
     STALE("stale"),
+
+    /**
+     * The selected provider **answered** that its limit of requests has been reached -- HTTP 429, or WeatherAPI.com's
+     * 403 for a month's quota spent ([WeatherFailure.RATE_LIMITED]) -- and no earlier conditions are left to show, so
+     * the theme's weather is the scene.
+     *
+     * Apart from [FAILED] for the reason [REJECTED_API_KEY] is: the provider was reached, and *"could not be
+     * reached"* would send the user to look at their connection; and apart from [REJECTED_API_KEY], because the key is
+     * not wrong. A limit is not transient either, so the loop asks again at its hourly interval.
+     */
+    RATE_LIMITED("rate_limited"),
+
+    /** As [RATE_LIMITED], with the last conditions fetched still driving the scene, as [STALE] keeps them. */
+    RATE_LIMITED_STALE("rate_limited_stale"),
+
+    /**
+     * The selected provider **answered** and refused the request itself ([WeatherFailure.REQUEST_REFUSED]: a 4xx that is
+     * neither a refused key nor a limit, such as a place it cannot find), and no earlier conditions are left to show, so
+     * the theme's weather is the scene. Apart from [FAILED] for the reason [RATE_LIMITED] is: the provider was reached,
+     * so not *"could not be reached"*; the same request gets the same answer, so the loop asks again at its hourly interval.
+     */
+    REFUSED("refused"),
+
+    /** As [REFUSED], with the last conditions fetched still driving the scene, as [STALE] keeps them. */
+    REFUSED_STALE("refused_stale"),
     ;
 
     /** True when the scene is running on the theme's own weather rather than on real conditions. */
     val isRunningOnThemeWeather: Boolean
         get() = this == NO_LOCATION || this == MISSING_API_KEY || this == REJECTED_API_KEY ||
-            this == FAILED
+            this == FAILED || this == RATE_LIMITED || this == REFUSED
 
     /**
-     * True when real conditions are what the scene is actually drawing -- the only two states in
-     * which a forecast is in effect, [OK] and [STALE].
+     * True when real conditions are what the scene is actually drawing -- the only states in which a forecast is in
+     * effect, [OK], [STALE], [RATE_LIMITED_STALE] and [REFUSED_STALE].
      *
      * **The stored `liveWeatherEnabled` flag is not this.** That flag says what the user asked
-     * for; this says what is happening. Until v3.1 the World & scene screen used the flag to
-     * label clouds and precipitation "Driven by Live Weather" and to make them read-only, which
-     * meant that with the switch on and no location the app said the forecast was driving the
-     * scene on one screen while the other screen's own banner said the opposite -- and the
-     * controls the user needed were locked in service of the claim that was false.
+     * for; this says what is happening. Clouds and precipitation labelled "Driven by Live Weather"
+     * and made read-only by the flag would, with the switch on and no location, say the forecast
+     * drives the scene on one screen while the other screen's own banner says the opposite -- and
+     * lock the controls the user needs in service of a claim that is false.
      */
     val isDrivingTheScene: Boolean
-        get() = this == OK || this == STALE
+        get() = this == OK || this == STALE || this == RATE_LIMITED_STALE || this == REFUSED_STALE
 
     companion object {
         fun fromStorageId(id: String?): LiveWeatherStatus =
@@ -98,9 +123,10 @@ enum class LiveWeatherStatus(val storageId: String) {
          * The status a single loop pass implies.
          *
          * Pure, and separated from the service, because it is the rule that decides what the
-         * settings screen says and it has seven outcomes that are easy to get subtly wrong -- in
+         * settings screen says and it has nine outcomes that are easy to get subtly wrong -- in
          * particular, that a failure with a snapshot still in effect is [STALE] and not [FAILED],
-         * and that a rejected key is [REJECTED_API_KEY] whether or not one is.
+         * that a rejected key is [REJECTED_API_KEY] whether or not one is, and that a provider's limit
+         * is [RATE_LIMITED] or [RATE_LIMITED_STALE], never a provider that could not be reached.
          */
         fun of(
             enabled: Boolean,
@@ -117,6 +143,12 @@ enum class LiveWeatherStatus(val storageId: String) {
             // act on, and it is that fact the settings screen has to be able to state.
             result is WeatherFetchResult.Failed && result.reason == WeatherFailure.UNAUTHORIZED ->
                 REJECTED_API_KEY
+            // The provider answered with its limit: said as that, never as "could not be reached".
+            result is WeatherFetchResult.Failed && result.reason == WeatherFailure.RATE_LIMITED ->
+                if (hasSnapshotInEffect) RATE_LIMITED_STALE else RATE_LIMITED
+            // The provider answered and refused the request itself: said as that, never as "could not be reached".
+            result is WeatherFetchResult.Failed && result.reason == WeatherFailure.REQUEST_REFUSED ->
+                if (hasSnapshotInEffect) REFUSED_STALE else REFUSED
             result is WeatherFetchResult.Success -> OK
             result is WeatherFetchResult.Failed -> if (hasSnapshotInEffect) STALE else FAILED
             // No fetch was due this pass, so nothing new is known. Carrying the previous status

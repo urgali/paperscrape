@@ -19,12 +19,8 @@ import java.util.Locale
 
 /**
  * An app version as the release scheme states it: `MAJOR.MINOR`, matching `versionName` and the
- * Git tag that names it.
- *
- * **Not `versionCode`.** That is Android's install counter and answers a different question --
- * "is this newer than what is installed" -- while this answers "which release is this". They were
- * the same number until the semver tag scheme arrived, and conflating them is what left the
- * updater unable to read its own releases.
+ * Git tag that names it. **Not `versionCode`**, Android's install counter, which answers "is this
+ * newer than what is installed" rather than "which release is this".
  */
 data class AppVersion(val major: Int, val minor: Int) : Comparable<AppVersion> {
 
@@ -35,15 +31,10 @@ data class AppVersion(val major: Int, val minor: Int) : Comparable<AppVersion> {
 
     companion object {
         /**
-         * `MAJOR.MINOR`, and nothing else.
-         *
-         * Deliberately strict, and not merely for tidiness. This repository's pre-release history
-         * used bare integer tags -- `v73`, `v74` -- and accepting one would read it as major 73,
-         * which is *newer* than 1.0: the app would offer every user an "update" to a build that
-         * predates the release scheme entirely. Rejecting anything that is not two numbers is what
-         * makes an old or hand-created tag invisible rather than dangerous.
-         *
-         * A `v` prefix is optional, so the same parser reads a Git tag and a `versionName`.
+         * `MAJOR.MINOR`, and nothing else, with an optional `v` so it reads a Git tag and a
+         * `versionName` alike. Strict because the repository also holds bare integer tags (`v73`,
+         * `v74`) older than the release scheme: read as major 73 they would be "newer" than every
+         * release, so anything that is not two numbers is invisible.
          */
         fun parse(raw: String): AppVersion? {
             val text = raw.trim().removePrefix("v")
@@ -62,10 +53,9 @@ data class UpdateInfo(
     val tagName: String,      // e.g. "v1.1" -- the *latest* release, not necessarily the only new one
     val version: AppVersion,  // parsed from tagName, e.g. 1.1
     val releasePageUrl: String, // GitHub release page: the two "Open release page" buttons
-    val releaseNotes: String?, // "what's new" of *every* release newer than the user's, whole, newest first (v5.10D: no longer cut)
-    // The two files the release workflow publishes, when they are both there. Null means this
-    // release cannot be installed from inside the app -- the user is sent to the release page
-    // instead, which is where every update went before v2.11.
+    val releaseNotes: String?, // "what's new" of *every* release newer than the user's, whole, newest first
+    // The two files the release workflow publishes, when both are there. Null: this release cannot
+    // be installed from inside the app, and the user is sent to the release page.
     val apkAsset: ReleaseAsset? = null,
     val checksumAsset: ReleaseAsset? = null,
 ) {
@@ -74,13 +64,9 @@ data class UpdateInfo(
 }
 
 /**
- * What a check for updates actually found out, which is three answers and not two.
- *
- * Until v3.1 this was a nullable [UpdateInfo], and null meant both "there is nothing newer" and
- * "the question was never answered" -- offline, DNS failure, timeout, 403, unexpected JSON. For
- * the silent check at launch those collapse correctly: neither is a reason to interrupt anybody.
- * For the button the user has just pressed they do not, and the screen said **"You're up to
- * date"** in aeroplane mode, which is a claim the app had no basis for.
+ * What a check for updates found out: three answers, not two. "Nothing newer" and "not answered"
+ * (offline, a timeout, a refusal, unexpected JSON) are alike to the silent check, but not to the
+ * button the user just pressed: "You're up to date" in aeroplane mode would be a claim without basis.
  */
 sealed interface UpdateCheckResult {
 
@@ -93,12 +79,10 @@ sealed interface UpdateCheckResult {
     /**
      * The check did not complete, so nothing at all is known about whether an update exists.
      *
-     * [reason] is carried so the explicit path can say *which* wall it hit -- "no connection" and
-     * "GitHub is turning this network away" send the user to different places -- while the automatic
-     * path can go on ignoring all of them equally.
-     *
-     * [limitedUntilMillis] is set with [Reason.RATE_LIMITED] alone: the moment, on the wall clock,
-     * GitHub said this address may ask again (v5.15, inventory I-909), or 0 when it did not say.
+     * [reason] lets the explicit path say *which* wall it hit ("no connection" and "GitHub is turning
+     * this network away" send the user to different places); the automatic path ignores them all.
+     * [limitedUntilMillis] comes with [Reason.RATE_LIMITED] alone: the wall-clock moment GitHub said
+     * this address may ask again, or 0 when it did not say.
      */
     data class Unreachable(val reason: Reason, val limitedUntilMillis: Long = 0L) : UpdateCheckResult {
 
@@ -113,11 +97,10 @@ sealed interface UpdateCheckResult {
             SERVER_ERROR,
 
             /**
-             * GitHub refused because this address has spent its requests (v5.15): a 429, or a 403 with
-             * `Retry-After` or with `X-RateLimit-Remaining: 0`. Without credentials the limit is 60 an
-             * hour **for the network's public address**, which the phone shares with every device behind
-             * it, so the phone may find it spent by others. Until v5.15 this read as [SERVER_ERROR] and
-             * the engine asked again after 2, 4, 8 minutes, refused each time.
+             * GitHub refused because this address has spent its requests: a 429, or a 403 with
+             * `Retry-After` or `X-RateLimit-Remaining: 0`. Without credentials the limit is 60 an hour
+             * **for the network's public address**, shared with every device behind it, so others may
+             * have spent it.
              */
             RATE_LIMITED,
 
@@ -151,18 +134,15 @@ sealed interface UpdateCheckResult {
 }
 
 /**
- * What the last check GitHub answered left behind, kept so that the next one can ask GitHub "has
- * anything changed?" instead of downloading the list again (v5.10D, the maintainer's decision of
- * 2026-09-30 on row 16 of the v5.10A table).
+ * What the last answered check left behind, so the next one asks GitHub "has anything changed?"
+ * instead of downloading the list again.
  *
- * [etag] is the `ETag` of the list's first page. Sent back as `If-None-Match`, it makes GitHub answer
- * **304 with no body** while the page is the same, and then [result] -- what this app worked out from
- * that page for [forVersionName] -- is still the answer: no newer release has appeared, and none has
- * been edited. It is kept only for the installed version it was worked out for, because "nothing
- * newer than 5.8" stops being true the day 5.9 is installed, and only for the address it came from.
- *
- * [result] is [UpdateCheckResult.UpToDate] or [UpdateCheckResult.Available], never an unreachable:
- * a check that was not answered leaves nothing to keep.
+ * [etag] is the `ETag` of the list's first page. Sent back as `If-None-Match`, GitHub answers **304
+ * with no body** while the page is the same, and [result] -- worked out from that page for
+ * [forVersionName] -- is still the answer. It holds only for the installed version it was worked out
+ * for ("nothing newer than 5.8" is false once 5.9 is installed) and for the address it came from.
+ * [result] is [UpdateCheckResult.UpToDate] or [UpdateCheckResult.Available]: an unanswered check
+ * leaves nothing to keep.
  */
 data class SavedUpdateReply(
     val etag: String,
@@ -228,12 +208,9 @@ data class SavedUpdateReply(
 /**
  * Where a [SavedUpdateReply] is kept between checks: `UpdatePrefs` in the app, a field in the tests.
  * Both calls may fail; a reply that cannot be read or written only costs the next check a full
- * download.
- *
- * And, since v5.15, until when GitHub has said this network may not ask ([readLimitedUntil], on the
- * wall clock; 0 for no limit): a check made for nobody in particular is not made before then
- * ([UpdateChecker.checkForUpdate]'s `honourLimit`). The two have defaults so a store that keeps only
- * the reply keeps no limit.
+ * download. It also keeps until when GitHub said this network may not ask ([readLimitedUntil], wall
+ * clock, 0 for none), before which a check nobody asked for is not made
+ * ([UpdateChecker.checkForUpdate]'s `honourLimit`); the defaults keep no limit.
  */
 interface UpdateReplyStore {
     suspend fun readReply(): SavedUpdateReply?
@@ -243,16 +220,12 @@ interface UpdateReplyStore {
 }
 
 /**
- * The one line every update check writes into the phone's log (v5.15, inventory I-910, the
- * maintainer's *«D sì, con la riga»* of 2026-10-19): what came of it, GitHub's HTTP code and how many
- * requests GitHub says this network has left -- and nothing else: no address, no version list, no
- * identifier. Written by [UpdateChecker.checkForUpdate] for every caller, the release build included,
- * because a notification that did not arrive on 2026-10-17 could not be explained afterwards: the
- * 5.13 wrote nothing.
- *
- * Under the tag `PaperScrapeUpdate`; `adb logcat -s PaperScrapeUpdate` reads them. [sink] is where the
- * line goes -- the platform log, and on the JVM, where `android.util.Log` is not implemented, nowhere
- * unless a test listens.
+ * The one line every update check writes into the phone's log (the maintainer, 2026-10-19: *«D sì,
+ * con la riga»*): what came of it, GitHub's HTTP code and how many requests GitHub says this network
+ * has left -- nothing else: no address, no version list, no identifier. Written by
+ * [UpdateChecker.checkForUpdate] for every caller, the release build included, so a notification that
+ * did not arrive can be explained afterwards (`adb logcat -s PaperScrapeUpdate`). [sink] is the
+ * platform log; on the JVM, where `android.util.Log` is not implemented, nowhere unless a test listens.
  */
 object UpdateCheckLog {
     const val TAG = "PaperScrapeUpdate"
@@ -282,22 +255,18 @@ object UpdateCheckLog {
 }
 
 /**
- * Checks the public GitHub Releases API for a newer version than the one currently installed.
+ * Checks the public GitHub Releases API for a newer version than the one installed.
  *
- * IMPORTANT: [OWNER]/[REPO] must match your actual GitHub repository, or this will either find
- * nothing (wrong repo = 404: silent on the automatic checks, reported by the button as "GitHub
- * didn't answer") or compare against the wrong project entirely.
- * Double check these two constants after forking/renaming the repo.
+ * [OWNER]/[REPO] must name the real repository: a wrong one is a 404 (silent on the automatic checks,
+ * "GitHub didn't answer" on the button) or another project's releases.
  */
 object UpdateChecker {
 
     private const val OWNER = "urgali"
     private const val REPO = "paperscrape"
-    // The *list* endpoint (not /releases/latest) -- deliberately, so a user several versions
-    // behind sees what changed in *every* release between theirs and the newest, not just the
-    // newest one's own notes (e.g. updating from v36 to v38 should also show what v37 changed).
-    // GitHub gives it in pages of 30, newest first; [checkForUpdate] follows the pages back to the
-    // installed version (v5.10D).
+    // The *list* endpoint, not /releases/latest, so a user several versions behind sees the notes of
+    // every release between theirs and the newest. GitHub gives it in pages of 30, newest first;
+    // [checkForUpdate] follows the pages back to the installed version.
     private const val API_URL = "https://api.github.com/repos/$OWNER/$REPO/releases"
 
     private const val CONNECT_TIMEOUT_MS = 8000
@@ -305,8 +274,8 @@ object UpdateChecker {
 
     /**
      * How many pages of the list one check may read: the first, and the older ones it needs to
-     * reach the installed version. 69 releases were three pages of 30 on 2026-10-03, so ten is 300
-     * releases -- a bound against a reply that keeps naming a next page, not a limit anyone meets.
+     * reach the installed version. Ten pages are 300 releases: a bound against a reply that keeps
+     * naming a next page, not a limit anyone meets.
      */
     internal const val MAX_PAGES = 10
 
@@ -314,69 +283,48 @@ object UpdateChecker {
      * Asks GitHub which is the newest release, and says which of the three things happened.
      *
      * Never throws: every failure is an [UpdateCheckResult.Unreachable] with a reason, so a caller
-     * that wants to stay silent can, and a caller that has to answer the user can say something
-     * true. The three callers do exactly that -- the job of the phone's scheduler every three hours
-     * (`UpdateCheckJobService`, v5.15) acts on [UpdateCheckResult.Available] and ignores the rest (it only
-     * tries again sooner after [UpdateCheckResult.Unreachable], and after GitHub's limit once, when it
-     * lifts); `SettingsScreen`'s check does the same when the screen is opened, and reports every outcome
-     * when a tapped notification opened it; `AdvancedScreen`'s button reports all of them.
+     * that stays silent can, and one that answers the user can say something true. The update job
+     * (`UpdateCheckJobService`, every three hours) acts on [UpdateCheckResult.Available] and ignores
+     * the rest (it only tries again sooner after an unreachable, and after GitHub's limit once, when it
+     * lifts); `SettingsScreen`'s check does the same when the screen is opened, and reports every
+     * outcome when a tapped notification opened it; `AdvancedScreen`'s button reports them all.
      *
-     * ### GitHub's limit (v5.15, inventory I-909)
+     * **GitHub's limit** ([rateLimitedUntil]) is kept in the [store] until the moment GitHub gives;
+     * with [honourLimit] no request is made before it, the answer being the same refusal at no cost to
+     * the network's requests. A check answered with the list (200, or 304) clears it.
      *
-     * A refusal that says this network has spent its requests -- a 429, or a 403 with `Retry-After` or with
-     * `X-RateLimit-Remaining: 0` -- is [UpdateCheckResult.Unreachable.Reason.RATE_LIMITED],
-     * with the moment GitHub gives (`Retry-After`, or `X-RateLimit-Reset` with `X-RateLimit-Remaining: 0`),
-     * and that moment is kept in the [store] ([UpdateReplyStore.writeLimitedUntil]). With [honourLimit]
-     * -- every caller but the button the user has just pressed and a tapped notification -- no request is
-     * made before it: the answer is the same refusal, at no cost to the network's requests. A check GitHub
-     * answers with the list (200, or 304 for the kept one) clears it; any other failure leaves it as it was.
+     * ### One request for one moment
      *
-     * ### One request for one moment (v5.15, inventory I-956, I-967)
+     * The callers can want GitHub at one instant: opening the settings after a force stop starts the
+     * screen's check while the wallpaper bound again puts the update job back and runs it, and the button
+     * can be pressed while the job is checking. So one check is on the network at a time in this process:
+     * **a check that finds another on the network waits for it and takes its answer**, whoever asked; and
+     * with [takeRecentAnswer] **an answer GitHub gave less than [RECENT_ANSWER_MILLIS] ago stands for it
+     * too**. Only a check that reached GitHub (or tried to: no connection) is taken; one the limit kept
+     * from asking is not.
      *
-     * The callers can want GitHub at one instant: opening the settings after a force stop starts the screen's
-     * check while the wallpaper the phone binds again puts the update job back and runs it, and the button can
-     * be pressed while the job is checking. So one check is on the network at a time in this process: **a check
-     * that finds another on the network waits for it and takes its answer**, whoever asked; and with
-     * [takeRecentAnswer] -- a check nobody asked for this instant, the screen opening or a run of the job -- **an
-     * answer GitHub gave less than [RECENT_ANSWER_MILLIS] ago stands for it too**. Neither makes a request.
-     * Only a check that reached GitHub (or tried to: no connection) is taken; one that the limit kept from
-     * asking is not.
+     * Every call writes [UpdateCheckLog.line]; a check not made because of the limit says so, and so
+     * does one answered by another check.
      *
-     * ### One line in the log (v5.15, inventory I-910)
+     * With a [store], the first page is asked for with the kept reply's `ETag` ([SavedUpdateReply]):
+     * a 304 returns the kept answer and downloads nothing. A new or edited release, or a download
+     * counted on the first page (the list carries each file's download count), changes the page.
      *
-     * Every call writes [UpdateCheckLog.line]: the outcome, the last reply's HTTP code and the requests
-     * left. A check not made because of the limit says so, and so does one answered by another check.
+     * ### Every release between the installed one and the newest, whole
      *
-     * ### "Has anything changed?" (v5.10D, row 16)
-     *
-     * With a [store], the first page is asked for with the `ETag` of the last reply kept for this
-     * installed version (`If-None-Match`). While nothing has changed GitHub answers **304 with no
-     * body**, and the kept answer is returned: nothing is downloaded. Until v5.10D every check
-     * downloaded the whole first page -- 252 KB to read, ~51 KB on the wire, measured 2026-10-03 --
-     * and the app checks every three hours since the same round (from the phone's job scheduler since v5.15). A new release, an edited one,
-     * or a download counted on one of the thirty releases of the first page (the list carries each
-     * file's download count) changes the page, and the answer is worked out again.
-     *
-     * ### Every release between the installed one and the newest, whole (v5.10D, inventory I-290)
-     *
-     * The maintainer's words of 2026-09-30: *«deve scaricare tutto il changelog di diff tra la versione
-     * installata e l'ultima disponibile come fix, non solo l'ultima»*. The notes of every release newer
-     * than the installed one, newest first, each as its release publishes it. Until v5.10D they were
-     * cut at 6 000 characters -- `release-notes/v5.8.md` alone is 7 186, so a user on 5.7 read 5.8's
-     * cut in the middle -- and only the first page was read, so a user more than 29 releases behind
-     * never saw the oldest of theirs. Now the pages are followed until one names the installed
-     * version or an older one (at most [MAX_PAGES]), and nothing is cut: the dialog scrolls.
+     * The maintainer, 2026-09-30: *«deve scaricare tutto il changelog di diff tra la versione installata
+     * e l'ultima disponibile come fix, non solo l'ultima»*. The notes of every release newer than the
+     * installed one, newest first, each as its release publishes it and none cut (the dialog scrolls):
+     * the pages are followed until one names the installed version or an older one, at most [MAX_PAGES].
      */
     suspend fun checkForUpdate(
         currentVersionName: String,
         /** Where the last answered reply is kept; null asks without a condition and keeps nothing. */
         store: UpdateReplyStore? = null,
         /**
-         * Overridden only by the tests (`UpdateCheckOutcomeTest`, `UpdateCheckConditionalTest`,
-         * `UpdateNotesWholeTest`, `UpdateCheckRateLimitTest`, `UpdateCheckOneRequestTest`), which stand a `HttpServer` on a loopback port so the
-         * outcomes can be produced for real -- a 200 with releases, a 304, a 403, a 403 or a 429 with GitHub's limit, a
-         * body that is not JSON, and a port with nothing listening -- rather than asserted about a mock of this function. Every caller
-         * in the app uses the default.
+         * Overridden only by the tests, which stand an `HttpServer` on a loopback port so every outcome
+         * (200, 304, 403, GitHub's limit, a body that is not JSON, nothing listening) is produced for
+         * real rather than asserted about a mock. Every caller in the app uses the default.
          */
         apiUrl: String = API_URL,
         /**
@@ -461,9 +409,8 @@ object UpdateChecker {
                 lastCode = page.httpCode
                 lastRemaining = page.remaining
                 when (page) {
-                    // Only the first page is asked conditionally, so only there can this arrive -- and
-                    // only with a reply kept to answer for it. A 304 to an unconditional request is a
-                    // reply this app cannot read.
+                    // Only the first page is asked conditionally, so only there can this arrive, with a
+                    // kept reply to answer for it; a 304 to an unconditional request is unreadable.
                     is PageReply.NotModified -> {
                         notModified = true
                         early = saved?.result ?: UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
@@ -485,17 +432,14 @@ object UpdateChecker {
                 }
             }
         } catch (_: IOException) {
-            // No network, DNS failure, connection refused, a socket timeout: the request never
-            // got an answer. Kept apart from the parse failure below because it is the one the
-            // user can do something about, and the one aeroplane mode produces.
+            // No network, DNS failure, connection refused, a timeout: kept apart from the parse
+            // failure below because it is the one the user can do something about.
             UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.NO_CONNECTION)
         } catch (_: Exception) {
-            // A reply arrived and could not be read -- unexpected JSON shape, a truncated body.
-            // Still "nothing is known", still never a crash, but not the user's connection.
+            // A reply arrived and could not be read: unexpected JSON, a truncated body.
             UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE)
         }
-        // GitHub's limit is remembered while it lasts; a check GitHub answers with the list (200, or 304 for the kept reply)
-        // clears it, and any other failure leaves it as it was.
+        // GitHub's limit is kept while it lasts; a check answered with the list (200, or 304) clears it.
         if (store != null) {
             val limitedUntil = (result as? UpdateCheckResult.Unreachable)
                 ?.takeIf { it.reason == UpdateCheckResult.Unreachable.Reason.RATE_LIMITED }?.limitedUntilMillis
@@ -542,12 +486,10 @@ object UpdateChecker {
     }
 
     /**
-     * Whether a refusal is GitHub's rate limit, and until when (v5.15, inventory I-909): a 403 or 429
-     * with `Retry-After` (seconds from [nowMillis]) or with `X-RateLimit-Remaining: 0` and
-     * `X-RateLimit-Reset` (seconds since 1970). GitHub's documentation gives those two headers for the
-     * two ways it refuses an address that asks too much; any other 403 (a repository made private, a
-     * request refused for another reason) is not the limit and returns null; a 429 is, whatever else it
-     * says. A limit with no moment given returns 0.
+     * Whether a refusal is GitHub's rate limit, and until when: a 403 or 429 with `Retry-After` (seconds
+     * from [nowMillis]) or with `X-RateLimit-Remaining: 0` and `X-RateLimit-Reset` (seconds since 1970),
+     * the two ways GitHub documents for refusing an address that asks too much. Any other 403 is not the
+     * limit (null); a 429 always is. A limit with no moment given returns 0.
      */
     internal fun rateLimitedUntil(
         code: Int,
@@ -592,8 +534,7 @@ object UpdateChecker {
                     PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR, code, remaining)
                 }
             }
-            // Bounded: one page of 30 releases read 252 KB on 2026-10-03, and an unbounded read is
-            // not (SEC-03).
+            // Bounded: a page of 30 releases is a few hundred KB, and a reply must not be read without end.
             val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
                 ?: return PageReply.Failed(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR, code, remaining)
             return PageReply.Releases(
@@ -609,10 +550,8 @@ object UpdateChecker {
     }
 
     /**
-     * Every release of one page, skipping any entry whose tag is not `vMAJOR.MINOR` -- a hand-created
-     * release, or one of the bare integer tags this project used before the semver scheme, is
-     * ignored rather than misread. See [AppVersion.parse]. Throws on a body that is not the JSON
-     * array GitHub sends, which the caller reads as an unreadable reply.
+     * Every release of one page, skipping any whose tag is not `vMAJOR.MINOR` ([AppVersion.parse]).
+     * Throws on a body that is not GitHub's JSON array: the caller reads it as an unreadable reply.
      */
     internal fun parseReleases(body: String): List<ParsedRelease> {
         val releases = JSONArray(body)
@@ -637,10 +576,8 @@ object UpdateChecker {
     }
 
     /**
-     * What the releases read say to a user on [current].
-     *
-     * No release under the scheme is not an error and not an update: it is a repository with nothing
-     * published under `vMAJOR.MINOR`, which is exactly "there is nothing newer than what you have".
+     * What the releases read say to a user on [current]. No release under `vMAJOR.MINOR` is "nothing
+     * newer", not an error.
      */
     internal fun answerFor(parsed: List<ParsedRelease>, current: AppVersion): UpdateCheckResult {
         val latest = parsed.maxByOrNull { it.version } ?: return UpdateCheckResult.UpToDate
@@ -659,11 +596,10 @@ object UpdateChecker {
 
     /**
      * The notes of every release strictly newer than [current], newest first, each under its tag
-     * and **whole**: its own release body -- release-notes/vMAJOR.MINOR.md (or a generic line when
-     * that file is missing) plus the workflow's short verification footer (see
-     * .github/workflows/android-build.yml), so it is plain-language "what's new for you" text, not
-     * the technical CHANGELOG.md. A release listed twice (a page boundary moving under the reader)
-     * is shown once.
+     * and **whole**: its release body, which the release workflow composes from
+     * `release-notes/vMAJOR.MINOR.md` and a short verification footer
+     * (`.github/workflows/android-build.yml`). A release listed twice (a page boundary moving under
+     * the reader) is shown once.
      */
     internal fun combinedNotes(parsed: List<ParsedRelease>, current: AppVersion): String? =
         parsed.filter { it.version > current }
@@ -675,9 +611,8 @@ object UpdateChecker {
 
     /**
      * [combinedNotes] cut back into one block per release, for the update dialog's lazy list
-     * (`SettingsScreen`, v5.10D): each block starts at a line that is a release's tag alone, which is
-     * how [combinedNotes] joins them. Lossless -- the blocks joined with a blank line are the notes --
-     * so the dialog shows exactly what was combined, whole.
+     * (`SettingsScreen`): each block starts at a line that is a release's tag alone, as [combinedNotes]
+     * joins them. Lossless: the blocks joined with a blank line are the notes.
      */
     internal fun notesByRelease(combined: String): List<String> =
         combined.split(Regex("""\n\n(?=v\d+\.\d+\n)"""))

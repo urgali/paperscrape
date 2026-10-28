@@ -16,10 +16,10 @@
 
     <!-- The complete list of hosts this app contacts, and the only thing that starts each one.
          Kept as an inventory rather than a summary because it is a privacy disclosure, and a
-         summary is how the city-geocoding endpoint went unlisted for several releases.
+         summary is how an endpoint goes unlisted without anybody seeing it.
          InternetInventoryTest fails if a host written in the source is missing from this list, so
-         a new host cannot go unlisted without a test going red, and if a host listed here is no
-         longer contacted (v5.9B); it does not check anything said below about when calls are made.
+         a new host cannot go unlisted without a test going red, and if a host listed here is not
+         contacted; it does not check anything said below about when calls are made.
 
          api.github.com               update.UpdateChecker, to read the public Releases list. No
                                       credentials, and nothing about the device is sent: it is a
@@ -33,10 +33,10 @@
                                          an update notification;
                                       3. only while BOTH that switch and "Notify me about new
                                          versions" are on, about once every 3 hours from a job
-                                         of the phone's own scheduler (update.UpdateCheckJobService,
-                                         since v5.15; from the wallpaper engine's loop, and only
-                                         while the wallpaper was on screen, v5.7D to v5.14): with
-                                         the screen off and whatever the wallpaper, only with a
+                                         of the phone's own scheduler
+                                         (update.UpdateCheckJobService): with the screen off and
+                                         whatever the wallpaper, whether it is on screen or not,
+                                         only with a
                                          network and while the phone would show its notification
                                          (PaperScrape's notifications and their channel on in the
                                          phone's settings, the permission on Android 13+), and
@@ -53,10 +53,10 @@
                                          once with it: the job's own when "Notify me about new
                                          versions" comes on or the wallpaper puts it back, the
                                          settings screen's (caller 2) when the other switch
-                                         comes on or the screen opens - never both for one event. Since
-                                         v5.10D every caller sends the ETag of its last answer
+                                         comes on or the screen opens - never both for one event.
+                                         Every caller sends the ETag of its last answer
                                          (If-None-Match), and while the list has not changed
-                                         GitHub answers 304 with no body; since v5.15 caller 3,
+                                         GitHub answers 304 with no body; caller 3,
                                          and caller 2 unless a tapped notification opened it, make no
                                          request inside a limit GitHub has set (the button and a
                                          tapped notification ask anyway). One request at a time:
@@ -82,7 +82,7 @@
                                       checked:
          release-assets.githubusercontent.com
                                       where the bytes of both files actually come from: the host
-                                      GitHub's redirect named on 2026-09-25, for the v5.7 APK
+                                      GitHub's redirect named on 2026-09-25, for a release's APK
                                       and for its SHA-256 file. GitHub chooses it and may
                                       change it. The file is what is checked, not the host: its
                                       SHA-256 and its signing certificate are verified before
@@ -109,10 +109,10 @@
          Weather and city search send a coarse latitude/longitude or a typed place name; the
          place-name row also passes the saved position to the platform's own geocoder, which on
          most devices looks it up over the network, rounded to two decimals like the weather
-         requests (v5.8C; it went unrounded before). No device identifier, no
+         requests. No device identifier, no
          account, no analytics. The wallpaper engine makes one kind of call, on its own visible
          loop: the hourly weather fetch. The update check of caller 3 above is the one call made
-         with nothing on screen, by the phone's job scheduler (since v5.15). With Live Weather off
+         with nothing on screen, by the phone's job scheduler. With Live Weather off
          and both update switches off, the app makes no
          network call of its own except when the user asks for one: the update button, an update
          download, a city search. The place-name row's platform lookup can still happen whenever
@@ -138,13 +138,13 @@
          boundary lives, and it is asserted from the JVM at 26, 29, 32, 33, 34 and 37 because the
          project's only test device is API 29 and cannot reach the other branch at all.
 
-         The channel is IMPORTANCE_DEFAULT with its sound and vibration taken off (since v5.15;
-         IMPORTANCE_LOW until then): a small house icon in the status bar, the notification among
+         The channel is IMPORTANCE_DEFAULT with its sound and vibration taken off, so it shows
+         as a small house icon in the status bar, the notification among
          the normal ones in the shade and whole on the lock screen, and no sound, no vibration and no
          pop-up banner. See update.UpdateNotifier. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Declared for the update job alone (update.UpdateCheckJobService, v5.15): a job of the phone's
+    <!-- Declared for the update job alone (update.UpdateCheckJobService): a job of the phone's
          scheduler kept across a restart of the phone ("persisted") needs it, and the app has no
          receiver of its own for it - the scheduler restores the job. The job exists only while both
          update switches are on. -->
@@ -159,10 +159,10 @@
          already broken.
 
          It is here because minSdk is 26 and the platform default is only "refuse" from Android 9
-         onwards: on 8.0 and 8.1, which this app still supports, the platform default is "allow".
+         onwards: on 8.0 and 8.1, which this app supports, the platform default is "allow".
          The attribute is honoured from API 23, so it covers exactly the two versions the framework
-         default does not. One line, no measurable risk removed, and it is now a declaration rather
-         than an inherited default that changes underneath the app. (v5.3B audit, S3.)
+         default does not. One line, no measurable risk removed, and it is a declaration rather
+         than an inherited default that changes underneath the app.
 
          enableOnBackInvokedCallback is read from API 33 and dataExtractionRules from API 31, and
          both are ignored below, which is what lint's UnusedAttribute says and why it is ignored on
@@ -192,15 +192,27 @@
         <!-- Settings / preview activity, shown from the system wallpaper picker and from whichever
              of the launcher aliases below is enabled.
 
-             It has no MAIN/LAUNCHER filter of its own any more, and must not get one back: it
+             It has no MAIN/LAUNCHER filter of its own, and must not get one: it
              would be a second, permanent entry in the app drawer beside the seasonal one. It is
-             still exported, because the wallpaper picker starts it by the component name written
-             in res/xml/wallpaper.xml. -->
+             exported, because the wallpaper picker starts it by the component name written
+             in res/xml/wallpaper.xml.
+
+             It handles itself every configuration change that can come while an update downloads,
+             because each one it does not claim makes the Activity again and ends the download
+             (UpdateDownloadLifetimeTest, SettingsActivityConfigChangesTest): the ones a user makes
+             with the phone in hand (turning it, dark mode, the font's size and, from Android 12, its
+             weight: Bold text, fontWeightAdjustment), a keyboard, a mouse or a touch screen joined
+             or taken away (keyboard, keyboardHidden, navigation, touchscreen), another colour range
+             of the screen (colorMode), a SIM card (mcc, mnc) and, from Android 14, the grammatical
+             gender chosen in the phone's settings (grammaticalGender) and, from Android 16, an overlay
+             of the system's resources turned on or off (assetsPaths). None of them selects a
+             resource of this app, and the screen is drawn by Compose, which reads the new
+             configuration as it arrives. -->
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="true"
             android:theme="@style/Theme.PaperScrape"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|layoutDirection|locale|keyboardHidden" />
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|fontWeightAdjustment|layoutDirection|locale|keyboardHidden|keyboard|navigation|touchscreen|colorMode|mcc|mnc|grammaticalGender|assetsPaths" />
 
         <!-- The launcher entry, in six flavours, of which exactly one is enabled at rest (two for
              the instant between enabling the new one and disabling the old).
@@ -218,7 +230,7 @@
 
         <!-- No season: the shipped town. This is the one the manifest enables, so it is what a
              fresh install draws until the app first runs, and it is where a calendar with a gap
-             in it lands. It reuses the icon this app already had rather than being a sixth
+             in it lands. It is the app's own icon of the town rather than a sixth
              drawing; enabling any of the five instead would be a guess that is wrong four times
              out of five. -->
         <activity-alias
@@ -297,7 +309,7 @@
 
         <!-- Christmas: CalendarWindow.CHRISTMAS, the one occasion with an icon of its own. It is
              the evening scene, which is why it has a moon and not a sun: drawn from the day
-             palette it sat 9 of 255 away from Winter and was invisible on a home screen. -->
+             palette it would sit 9 of 255 away from Winter and be invisible on a home screen. -->
         <activity-alias
             android:name=".ui.IconChristmas"
             android:targetActivity=".ui.SettingsActivity"
@@ -326,7 +338,7 @@
         </provider>
 
         <!-- The update check every three hours, run by the phone's job scheduler with the screen off
-             and whatever the wallpaper (v5.15). Bound only by the scheduler: BIND_JOB_SERVICE is the
+             and whatever the wallpaper. Bound only by the scheduler: BIND_JOB_SERVICE is the
              system's own permission, and it is not exported. -->
         <service
             android:name=".update.UpdateCheckJobService"

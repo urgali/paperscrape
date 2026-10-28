@@ -5,17 +5,15 @@ package com.paperscrape.livewallpaper.engine
  * moment of the scene's clock. Drawn by `SceneObjectRenderer.drawChimneySmoke`; pure, so the JVM suite
  * holds the rules.
  *
- * **A column that rises slowly and fades** (v5.12, version B of the proposals photographed in round A,
- * the maintainer's *«il resto si a tutte»* of 2026-10-09; his own words on the smoke of before: *«deve
- * essere spostato sopra il camino perché ora parte da dentro il camino, non dalla fine come dovrebbe
- * essere»*). [PUFFS] puffs share one life of [PERIOD_SECONDS], each a quarter of it behind the one
+ * **A column that rises slowly and fades, out of the top of the chimney**
+ * (`DESIGN_NOTES.md` §12, decision 56). [PUFFS] puffs share one life of [PERIOD_SECONDS], each a quarter of it behind the one
  * before: a puff is born on the chimney's cap, rises [SMOKE_RISE_UNITS] while the wind bends it
  * [SMOKE_DRIFT_UNITS] to the right -- slowly at first, more as it climbs -- grows from [RADIUS_BORN] to
  * [RADIUS_GONE], appears over the first [FADE_IN] of its life and fades over the rest of it, to nothing
  * at its end. So no puff pops in or out: it is transparent where it is born and where it dies, and the next one takes
  * its place at the cap. Each chimney runs its own beat ([beatOf], from the house's own seed), so a
  * street does not puff in step. About 3 units a second, 2.5-3.5 px on the BV6600: as slow as the
- * scene's motion is meant to be (`DESIGN_NOTES.md` §1, "Nothing moves quickly").
+ * scene's motion is meant to be: nothing in it moves quickly.
  *
  * All units are the house piece's own, the frame the chimney's point is declared in
  * (`BuildingPiece.smokeX/smokeY`, the middle of the cap).
@@ -47,7 +45,7 @@ internal object ChimneySmoke {
     /**
      * How high above the cap's middle a newborn puff's centre stands, as a share of its radius: its
      * lower edge just inside the cap, so the smoke comes out of the top of the chimney and never
-     * covers its side, which is what it did until v5.12.
+     * covers its side.
      */
     const val BORN_LIFT = 0.8f
 
@@ -68,8 +66,8 @@ internal object ChimneySmoke {
     fun dy(life: Float): Float = -RADIUS_BORN * BORN_LIFT - SMOKE_RISE_UNITS * life
 
     /**
-     * Whether the chimneys smoke at all: **only where the autumn or the winter palette is on** (v5.12,
-     * the maintainer's *«il resto si a tutte»* of 2026-10-09 to the row that said so) -- the palette the
+     * Whether the chimneys smoke at all: **only where the autumn or the winter palette is on**
+     * (`DESIGN_NOTES.md` §12, decision 56) -- the palette the
      * user picks in *Seasons & decorations*, and the one the project already reads as "it is cold"
      * (the meadow's dry stems, the snow on the roofs, the coats: `DESIGN_NOTES.md` decision 35). So
      * Autumn, Winter, Christmas, New Year's Eve and Tundra smoke as they ship, and any theme where the user
@@ -84,14 +82,13 @@ internal object ChimneySmoke {
     /** A puff's alpha at [life], 0..[ALPHA]: none when born, none when gone. */
     fun alpha(life: Float): Float = ALPHA * (life / FADE_IN).coerceAtMost(1f) * (1f - life)
 
-    /** The smoke's colour by day: the light grey every chimney has always had, kept (version A of the proposals). */
+    /** The smoke's colour by day: a light grey. */
     const val DAY_COLOUR = 0xFFE4E4DC.toInt()
 
     /**
      * The smoke's colour at night: a middle grey that reads against the dark hills without shining.
-     * Until v5.12 the smoke kept its daytime grey at midnight and stood out against the night as if it
-     * were lit (CIE76 ΔE up to 46 against Beach's hills, measured in round A); the darker grey photographed
-     * beside this one disappeared into them (3.7-6.0).
+     * The daytime grey at midnight would stand out against the night as if it were lit (CIE76 ΔE up
+     * to 46 against Beach's hills), and a darker grey disappears into them (3.7-6.0).
      */
     const val NIGHT_COLOUR = 0xFF9AA0AA.toInt()
 

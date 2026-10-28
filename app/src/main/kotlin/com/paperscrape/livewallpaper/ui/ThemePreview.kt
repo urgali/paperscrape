@@ -194,11 +194,16 @@ private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: Spri
             blitter.drawDisc(target, part.ox, part.oy, part.discRadius, part.tint ?: continue, part.alpha)
         } else if (part.scale != 1f || part.mirrored) {
             // A sprite drawn larger than its size from its origin: a wreath (v5.14C2), scaled as `drawWreath` scales it;
-            // or mirrored about it, a roof's right-hand cobweb (v5.16).
+            // or mirrored about it, a roof's right-hand cobweb (v5.16) -- tinted where it is a mask, the cobweb since v5.17.
             target.save()
             target.translate(part.ox, part.oy)
             target.scale(if (part.mirrored) -part.scale else part.scale, part.scale)
-            blitter.draw(target, part.resId, 0f, 0f, SpriteScale.SCENE_UNITS, part.alpha, part.shade)
+            val tint = part.tint
+            if (tint != null) {
+                blitter.drawTinted(target, part.resId, 0f, 0f, SpriteScale.SCENE_UNITS, tint, part.alpha)
+            } else {
+                blitter.draw(target, part.resId, 0f, 0f, SpriteScale.SCENE_UNITS, part.alpha, part.shade)
+            }
             target.restore()
         } else if (part.tint != null) {
             if (part.added) {

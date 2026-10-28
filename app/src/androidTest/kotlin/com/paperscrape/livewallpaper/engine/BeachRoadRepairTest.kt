@@ -20,11 +20,14 @@ import org.junit.Test
  * load-time repair renders with one, and the only thing that still legitimately takes the road
  * away is the user switching Cars off.
  *
- * The road is measured rather than compared against a golden, for the reason the goldens
- * themselves demonstrated in v4.3: a whole-frame tolerance is too coarse to be trusted with a
- * question this specific.
+ * The road is measured rather than compared against a golden: a whole-frame tolerance is too
+ * coarse to be trusted with a question this specific.
  */
 class BeachRoadRepairTest {
+
+    // Restores the phone's real saved themes around every test: the reset test empties them. See RealPrefsGuard.
+    @get:org.junit.Rule
+    val realSavedThemes = com.paperscrape.livewallpaper.prefs.RealPrefsGuard(com.paperscrape.livewallpaper.prefs.CUSTOM_THEME_STORE_NAME)
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val beach = ThemeCatalog.byId("beach")
@@ -33,7 +36,7 @@ class BeachRoadRepairTest {
     @Before fun clean() = CustomThemeRegistry.update(CustomThemeData.EMPTY)
     @After fun tidy() = CustomThemeRegistry.update(CustomThemeData.EMPTY)
 
-    /** A `beach` override in the state the v4.2 save produced: every static object, no cars. */
+    /** A damaged `beach` override, the state the load-time repair exists for: every static object, no cars. */
     private fun damagedBeach(
         customization: SceneCustomization = defaultCustomizationFor("beach"),
     ) = CustomThemeData(
@@ -82,9 +85,11 @@ class BeachRoadRepairTest {
         return (0..2).maxOf { kotlin.math.abs(lane[it] - ground[it]) } > 12
     }
 
-    /** How many pixels the vehicles paint, isolated by density -- never by visibility. Since
-     * v4.22 the bottom of the density range keeps one car, so this is the paint of the *other*
-     * nine -- still orders of magnitude above the threshold it is compared with. */
+    /**
+     * How many pixels the vehicles paint, isolated by density -- never by visibility. The bottom
+     * of the density range keeps one car, so this is the paint of the *other* nine of the ten
+     * candidates -- still orders of magnitude above the threshold it is compared with.
+     */
     private fun vehiclePixels(): Int {
         val none = render(carsDensity = 0f)
         val all = render(carsDensity = 1f)
@@ -126,7 +131,7 @@ class BeachRoadRepairTest {
         CustomThemeRegistry.update(customThemeDataFromJsonString(damagedBeach().toJsonString()))
         assertTrue("cars on: no road", roadIsOnScreen(render(carsVisible = true)))
         assertFalse("cars off: the road is still drawn", roadIsOnScreen(render(carsVisible = false)))
-        // ...and not when they merely turn the density down, which is the v4.2 rule this keeps
+        // ...and not when they merely turn the density down: density never takes the road away
         assertTrue("density 10%: the road went away", roadIsOnScreen(render(carsDensity = 0.1f)))
         assertTrue("density 0%: the road went away", roadIsOnScreen(render(carsDensity = 0f)))
     }

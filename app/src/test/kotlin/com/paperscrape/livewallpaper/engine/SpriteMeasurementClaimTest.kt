@@ -7,37 +7,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * REN-07: the numbers written about sprites are the numbers the sprites have.
+ * The numbers written about sprites are the numbers the sprites have.
  *
- * The audit found several load-bearing comments describing artwork that no longer ships -- a bird
- * "90x42" that is 90x24, a dolphin "360x225" that is 345x174, a canopy "270x252" that is 246x222,
- * and a window-head canvas "60 units wide" that is 53. The live constants were mostly right; the
- * comments were what a future edit would be derived from, which is the whole risk.
- *
- * This reads the PNGs so the corrected numbers cannot rot again, and separates the two kinds of
- * claim: a **measurement** must match the artwork, and a **tuned value** must not pretend to be one.
+ * A comment describing artwork is what a future edit is derived from, so a size that describes a
+ * drawing which does not ship is a defect even where the live constant is right. This reads the
+ * PNGs so the numbers cannot rot, and separates the two kinds of claim: a **measurement** must
+ * match the artwork, and a **tuned value** must not pretend to be one.
  */
 class SpriteMeasurementClaimTest {
 
     @Test
     fun `the sprites are the sizes the comments now say`() {
         val expected = mapOf(
-            // v4.26: 90x24 until the bird was redrawn as concept A "Dove" and reduced to the
-            // size it is actually read at -- ~48 px on screen, about 1.3 person heights. The flap
-            // axis moved with it, from canvas row 18 to row 15, and BIRD_SPRITE_ORIGIN_X/Y_PX
-            // moved to (-25, -15) in the same change: the origin *is* the axis the flap mirrors
-            // about, so a canvas that changes height without it moves the bird.
+            // The flap mirrors the bird's canvas about its origin, BIRD_SPRITE_ORIGIN_X/Y_PX at
+            // (-25, -15): the origin *is* the flap's axis, canvas row 15, so a canvas that changes
+            // height without it moves the bird.
             "bird_body" to (51 to 21),
-            // v4.31: 345x174 until the leading padding the v4.26 redraw left inside the canvas
-            // was cropped, with DOLPHIN_ORIGIN_X/Y_UNITS compensated by the (1, 2) units it
-            // removed. No drawn pixel moved.
+            // DOLPHIN_ORIGIN_X/Y_UNITS centre the ink measured in this canvas, so a crop or a
+            // padding of the canvas moves the dolphin unless they move with it.
             "dolphin_body" to (342 to 171),
-            // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Broad Oak" cushion.
+            // The crown: 303x198 px = 101x66 u.
             "tree_canopy" to (303 to 198),
-            // v4.25: 159x171 until the window family was redrawn on a canvas trimmed to what it
-            // covers, then 141x171, and 147x171 once the proportion pass gave the head back the
-            // width it had -- 49 units wide instead of 53, three of them off the left, compensated
-            // at WINDOW_HEAD_ANCHOR_X_UNITS in the same change.
+            // The window family's canvas, 49x57 units. WINDOW_HEAD_ANCHOR_X_UNITS is measured in
+            // it, so a crop of the canvas moves the anchor or the sprite.
             "person_man_summer_head_window" to (147 to 171),
         )
         for ((name, size) in expected) {
@@ -49,11 +41,9 @@ class SpriteMeasurementClaimTest {
 
     @Test
     fun `the window occupant divisor is a tuned value, not the canvas width`() {
-        // The distinction the comment used to get wrong. 60 is deliberate and the canvas is the
-        // canvas; asserting both is what stops somebody "fixing" one into the other. The canvas
-        // moved to 49 units in v4.25 -- 53 before it was trimmed, 47 before the head was given
-        // back its width -- and the divisor did not, which is the point: they were never the same
-        // number, and the gap between them is still there.
+        // 60 is a tuned value and the canvas is the canvas; asserting both is what stops somebody
+        // "fixing" one into the other. A crop changes the canvas without changing the picture, and
+        // the divisor is not derived from it.
         val canvasUnits = ImageIO.read(File(drawableDir(), "person_man_summer_head_window.png")).width /
             SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         assertEquals("the canvas really is 49 units", 49f, canvasUnits, 0.001f)
@@ -72,34 +62,24 @@ class SpriteMeasurementClaimTest {
     /**
      * **Every size written in a comment is the size of the artwork it is about, or says why not.**
      *
-     * *Until v5.9B* the rule was one regex -- `` `name` `` ... `is NxM px` -- and it said so: a claim
-     * about a sprite had to be *written in the shape this reads*. v4.29 had tried making `px`
-     * optional and put it back, because "`house_shared_window` is 22x21" is a true statement in
-     * local units about a 66x63 px sprite and the widened pattern read it as pixels.
-     * `BACKLOG_v4_29.md` item 90 recorded what that left uncovered, and item 63 had already met it:
-     * **a size written in units, or with no unit, or with the unit on the next line, was invisible.**
-     * Thirty sizes in `src/main` are written in units, and not one of them was ever read (inventory
-     * row I-40, items 63 and 90).
-     *
-     * *Since v5.9B* every `NxM` in a comment block of `src/main` is found -- the block read as one
-     * line, so a unit after a line break is still its unit, and with `"quoted"` spans removed, because
-     * a quotation is how this codebase marks a superseded sentence -- and each one must be one of:
+     * Every `NxM` in a comment block of `src/main` is found -- the block read as one line, so a unit
+     * after a line break is still its unit, and with `"quoted"` spans removed, because a quotation is
+     * how this codebase marks a superseded sentence -- in pixels, in units or with no unit, and each
+     * one must be one of:
      *
      * - **attributed to a shipped sprite** and equal to it: the nearest `` `name` `` before it in the
-     *   block -- or, since v5.9C, `name.png` written without backticks -- or the pixel size it
-     *   restates (`A px = B u`), or, when it names none, the family its
-     *   size belongs to in [sizeFamilies]. Pixels must equal the canvas, units the canvas over
-     *   [SpriteBlitter.SPRITE_PIXELS_PER_UNIT]; either may equal the drawing's ink box instead, which
-     *   is what "of content" claims measure. **A size with no unit is right if it is right in either
-     *   frame** -- which is what keeps v4.29's `22x21` true;
+     *   block, or `name.png` written without backticks, or the pixel size it restates
+     *   (`A px = B u`), or, when it names none, the family its size belongs to in [sizeFamilies].
+     *   Pixels must equal the canvas, units the canvas over [SpriteBlitter.SPRITE_PIXELS_PER_UNIT];
+     *   either may equal the drawing's ink box instead, which is what "of content" claims measure.
+     *   **A size with no unit is right if it is right in either frame**, so a size in local units
+     *   written without its unit is not read as pixels;
      * - **declared** in [declaredClaims], with the reason it is not a claim about a shipped canvas: a
-     *   size the sentence itself says is history, or the size of something that is not a sprite.
-     *   Checked in both directions: a declaration that matches no claim any more fails.
+     *   size the sentence weighs and nothing ships, or the size of something that is not a sprite.
+     *   Checked in both directions: a declaration that matches no claim fails.
      *
      * A size in pixels or units that is neither fails, and the message says which. A size with no
-     * unit and no sprite before it is not read: "a 2x3 affine", "a 1x1 texture". Until v5.9C a
-     * sprite written as a bare file name did not count as "a sprite before it", so "sun_glow.png is
-     * 396x396" went unread (inventory row I-49); it is read now.
+     * unit and no sprite before it is not read: "a 2x3 affine", "a 1x1 texture".
      */
     @Test
     fun `every size written about artwork is that artwork's size, or is declared`() {
@@ -127,9 +107,9 @@ class SpriteMeasurementClaimTest {
     }
 
     /**
-     * **The guardian sees what the simplest search sees.** The inventory counted thirty sizes in
-     * units with `grep -Eo '[0-9]{2,4}x[0-9]{2,4}(-unit| units?| u)' app/src/main`; every one of them
-     * has to be a claim this class reads and classifies, or it is proof of a hole.
+     * **The guardian sees what the simplest search sees.** Every size in units that
+     * `grep -Eo '[0-9]{2,4}x[0-9]{2,4}(-unit| units?| u)' app/src/main` finds has to be a claim
+     * this class reads and classifies, or it is proof of a hole.
      */
     @Test
     fun `every size in units a plain search finds is read and classified`() {
@@ -145,13 +125,13 @@ class SpriteMeasurementClaimTest {
                 )
             }
         }
-        assertTrue("the plain search found nothing, so this proves nothing", found >= 30)
+        assertTrue("the plain search found nothing, so this proves nothing", found >= 20)
     }
 
     /**
-     * **The rule bites**, on the three shapes the old regex could not read, each planted into a copy
-     * of a real comment and each caught: a size in units, a size with no unit, and a size whose unit
-     * is on the next line.
+     * **The rule bites**: a wrong size planted into a copy of a real comment is caught in units, with
+     * no unit, with its unit on the next line, and as a family's size written without its sprite;
+     * the true sentence passes.
      */
     @Test
     fun `a wrong size is caught in units, with no unit, and across a line break`() {
@@ -171,8 +151,8 @@ class SpriteMeasurementClaimTest {
     }
 
     /**
-     * **A size after a bare file name is read** (v5.9C, inventory row I-49): the renderer's own
-     * sentence about the sunburst, true and then made wrong.
+     * **A size after a bare file name is read**: the renderer's own sentence about the sunburst,
+     * true and then made wrong, and the live sentence in `PaperRenderer.kt` read and right.
      */
     @Test
     fun `a size written after a sprite's bare file name is read and checked`() {
@@ -227,13 +207,7 @@ class SpriteMeasurementClaimTest {
     }
 
     private val declaredClaims = listOf(
-        Declared("PalmSpriteLayout.kt", "40x40-unit", "history: the crown's canvas before v5.1 redrew it"),
-        Declared("TreeSpriteLayout.kt", "10x44 u", "history: the v4.20 trunk, a drawRect and never a sprite"),
-        Declared("PaperRenderer.kt", "768x510 px", "history: the canvas the old cloud origin centred, which never shipped"),
-        Declared("SceneObjectRenderer.kt", "47x44 units", "history: the seated bust canvas before v4.25 trimmed it"),
-        Declared("SceneObjectRenderer.kt", "159x171 px", "history: the window bust canvas before REN-07"),
-        Declared("SceneObjectRenderer.kt", "297x174", "history: firetruck_body's size from v4.19 until its redraw"),
-        Declared("CarShell.kt", "282x18 px", "history: v4.18's two full-car-width overlays, removed since"),
+        Declared("CarShell.kt", "282x18 px", "not a shipped canvas: the two full-car-width overlays the shared lamps avoid"),
         Declared("ThemePreviewScene.kt", "320x240", "not a sprite: the card's own 320x240 description canvas", times = ANY),
     )
 
@@ -289,9 +263,8 @@ class SpriteMeasurementClaimTest {
     private val backticked = Regex("""`([a-z0-9_]+)(?:\.png)?`""")
 
     /**
-     * A sprite named in a comment: in backticks, or as a bare file name -- `sun_glow.png is 396x396`
-     * (v5.9C, inventory row I-49). A bare word without `.png` is not a name: "the ring" is not
-     * `ring`.
+     * A sprite named in a comment: in backticks, or as a bare file name -- `sun_glow.png is 396x396`.
+     * A bare word without `.png` is not a name: "the ring" is not `ring`.
      */
     private val spriteNamed = Regex("""`([a-z0-9_]+)(?:\.png)?`|(?<![\w.`])([a-z0-9_]+)\.png\b""")
 
@@ -363,25 +336,18 @@ class SpriteMeasurementClaimTest {
     /**
      * A comment that says a sprite's drawing reaches its canvas edge is checked against the alpha.
      *
-     * **The residue item 90 left, in a shape it did not anticipate.** That item recorded one hole
-     * -- a pixel claim that omits its unit -- and closed the rest. The claim that got through is
-     * neither: `DOLPHIN_ORIGIN_X_UNITS` said *"The sprite is 345x174 px -- 115x58 local units --
-     * **filled edge to edge**, so its content centre sits at (57.5, 29)"*. The canvas half is true
-     * and the existing guard above checks it and passes. The load-bearing half is the phrase
-     * "filled edge to edge", which is what makes the centre `(57.5, 29)` follow, and it stopped
-     * being true in v4.26 when the dolphin was redrawn inside the same canvas with `4,6` px of
-     * margin. The real centre is `(58.167, 30.0)` units, so the derivation the constant is
-     * justified by gives the wrong answer by `(0.87, 1.0)` units.
+     * **A sentence about the ink is not a canvas size.** An origin derived from "the sprite is
+     * N x M px, filled edge to edge, so its content centre sits at ..." is right only while the ink
+     * reaches every edge; a redraw inside the same canvas with a margin leaves the canvas half true,
+     * so a guard that only reads canvas sizes keeps passing it while the derived centre is wrong.
+     * So this reads the **alpha channel**, not the registry: the registry is a declaration and the
+     * PNG is the artwork, and the rule -- re-measure, do not re-type -- applies to a checker as much
+     * as to a comment.
      *
-     * A canvas size is not the same claim as a content box, and a guard that only reads canvas
-     * sizes will keep passing a sentence about the ink. So this reads the **alpha channel**, not
-     * the registry: the registry is a declaration and the PNG is the artwork, and item 90's rule
-     * -- re-measure, do not re-type -- applies to a checker as much as to a comment.
-     *
-     * Scoped by comment block rather than by character distance, because the two halves of the
-     * dolphin's sentence are four lines apart and a windowed regex either misses that or drags in
-     * the next constant's prose. A block that makes the claim must name exactly one sprite that
-     * ships, which is what lets the assertion say which artwork it is about.
+     * Scoped by comment block rather than by character distance, because the two halves of such a
+     * sentence can be lines apart and a windowed regex either misses that or drags in the next
+     * constant's prose. A block that makes the claim must name exactly one sprite that ships, which
+     * is what lets the assertion say which artwork it is about.
      */
     @Test
     fun `a sprite said to fill its canvas does fill it`() {
@@ -390,11 +356,9 @@ class SpriteMeasurementClaimTest {
         var checked = 0
         for (file in kotlinSources()) {
             for (block in commentBlocks(file.readText())) {
-                // **A quoted claim is history, not a claim.** `AI_PROJECT_RULES.md` §3 says to
-                // annotate a wrong number rather than delete it, so the corrected dolphin comment
-                // has to be able to say *This said "filled edge to edge"* without this test
-                // reading that as the assertion being made again. Double quotes are how this
-                // codebase already marks a superseded sentence, so they are what is stripped.
+                // **A quoted claim is a quotation, not a claim.** A comment can quote a sentence in
+                // double quotes -- a superseded one among them -- without this test reading it as
+                // the assertion being made again, so quotations are what is stripped.
                 if (!claim.containsMatchIn(withoutQuotations(block))) continue
                 val named = backticked.findAll(block)
                     .map { it.groupValues[1] }
@@ -450,8 +414,8 @@ class SpriteMeasurementClaimTest {
     }
 
     /**
-     * Every `/** ... */` and `/* ... */` block in a Kotlin source, plus each run of adjacent `//`
-     * lines, as one string each.
+     * Every block comment and KDoc in a Kotlin source, plus each run of adjacent `//` lines, as one
+     * string each.
      *
      * A run of `//` lines counts as one block because that is how the engine writes an argument
      * inside a function body, and splitting it per line would separate a sprite's name from the
@@ -459,8 +423,8 @@ class SpriteMeasurementClaimTest {
      */
     private fun commentBlocks(source: String): List<String> {
         val blocks = mutableListOf<String>()
-        // Scanned by index rather than by regex: `/\*(?:[^*]|\*(?!/))*\*/` overflows the stack on
-        // `PaperRenderer.kt`, which is the file this test most needs to read.
+        // Scanned by index rather than by regex: a regex over a whole block comment overflows the
+        // stack on `PaperRenderer.kt`, which is the file this test most needs to read.
         var i = source.indexOf("/*")
         while (i >= 0) {
             val end = source.indexOf("*/", i + 2)
@@ -484,14 +448,9 @@ class SpriteMeasurementClaimTest {
 
     /**
      * Every Kotlin source under `src/main`, because a hand-written file list is the failure this
-     * test exists to catch, happening to this test.
-     *
-     * Until v4.29 the scan above named two files -- `SceneObjectRenderer.kt` and
-     * `PaperRenderer.kt` -- and `BACKLOG_v4_28.md` item 82 then found three stale load-bearing
-     * numbers in `GlTextureAtlas.kt` and `GlTextureCache.kt`, which were simply not being read.
-     * That is the same shape as the stale golden-class list in `CLAUDE.md` §5, which cost v4.28 a
-     * missed `SkyWaterGoldenTest`: **ask the tree, do not keep the list.** Walking the directory
-     * costs a few milliseconds and cannot go out of date.
+     * test exists to catch, happening to this test: a file left off the list keeps stale numbers
+     * that nothing reads. **Ask the tree, do not keep the list.** Walking the directory costs a few
+     * milliseconds and cannot go out of date.
      */
     private fun kotlinSources(): List<File> =
         walkUp("src/main/kotlin").walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()

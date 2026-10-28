@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The scanner that finds where an unreadable saved theme's own text stands (item 18, v5.9A), and
+ * The scanner that finds where an unreadable saved theme's own text stands, and
  * the item that carries it. `UnreadableSavedThemeTest` holds the behaviour; this holds the parts.
  */
 class JsonSpansTest {

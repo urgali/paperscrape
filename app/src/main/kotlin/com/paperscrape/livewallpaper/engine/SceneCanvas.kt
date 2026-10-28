@@ -16,7 +16,7 @@ import android.graphics.Path
  * The operation set is deliberately no wider than what both backends draw as one picture: an interface
  * that admitted arbitrary `Path`s, clips or `Xfermode`s would be one the GPU backend could not
  * honour, and a call site could then compile while producing a different picture on each backend.
- * It admits a box on a single sprite blit ([drawSpriteClipped], v5.12) and a disc ([drawDisc], v5.14),
+ * It admits a box on a single sprite blit ([drawSpriteClipped]) and a disc ([drawDisc]),
  * each held to one picture on both backends by a test; neither reaches anything else.
  *
  * [Paint] is passed through rather than being decomposed into arguments. Reading `color`, `alpha`,
@@ -53,9 +53,8 @@ interface SceneCanvas {
     /**
      * A filled circular sector: the pie slice between [startAngle] and `startAngle + sweepAngle`.
      *
-     * Replaces the `Path.moveTo(0,0) + arcTo(...) + close()` the parasol used. Expressing it as its
-     * own operation rather than as a generic path keeps [SceneShape] free of curve support, which
-     * neither backend would then implement the same way.
+     * The parasol's canopy. Expressing it as its own operation rather than as a generic path keeps
+     * [SceneShape] free of curve support, which neither backend would then implement the same way.
      */
     fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: Paint)
 
@@ -123,7 +122,7 @@ interface SceneCanvas {
         tintColor: Int,
         alpha: Int,
         /**
-         * Whether the contribution is **summed** into the frame instead of laid over it (v4.30).
+         * Whether the contribution is **summed** into the frame instead of laid over it.
          *
          * A person is drawn as fixed art plus one weight mask per colourable region, and the masks
          * have to sum. Two source-over layers split the pixel's coverage between them, and
@@ -142,7 +141,7 @@ interface SceneCanvas {
     /**
      * [drawSprite], keeping only the part of the sprite inside the box [clipLeft]..[clipRight] x
      * [clipTop]..[clipBottom], given in the same coordinates as [left] and [top] -- the coordinates
-     * the current transform maps (v5.12). The rest of the sprite is not drawn at all; the part inside
+     * the current transform maps. The rest of the sprite is not drawn at all; the part inside
      * is drawn as [drawSprite] draws it, within the few levels of rounding each backend's cut adds (2 to
      * 3 of 255, measured by `ClippedSpriteAgreementTest`), and a box that holds the whole sprite draws the
      * whole sprite to the bit.
@@ -158,8 +157,8 @@ interface SceneCanvas {
      * - **Canvas** intersects its clip with the box for the one `drawBitmap`, inside a `save`/`restore`.
      *
      * The two differ only at the cut edge, by less than a pixel -- `Canvas` clips a box to whole device
-     * pixels, GL rasterises the cut edge with its 4x multisampling -- the kind of difference §10 rule 9
-     * of `DESIGN_NOTES.md` accepts at the edges of circles and lines, and names for a cut sprite.
+     * pixels, GL rasterises the cut edge with its 4x multisampling -- the same sub-pixel difference the two
+     * backends are accepted to have at the edges of circles and thin lines: the wallpaper is the GL one.
      *
      * What it is for: a person walking out of a window, or into one, is drawn whole and at full
      * strength, and only the part of them inside the pane is seen ([WindowWalk]); every layer of the
@@ -181,7 +180,7 @@ interface SceneCanvas {
     )
 
     /**
-     * A filled disc centred on ([cx], [cy]), [radius] in the caller's coordinates, in [colour] at [alpha] (v5.14): a
+     * A filled disc centred on ([cx], [cy]), [radius] in the caller's coordinates, in [colour] at [alpha]: a
      * snowflake, a point star, a Christmas bulb -- the small round dots the scene draws by the hundred.
      *
      * Each backend draws the same disc its own lightest way, and the two agree (`DiscAgreementTest`):
@@ -189,11 +188,13 @@ interface SceneCanvas {
      * - **GL** draws one quad of the shared atlas sampling [resId], a white disc that fills its box, at the detail
      *   level the drawn size asks for ([SpriteDetailLevel]), tinted by the vertex colour as [drawSprite] tints: **6
      *   vertices**, where [drawCircle]'s fan is 24 or more. A frame of Christmas at night holds some six hundred of
-     *   them; drawn as fans they took it past the batch's end ([GlSceneTarget.MAX_VERTICES]) into a second draw;
+     *   them; drawn as fans they would take it past the batch's end ([GlSceneTarget.MAX_VERTICES]) into a second draw;
      * - **Canvas** draws the circle itself, as [drawCircle] does: a Canvas has no batch to fill, and the circle is the
      *   disc the quad's texture is a picture of.
      *
-     * [colour] is opaque, as every tint is (`TintOpacityTest`); [alpha] is the disc's own.
+     * [alpha] is the disc's own, and [colour]'s alpha byte is not read: both backends take the red, green and blue of
+     * [colour] and [alpha] for the opacity, so a blended colour that comes out at 254 (`TintOpacityTest`) draws as an
+     * opaque one would.
      */
     @Suppress("LongParameterList")
     fun drawDisc(
@@ -236,31 +237,25 @@ interface SpriteSource {
  *
  * The renderers build these shapes: the hill silhouette (a sine ridge over a flat base), a
  * mountain's two faces (a parabolic face over a base), the lake's glitter diamonds, the sleigh's
- * falling-gift bow triangles and, since v5.14, a tower's Christmas star (its pentagon and its five
+ * falling-gift bow triangles, a tower's Christmas star (its pentagon and its five
  * points) and the bands of a shut building's shutter (`SceneObjectRenderer.drawStar`, `drawDoorBand`).
  *
- * **The GPU backend has two fills, and only one of them needs the star-shaped property** (REN-02).
+ * **The GPU backend has two fills, and only one of them needs the star-shaped property.**
  * [SceneCanvas.drawShape] fills a fan from vertex 0, which is correct precisely when the polygon is
  * star-shaped about that vertex; [SceneCanvas.drawVerticalGradientShape] tessellates columns down to
- * the base line and needs nothing of the sort. The audit read the sentence that used to be here --
- * "true for all three by construction" -- and correctly called it false: the hill's ridge is two
- * full sine cycles, so a fan from its base-left corner runs above the crest where the wave dips.
+ * the base line and needs nothing of the sort. The hill is not star-shaped: its ridge is two full
+ * sine cycles, so a fan from its base-left corner runs above the crest where the wave dips.
  *
  * The hill goes through the gradient path, which is column-tessellated for a different reason of
- * its own (see that method), and since v5.8C it is the only way the hill is drawn. Until then the
- * hill loop also drew a *shadow* with `drawShape(path, shadowPaint)` -- black at alpha 30, 6 px
- * lower -- which reached the fan: on the GPU, where the ridge dips, the fan spilled thin dark
- * slivers above the hill (up to 3.5 px on a 1080x2424 phone, on Beach and Sunset; under a pixel on
- * the BV6600), found by the v5.8B comment audit and photographed on the phone's GPU in v5.8C. The
- * shadow was otherwise never seen on either backend: drawn 6 px below the ridge and then covered
- * by the opaque fill, every pixel of it that could show was the spill. So it was removed rather
- * than moved to the column fill, which would have drawn an invisible polygon at the cost of a
- * visible one. The shapes that still reach the fan are a mountain face, a triangle, the lake's
- * glitter diamond and, since v5.14, the tower star's pentagon and points and the shutter's bands, each
- * star-shaped about its first vertex (the bands held so by `DoorShutterTest`); the preview's own multi-peaked ridge
- * in `ThemePreview` is typed to `CanvasSceneTarget` and cannot reach a GPU fan at all.
- * `SceneShapeFanContractTest` pins it: the hill is not star-shaped on the themes the audit named,
- * and no `drawShape` in the hill loop takes the hill's shape.
+ * its own (see that method), and that is the only way the hill is drawn. A hill shape handed to
+ * `drawShape` -- a shadow under the ridge, say -- would reach the fan: on the GPU, where the ridge
+ * dips, the fan spills thin dark slivers above the hill (up to 3.5 px on a 1080x2424 phone, on
+ * Beach and Sunset; under a pixel on the BV6600). The shapes that reach the fan are a mountain
+ * face, a triangle, the lake's glitter diamond, the tower star's pentagon and points and the
+ * shutter's bands, each star-shaped about its first vertex (the bands held so by `DoorShutterTest`);
+ * the preview's own multi-peaked ridge in `ThemePreview` is typed to `CanvasSceneTarget` and cannot
+ * reach a GPU fan at all. `SceneShapeFanContractTest` pins it: the hill is not star-shaped on Beach
+ * and Sunset, and no `drawShape` in the hill loop takes the hill's shape.
  *
  * Vertices accumulate into a growable `FloatArray` that is reused across [reset] calls, so a shape
  * rebuilt every frame (the mountains) allocates only until it has reached its high-water mark.
@@ -295,7 +290,7 @@ class SceneShape(initialCapacity: Int = 96) {
      * Closes the polygon.
      *
      * Nothing is stored: both backends treat the vertex list as an implicitly closed loop. It exists
-     * so call sites read the way the `Path` code they replaced did.
+     * so call sites read the way `Path` code does.
      */
     fun close() {
         pathValid = false
@@ -322,8 +317,8 @@ class SceneShape(initialCapacity: Int = 96) {
      * The equivalent `Path`, built once per mutation.
      *
      * Only the `Canvas` backend calls this. `rewind()`, not `reset()`: both empty the path, but
-     * `reset()` also releases its native storage, so a shape rebuilt per frame re-allocated its
-     * native path here until v5.8C (v5.8B comment audit); `rewind()` keeps it for the next build.
+     * `reset()` also releases its native storage, so a shape rebuilt per frame would re-allocate its
+     * native path here; `rewind()` keeps it for the next build.
      */
     internal fun asPath(): Path {
         if (!pathValid) {

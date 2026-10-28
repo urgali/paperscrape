@@ -7,35 +7,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **What is drawn on the water has to be visible on the water.** v4.26 makes the surface a mirror
- * of the sky, which is the release that most needs this said out loud: the closer a theme's sky
- * and lake colours are, the more the water agrees with everything above it.
+ * **What is drawn on the water has to be visible on the water.** The surface is a mirror of the
+ * sky, so the closer a theme's sky and lake colours are, the more the water agrees with everything
+ * above it.
  *
- * Two things were failing and both are closed here **by derivation rather than by choice**, which
- * is the whole point of the file — a colour picked by eye is a colour nobody can check.
+ * Two things are held here **by derivation rather than by choice**, which is the whole point of the
+ * file — a colour picked by eye is a colour nobody can check.
  *
- * ### 1. The dolphin disappeared
+ * ### 1. The dolphin stands off the water
  *
- * v4.25's animal carried `#4A6A84` on a `#15495C` night sea. Measured over **every** surface the
- * eleven dolphin-drawing themes can paint -- the whole day/night sweep rather than its two ends,
- * both twilight branches, clear and storm, and both edges of the mirror -- its worst case was a
- * **CIELab dE of 1.53**. That is below the ~2.3 that is a just-noticeable difference for a large
- * flat field, and this animal is 40 px of moving sprite over textured water, so in practice it was
- * not there at all. The maintainer reported it as gone at night and in the storm, and the
- * measurement agrees.
+ * A back of `#4A6A84`, measured over **every** surface the eleven
+ * dolphin-drawing themes can paint -- the whole day/night sweep rather than its two ends, both
+ * twilight branches, clear and storm, and both edges of the mirror -- comes as close as a **CIELab dE
+ * of 1.53** (on the `#15495C` night sea). That is below the ~2.3 that is a just-noticeable difference
+ * for a large flat field, and this animal is 40 px of moving sprite over textured water, so in
+ * practice such a back is not there at all, at night and in the storm.
  *
- * The gate is derived the way the v4.22 method requires: **between the floor the failing element
- * produces and the signal a working one produces.** The floor is the invisible back, 1.53. The
- * signal is the animal's *own belly*, which reads on the same water, in the same lanes, at the same
- * size, and measures 18.78 -- so the belly is deliberately left alone, because moving it would move
- * the gate with it. The gate is the midpoint, **10.16**.
+ * So the gate is derived **between the floor the failing element produces and the signal a working
+ * one produces.** The floor is that invisible back, 1.53. The signal is the animal's *own belly*,
+ * which reads on the same water, in the same lanes, at the same size, and measures 18.78 -- so the
+ * belly is deliberately left alone, because moving it would move the gate with it. The gate is the
+ * midpoint, **10.16**.
  *
- * Three of the four papers moved to clear it: the back to `#BAA8AE` (17.97), its under-paper to
- * `#917F84` (12.68), and the belly's under-paper to `#E6CED7` (24.72), which at `#B4C9D6` was the
- * one paper still under the gate at 9.11. The animal is lighter, which is what was asked for, and
- * it is lighter by the amount the derivation asks for rather than by an amount that looked right.
+ * The other papers clear it: the back `#BAA8AE` (17.97), its under-paper `#917F84` (12.68), and the
+ * belly's under-paper `#E6CED7` (24.72) -- as light as the derivation asks, not by an amount that
+ * looked right.
  *
- * ### 2. The waterline could vanish into the sky
+ * ### 2. The waterline must not vanish into the sky
  *
  * A mirror reflects the sky, so a theme whose sky and lake agree loses the edge between them. The
  * band's top edge is flat by construction — the mountains anchor to its nominal top Y and a wavy
@@ -46,7 +44,7 @@ import org.junit.Test
  *
  * Measured as WCAG luminance contrast, the sailboat's hull scores **1.009** against one of these
  * waters and it is plainly visible: it is orange on blue, and a luminance ratio cannot see hue at
- * all. The dolphin's problem is precisely that it shares the water's hue *and* its lightness, so
+ * all. The dolphin's risk is precisely that it shares the water's hue *and* its lightness, so
  * the metric has to be able to tell those apart. dE76 is the cheapest one that can.
  */
 class LakeContrastTest {
@@ -93,7 +91,7 @@ class LakeContrastTest {
     /**
      * [sky] is the sky **immediately above this theme's own shore**, not the horizon colour the
      * water reflects. The two are far apart — 25 units of luma on Tundra — and judging the edge
-     * against the wrong end of the sky's gradient produced a line that sat *between* the sky and
+     * against the wrong end of the sky's gradient would give a line that sits *between* the sky and
      * the water instead of clear of both.
      */
     private data class Water(val label: String, val sky: Int, val mirror: Int, val near: Int)
@@ -111,7 +109,7 @@ class LakeContrastTest {
      *
      * Tundra is excluded and the exclusion is *checked*, not asserted in prose: it is the one theme
      * that switches the animals off, because a pod of dolphins at the edge of the ice is the
-     * incoherence `BuiltInThemeCoherenceTest` was written for. If that default ever changes, this
+     * incoherence `BuiltInThemeCoherenceTest` holds against. If that default ever changes, this
      * list changes with it and the derivation has to be redone — which is what the assertion below
      * makes happen instead of leaving a stale exclusion behind.
      */
@@ -143,7 +141,7 @@ class LakeContrastTest {
             return minOf(dE(colour, w.mirror), dE(colour, w.near)) to w
         }
 
-        // The signal arm: the animal's own belly, the paper that already read on this water.
+        // The signal arm: the animal's own belly, the paper that reads on this water.
         val signal = worstAgainstWater(lightestOpaqueColour("dolphin_body")).first
         val gate = (FAILING_BACK_WORST_DE + signal) / 2f
         assertTrue(
@@ -171,7 +169,7 @@ class LakeContrastTest {
         }
     }
 
-    /** What the v4.25 artwork measured, kept as the floor arm of the derivation above. */
+    /** The invisible `#4A6A84` back's worst dE, the floor arm of the derivation above. */
     private val FAILING_BACK_WORST_DE = 1.53f
 
     /**
@@ -250,7 +248,7 @@ class LakeContrastTest {
      * `ColorUtils.blendARGB`, written out.
      *
      * Not called: it reaches `android.graphics.Color`, which on the unit-test classpath is the
-     * mockable android.jar and throws "not mocked" (`CLAUDE.md` §7). Restating a library function's
+     * mockable android.jar and throws "not mocked". Restating a library function's
      * arithmetic is not the duplication that rule warns about — what must not be restated is this
      * project's own decisions, and those are all read back out of `PaperRenderer` above.
      */
@@ -335,8 +333,8 @@ class LakeContrastTest {
     private fun drawableDir(): File = File(repoRoot(), "app/src/main/res/drawable-nodpi")
 
     private fun repoRoot(): File {
-        // Walked to null rather than tested through `parentFile`, a platform type: the older shape
-        // compiled with "Java type mismatch: inferred type is 'File?'" (v5.9C, inventory I-10).
+        // Walked to null rather than tested through `parentFile`, a platform type: tested that way it
+        // compiles with "Java type mismatch: inferred type is 'File?'".
         var dir: File? = File(".").absoluteFile
         while (dir != null) {
             if (File(dir, "app/src/main/res/drawable-nodpi").isDirectory) return dir

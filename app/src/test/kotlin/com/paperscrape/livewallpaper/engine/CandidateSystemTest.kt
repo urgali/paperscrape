@@ -7,24 +7,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Invariants for the deterministic candidate system introduced in Phase 2.1 / 2.2.
+ * The invariants of the deterministic candidate system: the same theme is the same scene, a density
+ * adds or removes candidates without moving the others, and effects do not share their selection.
  *
- * Each test below corresponds to one of the ten properties agreed before implementation. They are
- * written against the pure primitives ([CandidateNoise], [CandidateThreshold]) rather than against
- * the renderer, which needs a `Canvas` and cannot run as a local unit test — the renderer's job is
- * only to feed a candidate index into these functions, so pinning them pins the behaviour.
+ * Written against the pure primitives ([CandidateNoise], [CandidateThreshold]) and the renderer's own
+ * seed, [PaperRenderer.seedFor], rather than against the renderer, which needs a `Canvas` and cannot
+ * run as a local unit test — the renderer's job is only to feed a candidate index into these
+ * functions: that the clouds feed their own pool index is read off its source, and pinning the
+ * functions pins the rest.
  */
 class CandidateSystemTest {
 
     private val cloudOffset = CandidateThreshold.offsetFor(EffectId.CLOUDS)
     private val pool = 41
 
+    /** The seed the renderer gives [effect]'s candidates in the theme [themeId]: its own function, not a copy. */
+    private fun seedOf(themeId: String, effect: Int): Int =
+        PaperRenderer.seedFor(ThemeCatalog.ALL.first { it.id == themeId }, effect)
+
     private fun survivors(density: Float, poolSize: Int = pool, offset: Float = cloudOffset): List<Int> {
         val fallback = CandidateThreshold.fallbackIndexFor(density, poolSize, offset)
         return (0 until poolSize).filter { CandidateThreshold.isPresent(it, density, offset, fallback) }
     }
 
-    /** All the attributes one cloud candidate would receive, as the renderer computes them. */
+    /** All the attributes one cloud candidate receives: the five calls `PaperRenderer.drawClouds` makes, read below. */
     private fun attributes(seed: Int, index: Int): List<Float> = listOf(
         CandidateNoise.value(seed, index, CandidateNoise.CH_X),
         CandidateNoise.value(seed, index, CandidateNoise.CH_Y),
@@ -33,79 +39,95 @@ class CandidateSystemTest {
         CandidateNoise.value(seed, index, CandidateNoise.CH_PHASE),
     )
 
-    // --- Invariant 1: same theme + size + time -> same scene ------------------------------------
+    // --- Same theme + size + time -> same scene -------------------------------------------------
 
+    /**
+     * The noise is fixed arithmetic, so its values are the same on every device and in every run, and the committed
+     * goldens drawn with it stay valid: the first five of one seed's x channel, as fractions of 2^24, which is all the
+     * noise keeps (24 bits, so each is exact in a `Float`).
+     */
     @Test
     fun `noise is fully deterministic for the same inputs`() {
-        repeat(500) { i ->
-            assertEquals(
-                CandidateNoise.value(12345, i, CandidateNoise.CH_X),
-                CandidateNoise.value(12345, i, CandidateNoise.CH_X),
-                0f,
-            )
+        val pinned = intArrayOf(4_728_967, 3_412_132, 1_175_928, 10_290_183, 6_453_549)
+        for ((i, top24) in pinned.withIndex()) {
+            assertEquals("candidate $i", top24 / 16_777_216f, CandidateNoise.value(12345, i, CandidateNoise.CH_X), 0f)
         }
     }
 
+    /**
+     * **The same theme id always produces the same seed**, read off the renderer's own [PaperRenderer.seedFor]:
+     * `String.hashCode` is specified exactly by the Java language and the spread is fixed arithmetic, so these are the
+     * seeds of `sunset`'s and `christmas`'s nine effects on every device and every run, as the committed goldens were
+     * drawn with them -- and with the noise pinned above, the same scene.
+     */
     @Test
     fun `the same theme id always produces the same seed and the same scene`() {
-        // theme.id.hashCode() is specified exactly by the Java language, so this holds across
-        // devices and runs, not just within one process.
-        val seedA = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        val seedB = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        assertEquals(seedA, seedB)
-        for (i in 0 until pool) assertEquals(attributes(seedA, i), attributes(seedB, i))
+        assertEquals(
+            listOf(-891172202, 1423356719, -158385692, 273131453, -1304679310, -571168245, 2142048448, -1721393511, 995755870),
+            (0 until EffectId.COUNT).map { seedOf("sunset", it) },
+        )
+        assertEquals(
+            listOf(-768650366, 1276652091, -297688848, 143212201, -1426934426, -986041569, 1734576596, -2119497843, 596942410),
+            (0 until EffectId.COUNT).map { seedOf("christmas", it) },
+        )
+    }
+
+    /**
+     * **Every two effects of a theme have seeds that differ across the whole word**, not only in its low bits: the
+     * effects' ordinals are small consecutive numbers, and the renderer spreads them with a large odd multiplier before
+     * they meet the theme's hash, so that two effects stay uncorrelated in their attributes as well as in their
+     * selection. With a small multiplier -- 31 -- every pair differs in the low 16 bits alone.
+     */
+    @Test
+    fun `a theme's effects get seeds that differ in their high bits`() {
+        for (theme in ThemeCatalog.ALL) {
+            for (a in 0 until EffectId.COUNT) {
+                for (b in a + 1 until EffectId.COUNT) {
+                    val apart = PaperRenderer.seedFor(theme, a) xor PaperRenderer.seedFor(theme, b)
+                    assertTrue(
+                        "${theme.id}: effects $a and $b differ only in their low 16 bits (%08x)".format(apart),
+                        apart ushr 16 != 0,
+                    )
+                }
+            }
+        }
     }
 
     @Test
     fun `different themes produce different scenes`() {
-        val sunset = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        val christmas = "christmas".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
+        val sunset = seedOf("sunset", EffectId.CLOUDS)
+        val christmas = seedOf("christmas", EffectId.CLOUDS)
         val differing = (0 until pool).count { attributes(sunset, it) != attributes(christmas, it) }
         assertTrue("themes should not share a layout ($differing of $pool differ)", differing > pool * 0.9)
     }
 
-    // --- Invariant 2: attributes are independent of density -------------------------------------
+    // --- Attributes are independent of density --------------------------------------------------
 
+    /**
+     * **A cloud's attributes are its pool index's, whatever the density**, so a density that adds or removes clouds moves
+     * none of the others: `PaperRenderer.drawClouds` walks the whole pool by its index and asks [CandidateNoise] for the five
+     * attributes [attributes] asks for, keyed by `seed, i`. A noise keyed by a count of the clouds drawn so far -- what a
+     * shared sequential random number generator does -- would shift every cloud after a skipped one. Read off the source,
+     * whole lines with the comments taken off: [attributes] takes no density, so only the renderer can make one count.
+     */
     @Test
     fun `candidate attributes do not depend on density`() {
-        val seed = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        val reference = (0 until pool).map { attributes(seed, it) }
-        var density = 0.01f
-        while (density <= 1f) {
-            for (index in survivors(density)) {
-                assertEquals(
-                    "attributes of candidate $index changed at density $density",
-                    reference[index],
-                    attributes(seed, index),
-                )
-            }
-            density += 0.01f
-        }
+        val clouds = codeLines(rendererFunction("drawClouds"))
+        assertTrue("drawClouds seeds its clouds as seedOf does", clouds.contains("val seed = seedFor(EffectId.CLOUDS)"))
+        assertTrue("drawClouds walks its whole pool by index", clouds.contains("for (i in 0 until CLOUD_POOL_SIZE) {"))
+        assertEquals(
+            listOf(
+                "CandidateNoise.value(seed, i, CandidateNoise.CH_X)",
+                "CandidateNoise.value(seed, i, CandidateNoise.CH_Y)",
+                "CandidateNoise.range(seed, i, CandidateNoise.CH_SCALE, 0.85f, 1.25f)",
+                "CandidateNoise.range(seed, i, CandidateNoise.CH_SPEED, 0.004f, 0.008f)",
+                "CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)",
+            ),
+            Regex("""CandidateNoise\.(value|range)\([^()]*\)""").findAll(clouds.joinToString("\n")).map { it.value }.toList(),
+        )
     }
 
-    // --- Invariant 3: changing density does not move existing candidates -------------------------
-
-    @Test
-    fun `survivors keep their identity across every density step`() {
-        val seed = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        val seen = mutableMapOf<Int, List<Float>>()
-        var moved = 0
-        var observations = 0
-        for (step in 1..100) {
-            for (index in survivors(step / 100f)) {
-                val attrs = attributes(seed, index)
-                seen[index]?.let {
-                    observations++
-                    if (it != attrs) moved++
-                }
-                seen[index] = attrs
-            }
-        }
-        assertTrue("expected many observations, got $observations", observations > 1000)
-        assertEquals("$moved of $observations survivors moved", 0, moved)
-    }
-
-    // --- Invariants 4 and 5: monotonicity in both directions --------------------------------------
+    // --- Monotonicity in both directions, and linearity --------------------------------------------
 
     @Test
     fun `raising density only adds candidates`() {
@@ -121,8 +143,7 @@ class CandidateSystemTest {
     }
 
     @Test
-    fun `lowering density only removes candidates and leaves the rest untouched`() {
-        val seed = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
+    fun `lowering density only removes candidates`() {
         var previous = survivors(1f).toSet()
         for (step in 99 downTo 1) {
             val current = survivors(step / 100f).toSet()
@@ -130,7 +151,6 @@ class CandidateSystemTest {
                 "density ${step / 100f} gained candidates ${current - previous}",
                 previous.containsAll(current),
             )
-            for (index in current) assertEquals(attributes(seed, index), attributes(seed, index))
             previous = current
         }
     }
@@ -148,31 +168,13 @@ class CandidateSystemTest {
         assertEquals("full density must keep the whole pool", pool, survivors(1f).size)
     }
 
-    // --- Invariant 6: layout does not depend on how many were filtered out -------------------------
-
-    @Test
-    fun `a candidate's values do not depend on which other candidates survived`() {
-        // The defining failure of the old shared sequential RNG: a skipped candidate did not
-        // consume from the stream, so every later candidate's values shifted.
-        val seed = "sunset".hashCode() xor (EffectId.CLOUDS * -0x61c88647)
-        val last = pool - 1
-        val reference = attributes(seed, last)
-        for (density in listOf(0.05f, 0.3f, 0.6f, 0.99f, 1f)) {
-            assertEquals(
-                "candidate $last changed when ${pool - survivors(density).size} others were filtered out",
-                reference,
-                attributes(seed, last),
-            )
-        }
-    }
-
-    // --- Invariant 8: effects do not share a threshold sequence -------------------------------------
+    // --- Effects do not share a threshold sequence -------------------------------------------------
 
     @Test
     fun `effect threshold offsets are distinct and well separated`() {
-        // The old salts collapsed: (salt * 131) % 1000 is identical for any two salts differing by
-        // a multiple of 1000, which birds/clouds/precipitation/sailboats all did, so they shared
-        // one threshold sequence. Offsets are now spaced evenly by construction.
+        // Offsets spaced evenly by construction: a salted offset, (salt * 131) % 1000, is identical
+        // for any two salts differing by a multiple of 1000, and effects salted that way share one
+        // threshold sequence.
         val offsets = (0 until EffectId.COUNT).map { CandidateThreshold.offsetFor(it) }
         assertEquals("offsets must be distinct", offsets.size, offsets.toSet().size)
         val sorted = offsets.sorted()
@@ -211,11 +213,10 @@ class CandidateSystemTest {
     fun `effects sharing a candidate index still get different attributes`() {
         // Guards the small-pool case above: even when two effects keep index 0, that candidate is
         // a different cloud/boat/bird because the seeds differ.
-        val themeHash = "sunset".hashCode()
         for (a in 0 until EffectId.COUNT) {
             for (b in a + 1 until EffectId.COUNT) {
-                val seedA = themeHash xor (a * -0x61c88647)
-                val seedB = themeHash xor (b * -0x61c88647)
+                val seedA = seedOf("sunset", a)
+                val seedB = seedOf("sunset", b)
                 assertNotEquals(
                     "effects $a and $b would place their candidate 0 identically",
                     attributes(seedA, 0), attributes(seedB, 0),
@@ -226,7 +227,7 @@ class CandidateSystemTest {
 
     @Test
     fun `the old salt collapse is gone`() {
-        // Documents the specific arithmetic that was wrong, so the regression is recognisable.
+        // The salted arithmetic gives salts 8001 and 9001 one offset; clouds and precipitation must not share one.
         assertEquals((8001 * 131) % 1000, (9001 * 131) % 1000)
         assertNotEquals(
             CandidateThreshold.offsetFor(EffectId.CLOUDS),
@@ -234,7 +235,7 @@ class CandidateSystemTest {
         )
     }
 
-    // --- Invariant 9: small pools keep at least one element -----------------------------------------
+    // --- Small pools keep at least one element -----------------------------------------------------
 
     @Test
     fun `a visible category with non-zero density always shows at least one element`() {
@@ -345,4 +346,29 @@ class CandidateSystemTest {
             }
         }
     }
+
+    /** [name]'s declaration and body in `PaperRenderer.kt`, up to the next private function. */
+    private fun rendererFunction(name: String): String {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperRenderer.kt"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "$prefix$suffix")
+                if (f.isFile) {
+                    val text = f.readText()
+                    assertTrue("$name is gone from PaperRenderer.kt", text.contains("private fun $name("))
+                    return text.substringAfter("private fun $name(").substringBefore("\n    private fun ")
+                }
+            }
+            dir = dir.parentFile
+        }
+        error("source not found: $suffix")
+    }
+
+    /** [text]'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
 }

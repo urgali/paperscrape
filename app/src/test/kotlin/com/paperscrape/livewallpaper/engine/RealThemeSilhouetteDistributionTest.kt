@@ -5,23 +5,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The buildings and the vehicles each **shipped theme** actually shows, measured on its own seed.
+ * The buildings and the vehicles each **shipped theme** shows, measured on its own seed.
  *
- * ### Why this class exists next to [RealThemeDistributionTest]
+ * ### Why per theme, next to [RealThemeDistributionTest]
  *
- * It is the same argument, one release later and one population along. That class exists because
- * `PedestrianPopulationTest` swept hundreds of synthetic seeds, asserted on the aggregate, and
- * passed while `beach` shipped five girls and a boy -- and its answer was to assert **per theme
- * id, over exactly the seeds the shipped app uses**. v4.2 did that for the people and left the
- * buildings on the arithmetic it had just removed from the people. Measured the same way:
+ * The same argument as that class, for the buildings and the vehicles: a sweep over synthetic
+ * seeds asserted on the aggregate passes while one shipped theme clumps, so this asserts **per
+ * theme id, over exactly the seeds the shipped app uses**. What it keeps out:
  *
- *  - `autumn` drew **2** of the house catalogue's 10 silhouettes over its whole scrollable width,
- *    and `city` 2; the median theme drew 4 and no theme reached 7.
- *  - **4 of the 10 house silhouettes were drawn by no theme at any density** -- not clumping but
- *    unreachability, caused by `stableFraction`'s `Float` quantisation rather than by the seed
- *    (see [SilhouetteDeal] for the ulp arithmetic).
- *  - four themes drew only one of the skyline's two crowns.
- *  - four themes carried only **2** of the 4 vehicle types.
+ *  - a theme drawing two or three of the house catalogue's silhouettes over its whole width;
+ *  - a house silhouette drawn by no theme at any density -- unreachability rather than clumping,
+ *    which `stableFraction`'s `Float` quantisation causes when a choice is read off it (see
+ *    [SilhouetteDeal] for the ulp arithmetic);
+ *  - a theme showing only one of the skyline's two crowns;
+ *  - a theme carrying only some of the four vehicle types.
  *
  * ### The metric is the whole scrollable width
  *
@@ -31,15 +28,15 @@ import org.junit.Test
  *
  * ### What is asserted, and what deliberately is not
  *
- * Not "every theme shows the whole catalogue": a theme at 65% density keeps 5 house slots and 5
- * slots cannot carry 10 drawings. The bar is the **arithmetic maximum** -- as many distinct
+ * Not "every theme shows the whole catalogue": a theme that keeps five house slots cannot carry
+ * ten drawings. The bar is the **arithmetic maximum** -- as many distinct
  * silhouettes as the theme has slots, capped by the catalogue -- which is the strongest claim that
  * is true, and it is what makes the count a gate rather than a threshold somebody chose.
  *
  * And **not a change to how many**: [keptHouseCounts] pins each theme's surviving slot count as a
- * literal, because the maintainer's requirement was to change *which* silhouettes a theme shows
- * and not *how many* objects it stands on the street. A repair that widened a category's density
- * would satisfy every variety assertion below and still be the wrong change.
+ * literal, because the deal decides *which* silhouettes a theme shows and density alone decides
+ * *how many* (DESIGN_NOTES.md §12, decision 38). A change that widened a category's density would
+ * satisfy every variety assertion below and still be the wrong change.
  */
 class RealThemeSilhouetteDistributionTest {
 
@@ -72,12 +69,12 @@ class RealThemeSilhouetteDistributionTest {
     /**
      * How many house slots each theme keeps at its own default density.
      *
-     * Pinned as literals so a repair cannot buy variety by standing more houses on the street.
-     * `city` keeps 3 of 10 because it is the one theme that lowers the Houses density, to 0.3.
+     * Pinned as literals so variety cannot be bought by standing more houses on the street.
+     * `city` keeps 3 because it is the one theme that lowers the Houses density, to 0.3. The density
+     * threshold reads a real fraction (`DensityResolutionTest`): of autumn's houses the one on the
+     * step 0.65 cuts through falls above the cut, so autumn keeps 4; no theme stands a house the
+     * grid would not stand.
      */
-    // v5.8C: autumn 5 -> 4. The density threshold reads a real fraction since then (item 134,
-    // `DensityResolutionTest`), and of autumn's houses the one on the step 0.65 cuts through fell
-    // above the cut; no other theme's count moved, and no house appeared anywhere.
     private val keptHouseCounts = mapOf(
         "sunset" to 8, "autumn" to 4, "winter" to 7, "desert" to 7,
         "christmas" to 6, "new_year" to 5, "beach" to 9, "city" to 3,
@@ -112,12 +109,12 @@ class RealThemeSilhouetteDistributionTest {
     }
 
     /**
-     * The four drawings nobody had ever seen.
+     * Every house drawing is reachable.
      *
-     * Two storeys under a turret, two under a mansard, one under a mansard, and the small house's
-     * storey-plus-mansard shipped in the APK and were drawn by no theme at any density, because
-     * the roof choice and the storey count were read off the same sixteen-valued number. The union
-     * over the twelve shipped ids is the test that they are drawings and not dead assets.
+     * A roof choice and a storey count read off the same sixteen-valued number leave some
+     * silhouettes -- two storeys under a turret, two under a mansard, one under a mansard, the small
+     * house's storey-plus-mansard -- drawn by no theme at any density. The union over the twelve
+     * shipped ids is the test that every one is a drawing and not a dead asset.
      */
     @Test
     fun `every house silhouette in the catalogue is drawn by some shipped theme`() {
@@ -150,24 +147,17 @@ class RealThemeSilhouetteDistributionTest {
     /**
      * Both tower crowns on every theme's skyline, with no exception.
      *
-     * The deal gives the tower catalogue's slots a permutation of ranks, so with seven slots and
-     * two crowns every theme is *dealt* three of one and four of the other. What a theme then
-     * *shows* is what its density keeps, and the two are independent by design: the stability
-     * contract in [SilhouetteDeal] forbids counting what has already been drawn, because a deal
-     * that corrected itself would change a survivor's silhouette when a slider moved.
+     * The deal gives the tower slots a permutation of ranks, so every theme is *dealt* both crowns
+     * in near-equal shares. What a theme then *shows* is what its density keeps, and the two are
+     * independent by design: the stability contract in [SilhouetteDeal] forbids counting what has
+     * already been drawn, because a deal that corrected itself would change a survivor's
+     * silhouette when a slider moved.
      *
-     * **v5.6F to v5.7E: `christmas` showed one crown, and this test pinned it by name.** The
-     * school made the shop band three bands, so one more shop-band candidate stays a shop and one
-     * fewer is demoted to the skyline: the tower catalogue went from **8 slots to 7**, and every
-     * rank in it moved. Christmas was dealt `1 1 0 0 0 1 1` and its 65 % density dropped slots 2,
-     * 3 and 4 -- all three of its spires -- leaving four domes.
-     *
-     * **v5.7F repaired it in the theme's defaults, not in the deal** (item 139): Christmas's
-     * building density is 67 %, which keeps the spire at slot 4 and nothing else. Every repair of
-     * the deal itself re-dealt other themes' towers -- the cheapest, ranking over a phantom eighth
-     * slot, changed 27 crowns across nine themes -- so the deal is exactly what it was. The set is
-     * asserted empty rather than the check being deleted, so a later layout change that clumps a
-     * theme again fails here by name.
+     * **Christmas holds it through its defaults, not through the deal**: on its seed a 65 %
+     * building density drops exactly the tower slots dealt a spire, leaving domes only, so its
+     * density is 67 %, which keeps one spire more and nothing else. A change to the deal itself
+     * re-deals other themes' towers. The set is asserted empty, so a layout change that clumps a
+     * theme fails here by name.
      */
     @Test
     fun `every built-in theme shows both tower crowns`() {
@@ -187,19 +177,15 @@ class RealThemeSilhouetteDistributionTest {
     }
 
     /**
-     * The item-139 repair added one tower to Christmas and moved nothing else anywhere; v5.13B2 made two
-     * of every street's building candidates places among the houses, and the towers that stood on them
-     * went with them.
+     * Christmas's 67 % building density adds one tower to it and moves nothing else anywhere; the
+     * places among the houses stand no tower (DESIGN_NOTES.md §12, decision 60).
      *
-     * Pinned as counts because "the density keeps one more slot" is only a repair if it is
-     * exactly one, and exactly a tower: at 65 % Christmas stood 4 towers, at 67 % 5 (v5.7F; 3 since
-     * v5.13B2, below), and every other theme stood what it stood before. A later nudge past the next threshold
-     * (0.6719, a dome) would satisfy the crown test above and still be a different skyline. Until
-     * v5.13B2 the counts were 4, 6, 4, 7, 5, 6, 5, 7, 5, 5, 4, 4 (62): the two candidates that became
-     * places stood 17 of them (`TowerSkylineTest`).
+     * Pinned as counts because "the density keeps one more slot" holds only if it is exactly one,
+     * and exactly a tower. A nudge past the next threshold (0.6719, a dome) would satisfy the crown
+     * test above and still be a different skyline.
      */
     @Test
-    fun `christmas keeps the density of item 139 and every theme the towers it has`() {
+    fun `christmas keeps its towers at 67 percent and every theme the towers it has`() {
         val keptTowers = mapOf(
             "sunset" to 3, "autumn" to 5, "winter" to 3, "desert" to 5,
             "christmas" to 3, "new_year" to 4, "beach" to 4, "city" to 5,
@@ -249,8 +235,7 @@ class RealThemeSilhouetteDistributionTest {
     @Test
     fun `the declared vehicle weights are dealt exactly, not approximated`() {
         // 70/10/10/10 over ten slots is seven plain and one of each special. Asserted as a count
-        // rather than as a distribution, because an exact deal is the whole difference from the
-        // roll it replaced.
+        // rather than as a distribution, because the deal is exact, not a roll.
         for (theme in themes) {
             val counts = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).cars
                 .groupingBy { it.type }.eachCount()
@@ -263,9 +248,8 @@ class RealThemeSilhouetteDistributionTest {
 
     @Test
     fun `every built-in theme carries all three civilian bodies`() {
-        // The shell deal is a fixed table indexed by candidate slot and was never seeded, so this
-        // has always held. Asserted because the census that found the other three defects had to
-        // establish it, and a property nobody checks is a property that can be lost.
+        // The shell deal is a fixed table indexed by candidate slot, not seeded. Asserted because
+        // a property nobody checks is a property that can be lost.
         for (theme in themes) {
             val shells = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).cars
                 .filter { it.type == CarType.PLAIN }
@@ -279,19 +263,16 @@ class RealThemeSilhouetteDistributionTest {
     /**
      * The deal is recorded on the layout, which is what makes it a function of `(seed, slot)`.
      *
-     * This is the assertion that carries decision **D-4.2-A**, and it is stated structurally
-     * because that is the only way a JVM test can state it: `layoutFor` takes no customization, so
+     * This carries DESIGN_NOTES.md §12, decision 38 -- density decides how many, never which -- and
+     * states it structurally, the only way a JVM test can: `layoutFor` takes no customization, so
      * a silhouette recorded there **cannot** be a function of the density, of which slots
      * survived, or of anything else read later -- and [StaticSceneObject] is an immutable data
      * class, so nothing downstream can amend it. A deal computed anywhere further along would
      * leave these candidates at [StaticSceneObject.UNDEALT] and fail here.
      *
-     * **This assertion replaced a weaker one that no mutation could kill.** The first draft of
-     * this class also read the same layout at several densities and checked that the survivors
-     * kept their silhouettes -- which reads like the decision and is a tautology: `layoutFor`
-     * takes no customization, so a value recorded there cannot vary with density, and all seven
-     * mutations run against this class left that test green. It was removed rather than kept as
-     * a gate that cannot fail. What is left is the cause, which `M3` (deal nothing) does kill.
+     * Reading the same layout at several densities and checking the survivors kept their
+     * silhouettes would be a tautology for the same reason, a gate no mutation can fail; what is
+     * asserted is the cause, which a generator that deals nothing does fail.
      */
     @Test
     fun `every building candidate of a built-in theme carries a deal recorded at generation`() {
@@ -317,10 +298,10 @@ class RealThemeSilhouetteDistributionTest {
     }
 
     /**
-     * A layout nobody dealt keeps the pre-v5.5 drawing.
+     * A layout nobody dealt is drawn from its position.
      *
-     * The compatibility path is the whole reason a custom theme saved by an older build still loads
-     * as the street it was saved as, and it is the path the flat preview draws on. Asserted by
+     * This path is what lets a custom theme saved without a deal load as the street it was saved
+     * as, and it is the path the flat preview draws on. Asserted by
      * hashing the same candidate both ways: with no deal recorded the silhouette must be the one
      * `stableFraction` picks, and it must not silently become catalogue entry 0.
      */

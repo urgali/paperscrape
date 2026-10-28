@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v5.0 phase 3 -- the generator's mechanics (not artwork): cards, groups, SVG->PNG rendering with
+"""The neighbourhood generator's mechanics (not artwork): cards, groups, SVG->PNG rendering with
 the project's rasteriser, decomposition into fixed + summed weight masks (as in
 tools/generate_people_layers.py), cropping to the 3 px grid, containment check, SLOT-based Kotlin
 table (stacked pieces chosen per instance), accounting, host compositor.
@@ -39,29 +39,24 @@ M_PER_UNIT = 8.2 / 96.0        # common scale: the restaurant's (0.08542 m/u)
 
 FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL", "SHOP", "FIRE_STATION", "POLICE_STATION")
 #: The family reference height, in piece units, that `SceneVariant.spriteUnitsTall` is divided by.
-#: RESTAURANT and BAR carry the numbers v5.4 item 113 corrected them to (56 and 73, not 96 and
-#: 90.146): both had inherited the height of the two-storey facade the v5.0 redraw replaced, and
-#: this table was the one place the correction never reached -- so re-running the generator would
-#: have written the pre-v5.4 declaration back into `NeighbourhoodTable.kt`. Measured, not argued:
-#: the regeneration of the shipped five families reproduces all 72 PNGs byte for byte and
-#: differed from the shipped table in exactly these two numbers.
+#: RESTAURANT and BAR carry what the pavilion and the corner bar draw, 56 and 73 piece units
+#: (`BuildingHeightDeclarationTest`). This table is what the generator writes into `NeighbourhoodTable.kt`,
+#: so a number here that differs from the drawing goes back into the shipped table at the next run.
 UNITS_TALL = {"HOUSE_SMALL": 5.76 / M_PER_UNIT, "HOUSE_LARGE": 7.6 / M_PER_UNIT, "TOWER": 15.6 / M_PER_UNIT,
               "RESTAURANT": 56.0, "BAR": 73.0, "SCHOOL": 6.15 / M_PER_UNIT,
-              # v5.13: each new building's own height at the common metre, crown to foot (`civic.py`); the
-              # fire station's tower peaks at 86 and its lamp reaches 91 on the grid, the school's kind of
+              # The shop's and the two stations' own heights at the common metre, crown to foot (`civic.py`);
+              # the fire station's tower peaks at 86 and its lamp reaches 91 on the grid, the school's kind of
               # margin over a declaration (`BuildingHeightDeclarationTest`).
               "SHOP": 56.0, "FIRE_STATION": 88.0, "POLICE_STATION": 70.0}
-#: The school is its own `WindowBuildingKind` since v5.6F: it is commercial glass on the street,
-#: but a school shows children and a restaurant and a bar must go on showing adults.
-#: The two stations (v5.13) are their own kind too: street glass like the shops, adults only.
+#: The school is its own `WindowBuildingKind`: it is commercial glass on the street,
+#: but a school shows children and a restaurant and a bar show adults.
+#: The two stations are their own kind too: street glass like the shops, adults only.
 KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "RESTAURANT": "COMMERCIAL",
         "BAR": "COMMERCIAL", "SCHOOL": "SCHOOL", "SHOP": "COMMERCIAL", "FIRE_STATION": "STATION",
         "POLICE_STATION": "STATION"}
-#: There are no per-family drawing tables here, and there should not be. Four stood in this spot
-#: until v5.8 -- pixels per unit, paper-shadow offset, vertex wobble and chamfer, one row per
-#: family -- and nothing read any of them: each drawing module sets its own sizes. v5.6 did not add
-#: the school to them, which is the trap they set (they looked like the place a new family is
-#: registered). Removed as item 137; the neighbourhood regenerates byte for byte without them.
+#: There are no per-family drawing tables here (pixels per unit, paper-shadow offset, vertex wobble,
+#: chamfer), and there should not be: each drawing module sets its own sizes, and a table here would
+#: look like the place a new family is registered while nothing reads it.
 
 # fixed family palette (the one already in the scene) [M]
 CREAM, CREAM_U = "#F4E9D2", "#D8CDB8"
@@ -75,10 +70,9 @@ GLASS_DAY, GLASS_NIGHT = "#B9CBD9", "#FFE79A"
 TERRACOTTA = "#A9573F"       # the roof tile: the sail's red brought towards the wood
 SLATE = "#4B5566"            # the slate: the ink brought towards the daytime glass
 INK_ROOF = "#1A1410"
-#: SCHOOL and STATION repeat COMMERCIAL's two values rather than aliasing them: the school was drawn from
-#: the restaurant's and the bar's colours until v5.13 (the Shops category from v5.11, BUILDINGS before)
-#: and from the public buildings' since,
-#: and `decompose` subtracts these exact strings from the rendered art to get the fixed layer -- a
+#: SCHOOL and STATION repeat COMMERCIAL's two values rather than aliasing them: they are kinds of their
+#: own (the app tints them with the public buildings' colours, not the shops'), and `decompose`
+#: subtracts these exact strings from the rendered art to get the fixed layer -- a
 #: different base would requantise every pixel of it. These are the generator's base, not the
 #: colours the app draws: the masks are weights, and the wall colour is the user's at the blit.
 WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78", "SCHOOL": "#5C6A78",
@@ -86,15 +80,15 @@ WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78"
 WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842", "SCHOOL": "#303842",
               "STATION": "#303842"}
 #: The shipped perimeter this accounting covers: every PNG of the nine families and of the distant houses
-#: (v5.11, which share the houses' prefix; the shop and the two stations since v5.13). Duplicated in
+#: (which share the houses' prefix). Duplicated in
 #: `paperscrape_assets.report.BUDGET_PERIMETER_PREFIXES`, which cannot import this module;
 #: `tests/test_budget.py` asserts the two selections agree on the real tree.
 #:
-#: **`tower`, not `skyscraper`** (v5.8B). The towers' PNGs are named `tower_*`, and the list said
-#: `skyscraper`, which matches no file: the "shipped perimeter" was five families and 50 PNGs, the
-#: 26 tower layers left out, while the concept it was compared with drew all six and 76.
+#: **`tower`, not `skyscraper`**: the towers' PNGs are named `tower_*`, and `skyscraper` matches no
+#: file, so a list holding it in place of `tower` would leave every tower layer out of the perimeter
+#: while the concept it is compared with draws them.
 #:
-#: **A prefix is the start of a name up to an underscore** (v5.13): `fire_station` and `police_station`,
+#: **A prefix is the start of a name up to an underscore**: `fire_station` and `police_station`,
 #: not `fire` and `police`, whose first word also names the police car's stripe and light bar.
 PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school", "shop", "fire_station", "police_station")
 
@@ -103,14 +97,9 @@ def in_perimeter(name: str) -> bool:
     """Whether the sprite `name` (with or without `.png`) is one of the perimeter's: its name starts with a
     prefix and an underscore."""
     return any(name.startswith(prefix + "_") for prefix in PERIMETER_PREFIXES)
-#: **There is no `BUDGET` here any more** (v5.8B, item 138). It was 4 263 156 B, set at v4.32 when
-#: the neighbourhood was being redrawn: the old neighbourhood's 3 400 236 B plus the 862 920 B then
-#: free under the whole sprite set's decoded-bytes gate (36 MiB at the time) -- the most the new one
-#: could weigh without breaking it. That gate (`SpriteGeometryTest.decodedByteBudget`, the whole
-#: set) has since been raised on the maintainer's word, to 43 MiB, then 45 and, in v5.13, 47, and this copy of its old margin
-#: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "over
-#: budget" for eight releases while nothing read it. The one ceiling is the gate; this report
-#: measures, and `SpriteGeometryTest` prints the neighbourhood's share of the gate on every build.
+#: **There is no `BUDGET` here.** The one ceiling is the gate on the whole sprite set's decoded bytes
+#: (`SpriteGeometryTest.decodedByteBudget`); this report measures, and `SpriteGeometryTest` prints the
+#: neighbourhood's share of the gate on every build.
 
 
 def _rgb(h):
@@ -239,10 +228,10 @@ class Group:
     parts: list = field(default_factory=list)
     faces: dict = field(default_factory=dict)
     checks: list = field(default_factory=list)   # (kind, child_bbox, host, margin, label)
-    #: The window panes drawn into this group (v5.12), (x, y, w, h) in its own frame: every pane of
+    #: The window panes drawn into this group, (x, y, w, h) in its own frame: every pane of
     #: glass a house's night can light or leave dark -- see `vocab.bay_window` and the table's `panes`.
     panes: list = field(default_factory=list)
-    #: The front doors drawn into this group (v5.14), each a dict of its `box` (x, y, w, h), its `outline` -- the
+    #: The front doors drawn into this group, each a dict of its `box` (x, y, w, h), its `outline` -- the
     #: card's points as cut, in this group's frame -- and the `relief` its shadow paper is offset by: see
     #: `vocab.door` and the table's `BuildingDoor`.
     doors: list = field(default_factory=list)
@@ -303,7 +292,7 @@ class Group:
     def svg(self, bases, region=None):
         ox, oy, w, h = self.canvas()
         out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w * UNIT}" height="{h * UNIT}" viewBox="0 0 {w} {h}">',
-               f"<!-- v5.0 phase 3, {self.name}: cards with the wobble written into the coordinates; under each card its "
+               f"<!-- {self.name}: cards with the wobble written into the coordinates; under each card its "
                f"shadow paper, offset and mixed {int(RELIEF_T * 100)} % towards {DARK}. Generated by build_neighbourhood.py. -->"]
 
         def poly(pts, fill, extra=""):
@@ -417,10 +406,11 @@ class Piece:
     stamps: list = field(default_factory=list)     # (Group, x, y) stamps (glass) drawn AFTER the bodies
     smoke: tuple = (0.0, 0.0)
     beacon: tuple = (0.0, 0.0)
-    #: How many of the building's people this piece brings, as a count of windows (v5.12): None for
-    #: one per window. A piece that gained windows in v5.12 says how many it had before, because the
-    #: number of people at a building's windows is the maintainer's and did not move with them
-    #: (`WindowOccupants.occupantCount`); the new windows are more places to stand, not more people.
+    #: How many of the building's people this piece brings, as a count of windows: None for one per
+    #: window. A piece with more windows than people says how many people it brings, because the number
+    #: of people at a building's windows does not change with its windows
+    #: (`DESIGN_NOTES.md` §12, decision 54; `WindowOccupants.occupantCount`): the extra windows are more places
+    #: to stand, not more people.
     people: int | None = None
 
     def place(self, group, x=0.0, y=0.0):
@@ -442,7 +432,7 @@ class Piece:
 class Slot:
     """The alternatives one slot of a family may be dealt, and how many times the piece repeats.
 
-    `heights` (v5.11) are alternatives the deal does **not** choose between: the engine gives each
+    `heights` are alternatives the deal does **not** choose between: the engine gives each
     instance one of them by a coin of its own (`NeighbourhoodComposer`), so they vary a building's
     height without growing the silhouette catalogue `SilhouetteDeal` deals from -- which would
     re-deal the crowns of every theme. `options` then holds the one piece the deal sees.
@@ -470,7 +460,7 @@ class Building:
         return UNITS_TALL[self.family]
 
 
-# ------------------------------------------------------------------ the Christmas decorations' places (v5.14)
+# ------------------------------------------------------------------ the Christmas decorations' places
 #: Units between two bulbs of a roof string.
 ROOF_BULB_SPACING = 6.0
 #: Anything narrower than this, in units, is taken off the roofline first: a chimney, a flag pole, a spire's needle --
@@ -562,8 +552,8 @@ def roofline_and_top(placed_layers) -> tuple[list, tuple]:
 def build_concept(concept: str, buildings: dict, out: Path, extras=()):
     """Renders each group once, writes SVG/PNG; returns (table, pieces, files).
 
-    `extras` are pieces that belong to no family -- `(piece, kind)` pairs, the distant houses since
-    v5.11 -- rendered and declared like any other, and listed in `pieces` but in no table row."""
+    `extras` are pieces that belong to no family -- `(piece, kind)` pairs, the distant houses --
+    rendered and declared like any other, and listed in `pieces` but in no table row."""
     svg_dir, png_dir = out / concept / "svg", out / concept / "png"
     for d in (svg_dir, png_dir):
         d.mkdir(parents=True, exist_ok=True)
@@ -599,7 +589,7 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
                 rendered[g.name] = decompose(g, bases, svg_dir)
                 for layer in rendered[g.name]:
                     pname = f"{g.name}_{layer.suffix}"
-                    Image.fromarray(layer.pixels, "RGBA").save(png_dir / f"{pname}.png", optimize=True)
+                    (png_dir / f"{pname}.png").write_bytes(raster.encode_png(Image.fromarray(layer.pixels, "RGBA")))
                     files[pname] = (layer.pixels.shape[1], layer.pixels.shape[0])
             ox, oy, _, _ = g.canvas()
             for layer in rendered[g.name]:
@@ -608,7 +598,7 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
             parts.append(("OCCUPANTS", 0, 0.0, 0.0))
         for x, y in piece.lamps:
             parts.append(("LAMP", 0, x, y))
-        # v5.14: where the Christmas decorations hang -- the roofline and the top, off what the piece draws (its
+        # Where the Christmas decorations hang -- the roofline and the top, off what the piece draws (its
         # fixed layer and masks, not its snow), and its front door, off the cards that drew it.
         layers = [(layer.pixels, px + g.canvas()[0] + layer.dx, py + g.canvas()[1] + layer.dy)
                   for g, px, py in piece.ordered() if not g.snow for layer in rendered[g.name]]
@@ -625,7 +615,7 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
                               "roof": roof, "top": top, "door": doors[0] if doors else None}
 
     def panes_of(piece: Piece):
-        """Every pane of glass of the piece, in piece space (v5.12): first the windows a bust may
+        """Every pane of glass of the piece, in piece space: first the windows a bust may
         stand in, in their own order -- so pane k is window k for every k below `len(windows)` --
         then the rest (the dormers, the turret's small windows) in the order they were drawn."""
         rest = [(px + x, py + y, w, h) for g, px, py in piece.ordered() for (x, y, w, h) in g.panes]
@@ -649,8 +639,8 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
 
 # ------------------------------------------------------------------ accounting
 def uploaded_bytes(path):
-    # `with`, because `budget` calls this once per shipped PNG and the suite that arrived with
-    # v5.5C runs it: 46 unclosed readers per call is 46 ResourceWarnings in the test output.
+    # `with`, because `budget` calls this once per shipped PNG and the test suite runs it: a reader
+    # left unclosed per PNG is a ResourceWarning per PNG in the test output.
     with Image.open(path) as im:
         a = np.array(im.convert("RGBA"))[:, :, 3]
         ys, xs = np.where(a > 0)
@@ -708,7 +698,7 @@ def shifted_colour(hexc, hue_deg, sat_lift):
 
 def stack_instance(table_entry, pieces, tile_x, depth):
     """The Kotlin composer's hash path for an undealt slot: (piece, baseY, first window index). It
-    reads neither a dealt silhouette (SilhouetteDeal, v5.5) nor a slot's heights (v5.11), so a tower
+    reads neither a dealt silhouette (SilhouetteDeal) nor a slot's heights, so a tower
     comes out as its mid body; nothing in tools/ calls it, or [composite_instance], today."""
     placed, base_y, wcount = [], 0.0, 0
     for si, s in enumerate(table_entry["slots"]):

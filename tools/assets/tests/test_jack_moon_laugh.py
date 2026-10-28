@@ -1,13 +1,13 @@
-"""The Halloween moon laughing (v5.16): `moon/build_jack_moon_laugh.py` draws its face on the moon's own geometry.
+"""The Halloween moon laughing: `moon/build_jack_moon_laugh.py` draws its face on the moon's own geometry.
 
-The maintainer chose the moon laughing «2», its eyes squeezed into arches and its grin thrown open (2026-10-21). These
+The moon laughing, its eyes squeezed into arches and its grin thrown open (`DESIGN_NOTES.md` §12, decision 81). These
 hold, as `test_jack_moon.py` holds the moon's own face, that the two SVG sources and the two PNGs the pipeline renders of
 them are the generator's output today; that the moon's edge is the full moon's and its nose the moon's own; that every
 piece of each tone and every cut holds a square of 11 px of the 240 (2 px on the gallery card) somewhere, and that the
 paper between two cuts is 11 px across or more, on a rendering without antialiasing; **that no cut leaves a piece of its
-own** -- the face is the two arches, the nose and the grin and nothing else, in the moon and in its light (inventory I-1022:
-the drawing first shown ended an arch in a point that left a cut of 1 px apart, which the rule above, blind to pieces under
-12 px, passed); that the light lies inside the cuts and its orange rim is 2 px wide on the BV6600's wallpaper all along every
+own** -- the face is the two arches, the nose and the grin and nothing else, in the moon and in its light (an arch ended
+in a point can leave a cut of 1 px apart, which the rule above, blind to pieces under 12 px, would pass); that the light
+lies inside the cuts and its orange rim is 2 px wide on the BV6600's wallpaper all along every
 cut; and that the renderer blits the light where the generator trimmed it to (`PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X`
 and `_Y`).
 
@@ -32,7 +32,7 @@ sys.path.insert(0, str(TOOL_ROOT / "moon"))
 
 import build_jack_moon  # noqa: E402
 import build_jack_moon_laugh as laugh  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 RENDERER = TOOL_ROOT.parent.parent / "app" / "src" / "main" / "kotlin" / "com" / "paperscrape" / "livewallpaper" / "engine" / "PaperRenderer.kt"
 
@@ -93,7 +93,7 @@ class LaughingMoonTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what moon/build_jack_moon_laugh.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what moon/build_jack_moon_laugh.py writes: run it with --res")
 
     def test_the_edge_is_the_full_moons_and_the_nose_the_moons_own(self):
         jack = self.out[laugh.SVG_DIR / "moon_jack_o_lantern_laugh.svg"].decode()
@@ -122,7 +122,7 @@ class LaughingMoonTest(unittest.TestCase):
 
     def test_no_cut_leaves_a_piece_of_its_own(self):
         """The face is four cuts -- two arches, the nose, the grin -- and nothing else, whatever its size: in the moon, and
-        in its light where the renderer blits it (I-1022: a cut of 1 px at the end of an arch)."""
+        in its light where the renderer blits it (a cut of 1 px at the end of an arch is a fifth piece)."""
         sizes = sorted(len(p) for p in pieces(self.cuts))
         self.assertEqual(4, len(sizes), f"the face's cuts are pieces of {sizes} px")
         self.assertGreater(sizes[0], 100, "a cut too small to be an eye, the nose or the grin")

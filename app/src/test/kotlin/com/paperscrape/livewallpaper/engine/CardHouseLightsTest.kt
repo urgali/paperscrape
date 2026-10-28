@@ -5,11 +5,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **A night card lights the houses' windows as the wallpaper does** (v5.12, inventory I-520 and I-511,
- * the maintainer's *«il resto si a tutto»* of 2026-10-09 to the row that said so): half of each house's
- * windows, the ones its roster lights at its first moment, from the same seeds -- the theme's and the
- * house's -- the others dark glass. A day card is the day's glass, as before. The smoke stays off the
- * card (`DESIGN_NOTES.md` §9, "What the card leaves out").
+ * **A night card lights the houses' windows as the wallpaper does** (`DESIGN_NOTES.md` §12, decision 55):
+ * half of each house's windows, the ones its roster lights at its first moment, from the same seeds -- the
+ * theme's and the house's -- the others dark glass. A day card is the day's glass. The smoke stays off the
+ * card (`DESIGN_NOTES.md` §12, decision 56).
  */
 class CardHouseLightsTest {
 
@@ -101,7 +100,7 @@ class CardHouseLightsTest {
     fun `a day card lights nothing, as before`() {
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
-            // Halloween's "day" is night while its night sky by day is in force (v5.16, decision 82): its card too.
+            // Halloween's "day" is night while its night sky by day is in force (decision 82): its card too.
             if (c.nightOverDayActive()) continue
             val scene = ThemePreviewScenes.forTheme(theme, c, forceNight = false)
             if (ThemePreviewScenes.cardPhase(theme, false).dayBlend < 1f) continue

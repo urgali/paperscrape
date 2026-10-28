@@ -15,10 +15,10 @@ import org.junit.Test
  *
  * `SpriteBlitter.SPRITE_PIXELS_PER_UNIT` is an oversample: artwork is authored at 3 px per local
  * unit and divided back down at the blit, so the downscale gives clean antialiased edges. Lowering
- * it to 2 would take the whole decoded set to four ninths of its size -- larger than every saving
- * `SpriteGeometryTest`'s ceiling has ever been argued over -- and it costs nothing visible *as long
- * as every sprite still arrives on screen smaller than its own file*. That is a measurement, not a
- * judgement, and until v4.29 nobody had taken it.
+ * it to 2 would take the whole decoded set to four ninths of its size -- more than any margin
+ * `SpriteGeometryTest`'s ceiling is argued over -- and it costs nothing visible *as long as every
+ * sprite still arrives on screen smaller than its own file*. That is a measurement, not a
+ * judgement, and this test takes it.
  *
  * **Headroom** here is the file's pixels over the screen's: `authored px / drawn px` at the largest
  * size the sprite is ever drawn. Headroom 3 means the file has three pixels for every pixel the
@@ -144,7 +144,7 @@ class SpriteDrawScaleTest {
 
         // -- static scene objects, all through SceneObjectRenderer.effectiveScaleFor ------------
 
-        // -- the neighbourhood (v5.0) -------------------------------------------------------
+        // -- the neighbourhood --------------------------------------------------------------
         //
         // A building's pieces are blitted inside the composer's own `canvas.scale(k, k)`, with
         // `k = variant.spriteUnitsTall / family.unitsTall` -- the factor that draws a piece
@@ -186,12 +186,12 @@ class SpriteDrawScaleTest {
             "tree_trunk", "tree_canopy", "tree_canopy_snowcap", "tree_dead_branches",
             "tree_fir", "tree_fir_snow", "tree_fir_star",
         )
-        // v5.14: the white disc of `SpriteBlitter.drawDisc`, drawn wherever a dot is -- the fir's ten lights and every
+        // The white disc of `SpriteBlitter.drawDisc`, drawn wherever a dot is -- the fir's ten lights and every
         // tree's and palm's at the tree lights' radius (inside the TREE's or the PALM_TREE's scale), the roof strings at a
         // building's piece metre (half as large again on a tower), the sill strings at it, every falling snowflake at
         // `SNOW_DIAMETER_MAX_METRES` of the viewport's metre, and every point star at most `STAR_POINT_RADIUS_SCALE` of
-        // the largest star -- so its largest draw is the largest of those diameters. The distant houses' are 2.2 px,
-        // smaller than any. A disc is drawn by its diameter, not by a canvas scale: the "scale" here is the diameter over
+        // the largest star -- so its largest draw is the largest of those diameters. The distant houses' are
+        // `PaperRenderer.DISTANT_BULB_PX`, smaller than any. A disc is drawn by its diameter, not by a canvas scale: the "scale" here is the diameter over
         // the disc's own units, which makes the headroom the disc's texels over the diameter's pixels.
         put(
             DrawPath("disc: bulbs, snow, stars", SpriteScale.SCENE_UNITS) { v ->
@@ -203,12 +203,12 @@ class SpriteDrawScaleTest {
                         staticPath("", variant, inner = variant.spriteUnitsTall / family.unitsTall).maxCanvasScale(v)
                 }
                 val snow = PaperRenderer.SNOW_DIAMETER_MAX_METRES * SceneSpace.pixelsPerMetre(v.heightPx)
-                val star = 2f * MAX_STAR_RADIUS_PX * PaperRenderer.STAR_POINT_RADIUS_SCALE
+                val star = 2f * PaperRenderer.MAX_STAR_RADIUS_PX * PaperRenderer.STAR_POINT_RADIUS_SCALE
                 maxOf(trees.max(), roofs.max(), snow, star) / discUnits
             },
             "deco_bulb",
         )
-        // v5.14: the wreath, on a front door at a building's piece metre, half as large again on a tower.
+        // The wreath, on a front door at a building's piece metre, half as large again on a tower.
         put(
             DrawPath("Christmas wreath", SpriteScale.SCENE_UNITS) { v ->
                 NeighbourhoodTable.FAMILIES.maxOf { (variant, family) ->
@@ -218,14 +218,14 @@ class SpriteDrawScaleTest {
             },
             "deco_wreath",
         )
-        // v5.16: the Halloween decorations, on a house's or a shop's piece units as the wreath, never on a tower.
+        // The Halloween decorations, on a house's or a shop's piece units as the wreath, never on a tower.
         put(
             DrawPath("Halloween decorations", SpriteScale.SCENE_UNITS) { v ->
                 NeighbourhoodTable.FAMILIES.filter { (variant, _) -> variant != SceneSpace.SceneVariant.TOWER }.maxOf { (variant, family) ->
                     staticPath("", variant, inner = variant.spriteUnitsTall / family.unitsTall).maxCanvasScale(v)
                 }
             },
-            "deco_cobweb", "deco_bat", "deco_jack_o_lantern", "deco_jack_o_lantern_light",
+            "deco_cobweb", "deco_jack_o_lantern", "deco_jack_o_lantern_light",
         )
         put(
             staticPath("palm", SceneSpace.SceneVariant.PALM_TREE),
@@ -241,14 +241,14 @@ class SpriteDrawScaleTest {
             "tower_snow_right1_fx", "tower_snow_right2_fx", "tower_snow_top_fx",
             "tower_tier1_fx", "tower_tier1_mg", "tower_tier1_mw", "tower_tier2_fx",
             "tower_tier2_mw", "tower_tier3_fx", "tower_tier3_mw",
-            // v5.11: the short and the tall bodies, the hall's two windows by the door, and the
-            // short body's wide snow cap.
+            // The short and the tall bodies, the hall's two windows by the door, and the short
+            // body's wide snow cap.
             "tower_bay_door_fx", "tower_bay_door_mg", "tower_snow_top_wide_fx",
             "tower_tier1_short_fx", "tower_tier1_short_mg", "tower_tier1_short_mw",
             "tower_tier1_tall_fx", "tower_tier1_tall_mg", "tower_tier1_tall_mw",
             "tower_tier2_tall_fx", "tower_tier2_tall_mw",
         )
-        // -- the distant houses on the mountains (v5.11) ---------------------------------------
+        // -- the distant houses on the mountains ----------------------------------------------
         //
         // Each drawing is scaled to `SceneSpace.distantHousePixelsTall` over its own height, and on
         // a mountain that is the floor's size: the mountains stand above
@@ -268,10 +268,10 @@ class SpriteDrawScaleTest {
             "restaurant_pavilion_fx", "restaurant_pavilion_mg", "restaurant_pavilion_mw",
             "restaurant_pavilion_snow_fx",
         )
-        // v5.6F. `tower_row_tier3_*` is drawn by the school too and is declared once, under the
-        // tower: the two families are within 0.02 % of the same px-per-unit, because both are the
-        // common metre times 45 (the tower 3.8437, the school 3.8438), so which of the two owns
-        // the declaration cannot change the level it resolves to.
+        // `tower_row_tier3_*` is drawn by the school too and is declared once, under the tower:
+        // the two families are drawn at the same metres per unit, `metresTall / unitsTall`, to
+        // within 0.02 %, so which of the two owns the declaration cannot change the level it
+        // resolves to.
         neighbourhood(
             "school", SceneSpace.SceneVariant.SCHOOL,
             "school_fx", "school_mg", "school_mw", "school_snow_fx",
@@ -282,12 +282,12 @@ class SpriteDrawScaleTest {
             "bar_signboard_fx", "bar_signboard_mg", "bar_signboard_mw",
             "bar_signboard_snow_fx",
         )
-        // v5.13: the shop and the two stations. Each of the six buildings among the houses can stand in
+        // The shop and the two stations. Each of the six buildings among the houses can stand in
         // each of the places, drawn at that place's metre ([SceneObjectRenderer]'s
         // `variant.spriteUnitsTall / placeFamily.unitsTall`) -- one metre a unit for every piece, so the
         // same px per unit in all three rows of the size table -- and [staticPath] takes the nearest depth
-        // any object stands at: the place a path is declared under cannot change the level it resolves to.
-        // Under the bar's, the nearest row (0.800 deep, the nearest place of the five since v5.13B2 too).
+        // any object stands at: the place a path is declared under, here the bar's, cannot change the
+        // level it resolves to.
         neighbourhood(
             "shop, fire station, police station", SceneSpace.SceneVariant.BAR,
             "shop_fx", "shop_mg", "shop_mw", "shop_snow_fx",
@@ -299,7 +299,7 @@ class SpriteDrawScaleTest {
             staticPath("snowman", SceneSpace.SceneVariant.SNOWMAN),
             "snowman_body", "snowman_nose", "snowman_scarf",
         )
-        // v5.16: the scarecrow, in a snowman's place at its own row of the size table.
+        // The scarecrow, in a snowman's place at its own row of the size table.
         put(
             staticPath("scarecrow", SceneSpace.SceneVariant.SCARECROW),
             "scarecrow", "scarecrow_light",
@@ -321,9 +321,16 @@ class SpriteDrawScaleTest {
             "pumpkin_body", "pumpkin_face", "pumpkin_stem",
         )
         // A gift is drawn twice: as its own ground object at the GIFT variant's scale, and at the
-        // foot of a Christmas fir at 0.36 of the TREE's. The standalone one is the larger.
+        // foot of a Christmas fir inside the TREE's, at the largest of SceneObjectRenderer.FIR_GIFT_SCALES.
+        // The larger of the two is the one measured.
         put(
-            staticPath("gift", SceneSpace.SceneVariant.GIFT),
+            DrawPath("gift", SpriteScale.SCENE_UNITS) { v ->
+                maxOf(
+                    staticPath("", SceneSpace.SceneVariant.GIFT).maxCanvasScale(v),
+                    staticPath("", SceneSpace.SceneVariant.TREE, inner = SceneObjectRenderer.FIR_GIFT_SCALES.max())
+                        .maxCanvasScale(v),
+                )
+            },
             "gift_box", "gift_ribbon",
         )
 
@@ -401,14 +408,14 @@ class SpriteDrawScaleTest {
             DrawPath("sun and moon discs", SpriteScale.CANVAS_PIXELS, ::celestialScale),
             "sun_body", "sun_glow", "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
             "moon_jack_o_lantern", "moon_jack_o_lantern_light",
-            // v5.16: the laughing face and its light, in the carved face's place, at its scale.
+            // The laughing face and its light, in the carved face's place, at its scale.
             "moon_jack_o_lantern_laugh", "moon_jack_o_lantern_laugh_light",
         )
         // One bird is blitted at `scale(1, +-1)` inside a bare translate: its own pixels, 1:1.
         put(DrawPath("bird", SpriteScale.CANVAS_PIXELS) { 1f }, "bird_body")
         put(
             DrawPath("star sparkle", SpriteScale.SCENE_UNITS) { _ ->
-                MAX_STAR_RADIUS_PX / PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR
+                PaperRenderer.MAX_STAR_RADIUS_PX / PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR
             },
             "star_sparkle",
         )
@@ -440,33 +447,28 @@ class SpriteDrawScaleTest {
             },
             "firework",
         )
-        // v5.15: the group in proportion to the people (`SantaSleighScale`), never past its sprites' 3 px a unit.
+        // The group in proportion to the people (`SantaSleighScale`), never past its sprites' 3 px a unit.
         put(
             DrawPath("Santa's sleigh", SpriteScale.SCENE_UNITS) { v -> SantaSleighScale.pxPerUnit(v.heightPx) },
             "santa_sleigh", "santa_reindeer_0", "santa_reindeer_1", "santa_reindeer_2", "santa_reindeer_3",
         )
-        // v5.16: the Headless Horseman, his rider as tall as Santa (`HeadlessHorsemanScale`).
+        // The Headless Horseman, his rider as tall as Santa (`HeadlessHorsemanScale`).
         put(
             DrawPath("Headless Horseman", SpriteScale.SCENE_UNITS) { v -> HeadlessHorsemanScale.pxPerUnit(v.heightPx) },
             "horseman_horse_0", "horseman_horse_1", "horseman_horse_2", "horseman_horse_3",
-            "horseman_legs_0", "horseman_legs_1", "horseman_legs_2", "horseman_legs_3", "horseman_rider", "horseman_cape",
+            "horseman_legs_0", "horseman_legs_1", "horseman_legs_2", "horseman_legs_3",
+            "horseman_rider_body", "horseman_rider_arm", "horseman_rider_pumpkin", "horseman_cape",
         )
     }
 
-    /**
-     * Star radii are rolled in `regenerateStars` as `2.4 + rnd * 3.2`; the largest is 5.6.
-     * Stated here because the roll is inside a private function with no constant to read.
-     */
     private companion object {
-        const val MAX_STAR_RADIUS_PX = 5.6f
-
         /** `range(0.85, 1.25)` times the largest tier multiplier, `CLOUD_TIER_SIZE_MULTIPLIER[3]`. */
         const val MAX_CLOUD_SCALE = 1.25f * 1.15f
 
         /**
          * `drawRainbow`'s own `maxRadius = screenWidth * 0.62f`, which is a literal at the call
-         * site and has no constant to read. Copied rather than derived, and it is the one number
-         * in this file that is: if the arc is ever resized, this is where the measurement rots.
+         * site and has no constant to read. Copied rather than derived: if the arc is resized,
+         * this is where the measurement rots.
          */
         const val RAINBOW_MAX_RADIUS_FRACTION = 0.62f
 
@@ -533,8 +535,8 @@ class SpriteDrawScaleTest {
             for (customization in customizations) {
                 for (night in listOf(null, false, true)) {
                     val scene = ThemePreviewScenes.forTheme(theme, customization, night)
-                    // `water` too: v5.7 moved the boats and the dolphins into their own pass, and
-                    // a list that stopped at `ground` would report no preview path for them at all.
+                    // `water` too: the boats and the dolphins have their own pass, and a list that
+                    // stopped at `ground` would report no preview path for them at all.
                     val items = scene.backdrop + scene.water + scene.items + scene.cars + scene.ground
                     for (item in items) {
                         for (part in item.parts) {
@@ -627,110 +629,22 @@ class SpriteDrawScaleTest {
         }
     }
 
-    /**
-     * What the grid would buy in **GPU texture memory**, which is not what it buys on the ceiling.
-     *
-     * `GlTextureCache` does not upload the authored bitmap: it uploads `reduce(bitmap, level)`
-     * with `level = SpriteDetailLevel.levelFor(drawn px per authored px)`, chosen so the copy on
-     * the GPU is between 1.4x and 2.8x the size the sprite is actually drawn at. The stored size is
-     * therefore a function of the **drawn** size, and authoring smaller mostly just lowers the
-     * level by one -- so the atlas holds very nearly the same texels either way.
-     *
-     * This prints both totals from the same basis (every sprite at the largest scale it reaches,
-     * which is not a real scene but is the same unreal scene on both sides), so the difference
-     * between "what the ceiling counts" and "what the GPU holds" is a number rather than an
-     * argument.
-     */
-    @Test
-    fun `the grid moves the decoded ceiling, and barely moves the texture memory`() {
-        val sprites = spriteNames()
-        val previewScales = previewMaxItemScale()
-        for (viewport in listOf(bench, reference, tall)) {
-            var authoredNow = 0L
-            var authoredTwo = 0L
-            var uploadedNow = 0L
-            var uploadedTwo = 0L
-            for (name in sprites) {
-                val (w, h) = pngSize(name)
-                val scene = pathFor(name).headroom(viewport)
-                val preview = previewScales[name]?.let { previewPath(it).headroom(viewport) }
-                    ?: Float.MAX_VALUE
-                val headroom = minOf(scene, preview)
-                val factor = 1f / headroom
-
-                authoredNow += w.toLong() * h * 4L
-                uploadedNow += uploaded(w, h, SpriteDetailLevel.levelFor(factor))
-
-                // At a grid of 2 the same drawing occupies two thirds of the pixels on each axis
-                // and is drawn at exactly the same size, so its factor rises by 3/2.
-                val w2 = w * 2 / 3
-                val h2 = h * 2 / 3
-                authoredTwo += w2.toLong() * h2 * 4L
-                uploadedTwo += uploaded(w2, h2, SpriteDetailLevel.levelFor(factor * 1.5f))
-            }
-            // And the same pair for the only reduction the headroom actually permits: leave every
-            // tight sprite at the grid it has, redraw only the families that still hold `keep`
-            // after the change.
-            val selective = StringBuilder()
-            for (keep in listOf(2f, 3f)) {
-                var decoded = 0L
-                var gpu = 0L
-                var moved = 0
-                for (name in sprites) {
-                    val (w, h) = pngSize(name)
-                    val scene = pathFor(name).headroom(viewport)
-                    val preview = previewScales[name]?.let { previewPath(it).headroom(viewport) }
-                        ?: Float.MAX_VALUE
-                    val headroom = minOf(scene, preview)
-                    val factor = 1f / headroom
-                    if (headroom >= keep) {
-                        moved++
-                        val w2 = w * 2 / 3
-                        val h2 = h * 2 / 3
-                        decoded += w2.toLong() * h2 * 4L
-                        gpu += uploaded(w2, h2, SpriteDetailLevel.levelFor(factor * 1.5f))
-                    } else {
-                        decoded += w.toLong() * h * 4L
-                        gpu += uploaded(w, h, SpriteDetailLevel.levelFor(factor))
-                    }
-                }
-                selective.append(
-                    "   selective (headroom >= %.0f, %d sprites): decoded %.2f MiB, uploaded %.2f MiB\n"
-                        .format(keep, moved, decoded / 1048576.0, gpu / 1048576.0),
-                )
-            }
-            println("== %s ==".format(viewport.label))
-            println(
-                "   decoded set (what decodedByteBudget counts): %d B -> %d B  (%.2f MiB -> %.2f MiB)"
-                    .format(authoredNow, authoredTwo, authoredNow / 1048576.0, authoredTwo / 1048576.0),
-            )
-            println(
-                "   uploaded texels (what the GPU actually holds): %d B -> %d B  (%.2f MiB -> %.2f MiB, %+.1f%%)"
-                    .format(
-                        uploadedNow, uploadedTwo, uploadedNow / 1048576.0, uploadedTwo / 1048576.0,
-                        100.0 * (uploadedTwo - uploadedNow) / uploadedNow,
-                    ),
-            )
-            print(selective)
-        }
-    }
-
     private fun uploaded(w: Int, h: Int, level: Int): Long =
         SpriteDetailLevel.reduced(w, level).toLong() * SpriteDetailLevel.reduced(h, level) * 4L
 
     /**
      * What [name] costs on the GPU at [level], **after the crop `GlTextureCache` takes**.
      *
-     * v4.30 uploads only the texels that carry ink -- the transparent border round a sprite is cut
+     * Only the texels that carry ink are uploaded -- the transparent border round a sprite is cut
      * off after the reduction and before the atlas sees it. Modelling that is not optional here:
      * the region masks a person is drawn from cover a few tenths of their canvas each, and a model
      * that charged them for the whole of it would be counting texels the device never allocates.
      *
      * The model is the **authored** alpha box divided down to the level, with one texel of slack on
-     * every side for the spread of the filter. It is deliberately an over-estimate and never an
-     * under-estimate: simulated against a real chain of halvings over the whole shipped set it is
-     * 84 608 B high on 12.3 MiB, which is 0.7 %. A budget that erred the other way would be a
-     * budget that let a set through and then blew on the device.
+     * every side for the spread of the filter, so a sprite is charged its ink plus two texels in each
+     * axis -- a pad that grows with the perimeter, which an estimate from a content box alone
+     * misses. It is deliberately an over-estimate and never an under-estimate: a budget that erred
+     * the other way would let a set through and then blow on the device.
      */
     private fun uploadedCropped(name: String, level: Int): Long {
         val (w, h) = pngSize(name)
@@ -782,12 +696,11 @@ class SpriteDrawScaleTest {
     }
 
     /**
-     * The gate v4.29 was asked to pass before touching the grid, recorded as an assertion so the
-     * answer cannot be mislaid.
+     * The gate a grid of 2 has to pass, recorded as an assertion so the answer cannot be mislaid.
      *
      * A grid of 2 needs every sprite to hold headroom of at least [GRID_TWO_BREAK_EVEN], and to
      * hold it *with margin* before the change could be called invisible. The set does not: the
-     * measurement below is the reason `SPRITE_PIXELS_PER_UNIT` is still 3.
+     * measurement below is the reason `SPRITE_PIXELS_PER_UNIT` is 3.
      *
      * The assertion is written as "the set still fails the gate" rather than as a target to reach.
      * If an artwork pass ever does clear it, this test fails and whoever made it clear comes here
@@ -812,232 +725,58 @@ class SpriteDrawScaleTest {
     // ---------------------------------------------------------------- the GPU's own ceiling
 
     /**
-     * What the GPU actually holds, and the second of this project's two sprite-memory limits.
+     * What the GPU holds, and the second of this project's two sprite-memory limits.
      *
-     * ## Why there are two, and why this one is new in v4.29
+     * ## Why there are two
      *
-     * `SpriteGeometryTest.decodedByteBudget` sums width x height x 4 over every shipped PNG. That
-     * is the right number for the **CPU** side and the wrong one for the GPU, and until v4.29 the
-     * project had only that one and read it as though it covered both. It does not, and the two do
-     * not even move together:
+     * `SpriteGeometryTest.decodedByteBudget` sums width x height x 4 over every shipped PNG: the right
+     * number for the **CPU** side and the wrong one for the GPU, and the two do not move together:
      *
      * - `GlTextureCache.register` uploads `reduce(bitmap, SpriteDetailLevel.levelFor(scale))`,
      *   sized against the scale the sprite is about to be **drawn** at, not the size it was
      *   authored at. `SpriteDetailLevel` picks the level whose residual lands nearest 0.5, so the
-     *   copy on the GPU is always between 1.4x and 2.8x the drawn size whatever the artwork does.
-     * - And `SpriteBlitter.onSpriteUploaded` releases the decoded bitmap as soon as the upload
+     *   copy on the GPU is between 1.4x and 2.8x the drawn size whatever the artwork does, and the
+     *   transparent border is cropped after the reduction ([uploadedCropped]).
+     * - `SpriteBlitter.onSpriteUploaded` releases the decoded bitmap as soon as the upload
      *   succeeds, so on the GPU path the authored-size bitmap is a **transient** and not a
      *   resident.
      *
-     * Measured here at the reference viewport, the shipped set is **35.20 MiB decoded and 13.92 MiB
-     * uploaded** (31.74 and 17.09 before v4.30 drew the people in layers and started cropping the
-     * uploads). Author the whole set two thirds the size and the decoded figure falls to 14.11
-     * MiB while the uploaded figure falls only to 13.06 -- and for the *selective* reduction the
-     * headroom actually permits, the uploaded figure **rises**, because the level quantisation tips
-     * the wrong way for exactly those sprites. A ceiling that cannot tell those two apart cannot be
-     * used to argue about either.
+     * So authoring the set smaller lowers the decoded figure by its area and the uploaded one far
+     * less, and a selective reduction can raise the uploaded figure where the level quantisation
+     * tips the wrong way. A ceiling that cannot tell those two apart cannot be used to argue about
+     * either.
      *
      * ## What each limit is for, said once
      *
      * | | counts | protects |
      * |---|---|---|
-     * | `SpriteGeometryTest.decodedByteBudget` | authored px x 4, every PNG | the `Canvas` path, where `SpriteCache` holds the authored bitmap for every frame and nothing releases it -- the settings and gallery previews on **every** device, and the whole wallpaper once EGL has failed three times. Also the APK, and the per-sprite transient decode peak |
+     * | `SpriteGeometryTest.decodedByteBudget` | authored px x 4, every PNG | the `Canvas` path, where `SpriteCache` holds the authored bitmap for every frame and nothing releases it -- the settings and gallery previews on **every** device, and the whole wallpaper once GL is given up on (`GlLifecyclePolicy.MAX_CONTEXT_REBUILDS`). Also the APK, and the per-sprite transient decode peak |
      * | this one | the texels actually uploaded, per sprite at the largest scale it reaches | GL texture memory: the atlas plus every standalone texture |
      *
      * **Neither is removable in favour of the other.** The `Canvas` path is not hypothetical:
      * `ThemePreview.kt` builds a `CanvasSceneTarget` unconditionally, so every device that opens
-     * the settings screen decodes sprites at their authored size and keeps them. That is why
-     * v4.29 added this limit beside the old one rather than repointing the old one at texels.
+     * the settings screen decodes sprites at their authored size and keeps them.
      *
      * ## The number
      *
-     * **14 594 984 B measured, 15 MiB here**, which is the next figure above it and leaves
-     * 1 133 656 B -- the same "just above the measured figure" convention every move of the decoded
-     * ceiling has used, and for the same reason: the pass after this one has to come here and argue
-     * too.
-     *
-     * ### v4.30 moved it **down**, from 18 MiB, and that is worth reading carefully
-     *
-     * The set fell 3 326 708 B, 18.6 %, from two changes that pull the same way:
-     *
-     *  - **the 168 skin-tone PNGs are gone.** A person is drawn as fixed art plus one weight mask
-     *    per colourable region and the colour arrives at the blit, so three tones are one drawing;
-     *  - **`GlTextureCache` crops the transparent border after the reduction.** That is what makes
-     *    the masks nearly free -- each covers a few tenths of its canvas -- and it applies to every
-     *    sprite in the set, not only to people: the non-person half alone gives back 989 208 B.
-     *
-     * The investigation this came from framed the prize as **margin under a fixed 18 MiB**. Moving
-     * the ceiling down instead is deliberate, and it is what this ceiling's own convention asks
-     * for: a ceiling left 4.3 MiB above the set is a ceiling that lets the next 4.3 MiB of artwork
-     * in without anybody arguing for it, which is the thing the convention exists to stop. The
-     * durable prize was never the slack anyway -- it is that **a colour axis no longer multiplies
-     * the set**. Hair, shirt and trousers arrived in v4.30 at the cost of the masks; as shipped
-     * variants the same three axes would have been twenty-seven copies of every person.
+     * **21 MiB**, the maintainer's ceiling (`DESIGN_NOTES.md` §12, decision 64). The measured figure
+     * and the margin under it are printed on every run. The ceiling sits just above the measured
+     * figure, as the decoded one does, so artwork that takes the set past it is argued for rather
+     * than let in by slack.
      *
      * ## What the basis is, and what it is not
      *
-     * Every sprite at the largest scale any path draws it at, summed over the whole set. That is
-     * **not a scene** -- no frame draws all 305 sprites, and the device census for the twelve-theme
-     * walk at full density measured 7 287 KiB packed in the atlas plus 2 317 KiB standalone, about
-     * 9.4 MiB, against the 17.09 MiB here. It is an upper bound, computable on the host from the
-     * shipped artwork alone, which is what lets it be a test at all; the device figure is in
-     * `docs/archive/V4_29_REPORT.md` and cannot be.
+     * Every sprite at the largest scale any path draws it at, at the reference viewport, summed over
+     * the whole set: an upper bound computable on the host from the shipped artwork alone, which is
+     * what lets it be a test at all. It is **not a scene**: no frame draws every sprite, and the set
+     * holds alternatives of which a scene draws one -- the two meadow clumps, the three palm crowns.
+     * A facade, ink to its edges, is charged nearly its whole canvas.
      *
-     * ### v5.0 moved it back **up**, from 15 MiB to 16 MiB
-     *
-     * The set uploads **15 769 428 B** of level-0 texels, and 16 MiB is the next figure above it,
-     * leaving **1 007 788 B** (v4.30 left 1 133 656 B). It rose by 1 174 444 B: the five building
-     * families redrawn as per-instance stacks and cut-out figures (see
-     * `SpriteGeometryTest.decodedByteBudget`, v5.0) upload **4 545 392 B** where the shipped 34
-     * uploaded 3 370 948 B. Level 0 is the whole story of that ratio: buildings are drawn at
-     * 0.87-1.41 px per unit on the reference device, so `SpriteDetailLevel` never reduces them and
-     * every authored texel is an uploaded texel -- the crop after reduction gives back only
-     * 58 468 B across the 72 files, because a wall piece is ink to its edges.
-     *
-     * *Why up and not, as v4.30, down.* v4.30 moved this line down because a colour axis had
-     * stopped multiplying the set. Nothing multiplies here either -- one wall mask and one glass
-     * mask per piece, and not one colour variant -- but silhouettes are not an axis that masks can
-     * absorb: a roof shape is pixels or it is nothing. The cheap ways out were costed before this
-     * moved (a bar figure, the turret roof, a mansard, a crown) and each of them is a silhouette
-     * fewer; the maintainer kept them all.
-     *
-     * *What this is and is not, restated for the number that actually binds.* Still the upper
-     * bound over the whole set, not a scene. The atlas is one 2048x2048 page -- 16 MiB of RGBA,
-     * already allocated -- so whether the extra 1.15 MiB of texels stays inside that page's free
-     * rows or opens a second one is a **packing** question this number cannot answer: the cost is a
-     * step, zero or +16 MiB, not a slope. v4.29 measured the shelf packer saturating at the fifth
-     * theme at default densities, which is why the device census was re-run with the mix before
-     * this shipped; its result is in the v5.0 report.
-     *
-     * ### v5.1: the line does not move either, and the two limits disagree about the same change
-     *
-     * The set uploads **15 786 508 B**, leaving **990 708 B** (v5.0 left 1 007 788). It rose by
-     * **17 080 B** for the second flower clump -- and `SpriteGeometryTest.decodedByteBudget` rose
-     * by **15 552** for the same sprite. **The GPU figure is the larger one**, and the reason is
-     * the crop this function models rather than anything about the canvas. Neither new sprite
-     * costs more here than it costs there: each decodes to 15 552 B and uploads 13 860. What is
-     * larger is the *change*, because the sprite that left was unusually cheap here -- the shipped
-     * clump was thin, drawn inside a content box of 93x27 on a 108x36 canvas, so the border cut
-     * after the reduction gave back a third of it and it uploaded only **10 640 B**. The v5.1
-     * drawing fills 104x32 of the same canvas, so there is much less border to cut.
-     *
-     * *What a frame actually holds is a third number again, and it is the smaller one.* A scene
-     * draws one clump or the other, never both -- the seasonal palette picks -- so the resident
-     * atlas cost of this change in any one scene is **+3 220 B**, and the 17 080 above is the
-     * upper bound this limit is defined to take: every sprite at the largest scale any path draws
-     * it at, including two that are alternatives to each other. The packing step the v5.0 note
-     * describes is untouched by that: one extra 105x33 tile does not appear in a page that was
-     * already holding the clump it replaces.
-     *
-     * ### v5.1 again, for the palms, and the host got this number wrong by 5 016 B
-     *
-     * The set uploads **15 855 512 B**, leaving **921 704 B**. The four redrawn palm sprites cost
-     * **+69 004 B**, against **+138 384** on `SpriteGeometryTest.decodedByteBudget` -- the usual
-     * direction, and for the usual reason: a canvas is charged there and the ink is charged here.
-     * The trunk's canvas was cut from 78 to 63 px wide late in the pass and **this number did not
-     * move at all**, which is the same point said the other way round: the fifteen columns that
-     * left were transparent, and transparent columns were never on this side of the ledger.
-     *
-     * **The number worth recording is that the proposal round predicted 63 988 and was 5 016 low,
-     * and the gap is not measurement noise.** That figure was the content box times four at level
-     * 0, which is the natural thing to compute on the host and is not what this function models:
-     * `GlTextureCache` crops the border **one pixel outside** the content on every side, so a
-     * sprite is charged for its ink plus a two-pixel margin in each axis. Over four sprites that is
-     * 5 016 B. It is small and it is systematic -- it scales with the perimeter, so a set of many
-     * small sprites would be under-predicted by much more -- and anything estimating this budget
-     * from a content box off the device should add the pad rather than discover it here.
-     *
-     * The palms sit at level 0 on both the scene path and the preview path, so the crop above is
-     * of the authored pixels and no reduction is involved; that is why the arithmetic is checkable
-     * by hand at all, and it is a consequence of `SpriteDrawScaleTest`'s own finding that a palm's
-     * headroom is 1.011 -- the tightest in the set bar none.
-     *
-     * *What a frame holds is smaller again, as it was for the flowers.* A scene draws one crown,
-     * never three: the live one, or Halloween's, or the winter palette's. The resident atlas cost
-     * of the crowns in any one scene is one 159x121 tile, and the 69 004 above is the upper bound
-     * this limit is defined to take.
-     *
-     * ### v5.6F raises it to 17 MiB for the school, and 18 was measured and refused
-     *
-     * The set uploads **16 981 636 B**, and 17 MiB is the next figure above it, leaving
-     * **844 156 B** (v5.1 left 921 704). It rose by **703 524 B**: the school's four PNGs upload
-     * 781 060 and the sixteen redrawn vehicles give back 77 536. The school is charged nearly its
-     * whole canvas here because a facade is ink to its edges -- 781 060 of 786 384 -- while the
-     * vehicles give back three times what they give back on the decoded ceiling, because a body
-     * cut lower is a body with less transparent corner to crop.
-     *
-     * **18 MiB is not needed, and that is a measurement rather than an opinion.** The richer
-     * school `S2_C2`, with bay windows on the upper floor too, uploads 17 064 208 B -- inside
-     * 17 MiB with 761 584 B to spare. There is no artwork on this pass's table that 17 does not
-     * hold, so the second MiB was not asked for.
-     *
-     * *What was looked for first.* The sign, which is where a shop's texels usually go: it costs
-     * **zero** here as well, because the plaque is drawn inside canvases the turret already fills
-     * and the upper rows reuse `tower_row_tier3`, a stamp already in the set. Nothing was traded
-     * for the 703 524; what was traded is on the other ceiling, and it is written there.
-     *
-     * *And the reason the number this protects is not the number that binds.* **Nothing in the
-     * shipped app reads this constant** -- it is a build gate, like
-     * `SpriteGeometryTest.decodedByteBudget`, and the six occurrences of the two figures in
-     * production code are all in comments. The device's real limit is the one atlas page this
-     * budget is *modelled on* and is not the same as: 2048x2048 RGBA, 16 MiB, allocated once. A
-     * twelve-theme walk in one process measured **583 of its 2048 rows occupied, with zero sprites
-     * falling out to a texture of their own**, the school included -- re-measured on the BV6600 on
-     * 2026-09-27 by `GlAtlasOccupancyTest` (v5.9D) -- and 1 465 still free, which is about 11.4 MiB. On the device, sixty seconds of live wallpaper
-     * with the school in frame measured GL mtrack at 39 721 and 40 046 KB against 39 717 and
-     * 39 717 without it, which is inside the 330 KB the same state varies by between its own two
-     * runs; 30.06-30.07 fps and zero dropped frames. So this ceiling moving is an upper bound
-     * moving, and the page underneath it is a quarter full. `misura_v5_6d/MISURA_V5_6D.md` carries
-     * the census, the frame times and the pressure test.
-     *
-     * *And the decision, which is the maintainer's.* Both ceilings were put in front of them with
-     * these numbers and the device measurement beside them, and both were moved by one MiB. The
-     * pass did not move either on its own authority, and the school does not fit under 16.
-     *
-     * ### v5.11 raises it to 18 MiB, for the towers' heights and hall and the distant houses
-     *
-     * The set uploads **18 493 088 B** at the reference 1080x2340, 667 296 past 17 MiB; 18 MiB
-     * leaves **381 280 B**. The 18 that v5.6F measured and did not need is needed now: the tall and
-     * the short towers' tiers and the hall are drawings of the tower's own width, ink to their
-     * edges as every facade is. The distant houses add little here -- their canvases are small and
-     * drawn at the floor of `SceneSpace.distantHousePixelsTall` -- and none at all to a scene that
-     * leaves them off, which is every theme as it ships. The page they all go into is measured on the
-     * device by `GlAtlasOccupancyTest`, whose sweep has the distant houses on since v5.11.
-     *
-     * *The decision, again the maintainer's*: *«Sì, va bene così (consigliato)»*, 2026-10-07, asked
-     * with the photographs.
-     *
-     * ### v5.13 raises it to 20 MiB, for the shop, the fire station and the police station
-     *
-     * The set uploads **20 242 744 B** at the reference 1080x2340, 1 672 296 more than the 5.12's
-     * 18 570 448; 20 MiB leaves **728 776 B**, and 19 would be 319 800 short. The three buildings are
-     * facades, ink to their edges, and their sixteen PNGs are charged here at the scale of the nearest
-     * of the places among the houses -- any of the six buildings can stand in any of them since v5.13, at
-     * one metre a unit -- so this is the upper bound it has always been. The fire station's
-     * tower on a canvas of its own (inventory I-607) costs this ceiling nothing it would not have cost
-     * as one canvas: a border is cropped here either way. What the device holds is measured where it
-     * always was, on the one 2048x2048 atlas page (`GlAtlasOccupancyTest`), now with every scene drawing
-     * all six buildings over time.
-     *
-     * *The decision, the maintainer's*: *«il resto accetto i consigliati»*, 2026-10-11, to the row that
-     * said this ceiling would go from 18 to 20 MB and the decoded one from 45 to 47, at the same
-     * consumption, with the proposal round's measurements.
-     *
-     * ### v5.14 moves neither ceiling
-     *
-     * With the fir A, its snow and its star, the wreath and the bulb the set uploads **20 273 432 B**, 30 688 more than
-     * the 5.13's, and leaves **698 088 B** under 20 MiB (the v5.14A table's row that said no limit would rise, *«si a
-     * tutte»*, 2026-10-15).
-     *
-     * ### v5.16 raises it to 21 MiB, for Halloween's new things
-     *
-     * The Headless Horseman's ten pieces, the scarecrow and its light, the cobweb, the bat, the door's jack-o'-lantern and
-     * its light, and the laughing moon's face and light take the set to **21 301 904 B** at the reference 1080x2340,
-     * 1 077 600 more than the 5.15's 20 224 304 (measured on the 5.15's own tree, 2026-10-21); 20 MiB would be 330 384
-     * short, 21 MiB leaves **718 192 B**. The decoded set is 49 137 552 B, inside its 47 MiB (`SpriteGeometryTest`).
-     *
-     * *The decision, the maintainer's*: *«il resto, si a tutte»* (2026-10-21), to the table of v5.16A whose row 11 proposed
-     * this ceiling at 21 MiB, to be raised only if the measurement of the final choices needed it.
+     * **Nothing in the shipped app reads this constant**: it is a build gate, like
+     * `SpriteGeometryTest.decodedByteBudget`. The device's real limit is the atlas page this budget
+     * is modelled on and is not the same as -- 2048x2048 RGBA, 16 MiB, allocated once -- and whether
+     * a set fits it is a packing question this number cannot answer, measured on the device by
+     * `GlAtlasOccupancyTest`.
      */
     private val uploadedTexelBudget = 21L * 1024L * 1024L
 
@@ -1058,11 +797,9 @@ class SpriteDrawScaleTest {
             uncropped += uploaded(w, h, level)
             if (name.startsWith("person_")) people += cost
         }
-        // **Printed on every run, passing or failing** (v5.7E, item 132). The companion of the
-        // same line in `SpriteGeometryTest`: this figure appeared in no build output at all --
-        // the headroom test above prints the *decoded* set as a side effect of a different
-        // question, and this one printed nothing -- so reading it meant lowering the constant by
-        // hand. See that line for the argument.
+        // **Printed on every run, passing or failing**, as `SpriteGeometryTest` prints the decoded
+        // figure: the margin is read from the build output, not found by lowering the constant by
+        // hand.
         println(
             "uploadedTexelBudget: %d B of %d (%.3f MiB of %d MiB), %d B of margin, at %s".format(
                 total, uploadedTexelBudget, total / 1048576.0,

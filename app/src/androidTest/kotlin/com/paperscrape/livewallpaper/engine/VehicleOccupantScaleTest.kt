@@ -12,15 +12,15 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * The people behind a windscreen, measured on the pixels a device paints (**v4.6, P0**).
+ * The people behind a windscreen, measured on the pixels a device paints.
  *
  * ### Why this exists next to `VehicleScalePixelTest`
  *
  * That class measures whole objects at the goldens' 360x800, which is the right frame for
  * "is a car the height its lane implies" and the wrong one for a head: a driver's face is five
- * pixels tall there, and the difference this release is about is three of them. Everything here
- * renders at **1080x2400**, a real phone's viewport, where a face is fifteen pixels and a
- * measurement means something.
+ * pixels tall there, and a wrong size is three of them. Everything here renders at twice a real
+ * phone's 1080x2400 ([WIDTH] x [HEIGHT]), where a face is large enough for a measurement to mean
+ * something.
  *
  * ### What is measured, and why it is not the arithmetic again
  *
@@ -30,14 +30,13 @@ import kotlin.math.abs
  * being checked. The same method finds a pedestrian's face in a frame that has only pedestrians in
  * it. Both numbers come out of the finished bitmap.
  *
- * ### The defect, as an assertion
+ * ### The proportion, as an assertion
  *
  * The near traffic lane is at 0.862 of screen height and the near pavement at 0.807, so a driver
  * stands nearer the viewer than any pedestrian -- and is still drawn smaller, because a head seen
- * through a pane is set back inside a body. In v4.5 the driver's face measured 11 px against a
- * pedestrian's 13 and read as a child; in v4.15 it measured 16 against 15 with the head against the
- * roof line. The proportion this release is judged on is the occupant's share of its own pane, and
- * [everyOccupantHasGlassAboveTheirHead] is that read off the rendered frame.
+ * through a pane is set back inside a body. Too small, a driver reads as a child; too large, the
+ * head presses against the roof line. The proportion judged here is the occupant's share of its
+ * own pane, and [everyOccupantHasGlassAboveTheirHead] is that read off the rendered frame.
  */
 @RunWith(AndroidJUnit4::class)
 class VehicleOccupantScaleTest {
@@ -56,12 +55,11 @@ class VehicleOccupantScaleTest {
     /**
      * One car on an otherwise empty street, optionally on a chosen body.
      *
-     * v4.19 gives a plain car one of three bodies, picked from its own immutable identity
+     * A plain car has one of three bodies, picked from its own immutable identity
      * ([CarShell.forCar]) so that nothing per-frame can move it. A test cannot therefore *ask*
      * for a body -- it has to find a vehicle that is one, and [gridDelayForShell] picks the queue slot
-     * that produces it (see [carSpecFor]); the nudge of a millionth of a second it replaced is the
-     * history below. That is deliberately harder than exposing a setter: a seam that let a test choose
-     * the body would be a seam that let anything else choose it too.
+     * that produces it (see [carSpecFor]). That is deliberately harder than exposing a setter: a
+     * seam that let a test choose the body would be a seam that let anything else choose it too.
      */
     private fun frameWithOneCar(
         type: CarType,
@@ -82,21 +80,17 @@ class VehicleOccupantScaleTest {
      * The vehicle a case describes: its type, its lane, its direction, and -- when the case is
      * about a particular body -- an identity that actually produces that body.
      *
-     * **This used to nudge `startDelaySeconds` by a millionth of a second until the hash landed
-     * where it was wanted, and v4.20 made that impossible on purpose.** A candidate's identity is
-     * its lane and its *queue slot*, and the slot is one of [SceneObjectCatalog.CAR_SLOTS_PER_LANE]
-     * points on the loop -- so a millionth of a second no longer changes anything, because
+     * **A candidate's identity is its lane and its *queue slot*.** The slot is one of
+     * [SceneObjectCatalog.CAR_SLOTS_PER_LANE] points on the loop, and
      * `SceneObjectCatalog.candidateIndexOf` quantises to the grid the catalogue actually generates
-     * on. The road has ten identities and a test may pick among those ten; it may not conjure an
-     * eleventh.
+     * on, so nudging `startDelaySeconds` by a fraction of a second changes nothing. The road has ten
+     * identities and a test may pick among those ten; it may not conjure an eleventh.
      *
-     * That leaves the fixture's real problem, which the old approach hid: `startDelaySeconds` was
-     * doing two jobs at once. It set the identity *and*, with `speedFraction = 0`, the car's
-     * position on screen. Those two cannot both be free. So they are separated the way the app
-     * separates them -- the delay is the identity, and the *progress* is where the car has driven
-     * to since -- and [frameWithOneCar] advances the scene to put the car exactly where every
-     * measurement here already expects it. No production seam, and the car is a car the catalogue
-     * could have generated.
+     * `startDelaySeconds` sets the identity *and*, with `speedFraction = 0`, the car's position on
+     * screen, and those two cannot both be free. So they are separated the way the app separates
+     * them -- the delay is the identity, and the *progress* is where the car has driven to since --
+     * and [frameWithOneCar] advances the scene to put the car exactly where every measurement here
+     * expects it. No production seam, and the car is a car the catalogue could have generated.
      */
     private fun carSpecFor(
         type: CarType,
@@ -109,8 +103,8 @@ class VehicleOccupantScaleTest {
         return CarObject(
             laneYFraction = lane,
             // One unit of progress per second, so `advanceBy` reads as "how far it still has to
-            // go". Zero when the identity was not chosen, which leaves those cases exactly as they
-            // were: the car is placed by its delay and never moves.
+            // go". Zero when the identity was not chosen: the car is then placed by its delay and
+            // never moves.
             speedFraction = if (shell == null) 0f else 1f,
             startDelaySeconds = delay,
             color = 0xFFB4513C.toInt(),
@@ -179,11 +173,9 @@ class VehicleOccupantScaleTest {
     /**
      * The driver's face, identified by **where it is** rather than by how big it is.
      *
-     * These tests used to take the tallest face in the frame, and that worked for one release by
-     * accident: the driver was a woman in every car the app could produce (see [SeatedOccupants]),
-     * and a woman's face is the taller of the two. With the seats dealt properly a man drives half
-     * the cars and the tallest face in the frame is then the *passenger*, so the measurement
-     * silently changed subject.
+     * Not the tallest face: a man drives half the cars (see [SeatedOccupants]) and a woman's face
+     * is the taller of the two, so the tallest face in the frame is then the *passenger*, and the
+     * measurement would silently change subject.
      *
      * The vehicle artwork faces left when `reverse` is set, and every frame here is built with it
      * set, so the driver is the leading -- leftmost -- face. That is the same rule
@@ -209,43 +201,39 @@ class VehicleOccupantScaleTest {
      *
      * ### Why this and not the face
      *
-     * Everything in this class used to be measured on the visible skin -- the face's own run of
-     * skin rows -- and that is not a dimension. It is a property of the haircut. Measured on the
-     * v4.25 family, the skin's share of the head block is **0.861** for a walking man, **0.794**
-     * for the same man seated, **0.623** for a walking woman and **0.733** for her seated: a third
-     * of the quantity is hair, so no scale can make two poses agree on it and a test that asks
-     * them to is asking the wrong question. It was only ever satisfiable while the four drawings
-     * happened to leave similar amounts of face uncovered, and B "Relief" -- fuller hair on both
-     * adults, a lock across the woman's cheek -- ended that.
+     * Measured on the visible skin -- the face's own run of skin rows -- a head is not a
+     * dimension. It is a property of the haircut: on the adult drawings the skin's share of the
+     * head block is **0.861** for a walking man, **0.794** for the same man seated, **0.623** for a
+     * walking woman and **0.733** for her seated. A third of the quantity is hair, so no scale can
+     * make two poses agree on it and a test that asks them to is asking the wrong question.
      *
      * The head block does not move: it is what [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] and
      * [SceneObjectRenderer.HEAD_CAR_HEAD_UNITS] declare, what every occupant scale is derived
      * from, and it is the same for both adults -- which is why nothing here has to know which of
-     * them is driving any more.
+     * them is driving.
      *
      * ### The rule, which is `OccupantHeadFitTest`'s rule
      *
      * That JVM test measures the same block on the shipped PNG: content top for the crown, and for
      * the jaw *the width* -- the last row of the skin's first run still at least half as wide as
-     * the widest. The neck is drawn in skin since B "Relief", so a rule that took the end of the
-     * run would put the jaw below the collar. This reads the same block off painted pixels: the
-     * crown by walking up the face's own columns while [isInk] still finds the figure, the jaw by
-     * that same half-width test on the face blob's rows.
+     * the widest. The neck is drawn in skin, so a rule that took the end of the run would put the
+     * jaw below the collar. This reads the same block off painted pixels: the crown by walking up
+     * the face's own columns while [isInk] still finds the figure, the jaw by that same half-width
+     * test on the face blob's rows.
      *
      * ### Why the crown is found against a background and not against a palette
      *
-     * The first attempt matched hair colours and measured one driver right and the next one
-     * thirteen pixels short, because the palette it matched against still had the previous
-     * family's hair in it. A palette written into a test is a copy of the artwork that goes stale
-     * silently. [isInk] asks the question the eye asks instead: for a driver, *not the glass
-     * showing through*; for a pedestrian, *not what this frame looks like with the people switched
-     * off*. Neither has a colour in it.
+     * A palette of hair colours written into a test is a copy of the artwork that goes stale
+     * silently, and one stale hair colour is enough to measure a driver thirteen pixels short.
+     * [isInk] asks the question the eye asks instead: for a driver, *not the glass showing
+     * through*; for a pedestrian, *not what this frame looks like with the people switched off*.
+     * Neither has a colour in it.
      *
      * ### The cap, and why a figure can decline to be measured
      *
      * A pedestrian standing in front of another is one silhouette, and no rule reading painted
      * pixels can say where the front one's hair ends and the back one's shoulder begins: measured
-     * that way the near woman's head came out 134 px against an expected 38. So the walk is capped
+     * that way the near woman's head comes out 134 px against an expected 38. So the walk is capped
      * at [CROWN_WALK_CAP] times the face it started from -- the widest head block this artwork
      * draws is 1.7 faces -- and a figure whose crown is still inked at the cap is reported as
      * unmeasurable rather than measured wrongly.
@@ -357,8 +345,8 @@ class VehicleOccupantScaleTest {
     /**
      * Inside one of the wheel discs, which are vehicle artwork and not a person.
      *
-     * **The tyre is `#2B2A33` since v5.6F, which is the scene's ink -- and the scene's ink is
-     * also `PeopleColours.HAIR[0]`, black hair.** A colour scan cannot tell them apart and should
+     * **The tyre is `#2B2A33`, which is the scene's ink -- and the scene's ink is also
+     * `PeopleColours.HAIR[0]`, black hair.** A colour scan cannot tell them apart and should
      * not try: the discs are drawn in code at centres and radii this file can read, so the
      * exclusion is geometric, exactly as the taxi sign's, the livery band's and the lamp seats'
      * are. Without it every tyre pixel counts as an occupant painted outside the glass -- measured
@@ -422,14 +410,14 @@ class VehicleOccupantScaleTest {
     /**
      * The glass **and the shadow the body paper casts on it**, which is also glass.
      *
-     * v5.6F: «Cut-out» lays the glass sheet *behind* the body and cuts the panes out of it, and
-     * paints a band of `mix(glass, ink, 0.34)` along the top and the front edge of every hole --
-     * the shadow of the paper's own cut edge falling on the sheet below. That band is the one
-     * mark in the drawing that says the glass is behind rather than stuck on top, and a scan that
-     * did not count it read the pane as 22.8 units of a 25-unit hole and put its top edge 2.6
-     * units too low. It is a second colour and not a wider tolerance: [GLASS_SHADE] is the
-     * drawing's own value, and stretching the tolerance far enough to reach it would have
-     * swallowed half the body palette on the way.
+     * «Cut-out» lays the glass sheet *behind* the body and cuts the panes out of it, and paints a
+     * band of `mix(glass, ink, 0.34)` along the top and the front edge of every hole -- the shadow
+     * of the paper's own cut edge falling on the sheet below. That band is the one mark in the
+     * drawing that says the glass is behind rather than stuck on top, and a scan that does not
+     * count it reads the pane as 22.8 units of a 25-unit hole and puts its top edge 2.6 units too
+     * low. It is a second colour and not a wider tolerance: [GLASS_SHADE] is the drawing's own
+     * value, and stretching the tolerance far enough to reach it would swallow half the body
+     * palette on the way.
      */
     private fun isGlass(pixel: Int): Boolean {
         if ((pixel ushr 24) < 200) return false
@@ -532,19 +520,15 @@ class VehicleOccupantScaleTest {
     // ------------------------------------------------------------------ the glass
 
     /**
-     * The pane is drawn [SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS] tall, on both lanes --
-     * 23 units since rc2, measured off the glass's own colour so it is the *drawn* height.
+     * The pane is drawn [SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS] tall, on both lanes,
+     * measured off the glass's own colour so it is the *drawn* height.
      */
     /**
      * Every colour this class scans for is one the scene can really put on an occupant.
      *
-     * **The check had to change shape in v4.30, and the reason is the point of it.** It used to
-     * scan the shipped people for each colour on the list, because the list was a hand-written copy
-     * of the artwork's palette and a copy goes stale silently -- twice, in this file's history. The
-     * artwork no longer carries those colours at all: a person ships as fixed art plus weight
-     * masks, and the head and the garments arrive at the blit from `PeopleColours`. Scanning the
-     * PNGs for a shirt colour would now find nothing and would be measuring the change rather than
-     * guarding against it.
+     * **The artwork does not carry those colours**: a person ships as fixed art plus weight masks,
+     * and the head and the garments arrive at the blit from `PeopleColours`, so scanning the PNGs
+     * for a shirt colour would find nothing.
      *
      * So the list is derived from `PeopleColours` and what is left to check is the two things a
      * derived list can still get wrong: that no two palettes deal the same colour, which would make
@@ -611,9 +595,8 @@ class VehicleOccupantScaleTest {
                 units,
                 1.5f,
             )
-            // v4.20 retired the stretch by authoring the pane at its drawn size, so the drawn
-            // and authored heights are the same number and the frame must measure it directly:
-            // a pane coming out taller than authored would mean the stretch crept back.
+            // The glass sprite is blitted at its authored size, without a stretch: a pane coming
+            // out taller than authored would mean a stretch is being applied.
             assertEquals(
                 "the pane is drawn at the size it is authored",
                 SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
@@ -623,7 +606,7 @@ class VehicleOccupantScaleTest {
         }
     }
 
-    /** And it did not move up: the roof line is the one edge that had to stay put. */
+    /** The roof line is fixed: the glass top sits on it, and the sill where its constant puts it. */
     @Test
     fun theGlassGrewDownwardsAndTheRoofLineDidNotMove() {
         for (lane in LANES) {
@@ -649,29 +632,25 @@ class VehicleOccupantScaleTest {
     // ------------------------------------------------------------------ the occupants
 
     /**
-     * **The v4.15 defect, as pixels: there was no air above anybody's head.**
+     * **Air above every head, as pixels.**
      *
-     * A bust was scaled so its content was exactly as tall as the glass and anchored on the sill,
-     * so the top of the head coincided with the top of the pane by construction -- on every vehicle
-     * type, on both lanes, in both seasons. That is what "the people in the cars are too big for
-     * the cars" looks like from the inside, and no arithmetic test could see it because the scale
-     * was *defined* to make it true.
+     * A bust scaled so its content is exactly as tall as the glass and anchored on the sill puts
+     * the top of the head on the top of the pane by construction -- on every vehicle type, on both
+     * lanes, in both seasons -- and the people read as too big for the cars. No arithmetic test
+     * can see that when the scale is *defined* to make it true.
      *
      * Measured here on the rendered frame rather than predicted: the topmost band of the drawn
      * glass must still be glass. [SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE] puts a head at
      * 51.9% of its pane, so the band is comfortably clear; the assertion asks only for a tenth of
-     * the pane, which v4.15 fails on every frame and this release passes on all of them.
+     * the pane.
      *
-     * **A head is a face, not a pixel (v5.7F).** This counted every skin-coloured *pixel* in the
-     * band, and v5.7F's colour coin -- which changed which of the user's two colours each plain
-     * car wears -- put the orange Color 1 on the near-lane estate. The anti-aliased pixel where
-     * its body meets the pane's rounded top corner is `DAAB78`, a blend of the body `F2A65A` and
-     * the glass `899DA8`, and it lands within 4 of a skin tone: one pixel, no occupant anywhere
-     * near it, and the test failed. So the band is now asked about **faces** in this class's own
+     * **A head is a face, not a pixel.** The band is asked about **faces** in this class's own
      * sense -- [skinBlobs], connected skin of at least [MIN_BLOB_AREA], "large enough to drop an
-     * anti-aliased speck", the rule every other face measurement here already uses. It is no
-     * weaker against the defect it exists for: a head reaching the band is a face whose top is
-     * in the band. Measured by mutation in v5.7F: seating every occupant 10 units higher
+     * anti-aliased speck", the rule every other face measurement here uses. One pixel is not a
+     * head: where an orange body `F2A65A` meets the pane's rounded top corner over the glass
+     * `899DA8`, the anti-aliased blend `DAAB78` lands within 4 of a skin tone with no occupant
+     * anywhere near it. It is no weaker against the defect it exists for: a head reaching the band
+     * is a face whose top is in the band. By mutation, seating every occupant 10 units higher
      * (`CAR_HEAD_Y_UNITS - 10f` and its passenger and fire-engine twins) fails this at the first
      * car it checks, with two faces of 716 and 617 px in the band.
      */
@@ -698,18 +677,14 @@ class VehicleOccupantScaleTest {
     }
 
     /*
-     * **The pedestrian guard that used to sit here was retired in v4.25, and it was not relaxed.**
-     *
-     * `aDriversFaceMatchesAPedestriansOnceDepthIsRemoved` divided a driver's face and a
-     * pedestrian's by their own family's visible skin and asked the two to agree within 10%. The
-     * quantity is not a dimension -- see [headBlock] -- so it was rebuilt on the head block, and
-     * rebuilt it stopped being able to say anything a pixel can support:
+     * **No pixel test here compares a driver's head with a pedestrian's**, because on the
+     * rendered frame that comparison cannot be made to the precision it needs:
      *
      *  * **a pedestrian's depth is not in the frame.** Its ground row would have to be the bottom
      *    of its own ink, and the scene draws a soft shadow under everything, so that walk ends
      *    thirty pixels below the heel -- a person read as standing a metre nearer than they are.
-     *    The pavement is a band and its two edges are 8% of projection apart, which is most of the
-     *    criterion's own 10% before anything has been measured.
+     *    The pavement is a band and its two edges are 8% of projection apart, which is most of a
+     *    10% criterion before anything has been measured.
      *  * **the two crowns are not measured against the same thing.** A driver's is found against
      *    the pane, a pedestrian's against the street, and the two backgrounds cost a different
      *    number of anti-aliased rows -- worth about 5% on a 35-pixel head, in a direction that
@@ -717,12 +692,11 @@ class VehicleOccupantScaleTest {
      *  * **the crowd hides the figures worth measuring.** At full density this frame paints
      *    seventeen faces, and the two nearest adults are standing in front of somebody else.
      *
-     * What it was for is covered where it can be answered exactly: `VehiclePedestrianScaleTest`
+     * The comparison is made where it can be answered exactly: `VehiclePedestrianScaleTest`
      * asserts *an occupant's head stays in a sane relation to a pedestrian's at the same depth*
      * on the arithmetic, and `OccupantHeadFitTest` re-measures both heads on the shipped PNGs.
-     * Mutating [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] by the 17% this release's first
-     * build was wrong by fails **six** assertions across those two classes -- and passed the
-     * rebuilt pixel version, which is why that version is not here.
+     * Mutating [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] by 17% fails **six** assertions
+     * across those two classes, and passes a pixel version of the comparison.
      */
 
     /**
@@ -732,13 +706,13 @@ class VehicleOccupantScaleTest {
      * lane's projection -- three separate things, all of which have to be right for the
      * measurement to land.
      *
-     * **v4.25: the head block, not the face.** The prediction used to be the driver's *visible
-     * skin*, which meant asking [SeatedOccupants] which adult had been dealt this car and using a
-     * different constant for each -- and a quantity that differs between two people of the same
-     * size cannot check a size. [SceneObjectRenderer.HEAD_CAR_HEAD_UNITS] is the same for both
-     * adults, so the prediction no longer has to know who is driving; and because that constant is
-     * also the divisor inside [SceneObjectRenderer.CAR_OCCUPANT_SCALE], what this asserts is the
-     * statement the size table makes: **a driver's head is the scene's one head, at 97%**.
+     * **The head block, not the face.** The driver's *visible skin* differs between two people of
+     * the same size, so it cannot check a size, and predicting it would mean asking
+     * [SeatedOccupants] which adult was dealt this car. [SceneObjectRenderer.HEAD_CAR_HEAD_UNITS]
+     * is the same for both adults, so the prediction does not have to know who is driving; and
+     * because that constant is also the divisor inside [SceneObjectRenderer.CAR_OCCUPANT_SCALE],
+     * what this asserts is the statement the size table makes: **a driver's head is the scene's
+     * one head, at 97%**.
      *
      * ### Two figures, because one vehicle is a pixel grid and twelve are a scale
      *
@@ -747,8 +721,8 @@ class VehicleOccupantScaleTest {
      * bust's crown and jaw fall between two pixel rows, on a head that is 43 to 53 px tall. Two
      * rasterised edges cannot be averaged away in one frame, so the **mean** carries the check
      * that matters -- a wrong constant moves all twelve the same way, and the mean is held to
-     * 1.5 px, tighter in relative terms than the 1.5 px this test used on a 31 px face -- while
-     * each individual case is held to 4 px, which no rounding can reach but a misplaced seat can.
+     * 1.5 px -- while each individual case is held to 4 px, which no rounding can reach but a
+     * misplaced seat can.
      */
     @Test
     fun everyVehicleTypeDrawsItsDriverAtTheSizeItsGlassImplies() {
@@ -785,11 +759,9 @@ class VehicleOccupantScaleTest {
     /**
      * A civilian car carries two people, both inside the one pane, the driver forward.
      *
-     * **rc5, and the two criteria this replaces one of.** rc4 asserted a seat count of one,
-     * because a table-sized frontal head is 17.9-18.4 units wide against 42 nominal units of
-     * glasshouse and the 15% pillar-light criterion capped the car there. rc5 lengthened the
-     * pane to 47 units out of the bonnet, and the seat count is two again -- on the saloon, the
-     * taxi and the police car alike.
+     * **Two seats, on the saloon, the taxi and the police car alike**: the cabin holds two frontal
+     * heads inside the pillar-light criterion (the arithmetic is at
+     * [SceneObjectRenderer.CAR_HEAD_X_UNITS]).
      *
      * Counting faces rather than trusting the constants: two skin blobs of head size, not one and
      * not three. They are separate blobs because the two heads only touch across the hair, which
@@ -797,8 +769,8 @@ class VehicleOccupantScaleTest {
      * see one blob and fail, which is the read it exists to protect.
      *
      * The driver's own criterion is here too: **the centre of the driver's head falls in the
-     * forward half of the glass**, in both travel directions. rc4 seated its one occupant at the
-     * pane's centre and the car read as though nobody were driving it.
+     * forward half of the glass**, in both travel directions. An occupant at the pane's centre
+     * reads as though nobody were driving the car.
      */
     @Test
     fun aCivilianCarSeatsADriverForwardAndAPassengerBehind() {
@@ -836,22 +808,16 @@ class VehicleOccupantScaleTest {
     }
 
     /**
-     * **rc5 criterion: the heads fill at least half the glass.**
+     * **The heads fill at least half the glass.**
      *
-     * The complaint this closes: rc4's single occupant left a big pane with one head in it, and
-     * measured on the delivered frame the head filled 26% of the glass on the row the coordinator
-     * sampled. "The cabin is empty" was the complaint that opened this whole arc, and it had come
-     * back in a different shape. rc5 seats two, which puts it over half.
+     * A single head fills about 26% of the glass on its widest row, and the cabin reads as empty;
+     * two seated heads put it over half.
      *
-     * **v4.25 measured 42.9-44.5% here for one build, and the answer was the artwork, not this
-     * number.** The seated head had been drawn 20.7 units wide against the 37.0 of the family it
-     * replaced, at the same height, because the band rule that keeps two occupants clear of each
-     * other was reading the bust's units as though they were the car's -- a constraint twice as
-     * tight as the car actually is (`build_people_concepts.py`, `SEATED_HALF_BAND`). The floors
-     * were briefly re-derived to 40/35% to match what that build drew; the maintainer reversed
-     * that, the head was given back its proportion, and **the criterion is the one it always
-     * was**. A head narrowed to fit a window is the per-asset correction `AI_PROJECT_RULES.md`
-     * forbids, and the cause was on the car's side of the comparison.
+     * **The floors are not lowered to match a drawing that falls short of them.** A head narrowed
+     * to fit a window is a per-asset patch that leaves the shared cause in place to break the next
+     * figure. The band rule that keeps two occupants clear of each other converts the car's units
+     * into the bust's (`build_people_concepts.py`, `SEATED_HALF_BAND`): without the conversion it
+     * is twice as tight as the car actually is, and the seated head comes out about half as wide.
      *
      * ### How it is measured
      *
@@ -866,15 +832,14 @@ class VehicleOccupantScaleTest {
      *
      * The value at the very bottom of the band, four units above the sill, is *reported* rather
      * than asserted: that row crosses the neck, and a neck is narrower than a head at any seat
-     * count -- rc4 measured 28% there and the arithmetic in
-     * [SceneObjectRenderer.CAR_HEAD_X_UNITS] shows that forcing 50% at the neck and 15% of pillar
-     * light cannot both hold in any pane width. Where the two criteria met, the pane went.
+     * count -- the arithmetic in [SceneObjectRenderer.CAR_HEAD_X_UNITS] shows that forcing 50% at
+     * the neck and 15% of pillar light cannot both hold in any pane width.
      */
     @Test
     fun theOccupantsFillHalfTheGlass() {
-        // Every combination is measured before anything is asserted: a criterion the maintainer
-        // re-reads off a delivered frame is worth reporting in full, and a failure on the first
-        // lane would otherwise hide what the other five do.
+        // Every combination is measured before anything is asserted: a criterion re-read by hand
+        // off a delivered frame is worth reporting in full, and a failure on the first lane would
+        // otherwise hide what the other five do.
         val measured = ArrayList<String>()
         val short = ArrayList<String>()
         for (type in listOf(CarType.PLAIN, CarType.TAXI, CarType.POLICE)) {
@@ -939,11 +904,10 @@ class VehicleOccupantScaleTest {
                     if (ink >= bandInk / 2) { sum += fill; rows++ }
                 }
                 val mean = sum / rows
-                // Logged as well as asserted: the criterion is a number the maintainer re-measures
-                // by hand off a delivered frame, and a pass/fail alone does not tell them which
-                // number they are re-measuring.
+                // Logged as well as asserted: the criterion is a number re-measured by hand off a
+                // delivered frame, and a pass/fail alone does not say which number that is.
                 android.util.Log.i(
-                    "rc5-fill",
+                    "VehicleOccupantFill",
                     "$type lane=$lane band=${"%.1f".format(bandFill * 100)}% " +
                         "mean=${"%.1f".format(mean * 100)}% neck=${"%.1f".format(lowest * 100)}%",
                 )
@@ -963,9 +927,9 @@ class VehicleOccupantScaleTest {
     }
 
     /**
-     * The day lamps tell the direction (rc4).
+     * The day lamps tell the direction.
      *
-     * With frontal occupants the bust no longer says which way a car drives, so the two lamps
+     * A frontal bust does not say which way a car drives, so the two lamps
      * must: amber glass at the nose, brake red at the tail, drawn as an untinted overlay so the
      * user's body colour cannot swallow them. Measured on the rendered pixels at both ends of a
      * saloon on both lanes: the amber lamp lives only at the leading end, the red only at the
@@ -980,9 +944,9 @@ class VehicleOccupantScaleTest {
             val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
             val groundY = lane * HEIGHT
             // The two lens colours come from the shipped sprites rather than being copied here:
-            // v4.19 shares one amber and one red lens across three bodies and the appliance, and
-            // a literal in a test is exactly the sort of second copy that goes stale when the
-            // artwork moves. (v4.18's literals were the previous overlay's colours.)
+            // one amber and one red lens are shared across three bodies and the appliance, and a
+            // literal in a test is exactly the sort of second copy that goes stale when the
+            // artwork moves.
             val amberLens = dominantColour(R.drawable.car_lamp_front)
             val redLens = dominantColour(R.drawable.car_lamp_rear)
             var amberMeanX = 0f; var amberN = 0
@@ -1019,13 +983,13 @@ class VehicleOccupantScaleTest {
     }
 
     /**
-     * The drivers rotate through the pedestrians' skin tones (rc4).
+     * The drivers rotate through the pedestrians' skin tones.
      *
-     * "Carnagione segue le stesse regole dei pedoni": the walkers rotate three shipped tones,
-     * and so must the seats -- a fleet with one complexion is exactly the regression the skin
-     * axis exists to prevent. Three loop positions per lane give six deterministic candidates;
-     * their faces must land on at least two distinct tones (the seed arithmetic actually spans
-     * all three, but two is what proves the channel is alive without pinning the roll).
+     * A driver's skin follows the pedestrians' rules: the walkers rotate three shipped tones, and
+     * so must the seats -- a fleet with one complexion is exactly the regression the skin axis
+     * exists to prevent. Three loop positions per lane give six deterministic candidates; their
+     * faces must land on at least two distinct tones (the seed arithmetic actually spans all
+     * three, but two is what proves the channel is alive without pinning the roll).
      */
     @Test
     fun theDriversRotateThroughTheSkinTones() {
@@ -1053,13 +1017,13 @@ class VehicleOccupantScaleTest {
     }
 
     /**
-     * **rc2 criterion: not one pixel of an occupant outside the glass.**
+     * **Not one pixel of an occupant outside the glass.**
      *
-     * The rc1 frames showed a police driver's shirt continuing below the pane onto the door --
-     * a torso through sheet metal. There is no canvas clip in the SceneCanvas contract, so the
-     * fix is constructional (a bust must FIT its pane at its drawn scale) and the proof has to
-     * be pixels: every occupant-coloured pixel inside the vehicle's own box must lie inside the
-     * pane rectangle, with half a unit of tolerance for the outline's anti-aliasing.
+     * A shirt continuing below the pane onto the door is a torso through sheet metal. There is no
+     * canvas clip in the SceneCanvas contract, so the fit is constructional (a bust must FIT its
+     * pane at its drawn scale) and the proof has to be pixels: every occupant-coloured pixel
+     * inside the vehicle's own box must lie inside the pane rectangle, with half a unit of
+     * tolerance for the outline's anti-aliasing.
      */
     @Test
     fun noOccupantPixelLeavesTheGlass() {
@@ -1101,8 +1065,7 @@ class VehicleOccupantScaleTest {
                         // Roof accessories stand above the glass; the livery bands the doors
                         // below the sill. Both windows are derived from the constants that place
                         // them, so a body change moves the exclusion with the artwork instead of
-                        // leaving a stale rectangle behind -- which is exactly how v4.18's
-                        // windows went out of date when the sill moved from 12 to 9.
+                        // leaving a stale rectangle behind.
                         if ((type == CarType.TAXI || type == CarType.POLICE) &&
                             localY < SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS &&
                             abs(localX) <= 24f
@@ -1112,7 +1075,7 @@ class VehicleOccupantScaleTest {
                             localY <= SceneObjectRenderer.CAR_SILL_Y_UNITS + LIVERY_HEIGHT_UNITS + 0.5f &&
                             abs(localX) <= SceneObjectRenderer.CAR_LIVERY_WIDTH_UNITS / 2f + 0.5f
                         ) continue
-                        // The day lamps (rc4) letter their art in ambers and reds whose
+                        // The day lamps letter their art in ambers and reds whose
                         // anti-aliased rims can blend into the skin palette's tolerance: the two
                         // lamp housings are vehicle artwork, excluded exactly as the taxi sign
                         // and the livery band above are.
@@ -1140,7 +1103,7 @@ class VehicleOccupantScaleTest {
     }
 
     /**
-     * **15% of the pane's width of visible glass between a head and each pillar -- 13% since 4.18 closed.**
+     * **15% of the head's own width of visible glass between a head and each pillar.**
      *
      * Measured as light, literally: on each row the head occupies, the run of glass-coloured
      * pixels between the head and the pane's own edge. The shoulders are excluded -- the
@@ -1150,19 +1113,13 @@ class VehicleOccupantScaleTest {
      * Two seats do not soften it: the outermost occupant ink on each row is what is measured
      * against each pillar, so a second head cannot buy the first one any slack.
      *
-     * **The threshold moved from 15% to 13% in the closing pass, and that is a decision rather
-     * than a test fix.** 15% was chosen in rc2 for a single profile bust and was never derived
-     * from anything; holding it while also opening clear glass between two frontal heads needs
-     * about seven more units of pane than the saloon's cabin can hold. The maintainer lowered it
-     * to 13% and spent the recovered width on the gap, which is what
-     * [theTwoHeadsAreSeparatedByClearGlass] measures. The full arithmetic is at
-     * [SceneObjectRenderer.CAR_HEAD_X_UNITS].
+     * **A share of the head, not of the pane**: a share of the pane would move every time the
+     * glass did. The full arithmetic is at [SceneObjectRenderer.CAR_HEAD_X_UNITS].
      */
     @Test
     fun everyOccupantClearsItsPillarsByFifteenPercentOfItsHead() {
         // Every cabin measured before anything is asserted: three bodies plus the appliance carry
-        // three different panes, and a failure on the first hides what the others do -- which is
-        // exactly how the compact's 20% masked the police saloon's 10% for a whole round.
+        // three different panes, and a failure on the first hides what the others do.
         val report = ArrayList<String>()
         val tight = ArrayList<String>()
         for ((type, shell) in typesAndShells()) {
@@ -1189,12 +1146,10 @@ class VehicleOccupantScaleTest {
             fun screenY(local: Float) = (groundY + (local - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
             val yFrom = screenY(paneTop)
             val yTo = screenY(sill - 4f)
-            // The pane windows come from the glass geometry constants. The saloon's glasshouse is
-            // one pane, so the criterion is what the words say for one pane: the light between the
-            // occupants and the pane's two pillars, and there are only two of those. rc2 listed
-            // two windows here because it had a mullion and each head owed 15% of its own half;
-            // rc5 measured that arrangement at 53 units of glass against 47 for a single pane, and
-            // six units of bonnet is what a mullion would have cost. See
+            // The pane windows come from the glass geometry constants, and the criterion is the
+            // light between the occupants and the cabin's two outer pillars. The pillar between
+            // the two heads is not one of them: each head owing 15% of its own half would need
+            // about six more units of glass than the cabin holds. See
             // [SceneObjectRenderer.CAR_HEAD_X_UNITS].
             val (paneL, paneR) = if (isTruck) TRUCK_PANE else cabinPane(shell!!)
             val xFrom = (centreX + paneL * px).toInt().coerceIn(0, WIDTH - 1)
@@ -1205,9 +1160,9 @@ class VehicleOccupantScaleTest {
                 // A head is a *run* of occupant ink, not a stray pixel. The anti-aliased edge
                 // where a raked A-pillar meets the glass blends the body's tint toward the
                 // occupant palette, and on a warm-tinted car a few of those pixels land inside
-                // the skin tolerance -- which read as a head pressed against the pillar when
+                // the skin tolerance -- which would read as a head pressed against the pillar if
                 // the scan took the leftmost matching pixel. MIN_RUN_PX is the same floor the
-                // head-gap scan already uses for the same reason.
+                // head-gap scan uses for the same reason.
                 val glassXs = mutableListOf<Int>()
                 val runs = mutableListOf<IntArray>()
                 var runStart = -1
@@ -1224,11 +1179,10 @@ class VehicleOccupantScaleTest {
                 return if (runs.isEmpty() || glassXs.isEmpty()) null else Triple(runs, 0, glassXs)
             }
 
-            // **The head's own width, which is what the light is a share of.** v4.18 divided by
-            // the pane, so the criterion moved every time the glass did and had to be lowered
-            // from 15% to 13% to pay for a wider cabin. Item 6 of BACKLOG_v4_19.md asked for it
-            // against the head instead; the floor is 15%, derived in VehiclePedestrianScaleTest
-            // from what a band of glass under ~3 px reads as at the far lane.
+            // **The head's own width, which is what the light is a share of.** A share of the
+            // pane would move every time the glass did; against the head the floor is 15%,
+            // derived in VehiclePedestrianScaleTest from what a band of glass under ~3 px reads
+            // as at the far lane.
             // **One head's width, not the pair's span.** The rows where both occupants show
             // carry two runs; taking min-to-max across the row would make the denominator the
             // whole seated pair, which halves every ratio and is not what "a share of the head"
@@ -1262,7 +1216,7 @@ class VehicleOccupantScaleTest {
                         "headWidth ${"%.1f".format(headWidth / u)}"
                 }
             }
-            android.util.Log.i("v419-light", "$type/$shell worst pillar light ${"%.2f".format(worst * 100)}% of head at $worstAt")
+            android.util.Log.i("VehicleOccupantLight", "$type/$shell worst pillar light ${"%.2f".format(worst * 100)}% of head at $worstAt")
             report += "$type/$shell ${"%.1f".format(worst * 100)}%"
             if (worst < 0.15f) {
                 tight += "$type/$shell: the narrowest head-to-pillar light is " +
@@ -1279,30 +1233,26 @@ class VehicleOccupantScaleTest {
     /**
      * **The two heads are separated by clear glass, and neither occludes the other.**
      *
-     * The defect this closes: rc5 seated two people 11.5 units apart when the widest head band
-     * is 18.08 units, so the front bust cut the rear one's hair and the pair read as one mass
-     * with two faces rather than as two seats. Nothing in rc5's criteria caught it -- the fill
-     * criterion is *satisfied* by pressing the two together, which is the cheapest way to fill
-     * glass, and the pillar light only looks at the outer edges.
+     * Two people seated 11.5 units apart, when the widest head band is 18.08 units, put the front
+     * bust over the rear one's hair, and the pair reads as one mass with two faces rather than as
+     * two seats. No other criterion here catches it: the fill criterion is *satisfied* by pressing
+     * the two together, which is the cheapest way to fill glass, and the pillar light only looks
+     * at the outer edges.
      *
      * Measured on the rendered pixels, every row from the crown down to the chin line, both
      * lanes, all three civilian types:
      *
      *  * the ink on the row must form **exactly two runs** -- one run means the heads have
-     *    merged, which is the rc5 defect;
+     *    merged;
      *  * what lies between them must be at least **3% of the pane's width**.
      *
-     * **v5.6F: what separates two heads may be glass or it may be the car.** Until v5.5 a cabin
-     * was one hole and the only thing that could stand between the two busts was clear glass, so
-     * "ink" was simply "not glass" and the pillar question did not arise. «Cut-out» cuts *two*
-     * holes with 3.5 units of body paper between them, and the two occupants sit in different
-     * windows -- which is a *stronger* separation than clear glass and read as a merge to a scan
-     * that called everything non-glass an occupant. So the complement is taken against glass
-     * **and** the body's own tint, sampled from the roof band of the very car being measured
-     * rather than assumed, and the criterion is unchanged in what it asserts: two marks, and
-     * something of the car between them. The old wording is kept above because the defect it was
-     * written for -- two busts pressed into one mass -- is exactly as fatal behind two panes as
-     * behind one.
+     * **What separates two heads may be glass or it may be the car.** «Cut-out» cuts *two* holes
+     * with 3.5 units of body paper between them, and the two occupants sit in different windows --
+     * a *stronger* separation than clear glass, which a scan calling everything non-glass an
+     * occupant would read as a merge. So the complement is taken against glass **and** the body's
+     * own tint, sampled from the roof band of the very car being measured rather than assumed:
+     * two marks, and something of the car between them. Two busts pressed into one mass are
+     * exactly as fatal behind two panes as behind one.
      *
      * **Below the chin the busts are allowed to meet, and are meant to**: two people sitting one
      * behind the other occlude at the shoulders, and that contact is the depth cue that says
@@ -1344,9 +1294,8 @@ class VehicleOccupantScaleTest {
                 // criterion is about is the head band, and its top two units are the tip of the
                 // hair, where a head is a couple of pixels wide and two crowns are legitimately
                 // close: what the criterion is about is whether two *people* read as two, and
-                // that is decided below the dome. v4.18's pane happened to start below the
-                // crown so the question never arose; v4.19's is 25 units and starts four above
-                // it, and scanning those rows asks whether two hair-tips are separated rather
+                // that is decided below the dome. The 25-unit pane starts above the crown, and
+                // scanning from its ceiling would ask whether two hair-tips are separated rather
                 // than whether two people are.
                 val crown = SceneObjectRenderer.CAR_SILL_Y_UNITS -
                     SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
@@ -1386,15 +1335,14 @@ class VehicleOccupantScaleTest {
                     }
                     if (runStart >= 0 && glassMax - runStart >= MIN_RUN_PX) runs.add(intArrayOf(runStart, glassMax))
                     // **A person is at least two units of car wide; a seam between two pieces of
-                    // car is a pixel or two.** v5.6F: the pillar that «Cut-out» leaves between
-                    // the two panes meets the glass's shadow band in a two-pixel blend which is
-                    // neither glass, nor the shell's tint, nor anybody -- and a
-                    // complement-of-glass scan counted it as a third occupant. Taking the
-                    // complement is still right, because the palette misses the brown hair and
-                    // every anti-aliased fringe; what it must not do is *invent* a person out of
-                    // the seam where two pieces of car meet. Measured on this build at both
-                    // lanes: the phantom run is 0.4 units wide and the narrowest real head run in
-                    // the scanned band is 13.
+                    // car is a pixel or two.** The pillar that «Cut-out» leaves between the two
+                    // panes meets the glass's shadow band in a two-pixel blend which is neither
+                    // glass, nor the shell's tint, nor anybody -- and a complement-of-glass scan
+                    // would count it as a third occupant. Taking the complement is still right,
+                    // because the palette misses the brown hair and every anti-aliased fringe;
+                    // what it must not do is *invent* a person out of the seam where two pieces of
+                    // car meet. Measured on this build at both lanes: the phantom run is 0.4 units
+                    // wide and the narrowest real head run in the scanned band is 13.
                     val minRunUnits = 2f * px
                     runs.retainAll { r -> (r[1] - r[0] + 1) >= minRunUnits }
                     if (runs.isEmpty()) continue
@@ -1430,7 +1378,7 @@ class VehicleOccupantScaleTest {
                 }
                 assertTrue("$type on lane $lane: no rows carried occupant ink", rowsChecked > 0)
                 android.util.Log.i(
-                    "rc6-gap",
+                    "VehicleOccupantGap",
                     "$type lane=$lane narrowest head-to-head gap ${"%.2f".format(worstGap * 100)}% " +
                         "over $rowsChecked rows",
                 )
@@ -1444,14 +1392,12 @@ class VehicleOccupantScaleTest {
         }
     }
 
-    // ------------------------------------------------------------------ what did not change
+    // ------------------------------------------------------------------ the vehicle itself
 
     /**
-     * The car is exactly the size v4.5 drew it.
+     * The car is drawn at the size the size table gives it.
      *
-     * The batch was allowed to enlarge the vehicle if the measurements demanded it, and they did
-     * not: the projection was already right and only its occupants were wrong. Measured from the
-     * frame rather than from the constants, so a change to `CAR_METRES_TALL`,
+     * Measured from the frame rather than from the constants, so a change to `CAR_METRES_TALL`,
      * `PIXELS_PER_METRE_AT_REFERENCE` or the lane fractions all fail here.
      */
     @Test
@@ -1460,7 +1406,7 @@ class VehicleOccupantScaleTest {
             // The same road with the car held off screen: `progress` below -0.05 is culled by the
             // draw loop, and the road's own width comes from the layout rather than from the cars
             // that survive, so the two frames differ by exactly one vehicle.
-            // v4.19: a plain car wears one of three bodies and they are deliberately not the
+            // A plain car wears one of three bodies and they are deliberately not the
             // same height, so the prediction has to ask which one this vehicle is rather than
             // assume the family's reference.
             val shell = CarShell.forCar(
@@ -1477,12 +1423,11 @@ class VehicleOccupantScaleTest {
                 frame.getPixels(rowB, 0, WIDTH, 0, y, WIDTH, 1)
                 for (x in 0 until WIDTH) {
                     if (rowA[x] == rowB[x]) continue
-                    // The ground shadow is translucent and the car itself is opaque, which is what
-                    // separates them -- but the frame is composited, so every pixel in it has
-                    // alpha 255 and the test this line used to be could never fire. It did not
-                    // show while the shadow was drawn 37 units up, inside the body's own outline;
-                    // on the road it straddles the wheel contact and this measurement became the
-                    // car plus half an oval. See [SceneGolden.isGroundShadowOnly].
+                    // The ground shadow is translucent and the car itself is opaque, but the frame
+                    // is composited, so every pixel in it has alpha 255 and an alpha test cannot
+                    // tell them apart. The shadow straddles the wheel contact, and without this the
+                    // measurement would be the car plus half an oval. See
+                    // [SceneGolden.isGroundShadowOnly].
                     if (SceneGolden.isGroundShadowOnly(rowA[x], rowB[x])) continue
                     if (y < top) top = y
                     if (y > bottom) bottom = y
@@ -1491,8 +1436,8 @@ class VehicleOccupantScaleTest {
             }
             val height = (bottom - top + 1).toFloat()
             val predicted = shell.unitsTall * unitPx(lane, CarType.PLAIN)
-            // **2.5 px of measurement slop plus the cut edge's own wobble**, which is v5.6F's
-            // addition and not a loosening. `unitsTall` is the height the size table *governs* --
+            // **2.5 px of measurement slop plus the cut edge's own wobble**, which is not a
+            // loosening. `unitsTall` is the height the size table *governs* --
             // roof line to wheel contact -- and «Cut-out» cuts both of those edges with a
             // per-vertex wobble of up to 0.6 units, so the drawn extent legitimately overshoots
             // the governed one by up to that much at each end. Measured on this build: the estate
@@ -1511,7 +1456,7 @@ class VehicleOccupantScaleTest {
 
     private companion object {
         /** Twice a real phone's viewport. The goldens' 360x800 is too coarse to measure a face
-         * on, and rc4 doubled the ruler again: at 1080x2400 a far-lane face is ~15 px, where one
+         * on, and so is the phone's own 1080x2400: there a far-lane face is ~15 px, where one
          * pixel of blob quantisation is 7% of a measurement judged against a 10% band. The scene
          * is resolution-independent (every proportion this file asserts is a ratio), so the
          * doubling sharpens the ruler without touching what is measured. */
@@ -1533,26 +1478,23 @@ class VehicleOccupantScaleTest {
         val LANES = listOf(SceneSpace.ROAD_LANE_FAR_Y_FRACTION, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
 
         /**
-         * **The visible skin these tests used to measure, and why the numbers are only a comment.**
+         * **The visible skin, and why its numbers are only a comment.**
          *
          * The four adult drawings show, crown of the hairline to chin, 62 and 43 rows of skin
          * walking and 77 and 74 seated -- and the head each of them sits on is the same size in
          * all four. As a share of the head block that is 0.861, 0.623, 0.794 and 0.733: a third of
-         * the quantity is haircut. Two of these tests were built on it, and B "Relief" is where
-         * that stopped working; they measure the head block now (see [headBlock]). The numbers are
-         * kept here because they are the reason, and `OccupantHeadFitTest` re-measures the artwork
-         * itself so nothing here has to hold a copy of it.
+         * the quantity is haircut, so these tests measure the head block instead (see [headBlock]).
+         * The numbers are kept here because they are the reason, and `OccupantHeadFitTest`
+         * re-measures the artwork itself so nothing here has to hold a copy of it.
          */
 
         /**
          * The skin an occupant can be drawn in.
          *
-         * **Read out of `PeopleColours` since v4.30 rather than copied off the artwork.** It used
-         * to be four colours because each family was painted in its own and the tone copies moved
-         * that one colour; the tone is now a number the engine multiplies a weight mask by, so the
-         * set of skins a frame can contain is exactly the set `PeopleColours` deals from. A copy of
-         * a palette is the thing this class has already been caught holding -- see
-         * [OCCUPANT_EXTRA_COLOURS] -- and this is the version of it that cannot go stale.
+         * **Read out of `PeopleColours` rather than copied off the artwork.** The tone is a number
+         * the engine multiplies a weight mask by, so the set of skins a frame can contain is
+         * exactly the set `PeopleColours` deals from, and a list derived from it cannot go stale
+         * the way a copied palette does (see [OCCUPANT_EXTRA_COLOURS]).
          */
         val SKIN_TONES = PeopleColours.SKIN.map { channelsOf(it) }
 
@@ -1560,16 +1502,12 @@ class VehicleOccupantScaleTest {
          * The occupants' non-skin colours, for the scan that checks nothing of an occupant is
          * painted outside its own pane.
          *
-         * **This was a hand-written copy of the artwork's palette, and it had been wrong twice.**
-         * v4.25 re-measured it on the shipped PNGs and found two of its seven entries matched
-         * nothing at all: the woman's hair had been recorded as `F7CE64`, which is really her
-         * hairband, and the boy's shirt as `6BA84F`. Neither was a *missing* pixel to the scan --
-         * it was a pixel the scan could not see, which makes a gate quietly weaker rather than
-         * noisily wrong. Between them they covered 113 621 pixels of the shipped summer people.
-         *
-         * v4.30 removed the copy. The head and the garments are dealt from `PeopleColours`, so the
-         * colours a frame can contain are that object's own palettes -- and the one colour that is
-         * still painted rather than dealt, the seatbelt, is named here because it is the only one.
+         * **Derived, not copied.** The head and the garments are dealt from `PeopleColours`, so
+         * the colours a frame can contain are that object's own palettes. A hand-written copy of a
+         * palette goes wrong quietly: a wrong entry is not a *missing* pixel to the scan but a
+         * pixel the scan cannot see, which makes a gate weaker rather than noisily wrong. The one
+         * colour still painted rather than dealt, the seatbelt, is [SEATBELT_COLOUR], named
+         * because it is the only one.
          */
         //
         // **Deduplicated, because the palettes legitimately share colours.** A cap and a shirt can
@@ -1578,13 +1516,9 @@ class VehicleOccupantScaleTest {
         // twice would only make the scan do the same comparison twice. What the scan asks is "is
         // this pixel an occupant colour", never "which region is it".
         //
-        // **And there is no hand-written entry left.** The seventh entry of the old list was
-        // `#EFDFC4` and was labelled "the seatbelt (rc4 frontal busts)"; the seatbelt is drawn
-        // `#3A3F4A` and always has been -- `#EFDFC4` is the man's summer trousers. That is the
-        // *third* wrong entry this list has been caught with: v4.25 re-measured it and found two
-        // (the woman's hair and the boy's shirt), and this one survived that pass because a wrong
-        // colour is invisible to a scan rather than noisy. The list is derived now, and the one
-        // colour that is painted rather than dealt turns out to be one the outfits already deal.
+        // **And there is no hand-written entry.** The seatbelt is drawn `#3A3F4A`, a colour the
+        // outfits already deal, so the derived list covers it, and
+        // `everyColourThisClassScansForIsOneThePeopleCanBeDrawnIn` checks that it is painted.
         val OCCUPANT_EXTRA_COLOURS =
             (PeopleColours.HAIR + PeopleColours.CAP + PeopleColours.OUTFITS)
                 .distinct().map { channelsOf(it) }
@@ -1638,7 +1572,7 @@ class VehicleOccupantScaleTest {
          */
         const val INK_DISTANCE = 40
 
-        /** rc5's criterion, unmoved: the heads fill half the glass at the head band... */
+        /** The heads fill half the glass at the head band... */
         const val BAND_FILL_FLOOR = 0.50f
 
         /** ...and half of it averaged over the head's own rows. */
@@ -1647,11 +1581,9 @@ class VehicleOccupantScaleTest {
         /**
          * Where the head-to-head gap stops being measured: the chin line, less a margin.
          *
-         * **Derived in v4.19 rather than stated.** It was the literal 7.5, chosen against a sill
-         * of 12; the sill is 9 now and the chin sits at 4.72, so the old number was three units
-         * *below* the chin -- inside the shoulder band, where the busts are meant to meet and
-         * where the seat back between them is legitimately visible. Scanning there asked the
-         * two-runs question of three objects.
+         * **Derived rather than stated**: a literal stays put when the sill or the bust scale
+         * moves, and a line below the chin is inside the shoulder band, where the busts are meant
+         * to meet and the two-runs question has no right answer.
          *
          * The chin is the bust canvas's own geometry: the head is [HEAD_CAR_HEAD_UNITS] of the
          * [HEAD_CAR_ANCHOR_Y_UNITS]-unit canvas, so the rest of the canvas below it is neck and
@@ -1664,7 +1596,7 @@ class VehicleOccupantScaleTest {
         /** Anti-aliased fringe is not an occupant. Two pixels of run is. */
         const val MIN_RUN_PX = 2
 
-        /** The clear glass the closing pass requires between the two heads, as a share of the pane. */
+        /** The clear glass required between the two heads, as a share of the pane. */
         const val GAP_FRACTION = 0.03f
 
         /**
@@ -1685,12 +1617,11 @@ class VehicleOccupantScaleTest {
          * would flatter the pillar light and flatten the fill, so the cabin pane stops at the
          * B-pillar.
          *
-         * **v5.6F: both numbers come off the shell, and neither is the sprite's.** «Cut-out» puts
-         * the glass behind the body paper and cuts the panes out of it, so `car_window_*` is a
-         * unit wider than the hole on every side and the estate's exclusion stopped being the
-         * only reason these two differed. [CarShell.paneXUnits] and [CarShell.paneWidthUnits] are
-         * the hole an occupant is seen through, which is what every criterion below means by the
-         * pane; `ESTATE_CABIN_PANE_WIDTH_UNITS` moved into that declaration with them.
+         * **Both numbers come off the shell, and neither is the sprite's.** «Cut-out» puts the
+         * glass behind the body paper and cuts the panes out of it, so `car_window_*` is a unit
+         * wider than the hole on every side. [CarShell.paneXUnits] and [CarShell.paneWidthUnits]
+         * are the hole an occupant is seen through, which is what every criterion below means by
+         * the pane.
          */
         fun cabinPane(shell: CarShell): Pair<Float, Float> {
             val left = shell.paneXUnits
@@ -1702,13 +1633,10 @@ class VehicleOccupantScaleTest {
          * body's own local units.
          *
          * **This is `cabinPane` plus the two vertical edges, and it exists as a function on
-         * purpose.** The four numbers used to be computed inline inside
-         * `noOccupantPixelLeavesTheGlass`, whose body is large enough that the BV6600's runtime
-         * evaluated the two vertical ones as `0.0` while the constants they are assigned from read
-         * -16.0 and 9.0 correctly on the same line — a degenerate, zero-height pane that counted
-         * every occupant pixel as being outside the glass. The arithmetic is unchanged, every
-         * constant is the same one, and the branch is the same branch; only where it is evaluated
-         * moved. See `BACKLOG_v4_22.md` item 35.
+         * purpose.** Computed inline inside `noOccupantPixelLeavesTheGlass`, whose body is large,
+         * the BV6600's runtime evaluates the two vertical ones as `0.0` while the constants they
+         * are assigned from read correctly on the same line -- a degenerate, zero-height pane that
+         * counts every occupant pixel as being outside the glass.
          */
         fun glassPane(type: CarType, shell: CarShell?): FloatArray {
             val isTruck = type == CarType.FIRE_TRUCK

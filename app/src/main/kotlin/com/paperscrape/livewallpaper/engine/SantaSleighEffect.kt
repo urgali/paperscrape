@@ -2,19 +2,18 @@ package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Paint
 import kotlin.math.sin
-import kotlin.random.Random
 
 /**
  * About once a minute of wallpaper on screen, Santa's sleigh -- pulled by two reindeer -- glides across the upper
  * sky, dropping a little trail of falling gifts as it goes. Purely decorative and self-contained, following the same
  * "periodic event" pattern as [FireworkEffect].
  *
- * **The rhythm** is the one the maintainer kept on 2026-10-19 (*«Tieni il ritmo, cambia la scritta»*): the next
- * flight sets off 25 to 60 s after the last one ends, and a flight lasts 9 to 13 s, so a pass comes every 34 to 73 s
- * of wallpaper on screen, 49 to 106 an hour; the line under *Santa* says "about once a minute".
+ * **The rhythm** is `DESIGN_NOTES.md` §12, decision 73's: the next flight sets off 25 to 60 s after the last one
+ * ends, and a flight lasts 9 to 13 s, so a pass comes every 34 to 73 s of wallpaper on screen, 49 to 106 an hour; the
+ * line under *Santa* says "about once a minute".
  *
- * The group itself is drawn by the caller through [draw]'s `spriteDraw` (since v5.15 [SantaSleighDrawer], from its
- * pieces); only the falling gifts are drawn here. They leave from the presents behind Santa and keep some of the
+ * The group itself is drawn by the caller through [draw]'s `spriteDraw` ([SantaSleighDrawer], from its pieces); only
+ * the falling gifts are drawn here. They leave from the presents behind Santa and keep some of the
  * sleigh's speed as they fall, at the group's scale ([setGroupGeometry]).
  */
 class SantaSleighEffect {
@@ -22,7 +21,7 @@ class SantaSleighEffect {
     /**
      * Blits the sleigh: its centre, its facing (+1/-1) and its fade alpha. A `fun interface` with
      * `Float` parameters rather than a function type, which would box all four floats on every
-     * call (v5.10A; see [FireworkEffect.BurstBlit]).
+     * call (see [FireworkEffect.BurstBlit]).
      */
     fun interface SleighBlit {
         fun blit(x: Float, y: Float, dir: Float, alpha: Float)
@@ -31,9 +30,9 @@ class SantaSleighEffect {
     private data class FallingGift(
         val x: Float,
         val startY: Float,
-        /** The sleigh's speed across it keeps for a moment, in px a second, slowing to a stop as it lands (v5.15). */
+        /** The sleigh's speed across it keeps for a moment, in px a second, slowing to a stop as it lands. */
         val vx: Float,
-        /** Half its side, in px: at the group's scale (v5.15). */
+        /** Half its side, in px: at the group's scale. */
         val half: Float,
         val targetY: Float,
         val fallDuration: Float,
@@ -72,13 +71,13 @@ class SantaSleighEffect {
 
     /**
      * Seconds until the sleigh is in the sky: 0 from the moment it sets off to the end of its crossing, out of sight past
-     * the edge of the screen; its countdown to the next flight while it waits. What the Headless Horseman reads to keep out of its way (v5.16,
-     * `HorsemanFlight.SKY_NEEDED_SECONDS`); read only: the sleigh's rhythm is its own and waits for nobody.
+     * the edge of the screen; its countdown to the next flight while it waits. What the Headless Horseman reads to keep out of its way
+     * (`HorsemanFlight.SKY_NEEDED_SECONDS`); read only: the sleigh's rhythm is its own and waits for nobody.
      */
     internal val secondsToFlight: Float get() = if (flying) 0f else maxOf(0f, timeUntilNextFlight)
 
     /**
-     * The group's geometry on this screen, in px (v5.15, [setGroupGeometry]): where a gift leaves the presents behind
+     * The group's geometry on this screen, in px ([setGroupGeometry]): where a gift leaves the presents behind
      * Santa from the flight point (for a group flying left), the gifts' half side, and how far off each edge of the
      * screen a flight starts and ends -- the group's half width or [MIN_MARGIN_PX], whichever is more, so a larger
      * group on a larger screen still sets off and lands out of sight.
@@ -89,9 +88,9 @@ class SantaSleighEffect {
     private var marginPx = MIN_MARGIN_PX
 
     /**
-     * For the tests that count what a frame of the sleigh in flight allocates and packs into the atlas (v5.15,
-     * inventory I-934): from 0 to 1, the flight held at that point of its crossing at every update; negative, the
-     * sleigh flies as it does on the wallpaper. Nothing in the app sets it.
+     * For the tests that count what a frame of the sleigh in flight allocates and packs into the atlas: from 0 to 1,
+     * the flight held at that point of its crossing at every update; negative, the sleigh flies as it does on the
+     * wallpaper. Nothing in the app sets it.
      */
     internal var heldProgress = -1f
 
@@ -102,7 +101,7 @@ class SantaSleighEffect {
     private val giftRibbonColor = 0xFFF2C230.toInt()
 
     /**
-     * The group's size on this screen (v5.15), from the renderer whenever the screen's size changes: where a gift
+     * The group's size on this screen, from the renderer whenever the screen's size changes: where a gift
      * leaves the presents ([sackDx], [sackDy] px from the flight point, for a group flying left), its half side
      * ([giftHalf] px), and the group's half width ([groupHalfWidth] px), which keeps a flight starting and ending out
      * of sight.
@@ -116,8 +115,8 @@ class SantaSleighEffect {
 
     fun update(deltaSeconds: Float, enabled: Boolean, screenWidth: Float, screenHeight: Float) {
         // Falling gifts keep animating even if the flight itself is disabled mid-drop. By index,
-        // from the end so a removal does not skip the next gift: an iterator here was an object
-        // every frame, gifts or none (v5.10A). `removeAt` keeps the others in order.
+        // from the end so a removal does not skip the next gift: an iterator here would be an object
+        // every frame, gifts or none. `removeAt` keeps the others in order.
         for (i in fallingGifts.size - 1 downTo 0) {
             val g = fallingGifts[i]
             g.age += deltaSeconds
@@ -138,13 +137,13 @@ class SantaSleighEffect {
             giftDropTimer -= deltaSeconds
             if (giftDropTimer <= 0f && flightProgress in 0.1f..0.9f) {
                 spawnFallingGift(screenWidth, screenHeight)
-                giftDropTimer = 0.9f + Random.nextFloat() * 0.6f
+                giftDropTimer = 0.9f + SceneRandom.source.nextFloat() * 0.6f
             }
             if (heldProgress >= 0f) {
                 flightProgress = heldProgress
             } else if (flightProgress >= 1f) {
                 flying = false
-                timeUntilNextFlight = 25f + Random.nextFloat() * 35f // next flight in ~25-60s
+                timeUntilNextFlight = 25f + SceneRandom.source.nextFloat() * 35f // next flight in ~25-60s
             }
         } else {
             timeUntilNextFlight -= deltaSeconds
@@ -157,30 +156,22 @@ class SantaSleighEffect {
     private fun startFlight(screenHeight: Float) {
         flying = true
         flightProgress = 0f
-        flightDuration = 9f + Random.nextFloat() * 4f
-        flightY = screenHeight * (0.10f + Random.nextFloat() * 0.16f)
-        reverse = Random.nextBoolean()
+        flightDuration = 9f + SceneRandom.source.nextFloat() * 4f
+        flightY = screenHeight * (0.10f + SceneRandom.source.nextFloat() * 0.16f)
+        reverse = SceneRandom.source.nextBoolean()
         giftDropTimer = 1.2f
     }
 
     private fun spawnFallingGift(screenWidth: Float, screenHeight: Float) {
         val x = currentX(screenWidth)
-        // Lands on the pavement, which is what "falls all the way down to curb/house level" was
-        // always supposed to mean, and now derives the band instead of restating it.
-        //
-        // It used to target `0.83 + rnd * 0.03`, hardcoded, with a comment claiming it matched
-        // "the same road-safe placement band static houses use". It did not, and had not since the
-        // v76.5-v76.7 road moves relocated the lanes: houses stop at
-        // OBJECT_BAND_BOTTOM_Y_FRACTION (0.790), the painted carriageway runs 0.8178..0.8782, and
-        // its two wheel lines sit at 0.834 and 0.862 -- so every gift was aimed *between the wheel
-        // lines*, and this effect draws after the cars, putting a gift over a car roof whenever a
-        // drop met traffic. The fade-out hid most of it, which is why it survived.
-        //
-        // Deriving from PAVEMENT_FAR/NEAR is the part that matters: the next time the road moves,
-        // this moves with it rather than being stranded again.
+        // Lands on the pavement, the band derived from PAVEMENT_FAR/NEAR rather than restated, so it
+        // moves with the road. Houses stop at OBJECT_BAND_BOTTOM_Y_FRACTION (0.790), the painted
+        // carriageway runs 0.8178..0.8782 and its two wheel lines sit at 0.834 and 0.862; this effect
+        // draws after the cars, so a gift aimed at the road would land over a car roof whenever a
+        // drop met traffic.
         val targetY = screenHeight * (
             SceneSpace.PAVEMENT_FAR_Y_FRACTION +
-                Random.nextFloat() *
+                SceneRandom.source.nextFloat() *
                 (SceneSpace.PAVEMENT_NEAR_Y_FRACTION - SceneSpace.PAVEMENT_FAR_Y_FRACTION)
             )
         // From the presents behind Santa ([giftStartX]), and with half the sleigh's speed across, the way it flies,
@@ -193,8 +184,8 @@ class SantaSleighEffect {
                 vx = speed * GIFT_KEEPS_SPEED,
                 half = giftHalfPx,
                 targetY = targetY,
-                fallDuration = 1.6f + Random.nextFloat() * 0.5f,
-                colorIndex = Random.nextInt(giftBoxColors.size),
+                fallDuration = 1.6f + SceneRandom.source.nextFloat() * 0.5f,
+                colorIndex = SceneRandom.source.nextInt(giftBoxColors.size),
             ),
         )
     }
@@ -205,8 +196,8 @@ class SantaSleighEffect {
         return if (reverse) screenWidth - raw else raw
     }
 
-    /** Fades in over the first ~8% of the flight and back out over the last ~8%, instead of the
-     * group just vanishing the instant it crosses off-canvas. */
+    /** Fades in over the first ~8% of the flight and back out over the last ~8%, so the group
+     * does not just vanish the instant it crosses off-canvas. */
     private fun edgeFadeAlpha(progress: Float): Float {
         val fadeZone = 0.08f
         return when {
@@ -228,7 +219,7 @@ class SantaSleighEffect {
     }
 
     /**
-     * The group itself is drawn from sprites -- since v5.15 its pieces, by [SantaSleighDrawer] -- and this class has
+     * The group itself is drawn from sprites -- its pieces, by [SantaSleighDrawer] -- and this class has
      * no [android.content.Context]/[SpriteCache] access of its own, so the drawing is delegated back to the caller
      * (which already has it) via [spriteDraw]. Falling gifts stay vector here -- they're cheap (one rect + a ribbon
      * cross + two small triangles, only while any are actually falling) and their per-gift fade/rotation state lives
@@ -239,7 +230,7 @@ class SantaSleighEffect {
      * frame only while actually flying and not fully faded out.
      */
     fun draw(canvas: SceneCanvas, elapsedSeconds: SceneTime, screenWidth: Float, spriteDraw: SleighBlit) {
-        // By index: a `for (g in fallingGifts)` builds an iterator every frame (v5.8C).
+        // By index: a `for (g in fallingGifts)` builds an iterator every frame.
         for (i in fallingGifts.indices) {
             val g = fallingGifts[i]
             val progress = (g.age / g.fallDuration).coerceIn(0f, 1f)
@@ -267,7 +258,7 @@ class SantaSleighEffect {
     }
 
     /**
-     * A gift at its half side [FallingGift.half] (v5.15: the group's scale; 11 px on every screen until then), the
+     * A gift at its half side [FallingGift.half] (the group's scale), the
      * ribbon and the bow in proportion to it -- the ribbon never narrower than [MIN_RIBBON_PX].
      */
     private fun drawFallingGift(canvas: SceneCanvas, g: FallingGift, fade: Float) {
@@ -280,7 +271,7 @@ class SantaSleighEffect {
         fillPaint.color = fadeColor(giftBoxColors[g.colorIndex], fade)
         canvas.drawRect(-h, -h, h, h, fillPaint)
         // Ribbon cross + a small bow on top, matching the static gift-under-the-tree look --
-        // a flat, unadorned square read as a bomb/mine rather than a wrapped present.
+        // a flat, unadorned square reads as a bomb/mine rather than a wrapped present.
         fillPaint.color = fadeColor(giftRibbonColor, fade)
         canvas.drawRect(-r, -h, r, h, fillPaint)
         canvas.drawRect(-h, -r, h, r, fillPaint)
@@ -292,7 +283,7 @@ class SantaSleighEffect {
     }
 
     companion object {
-        /** The least distance off each edge of the screen a flight starts and ends at, in px: the 5.14's margin. */
+        /** The least distance off each edge of the screen a flight starts and ends at, in px. */
         const val MIN_MARGIN_PX = 160f
 
         /** Which way a flight crosses the screen: -1 to the left ([reverse], the drawings' own way), +1 to the right. */
@@ -311,11 +302,11 @@ class SantaSleighEffect {
         /** How fast a gift turns as it falls, in degrees a second. */
         const val GIFT_TURN_DEGREES_PER_SECOND = 60f
 
-        /** The ribbon's half width and the bow's size, as fractions of the gift's half side (2 and 5 of 11 until v5.15). */
+        /** The ribbon's half width and the bow's size, as fractions of the gift's half side. */
         const val RIBBON_OF_HALF = 2f / 11f
         const val BOW_OF_HALF = 5f / 11f
 
-        /** The ribbon's width is never under the project's 2 px (`DESIGN_NOTES.md` §2). */
+        /** The ribbon's width is never under 2 px, the smallest detail the scene draws anywhere. */
         const val MIN_RIBBON_PX = 2f
     }
 

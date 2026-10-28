@@ -14,8 +14,8 @@ package com.paperscrape.livewallpaper.engine
  *
  * Duplicating the band arithmetic in three call sites is what let one of them drift, so the band's
  * top and height are written once here and the bolt's origin is *derived* from them rather than
- * sitting beside them; the rain still adds the half-height at its own call site, and
- * [precipitationOriginY] states the same line for the tests. Pure float arithmetic on primitives
+ * sitting beside them, and so is the rain's ([precipitationOriginY], which
+ * `PaperRenderer.drawPrecipitation` starts its drops on). Pure float arithmetic on primitives
  * -- no allocation, no Android type, and testable, which is the other half of why it moved out of
  * the renderer.
  */

@@ -11,7 +11,7 @@ import org.junit.Test
  * answer is "yes" for exactly as long as one engine that is not a preview is alive. Whether the
  * engines report at all is the service's two lines, and whether the count agrees with what the phone
  * shows was measured on the BV6600 in its three states -- ours bound, another wallpaper bound, and
- * ours recorded after a force-stop with no engine attached (ROADMAP row A20).
+ * ours recorded after a force-stop with no engine attached.
  */
 class WallpaperEngineCensusTest {
 

@@ -1,7 +1,7 @@
-"""The Halloween scarecrow (v5.16): `scarecrow/build_scarecrow.py` draws it and declares it, from one geometry.
+"""The Halloween scarecrow: `scarecrow/build_scarecrow.py` draws it and declares it, from one geometry.
 
-The maintainer chose the scarecrow B, the Halloween scarecrow, and its size, 2.4 m from the pole's foot to the hat's tip
-(2026-10-21). These hold that the two SVG sources, the two PNGs the pipeline renders of them and `ScarecrowTable.kt` are
+The scarecrow is the Halloween scarecrow, 2.4 m from the pole's foot to the hat's tip (`DESIGN_NOTES.md` §12, decision
+80). These hold that the two SVG sources, the two PNGs the pipeline renders of them and `ScarecrowTable.kt` are
 the generator's output today; that no piece of any colour of the scarecrow -- by day, and at night with its light laid over
 it where the table blits it -- is under 2 px everywhere where it stands farthest on the BV6600 (a snowman's farthest place,
 read from `SceneObjectCatalog`, at the smallest size roll), on the SVGs rendered without antialiasing; that the face's paper
@@ -30,7 +30,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(TOOL_ROOT / "scarecrow"))
 
 import build_scarecrow  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 PX = 3
 ENGINE = TOOL_ROOT.parent.parent / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine"
@@ -45,7 +45,12 @@ def farthest_px_tall() -> float:
 
     def c(name):
         return float(re.search(rf"const val {name} = ([0-9.]+)f", space).group(1))
-    depth = float(re.search(r"generateStaticCandidates\(SceneObjectType\.SNOWMAN, seed \+ \d+, ([0-9.]+)f\.\.", catalog).group(1))
+    # The snowmen's band, written in the call or named by a value of the same file.
+    band = re.search(r"generateStaticCandidates\(SceneObjectType\.SNOWMAN, seed \+ \d+, ([0-9.]+f\.\.[0-9.]+f|[A-Z_]+)\)",
+                     catalog).group(1)
+    if band[0].isalpha():
+        band = re.search(rf"val {band} = ([0-9.]+f\.\.[0-9.]+f)", catalog).group(1)
+    depth = float(band.split("f..")[0])
     top = c("HILL_LAYER_TOP_FRACTION") + c("HILL_LAYER_HEIGHT_FRACTION") * c("HILL_SOLID_TOP_DEPTH_FRACTION")
     y = top + depth * (c("OBJECT_BAND_BOTTOM_Y_FRACTION") - top)
     perspective = (y - c("HORIZON_Y_FRACTION")) / (c("REFERENCE_Y_FRACTION") - c("HORIZON_Y_FRACTION"))
@@ -153,7 +158,7 @@ class ScarecrowTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what scarecrow/build_scarecrow.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what scarecrow/build_scarecrow.py writes: run it with --res")
 
     def test_the_farthest_place_is_the_generators(self):
         """The size the generator thickens the drawing for is the one the Kotlin sources give today."""

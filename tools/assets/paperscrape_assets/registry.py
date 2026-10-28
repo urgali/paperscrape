@@ -30,10 +30,9 @@ Fields
                     `python -m paperscrape_assets validate`.
 ``contentBox``      `[x0, y0, x1, y1]` in pixels, right and bottom exclusive --
                     the alpha bounding box of what the sprite actually draws.
-                    Declared, not merely measured: `width`/`height` have been
-                    under contract since schema 1, and the box has not, so until
-                    now a regenerated sprite could move its content inside an
-                    unchanged canvas and fail nothing.
+                    Declared, not merely measured: without it a regenerated
+                    sprite could move its content inside an unchanged canvas and
+                    fail nothing.
 ``anchorRule``      how the anchor is derived from the sprite. See
                     :data:`ANCHOR_RULES`. `UNDETERMINED` is a first-class value,
                     not a placeholder.
@@ -63,13 +62,13 @@ placement and carries no anchor at all, which is why `house_large_window` is
 drawn at four different origins.
 
 So an anchor is recorded only where a rule reproduces every observed origin
-exactly; since schema 4 (`PART_LOCAL`, `DECLARED_ATTACHMENT`) every shipped sprite
+exactly; with `PART_LOCAL` and `DECLARED_ATTACHMENT` every shipped sprite
 has one. `UNDETERMINED`, with a stated reason, stays a first-class value for a sprite
 that cannot be given one, the same way `source.kind = "none"` records a sprite that
 cannot be regenerated.
 
-Variant groups (schema 3)
--------------------------
+Variant groups
+--------------
 A second top-level array, ``variants``, declares sets of sprites that exist
 *because they are meant to differ from each other* -- the summer and winter
 person art, today; anything else picked per-instance from a lookup table,
@@ -83,19 +82,16 @@ tomorrow. Each group carries:
               ``IDENTICAL_GAP`` if they are identical and should not be, or
               ``IDENTICAL_BY_CONSTRUCTION`` if they are identical and always
               will be. The third exists because the second is a *defect* state,
-              and until v4.30 this library had twenty-four pairs that were
-              neither: the skin tones were the man's, the woman's and the boy's
-              own shipped skin colours, so each of those characters was identical
-              to one of their own tone copies by definition. v4.30 removed the
-              tone copies; the state stays for the next pair of that kind.
+              and a pair whose identity is arithmetic is neither: a skin-tone
+              copy in a character's own shipped skin colour is identical to that
+              character by definition.
 ``reason``    why the group is in that state, in terms of what would change it.
 
 The reason this exists is that a variant's *whole purpose* is invisible to every
 other check in this file. Sizes, content boxes, anchors, scales and tints are all
 per-sprite properties, and two byte-identical files satisfy every one of them
-while the feature they implement does nothing. That is what happened: v73 shipped
-seasonal outfits for window occupants and drivers, and the summer and winter head
-PNGs were the same file, so the feature had no visible effect and nothing failed.
+while the feature they implement does nothing: seasonal outfits whose summer and
+winter PNGs are the same file have no visible effect, and nothing else fails.
 
 ``IDENTICAL_GAP`` is a first-class value, like ``UNDETERMINED`` and
 ``source.kind = "none"``. It records artwork that is missing, and `validate`
@@ -106,10 +102,9 @@ matters in practice -- it is what makes drawing the missing artwork produce a
 failure that says so, rather than a silent success nobody records.
 
 Byte-identical sprites that are *not* a variant group are a different thing
-entirely: one drawing reached through two names, which Phase 3.4 removed by
-deleting the copy and pointing both call sites at the survivor. Those must not
-come back, so `validate` also fails on any byte-identical pair that no group
-declares.
+entirely: one drawing reached through two names, which belongs in one file with
+every call site pointing at it. So `validate` also fails on any byte-identical pair that no
+group declares.
 """
 
 from __future__ import annotations
@@ -118,11 +113,10 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-# The registry document is at 4. The constant was left at 3 when the schema moved,
-# which made every command that loads the registry -- render, validate, compare,
-# normalize, all -- fail before doing anything. The loader below already reads and
-# validates every field the version 4 document carries, so the constant was simply
-# stale rather than the document being ahead of the code.
+# The registry document's schema. Every command that loads the registry -- render,
+# validate, compare, normalize, all -- refuses a document at any other version before
+# doing anything; the loader below reads and validates every field the version 4
+# document carries.
 SCHEMA_VERSION = 4
 
 SCALES = ("SCENE_UNITS", "CANVAS_PIXELS")
@@ -146,9 +140,8 @@ USAGES = ("referenced", "orphan")
 
 #: What a variant group's members vary along.
 #:
-#: ``skin`` joins ``season`` because the pixel-based duplicate check made twenty-four skin-tone
-#: identities visible that the old byte-based one could not see. They are not seasonal pairs and
-#: calling them so would have been the easy lie.
+#: ``skin`` stands beside ``season`` for skin-tone identities, which the pixel-based duplicate
+#: check sees. They are not seasonal pairs and calling them so would be the easy lie.
 VARIANT_AXES = ("season", "skin")
 
 #: Whether a variant group's members currently differ. ``IDENTICAL_GAP`` is a
@@ -168,15 +161,13 @@ SPRITE_PIXELS_PER_UNIT = 3
 #:     ground-anchoring rule: an object standing on the ground meets it along the
 #:     bottom edge of what is drawn, not of the canvas around it.
 #: ``SPRITE_CENTRE``
-#:     The sprite's centre. Only valid where the content is centred in the
-#:     bitmap, which `validate` checks -- so trimming padding asymmetrically
-#:     fails here instead of silently moving the anchor.
+#:     The bitmap's centre, wherever the ink sits inside it: the rule says how the
+#:     sprite is placed, not that its content is centred. A crescent moon's content
+#:     is off-centre and the moon is placed by its bitmap's centre all the same.
 #: ``UNDETERMINED``
 #:     No anchor is determined by the evidence. Carries a reason, no anchor.
-#: `PART_LOCAL` and `DECLARED_ATTACHMENT` arrived with schema 4 and are documented
-#: in `DESIGN_NOTES.md`; until they were added here the registry document could not
-#: be loaded at all. `UNDETERMINED` is retained: it is a first-class value, and
-#: removing it would change what a future gap is allowed to say.
+#: `PART_LOCAL` and `DECLARED_ATTACHMENT` are documented in
+#: `tools/assets/README.md`. `UNDETERMINED` is a first-class value: it is what a gap says.
 ANCHOR_RULES = (
     "CONTENT_BOTTOM_CENTRE",
     "SPRITE_CENTRE",
@@ -219,9 +210,8 @@ class SpriteSpec:
         Only the two geometric rules are. `PART_LOCAL` and `DECLARED_ATTACHMENT` are
         *declarations* -- a part's zero, and the joint another sprite attaches to --
         and neither is recoverable from a bounding box, so demanding a derivation
-        for them reported forty-nine sprites as failing a rule they do not claim to
-        follow. That message even named `SPRITE_CENTRE`'s centring condition, which
-        no part had ever asserted.
+        for them would report forty-nine sprites as failing a rule they do not claim
+        to follow.
         """
         return self.anchor_rule in ("CONTENT_BOTTOM_CENTRE", "SPRITE_CENTRE")
 
@@ -235,9 +225,7 @@ class SpriteSpec:
         about the parent's coordinates -- and a `DECLARED_ATTACHMENT` is positioned
         by the joint it attaches to, not by its own box.
 
-        Checking those two against the origin was comparing unrelated numbers. It
-        never showed, because the only file that blits them did not resolve at all
-        until defect D-4 was fixed.
+        Checking those two against the origin would compare unrelated numbers.
         """
         return self.anchor_rule in ("CONTENT_BOTTOM_CENTRE", "SPRITE_CENTRE")
 
@@ -247,7 +235,7 @@ class SpriteSpec:
 
         The two authoring conventions are exactly this factor apart, and it is
         the reason a sprite's size, its convention and its origin are only
-        correct together (defect D-1).
+        correct together.
         """
         return 1.0 / SPRITE_PIXELS_PER_UNIT if self.scale == "SCENE_UNITS" else 1.0
 
@@ -281,29 +269,23 @@ def derive_anchor(
 
     Pixels because that is the unit the registry declares an anchor in -- content
     boxes and anchors are both measured off the PNG -- and the caller compares the
-    two directly. Passing ``units_per_pixel`` here converted the derivation to local
-    units and then compared it against a pixel declaration, so every `SCENE_UNITS`
-    sprite disagreed with itself by a factor of three. It never showed because the
-    file carrying most of those sprites did not resolve at all until D-4 was fixed.
+    two directly. A pixel declaration compared with a point in local units would
+    put every `SCENE_UNITS` sprite three times away from itself, so
+    ``units_per_pixel`` defaults to the identity; it is there for a caller that
+    wants the point in local units.
 
-    ``units_per_pixel`` is kept as a parameter, defaulting to the identity, for a
-    caller that genuinely wants the point in local units.
-
-    Returns ``None`` for ``UNDETERMINED``, and for ``SPRITE_CENTRE`` applied to a
-    sprite whose content is not centred in its bitmap -- that combination is not
-    a rounding question but a statement that has stopped being true.
+    ``CONTENT_BOTTOM_CENTRE`` gives the middle of the content box's bottom edge, and
+    ``SPRITE_CENTRE`` the bitmap's centre whatever the content box. Every other rule
+    returns ``None``: ``UNDETERMINED`` has no anchor, and ``DECLARED_ATTACHMENT`` and
+    ``PART_LOCAL`` carry theirs in the registry rather than derive it.
     """
     x0, y0, x1, y1 = content_box
     width, height = size
     if rule == "CONTENT_BOTTOM_CENTRE":
         point = ((x0 + x1) / 2.0, float(y1))
     elif rule == "SPRITE_CENTRE":
-        # The bitmap's centre, unconditionally. This used to return None unless the
-        # content was *also* centred in the bitmap, which conflated two different
-        # statements: `SPRITE_CENTRE` says the sprite is placed by its bitmap centre,
-        # and says nothing about where its ink sits inside it. A crescent moon's
-        # content is off-centre by construction and is still placed by the bitmap
-        # centre, so the condition reported four correct declarations as broken.
+        # How the sprite is placed, not where its ink sits: a crescent moon's content is
+        # off-centre and the moon is still placed by its bitmap's centre.
         point = (width / 2.0, height / 2.0)
     else:
         return None
@@ -476,11 +458,11 @@ def validate_variants(
     groups: list[VariantGroup],
     digests: dict[str, str],
 ) -> list[str]:
-    """Hold every variant declaration to the bytes that actually ship.
+    """Hold every variant declaration to the drawings that actually ship, by their pixel digests.
 
-    Two independent properties, and the second is the one this phase exists for:
+    Two independent properties:
 
-    1. every declared group agrees with its members' bytes, in **both**
+    1. every declared group agrees with its members' pixels, in **both**
        directions -- a `DISTINCT` group whose members are identical has lost the
        distinction it names, an `IDENTICAL_GAP` group whose members now differ
        has gained artwork the declaration has not caught up with, and an
@@ -604,8 +586,8 @@ def validate_against_callsites(
     Returns the disagreements, and an *unresolved* map recording every sprite the
     comparison could not reach and why. The two are kept apart deliberately: a
     sprite the resolver cannot see has not agreed with anything, and folding it
-    into the pass count would turn "not checked" into "checked and fine" -- which
-    is the shape of failure that let defect D-1 ship.
+    into the pass count would turn "not checked" into "checked and fine", and a
+    sprite drawn at the wrong scale would pass.
     """
     problems: list[str] = []
     unresolved: dict[str, list[str]] = {}
@@ -639,8 +621,8 @@ def validate_against_callsites(
                 # The anchor is declared in the sprite's own pixels; a call site
                 # writes its origin in the units that sprite is blitted in. The two
                 # are `units_per_pixel` apart -- the same factor a sprite's size and
-                # convention are only correct together across, which is defect D-1 --
-                # and this comparison used to skip the conversion entirely.
+                # convention are only correct together across -- and without the
+                # conversion this comparison would set pixels against units.
                 expected = (
                     -spec.anchor[0] * spec.units_per_pixel,
                     -spec.anchor[1] * spec.units_per_pixel,
@@ -654,8 +636,8 @@ def validate_against_callsites(
             elif spec.has_anchor:
                 # Recorded as unreached rather than counted as agreeing. A sprite
                 # this comparison cannot speak about has not been checked, and
-                # folding it into the pass count is the shape of failure that let
-                # defect D-1 ship.
+                # folding it into the pass count would turn "not checked" into
+                # "checked and fine".
                 unresolved.setdefault(spec.name, []).append(
                     f"anchorRule {spec.anchor_rule} does not predict a blit origin"
                 )

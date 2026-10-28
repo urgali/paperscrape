@@ -20,6 +20,15 @@ internal enum class TrimAction {
     RELEASE_ALL,
 }
 
+/** What a GPU trim takes from one engine's textures ([MemoryPressurePolicy.gpuTrimFor]). */
+internal enum class GpuTrim {
+    /** The textures the atlas would not take. The atlas page stays, and the white pixel packed in it. */
+    STANDALONE_TEXTURES,
+
+    /** Every texture, the atlas page and its white pixel included. */
+    EVERYTHING,
+}
+
 /**
  * Decides how aggressively to release cached sprites for a given `onTrimMemory` level.
  *
@@ -62,29 +71,39 @@ internal object MemoryPressurePolicy {
     const val TRIM_MEMORY_COMPLETE = 80
 
     /**
-     * Whether a [TrimAction] should also drop the GPU copies — which is all or nothing.
+     * Whether a [TrimAction] should also ask the engines for their GPU copies; what each one gives back is [gpuTrimFor].
      *
-     * **ARC-11.** The call site said the GPU textures "follow the same policy" as the bitmaps, and
-     * they cannot: `GlSceneTarget.trimTextures` clears the whole atlas, because there is no LRU over
-     * it to evict half of. So a [TrimAction.TRIM_TO_HALF] on a *visible* engine dropped every
-     * uploaded texture and re-uploaded them on the very next frame — a re-upload spike in exchange
-     * for memory the process gives back a frame later, which is the opposite of what the hint asked
-     * for.
+     * The GPU textures cannot follow the bitmaps' policy: there is no LRU over the atlas
+     * to evict half of. So a [TrimAction.TRIM_TO_HALF] that dropped them on a *visible* engine would
+     * drop every uploaded texture and upload them again on the very next frame — a re-upload spike in
+     * exchange for memory the process gives back a frame later, which is the opposite of what the
+     * hint asks for.
      *
      * The distinction is what the pressure level means. `RUNNING_LOW` is "give some back if it is
-     * cheap", and for a visible engine's GPU copies it is not, so the atlas stays (with nothing
-     * visible it maps to `RELEASE_ALL` and goes). `RUNNING_CRITICAL` and everything above it mean
-     * the process is a kill candidate; there the re-upload is worth paying and the atlas goes.
-     * Nothing is visible in the `RELEASE_ALL` cases, and since v5.8C the render thread honours the
-     * drop while parked, on the context and surface it already holds ([GlRenderThread]'s hidden
-     * branch). Until then it waited for the next prepared frame, which only a visible engine
-     * reaches: the atlas stayed allocated all the while the process was a kill candidate and was
-     * dropped on the first visible frame, which paid the re-upload (v5.8B comment audit).
+     * cheap", and for a visible engine's GPU copies it is not, so nothing is asked (with nothing
+     * visible it maps to `RELEASE_ALL`). `RUNNING_CRITICAL` and everything above it mean the process
+     * is a kill candidate, and every engine is asked. Nothing is visible in the `RELEASE_ALL` cases
+     * a wallpaper on screen receives, and the render thread honours the drop while parked, on the
+     * context and surface it already holds ([GlRenderThread]'s hidden branch).
      */
     fun dropsGpuTextures(action: TrimAction): Boolean = when (action) {
         TrimAction.KEEP_ALL, TrimAction.TRIM_TO_HALF -> false
         TrimAction.TRIM_TO_QUARTER, TrimAction.RELEASE_ALL -> true
     }
+
+    /**
+     * What one engine's GPU textures give back when [dropsGpuTextures] asks: **an engine that is drawing keeps its atlas**
+     * and gives back only the textures the atlas would not take; a hidden one gives back everything.
+     *
+     * The atlas is the page the drawing engine's next frame draws from. Dropped, it comes straight back: the white pixel is
+     * packed into it before anything flat can be drawn, which re-creates the whole page, and every sprite of the frame is
+     * decoded and uploaded again. Measured on the BV6600 (2026-10-26) with the whole atlas dropped, the wallpaper on screen
+     * and `am send-trim-memory <pid> RUNNING_CRITICAL` sent to it: the GL memory read 33 615 kB before the trim and after
+     * it, and one frame took 700 ms -- nothing given back, at the cost of a frozen frame and of decodes under memory
+     * pressure. Hidden, the same trim gives back the page, about 16 MB ([GlSceneTarget.trimTexturesWhileHidden]).
+     */
+    fun gpuTrimFor(engineDrawing: Boolean): GpuTrim =
+        if (engineDrawing) GpuTrim.STANDALONE_TEXTURES else GpuTrim.EVERYTHING
 
     /**
      * @param level the value passed to `onTrimMemory`.
@@ -113,7 +132,8 @@ internal object MemoryPressurePolicy {
             if (anyEngineVisible) TrimAction.TRIM_TO_QUARTER else TrimAction.RELEASE_ALL
 
         // The process is on the LRU kill list. Holding re-decodable bitmaps here -- up to the whole
-        // ~42 MiB decoded set on the `Canvas` path -- is exactly what makes a live wallpaper a
+        // decoded set on the `Canvas` path, which the build holds under 47 MiB
+        // (`DESIGN_NOTES.md` §12, decision 64) -- is exactly what makes a live wallpaper a
         // preferred victim.
         TRIM_MEMORY_BACKGROUND, TRIM_MEMORY_MODERATE, TRIM_MEMORY_COMPLETE -> TrimAction.RELEASE_ALL
 

@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * The arithmetic under [CloudCoverFade], in two seconds instead of the hour the scene test costs.
  *
- * `CloudCoverCrossfadeTest` is the test that would actually catch the reported defect coming back,
+ * `CloudCoverCrossfadeTest` is the test that catches the sky changing between two frames,
  * because it renders. This one pins the three properties that test cannot distinguish from each
  * other when it fails — arrival, exactness and the first-observation snap — so that a failure there
  * arrives already diagnosed.
@@ -47,7 +47,7 @@ class CloudCoverFadeTest {
             assertTrue("the cover never arrived at 0.42 in $steps frames", steps < 10_000)
         }
 
-        // **Exactly**, not asymptotically: a settled scene has to be the scene that shipped.
+        // **Exactly**, not asymptotically: a settled scene has to be the scene drawn with no ease.
         assertEquals(0.42f, value, 0f)
         // And the time it takes is the declared rate, not something emergent. Within a frame or
         // two either way: the step is accumulated in `Float`, so the last step lands a rounding
@@ -69,10 +69,10 @@ class CloudCoverFadeTest {
     }
 
     /**
-     * Item 135 (v5.7F): the snapshot aging out eases to the theme's cover at the forecast's rate.
+     * The snapshot aging out eases to the theme's cover at the forecast's rate.
      *
-     * Before v5.7F this path went through `coverToward` with no target and the drawn cover left 0.87 for the
-     * theme's density in **one** frame, against the 270 the same move takes as a forecast change.
+     * Through `coverToward` with no target the drawn cover would leave 0.87 for the theme's density in **one**
+     * frame, against the 270 the same move takes as a forecast change.
      */
     @Test
     fun anExpiryEasesToTheThemesCoverAtTheForecastsRate() {
@@ -102,8 +102,8 @@ class CloudCoverFadeTest {
     }
 
     /**
-     * The second half of the defect: the next good reading after a lapse eases in as well, from
-     * the sky actually on screen, where a reset ramp made it snap as a "first observation".
+     * The next good reading after a lapse eases in as well, from the sky actually on screen:
+     * a reset ramp would make it snap as a "first observation".
      */
     @Test
     fun theReadingAfterALapseEasesInFromTheThemesCover() {
@@ -182,5 +182,99 @@ class CloudCoverFadeTest {
         fade.opacityOf(1, present = false, deltaSeconds = dt)
         assertEquals(1f, fade.opacityOf(0, present = true, deltaSeconds = dt), 0f)
         assertEquals(0f, fade.opacityOf(1, present = false, deltaSeconds = dt), 0f)
+    }
+    @Test
+    fun aCandidateFirstSeenAfterTheFirstFrameFadesIn() {
+        // Clouds coming into a clear sky -- a forecast from clear, the theme's switch turned on -- are candidates never
+        // drawn: after the first frame they fade in from nothing, as every other cloud does.
+        val fade = CloudCoverFade(41)
+        fade.clearSkyDrawn()
+        val first = fade.opacityOf(12, present = true, deltaSeconds = dt)
+        assertEquals(dt / CloudCoverFade.FADE_SECONDS, first, 1e-6f)
+        var value = first
+        var steps = 1
+        while (value != 1f) {
+            value = fade.opacityOf(12, present = true, deltaSeconds = dt)
+            steps++
+            assertTrue("the opacity never reached one in $steps frames", steps < 10_000)
+        }
+        val expected = (CloudCoverFade.FADE_SECONDS / dt).toInt()
+        assertTrue("took $steps frames, expected about $expected", steps in (expected - 2)..(expected + 2))
+        // Before any frame, a candidate's first sight still snaps.
+        assertEquals(1f, CloudCoverFade(41).opacityOf(12, present = true, deltaSeconds = dt), 0f)
+        // And one not present stays away.
+        assertEquals(0f, fade.opacityOf(13, present = false, deltaSeconds = dt), 0f)
+    }
+
+    @Test
+    fun theRainBeyondTheCloudsEasesWithTheirFade() {
+        val fade = CloudCoverFade(41)
+        // The first frame takes its value at once: clouds placed, so none beyond them.
+        assertEquals(0f, fade.rainEverywhereToward(nothingPlaced = false, deltaSeconds = dt), 0f)
+        // The clouds go: the rain spreads over the clouds' own fade, a frame's share a frame.
+        var value = 0f
+        var steps = 0
+        while (value != 1f) {
+            val next = fade.rainEverywhereToward(nothingPlaced = true, deltaSeconds = dt)
+            assertTrue("a step of ${next - value}", next - value <= dt / CloudCoverFade.FADE_SECONDS + 1e-6f)
+            value = next
+            steps++
+            assertTrue("never everywhere in $steps frames", steps < 10_000)
+        }
+        val expected = (CloudCoverFade.FADE_SECONDS / dt).toInt()
+        assertTrue("took $steps frames, expected about $expected", steps in (expected - 2)..(expected + 2))
+        // They come back: it narrows the same way.
+        val back = fade.rainEverywhereToward(nothingPlaced = false, deltaSeconds = dt)
+        assertEquals(1f - dt / CloudCoverFade.FADE_SECONDS, back, 1e-6f)
+        // A fresh one with nothing placed: everywhere at once.
+        assertEquals(1f, CloudCoverFade(41).rainEverywhereToward(nothingPlaced = true, deltaSeconds = dt), 0f)
+    }
+
+    /**
+     * **And the renderer eases it once a frame, by the frame's time**: the one call to [CloudCoverFade.rainEverywhereToward]
+     * in the app's sources is `PaperRenderer.drawClouds`', handed the frame's `deltaSeconds`; `drawClouds` has one call, and
+     * what it eases is the floor of the rain under the drawn clouds. Called twice a frame, or with a longer step, the rain
+     * would spread at twice the clouds' fade or more, and `RainFollowsTheCloudsTest` sees that only on the phone. Read off
+     * the sources, whole lines with the comments taken off.
+     */
+    @Test
+    fun theRendererEasesTheRainBeyondTheCloudsOnceAFrame() {
+        val calls = mainSources().flatMap { file ->
+            codeLines(file.readText()).filter { ".rainEverywhereToward(" in it }.map { "${file.name}: $it" }
+        }
+        assertEquals(
+            listOf(
+                "PaperRenderer.kt: val rainEverywhere = cloudCoverFade.rainEverywhereToward(" +
+                    "nothingPlaced = CloudCoverage.placesNone(density), deltaSeconds = deltaSeconds)",
+            ),
+            calls,
+        )
+        val renderer = codeLines(mainSources().single { it.name == "PaperRenderer.kt" }.readText())
+        assertEquals(listOf("drawClouds(canvas, dayPhase, elapsedSeconds, deltaSeconds)"), renderer.filter { it.startsWith("drawClouds(") })
+        assertEquals(
+            listOf("if (rainField == CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS) cloudCoverage.setFloor(rainEverywhere)"),
+            renderer.filter { "setFloor(" in it },
+        )
+    }
+
+    /** [text]'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
+
+    /** Every Kotlin file of the app's main sources. */
+    private fun mainSources(): List<java.io.File> {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val root = java.io.File(dir, "$prefix$suffix")
+                if (root.isDirectory) return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+            }
+            dir = dir.parentFile
+        }
+        error("src/main/kotlin not found")
     }
 }

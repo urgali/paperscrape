@@ -10,21 +10,19 @@ import org.junit.Test
  *
  * ### Why this exists rather than a golden
  *
- * A golden could not see this defect when it was found. The whole-frame tolerance was then 0.2% of
- * a 360x800 frame — 576 pixels — and every pedestrian in the scene changing height by two pixels
- * moves fewer than that; measured, the entire people population resizing by 8.6% moved about 250.
- * The goldens were run against the fix and **passed**, which was a fact about their tuning rather
- * than about the change. Since v4.31 the tolerance is zero (`SceneGolden.MAX_DIFFERING_FRACTION`),
- * so a golden would now fail -- and still not say which figure is the wrong size. What is needed
- * here is a measurement, not a comparison: render the scene, find each figure, and check its
- * height against what [SceneSpace] says it should be.
+ * A golden compares, it does not measure. The whole people population resizing by 8.6% changes
+ * about 250 pixels of a 360x800 frame, which any whole-frame tolerance above that would pass; at
+ * the tolerance of zero (`SceneGolden.MAX_DIFFERING_FRACTION`) a golden fails, and still does not
+ * say which figure is the wrong size. What is needed here is a measurement, not a comparison:
+ * render the scene, find each figure, and check its height against what [SceneSpace] says it
+ * should be.
  *
  * ### How the figures are isolated
  *
  * By **density**, never by visibility: `drawRoad` returns early when the Cars category is switched
  * off, so a `visible = false` baseline would take the tarmac away with the traffic and the
  * difference between two frames would be the road. Rendering the same scene at density 0 and at
- * density 1 and differencing gives the pixels that category paints — since v4.22 minus one car:
+ * density 1 and differencing gives the pixels that category paints, minus one car:
  * the bottom of the density range keeps a single car (see `CarSelection`), and by the nesting
  * property it is also in the full-density set at the identical phase, so it cancels out of the
  * diff. What is measured is therefore the other nine slots' traffic, which still puts vehicles
@@ -90,7 +88,7 @@ class VehicleScalePixelTest {
      * The tallest **car** the road can put on a lane, in local units: a body plus whatever it
      * carries on its roof. Derived so that adding a body or a roof accessory moves it.
      *
-     * **It is not the tallest vehicle, and until v5.5 this class assumed it was.** The fire engine
+     * **It is not the tallest vehicle.** The fire engine
      * is 2.9 m against a car's 1.69, it is not a [CarShell] at all -- `CarShell.forCar` returns
      * `SALOON` for it only so the function is total, and it draws from its own body at its own
      * [SceneSpace.FIRE_TRUCK_BASE_SCALE] -- so nothing in this expression can reach it. See
@@ -130,8 +128,8 @@ class VehicleScalePixelTest {
      * Objects are matched to a lane by where they stand — the bottom of a vehicle's own pixels is
      * its wheel contact, which is the lane's ground line.
      *
-     * **The band is derived from the fleet rather than fixed.** v4.19 gives a plain car one of
-     * three bodies and they are deliberately different heights, and two of the types stand a roof
+     * **The band is derived from the fleet rather than fixed.** A plain car has one of three
+     * bodies and they are deliberately different heights, and two of the types stand a roof
      * accessory on top: the shortest thing on the road is the saloon at 56 units and the tallest
      * is a taxi, which is the 57-unit compact carrying a six-unit roof sign. A pixel measurement
      * cannot tell which of them a blob is, so the band spans the fleet -- what it still catches is
@@ -224,15 +222,14 @@ class VehicleScalePixelTest {
         assertTrue("no rendered figure could be matched to the population", matched >= 2)
     }
 
-    // ------------------------------------------------------------------ the reported inversion
+    // ------------------------------------------------------------------ the depth inversion
 
     /**
-     * **The defect, as pixels.**
+     * **The depth order, as pixels.**
      *
      * A car in the far lane stands nearer the viewer than a pedestrian on the far pavement, so it
-     * must be drawn taller. Measured before the fix: the tallest far-pavement adult came out 22 px
-     * against the plain far-lane car's 22 — level, with the person in front on the eye. Measured
-     * after: 20 against 22.
+     * must be drawn taller: the tallest far-pavement adult measures 20 px against the plain far-lane
+     * car's 22. Drawn level, 22 against 22, the person behind reads as in front.
      *
      * The car is found by its wheel line and the pedestrian by its feet, so neither number comes
      * from the model this test is checking.
@@ -265,19 +262,17 @@ class VehicleScalePixelTest {
     // ------------------------------------------------------------------ the busts
 
     /**
-     * The occupants stay behind the glass (one driver per vehicle since rc4).
+     * The occupants stay behind the glass (one driver per vehicle).
      *
      * Their skin is the only thing in a vehicle painted in the shipped person tones, so the busts
      * can be found by colour and checked against the window their vehicle draws — measured in that
      * vehicle's own local units through the lane's scale, so the check holds on either lane.
      *
-     * **Whose roof, is the whole question, and until v5.5 this asked the wrong one.** The roof line
-     * was `predicted(CAR_SPRITE_UNITS_TALL, CAR_BASE_SCALE, lane)` for every bust — a car's roof,
-     * applied to the fire engine too, which stands 40.8 px on the far lane where a car stands 25.
-     * A fire engine's driver sits perfectly inside its own cab and about 17 px above a car's
-     * roofline, so the assertion failed on a vehicle that was drawn correctly. The vehicle is
-     * classified by its measured height first — the two are 25 px apart and cannot be confused —
-     * and then checked against the roof **it** has.
+     * **Whose roof is the whole question.** The fire engine stands 40.8 px on the far lane where a
+     * car stands 25, and its driver sits inside its own cab about 17 px above a car's roofline:
+     * checked against a car's roof, a correctly drawn fire engine would fail. The vehicle is
+     * classified by its measured height first -- on the far lane 40.8 px against the fleet's
+     * 23.8..26.7, which cannot be confused -- and then checked against the roof **it** has.
      */
     @Test
     fun theBustsStayInsideTheGlass() {
@@ -328,22 +323,17 @@ class VehicleScalePixelTest {
     }
 
     private companion object {
-        // The ink a child walker occupies, ground shadow included, in its own units. v4.25: 62 on
-        // the artwork that replaced; the boy then measured 63.67 and the girl 64.33, so 64.
+        // The ink a child walker occupies, ground shadow included, in its own units: the boy's
+        // alpha box is 162 px and the girl's 161 on the shared 117x252 canvas at 3 px per unit,
+        // so 54.00 and 53.67 units.
         //
-        // **v4.30 redrew the children at 0.65 of an adult and this is where that landed a fifth
-        // time.** The release brief named four places the child's height lives -- the KDoc of
+        // A child is drawn at 0.65 of an adult, and five places hold that height: the KDoc of
         // `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`,
-        // `PrecipitationScaleTest.childMetres` and the generator's own constant -- and all four
-        // were moved together. This one was not on that list, and nothing on the host could find
-        // it: it is measured in the *sprite's own* units rather than on the 80-unit metre the
-        // other four use, so it does not read like the same number, and only the instrumented
-        // suite renders a figure and measures it. `DESIGN_NOTES.md` has the heading for exactly
-        // this -- *a redraw invalidates every number measured off the old drawing, including the
-        // ones in tests* -- and `BACKLOG_v4_25.md` item 63 is the same failure again.
-        //
-        // Re-measured on the regenerated artwork: the boy's alpha box is 162 px and the girl's
-        // 161 on the shared 117x252 canvas at 3 px per unit, so 54.00 and 53.67 units.
+        // `PrecipitationScaleTest.childMetres`, the generator's own constant, and this one. This
+        // one is in the *sprite's own* units rather than on the 80-unit metre the other four use,
+        // so it does not read like the same number, and only the instrumented suite renders a
+        // figure and measures it: a redraw invalidates every number measured off the old
+        // drawing, including the ones in tests.
         const val CHILD_UNITS = 54f
     }
 }

@@ -167,14 +167,14 @@ class SceneContentV27Test {
      * **v5.4: this method used to assert the v2.7 decision and it asserts the v5.0 drawing now.**
      *
      * What it said was *"commercial buildings out-top the houses"*, and it read that off
-     * `SceneVariant.metresTall`. Item 113 found that number describing, for both shops, the
+     * `SceneVariant.metresTall`. That number described, for both shops, the
      * two-storey facade the v5.0 neighbourhood redraw replaced with a single-storey pavilion: the
      * restaurant declared 8.2 m and draws **4.78 m**, the bar declared 7.7 m and draws 4.53 or
      * **6.24 m**, against a large house's 7.17 to 10.85 m.
      *
      * So the decision is not satisfied by the artwork and has not been for a release, and the
-     * declaration was the only place it survived. Item 113 was closed in v5.4 by correcting the
-     * declaration and leaving the drawing alone (the round's brief) -- the drawing is what the
+     * declaration was the only place it survived. The declaration was corrected
+     * and the drawing left alone -- the drawing is what the
      * maintainer chose from the phase-4 photographs -- and on 2026-09-28 the maintainer kept the
      * shops as drawn. So what is asserted here is the hierarchy the scene actually shows, with
      * the one v2.7 wanted named beside it.

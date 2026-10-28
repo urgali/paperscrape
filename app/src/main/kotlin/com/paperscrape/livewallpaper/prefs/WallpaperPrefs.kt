@@ -52,17 +52,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
-/**
- * The name of this store's file, shared with the instrumented tests: the recovery test corrupts a
- * scratch file carrying this name, and the persistence tests read the real one, rather than paths
- * copied by hand.
- */
+/** The name of this store's file, shared with the instrumented tests rather than copied by hand. */
 internal const val WALLPAPER_PREFS_STORE_NAME = "paperscrape_prefs"
 
-// `corruptionHandler` is the difference between a wallpaper that comes up on its defaults after a
-// bad shutdown and one that kills its own process on every restart until the user clears app data.
-// See [PrefsRecovery] for why corruption, I/O failure and unexpected errors get three different
-// answers -- and for why replacing this file cannot cost the user their custom themes.
+// Without `corruptionHandler` a file damaged by a bad shutdown kills the process on every restart until
+// the user clears app data. [PrefsRecovery] says why corruption, I/O failure and other errors get three
+// answers, and why replacing this file cannot cost the user their custom themes.
 private val Context.dataStore by preferencesDataStore(
     name = WALLPAPER_PREFS_STORE_NAME,
     corruptionHandler = PrefsRecovery.replacingCorruptFile(),
@@ -73,49 +68,35 @@ data class WallpaperSettings(
     val themeId: String = "sunset",
     val syncWithRealTime: Boolean = true,
     val useLocationForSunTimes: Boolean = false,
-    // Mutually exclusive with useLocationForSunTimes above -- a manually-entered fixed
-    // coordinate instead of the phone's real GPS/network fix. Same downstream consumers (sunrise/
-    // sunset and Live Weather) read whichever of the two is actually active;
-    // see WallpaperPrefs.setUseCustomLocation/setUseLocation for how the exclusivity is enforced.
+    // A position typed by the user instead of the phone's fix; exclusive with useLocationForSunTimes
+    // (WallpaperPrefs.setUseCustomLocation/setUseLocation). The sun times and Live Weather read whichever is on.
     val useCustomLocation: Boolean = false,
     /**
-     * Which of the device's positioning systems [useLocationForSunTimes] means.
-     *
-     * Stored separately from the on/off flag rather than as a third value of it, so an install
-     * from before v3.0 -- which had one "Phone" setting and no key for this -- reads as
-     * [DeviceLocationKind.NETWORK]. That is not an arbitrary default: the old provider asked for
-     * the network provider first and only reached for GPS if it was disabled, so NETWORK is what
-     * those users were already getting, and their behaviour and their permission both stay put.
+     * Which of the device's positioning systems [useLocationForSunTimes] means. Stored apart from the
+     * on/off flag, so an install with one "Phone" setting and no key for this reads as
+     * [DeviceLocationKind.NETWORK], the provider it was asking first: its behaviour and its permission
+     * stay put.
      */
     val deviceLocationKind: DeviceLocationKind = DeviceLocationKind.NETWORK,
     val customLocationLatitude: Float = 45.4642f, // Milan -- an arbitrary but real default so a
     val customLocationLongitude: Float = 9.19f, // freshly-enabled toggle isn't at (0,0) in the ocean
     val customLocationLabel: String = "",
-    // Live Weather: global (not per-theme, like useLocationForSunTimes/useCustomLocation above)
-    // since it needs one of the location modes active to know where to fetch conditions
-    // for. liveWeatherApiKey is the user's own Open-Meteo key, if they entered one, and since
-    // v5.3 it is the only one there is: blank means the free keyless tier, set means Open-Meteo's
-    // higher-limit customer endpoint (see OpenMeteoProvider.resolveApiKey -- never
-    // WeatherRepository.resolveApiKey, which three comments named and which has never existed).
-    // The build's own baked-in key was removed in v5.3 because it shipped readable in the dex.
+    // Live Weather: global, like the location modes it needs to know where to fetch for.
+    // liveWeatherApiKey is the user's own Open-Meteo key and the only one there is (a key compiled in
+    // would be readable in the dex): blank is the free keyless tier, set is the customer endpoint
+    // (OpenMeteoProvider.resolveApiKey).
     val liveWeatherEnabled: Boolean = false,
     val liveWeatherApiKey: String = "",
     /**
      * Which service Live Weather fetches from, stored by
-     * [com.paperscrape.livewallpaper.weather.WeatherProviderId.storageId].
-     *
-     * A string rather than the enum so that reordering the enum cannot reinterpret an existing
-     * install's choice, and an unrecognised value reads as the default instead of crashing
-     * forward. Separate from every other weather setting on purpose: changing provider must not
-     * disturb the location, the toggle, or the other provider's key.
+     * [com.paperscrape.livewallpaper.weather.WeatherProviderId.storageId]: a string, so reordering the
+     * enum cannot reinterpret a choice and an unknown value reads as the default. Apart from every
+     * other weather setting: changing provider disturbs neither the location nor the other keys.
      */
     val weatherProviderId: String = WeatherProviderId.DEFAULT.storageId,
     /**
      * The user's WeatherAPI.com key. Never compiled in, never logged, never sent anywhere but
-     * WeatherAPI.com.
-     *
-     * Kept apart from [liveWeatherApiKey] so that switching provider and back does not lose
-     * either one.
+     * WeatherAPI.com; kept apart from [liveWeatherApiKey] so switching provider and back loses neither.
      */
     val weatherApiComApiKey: String = "",
     /**
@@ -125,99 +106,65 @@ data class WallpaperSettings(
      */
     val openWeatherApiKey: String = "",
     /**
-     * What Live Weather is actually doing, as a [LiveWeatherStatus.storageId].
+     * What Live Weather is actually doing, as a [LiveWeatherStatus.storageId]: the reason, not the
+     * symptom, because the settings screen tells them apart (a missing key is one tap from fixed, a
+     * dropped request is not).
      *
-     * v2.13 had a boolean here that could only say "running on the theme's own weather". With a
-     * provider that can require an API key there are now reasons the settings screen must tell
-     * apart -- a missing key is one tap from fixed, a dropped request is not -- so this carries
-     * the reason rather than the symptom.
-     *
-     * **Written by the wallpaper service, read by the settings screen** -- the only direction any
-     * of these flow, and the reason it is here rather than in a separate store: the settings flow
-     * already reaches the UI without a restart, so a status published through it appears the
-     * moment it changes. It is not a user preference and nothing in the UI sets it.
+     * **Written by the wallpaper service, read by the settings screen**, and here rather than in a
+     * store of its own because the settings flow already reaches the UI live. Not a user preference:
+     * nothing in the UI sets it.
      */
     val liveWeatherStatus: String = LiveWeatherStatus.OFF.storageId,
     /**
-     * Whether the app may check GitHub for a new release on its own: when the settings screen
-     * opens, and -- together with [updateNotificationsEnabled] -- from the update job's check every
-     * three hours (`UpdateCheckJobService`, v5.15; the wallpaper engine's loop until then,
-     * `UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS`).
-     *
-     * Off by default, and deliberately: the check used to run on every open, which is a network
-     * request the user never asked for. The manual button is always available, so opting out costs
-     * nothing but the reminder.
+     * Whether the app may check GitHub for a new release on its own: when the settings screen opens,
+     * and -- with [updateNotificationsEnabled] -- from the update job every three hours
+     * (`UpdateCheckJobService`). Off by default: a network request the user did not ask for. The
+     * manual button is always there.
      */
     val automaticUpdateCheckEnabled: Boolean = false,
     /**
-     * Whether a release found while nobody is looking may become a system notification.
-     *
-     * **A second switch and not a new meaning for the first** (v5.7D). The one above was turned on
-     * by people who wanted a prompt the next time they opened the app; posting a notification to
-     * them because of it would change, without asking, what a control they had already set does --
-     * which is exactly the defect v5.7C's N1 had just repaired in the reset button.
-     *
-     * Off by default, and inert while [automaticUpdateCheckEnabled] is off: the check this reports
-     * on is that one. The settings row is greyed in that state rather than hidden, so the order to
-     * switch them on in is visible.
+     * Whether a release found while nobody is looking may become a system notification. **A second
+     * switch, not a new meaning for the first**: the one above was turned on by people who wanted a
+     * prompt when they open the app, and a notification would change, unasked, what a control they
+     * set does. Off by default, and inert while [automaticUpdateCheckEnabled] is off (the row is greyed,
+     * not hidden, so the order to switch them on in shows).
      */
     val updateNotificationsEnabled: Boolean = false,
-    // The GPS-derived coordinates PaperWallpaperService actually resolved (written by it via
-    // WallpaperPrefs.setResolvedGpsLocation whenever a fix arrives) -- separate from
-    // customLocationLatitude/Longitude above, which the *user* entered directly and therefore
-    // never needs a round trip through the wallpaper service to know. Settings reverse-geocodes
-    // the device fix into a city label (see `LocationRow` in WeatherTimeScreen.kt); a custom
-    // location shows the label saved with it -- aa's own explicit ask was that both toggles show
-    // *which place* they resolved to, not just raw coordinates. Null until the very first GPS fix
-    // arrives.
+    // The device fix PaperWallpaperService resolved (WallpaperPrefs.setResolvedGpsLocation, at every
+    // fix), apart from the typed custom location. The settings name the place, not the coordinates:
+    // the device fix reverse-geocoded (`LocationRow` in WeatherTimeScreen.kt), a custom location by
+    // the label saved with it. Null until the first fix.
     val resolvedGpsLatitude: Float? = null,
     val resolvedGpsLongitude: Float? = null,
     /**
      * When the saved device fix above was taken, as epoch millis; 0 when there has never been one.
-     *
-     * The fix is the fallback the whole device-location path leans on -- if the provider cannot
-     * answer, the scene keeps using where the device last was rather than snapping to a default
-     * somewhere else. Nothing reads the timestamp: the engine reuses a saved fix with no expiry
-     * (`PaperWallpaperService.savedDeviceFix`), and the settings screen does not show its age -- both
-     * kept so on the maintainer's decision of 2026-09-28 (inventory I-89), because a place does not
-     * move and the settings already name it. It is still written with every fix.
+     * Written with every fix and read by nothing: the engine reuses a saved fix with no expiry
+     * (`PaperWallpaperService.savedDeviceFix`) and the settings do not show its age: a place does
+     * not move, and the settings already name it.
      */
     val deviceFixTimestampMillis: Long = 0L,
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
-    val parallaxStrength: Float = 1f, // 0.5 .. 2.0 -- "Parallax strength" in the UI's Motion
-    // section: how far near and far layers move relative to each other while scrolling, separate
-    // from the "Scroll speed" drift below.
-    // Scroll behavior below is deliberately global (not per-theme), matching that same reference
-    // -- these are interaction/engine preferences, not part of a theme's visual identity the way
-    // hill colors or which decorations are visible are.
+    val parallaxStrength: Float = 1f, // 0.5 .. 2.0: how far near and far layers move apart while scrolling
+    // The scroll settings are global, not per theme: how the wallpaper moves, not how a theme looks.
     val scrollBackground: Boolean = false, // whether sun/moon/sky scroll with the parallax hills
     val swipeScroll: Boolean = true, // whether swiping between home screens scrolls the wallpaper at all
     /**
-     * Whether this phone's home screen has ever moved the wallpaper with a swipe (v5.10E, inventory
-     * I-222): written once, by the wallpaper, the first time an engine that is not a preview sees the
-     * home screen's offset move (`SwipeReport`). *Swipe scroll* reads on only after that
-     * (`SettingsUiModel.swipeScroll`): many home screens never report a swipe -- the project's phone
-     * never has -- and there the switch was on over nothing. Runtime state of this phone, like the
-     * resolved GPS fix: a backup does not carry it and a restore leaves it as it is.
+     * Whether this phone's home screen has ever moved the wallpaper with a swipe: written once, by the
+     * wallpaper, the first time an engine that is not a preview sees the offset move (`SwipeReport`).
+     * *Swipe scroll* reads on only after that (`SettingsUiModel.swipeScroll`), because many home
+     * screens never report a swipe and the switch would be on over nothing. Runtime state of this
+     * phone, like the GPS fix: a backup does not carry it and a restore leaves it.
      */
     val swipeReported: Boolean = false,
-    // Continuous auto-scroll, independent of swiping entirely: this speed multiplies a per-frame
-    // *time delta* rather than a swipe offset, which is a genuinely
-    // different mechanism from PaperScrape's existing `parallaxStrength` (which scales how far
-    // layers move *relative to swiping*). Defaults to a slow constant drift rather than off --
-    // this is an engine-level behavior in the
-    // same spirit as parallaxStrength already defaulting to on, not an opt-in decorative extra.
+    // The continuous drift, independent of swiping: multiplies each frame's time step, not a swipe
+    // offset. On by default, slow.
     val scrollSpeed: Float = 0.15f,
     val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
     /**
-     * The user's edits to the holiday calendar, or [SeasonalCalendar.DEFAULT] if they have made
-     * none.
-     *
-     * **Only the difference is stored.** The factory dates live in [CalendarWindow], so an install
-     * that has never opened the calendar screen has no key here and resolves every date exactly as
-     * a build without the feature would — which is the premise `SeasonalCalendarIdentityTest`
-     * checks day by day. It also means a future release that moves a factory boundary moves it for
-     * everyone who has not overridden that particular window.
+     * The user's edits to the holiday calendar, or [SeasonalCalendar.DEFAULT] if they have made none.
+     * **Only the difference is stored**: the factory dates live in [CalendarWindow], so an install
+     * that never edited the calendar resolves every date from them (`SeasonalCalendarIdentityTest`), and
+     * a factory boundary moved in the code moves for everyone who has not overridden that window.
      */
     val seasonalCalendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
     /** In-progress (not yet saved) scene-object edits, and which theme they belong to. Only
@@ -228,16 +175,10 @@ data class WallpaperSettings(
     val pendingCustomization: SceneCustomization = SceneCustomization.DEFAULT,
     val pendingCustomizationThemeId: String? = null,
     /**
-     * Every theme that has a customization of its own on disk, keyed by theme id.
-     *
-     * **This is what makes a per-theme edit survive editing another theme.** Before v4.3 the only
-     * per-theme storage was the single flat scratch space [pendingCustomization] reads, which
-     * holds exactly one theme at a time -- so touching one control on a second theme wiped
-     * everything the user had done to the first, permanently and silently. The scratch space is
-     * still where a live edit lands, but it is now archived here on the way out instead of being
-     * deleted, and restored from here when that theme is edited again.
-     *
-     * Empty for a theme the user has never customised; that theme reads its own defaults.
+     * Every theme that has a customization of its own on disk, keyed by theme id: **what makes a
+     * per-theme edit survive editing another theme**. A live edit lands in the one-theme scratch space
+     * [pendingCustomization] reads; it is archived here when another theme is edited, and restored
+     * from here when this one is edited again. A theme never customised is absent and reads its defaults.
      */
     val themeCustomizations: Map<String, SceneCustomization> = emptyMap(),
 ) {
@@ -247,12 +188,9 @@ data class WallpaperSettings(
         get() = WeatherProviderId.fromStorageId(weatherProviderId)
 
     /**
-     * The key the **selected** provider should be called with.
-     *
-     * Each provider keeps its own, so switching back and forth loses neither. Open-Meteo's may be
-     * blank, which its free keyless tier accepts; WeatherAPI.com's may not, and a blank one there
-     * is what produces [com.paperscrape.livewallpaper.weather.WeatherFetchResult.MissingApiKey]
-     * instead of a request.
+     * The key the **selected** provider is called with. Open-Meteo's may be blank (its free keyless
+     * tier); a blank one for the others gives
+     * [com.paperscrape.livewallpaper.weather.WeatherFetchResult.MissingApiKey] instead of a request.
      */
     val apiKeyForWeatherProvider: String
         get() = when (weatherProvider) {
@@ -266,36 +204,27 @@ data class WallpaperSettings(
         get() = LiveWeatherStatus.fromStorageId(liveWeatherStatus)
 }
 
-/** Object categories that can be individually customized (visibility, density, 2x day/night
- * colors). The first 5 are structural (houses/buildings/cars/parasols/trees), then the shops (their
- * colours and, since v5.12, their opening hours), the public buildings (the same, since v5.13) and the
- * people (no colour); the rest are seasonal
- * decorations (snowmen, gifts, etc.) -- both groups are
- * edited the same way, per-theme, via [WallpaperSettings.pendingCustomization], from the "World &
- * scene" and "Seasons & decorations" screens respectively. Both take their starting point from
- * [defaultCustomizationFor], which adjusts structural and seasonal categories per theme alike
- * (e.g. City's dense towers, Christmas's snowmen). */
+/** Object categories customised one by one (visibility, density, two day/night colours), per theme,
+ * through [WallpaperSettings.pendingCustomization]: the structural ones (houses, buildings, cars,
+ * parasols, trees, shops, public buildings, people) on "World & scene", the seasonal decorations on
+ * "Seasons & decorations". Both start from [defaultCustomizationFor], which adjusts them per theme
+ * (City's dense towers, Christmas's snowmen). The storage is generic: every category has the four
+ * colour keys, read only where the category has colours. */
 enum class ObjectCategory {
     HOUSES, BUILDINGS, CARS, PARASOLS, TREES,
-    // The shops' colours (v5.11) and, since v5.12, their opening hours (`SHOP_HOURS_ENABLED` and its two
-    // hours, which `resetCategory(SHOPS)` puts back): whether they stand is BUILDINGS' switch, so the
-    // two non-colour keys exist here only because the storage is generic, like PEOPLE's colours.
-    // A preference store written before v5.11 has none of these keys: see
-    // `WallpaperPrefs.readFlatCustomization` for how its shops are read.
+    // The shops' colours and opening hours (`SHOP_HOURS_ENABLED` and its two hours, which
+    // `resetCategory(SHOPS)` puts back); whether they stand is BUILDINGS' switch. A store without these
+    // keys is read as `WallpaperPrefs.readFlatCustomization` says.
     SHOPS,
-    // The public buildings' colours -- the school, the fire station and the police station (v5.13) --
-    // and their opening hours (`PUBLIC_HOURS_ENABLED` and its two hours, which `resetCategory(PUBLICS)`
-    // puts back): whether they stand is BUILDINGS' switch, as for SHOPS. A store written before v5.13
-    // has none of these keys: see `WallpaperPrefs.readFlatCustomization` for how its publics are read.
+    // The public buildings (the school, the fire station, the police station): colours and opening hours
+    // (`PUBLIC_HOURS_ENABLED` and its two hours), as SHOPS.
     PUBLICS,
-    // People are a category for visibility and density only. They have no colour: their artwork
-    // is finished, four kinds across two seasons, and a tint over it is the mistake
-    // `DESIGN_NOTES.md` decision 25 exists to prevent. The four colour keys below exist for every
-    // category because the storage is generic; nothing reads People's.
+    // Visibility and density only: the people's artwork is finished, and a tint over it is what
+    // `DESIGN_NOTES.md` decision 25 prevents.
     PEOPLE,
     SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
-    // The scarecrows (v5.16): visibility and density only, as PEOPLE -- their drawing is fixed art, and nothing reads
-    // their colour keys. A store written before v5.16 has none: they read as the theme's own (off but on Halloween).
+    // Visibility and density only, as PEOPLE: fixed art. A store without them reads the theme's own (off
+    // but on Halloween).
     SCARECROWS,
     ;
 
@@ -312,19 +241,20 @@ enum class ObjectCategory {
 internal const val THEME_CUSTOMIZATION_KEY_PREFIX = "theme_customization_"
 
 /**
- * `DataStore.edit`, but the write finishes even if the caller's scope is cancelled.
- *
- * **ARC-09.** Every preference write from a settings-screen control is launched from
- * `rememberCoroutineScope()`, whose lifetime is the composition. An Activity recreation -- a
- * rotation, a light/dark switch, a font-size change -- cancels that scope, so a tap that landed in
- * the same frame had its write cancelled halfway to disk. DataStore's own write is transactional,
- * so nothing was ever corrupted; the switch simply bounced back, which reads as the app ignoring
- * the user.
- *
- * `NonCancellable` is the same instrument `BackupRepository` uses for the two writes that must not
- * be interrupted, and for the same reason. A preference write is a handful of bytes and completes
- * in milliseconds, so making it uninterruptible costs nothing and is what the user meant by
- * touching the control.
+ * A place's name or a key as kept: at most [AppBackup.MAX_TEXT_SETTING_CHARS] characters, so a backup gives back every
+ * text the app keeps; a character made of two is not cut in half.
+ */
+internal fun keptText(text: String): String {
+    if (text.length <= AppBackup.MAX_TEXT_SETTING_CHARS) return text
+    val end = if (Character.isHighSurrogate(text[AppBackup.MAX_TEXT_SETTING_CHARS - 1])) AppBackup.MAX_TEXT_SETTING_CHARS - 1 else AppBackup.MAX_TEXT_SETTING_CHARS
+    return text.substring(0, end)
+}
+
+/**
+ * `DataStore.edit`, but the write finishes even if the caller's scope is cancelled. A control's write
+ * is launched from `rememberCoroutineScope()`, which an Activity recreation (rotation, light/dark, font
+ * size) cancels: a tap in that frame would bounce back, the app seeming to ignore the user. A write is a
+ * few bytes and milliseconds, so making it uninterruptible costs nothing (`DurablePrefsWriteTest`).
  */
 private suspend fun DataStore<Preferences>.editDurably(
     transform: suspend (MutablePreferences) -> Unit,
@@ -333,20 +263,16 @@ private suspend fun DataStore<Preferences>.editDurably(
 /**
  * The wallpaper's preferences, over one DataStore.
  *
- * The app builds it from a [Context], which is the process's one store file. The store itself is the
- * constructor's (v5.10C): the reader and the writers had no other use for the `Context`, and handed a
- * store over a scratch file a JVM test reads exactly what the app reads -- which is how the palms of a
- * preference store written before v5.10 are checked (`PalmsPreferenceStoreTest`), with the keys that
- * build wrote and the code that reads them, not a copy of either.
+ * The app builds it from a [Context], the process's one store file. The store is a constructor
+ * parameter so a JVM test hands it a store over a scratch file and reads exactly what the app reads,
+ * with the keys an older build wrote (`PalmsPreferenceStoreTest`).
  */
 class WallpaperPrefs internal constructor(
     private val store: DataStore<Preferences>,
     /**
-     * The look a theme was saved with in the gallery, if it was -- a saved version of a built-in theme
-     * or a theme of the user's own (`CustomThemeRegistry.savedCustomizationFor`). What the first edit of
-     * such a theme starts from ([ensureFreshPendingTheme], v5.10E, inventory I-295). A parameter so a JVM
-     * test can hand it its own saved looks; the app reads the registry, which the settings screen and the
-     * wallpaper keep filled from the theme store.
+     * The look a theme was saved with in the gallery, if it was (`CustomThemeRegistry.savedCustomizationFor`):
+     * what the first edit of such a theme starts from ([ensureFreshPendingTheme]). A parameter so a JVM
+     * test can hand it its own saved looks; the app reads the registry.
      */
     private val savedLookFor: (String) -> SceneCustomization? = { CustomThemeRegistry.savedCustomizationFor(it) },
 ) {
@@ -355,27 +281,17 @@ class WallpaperPrefs internal constructor(
 
     private object Keys {
         /**
-         * Night-time pedestrian density. Absent for every install that predates v2.12, which is
-         * what [PeopleDensity.resolveNightDensity] reads as "use the daytime value" -- see its own
-         * comment on why that, and not a fresh default, is the right upgrade.
+         * Night-time pedestrian and car densities: absent reads as the daytime value
+         * ([PeopleDensity.resolveNightDensity]), so a store without them draws the night it drew.
          */
         val PEOPLE_NIGHT_DENSITY = floatPreferencesKey("people_night_density")
-
-        /**
-         * Night-time car density. Same shape and same upgrade rule as [PEOPLE_NIGHT_DENSITY]:
-         * absent for every install that predates v4.22, which
-         * [PeopleDensity.resolveNightDensity] reads as "use the daytime value" -- the scene after
-         * the update is the scene before it.
-         */
         val CARS_NIGHT_DENSITY = floatPreferencesKey("cars_night_density")
 
         /**
-         * The opening hours, in three groups since v5.13 (two in v5.12): the towers', the shops' (the
-         * restaurant, the bar and the shop) and the public buildings' ([PUBLIC_HOURS_ENABLED]: the school's,
-         * the two stations never closing). Absent keys read as the [SceneCustomization] defaults --
-         * switch off, which renders identically to the feature not existing -- unless the store still holds
-         * the one setting of before v5.12 ([BUSINESS_HOURS_ENABLED]), which each group reads in their place;
-         * absent public keys in a store written by the 5.12 read as its shops' hours.
+         * The opening hours, in three groups: the towers', the shops' (the restaurant, the bar and the
+         * shop) and the public buildings' ([PUBLIC_HOURS_ENABLED]). Absent keys read as the
+         * [SceneCustomization] defaults (switch off), unless the store holds the single setting
+         * [BUSINESS_HOURS_ENABLED], which each group reads in their place.
          */
         val SHOP_HOURS_ENABLED = booleanPreferencesKey("shop_hours_enabled")
         val SHOP_OPEN_HOUR = floatPreferencesKey("shop_open_hour")
@@ -385,20 +301,18 @@ class WallpaperPrefs internal constructor(
         val TOWER_CLOSE_HOUR = floatPreferencesKey("tower_close_hour")
 
         /**
-         * The third group's opening hours since v5.13, the public buildings' (the school, the fire
-         * station and the police station). A store written before has none, and the school kept the
-         * shops' hours: each reads the shops' in its place until the first edit since writes them
-         * ([carryPublicsOver], [Keys.SCRATCH_KNOWS_PUBLICS]).
+         * The public buildings' opening hours (the school, the fire station and the police station). A
+         * store without them kept the school on the shops' hours: each reads the shops' in its place
+         * until the first edit writes them ([carryPublicsOver], [Keys.SCRATCH_KNOWS_PUBLICS]).
          */
         val PUBLIC_HOURS_ENABLED = booleanPreferencesKey("public_hours_enabled")
         val PUBLIC_OPEN_HOUR = floatPreferencesKey("public_open_hour")
         val PUBLIC_CLOSE_HOUR = floatPreferencesKey("public_close_hour")
 
         /**
-         * The one setting of the opening hours from v4.22 to v5.11, for the shops and the towers
-         * alike. Read, never written: a store written before v5.12 reads it into both groups (the
-         * maintainer's decision of 2026-10-09, whoever had the hours on finds them on in both, at the
-         * same hours), and the first edit since writes both groups' own keys from it and removes it
+         * The single opening-hours setting older stores hold, for the shops and the towers alike. Read,
+         * never written: it is read into both groups (whoever had the hours on finds them on in both, at
+         * the same hours), and the first edit writes both groups' keys from it and removes it
          * ([carryHoursOver]).
          */
         val BUSINESS_HOURS_ENABLED = booleanPreferencesKey("business_hours_enabled")
@@ -408,17 +322,11 @@ class WallpaperPrefs internal constructor(
         /**
          * The saved-themes document an import has written here but not yet into its own store.
          *
-         * **BCK-06.** An import writes two DataStores and there is no transaction spanning them, so
-         * a process kill between the two left the preferences new and the saved themes old. Each
-         * store's own write is atomic, so the fix is to make the *pair* recoverable rather than to
-         * invent a transaction: the second store's entire payload is written **inside the first
-         * store's own atomic edit**, applied, and then cleared. Whatever moment the process dies in,
-         * the next start finds either no pending document (nothing to do) or the exact bytes the
-         * second store was supposed to receive, and applying them again is idempotent.
-         *
-         * That is one key and one completion step, not a journal: there is no sequence to replay, no
-         * ordering to reconstruct, and nothing to undo -- the pending value *is* the whole of the
-         * remaining work.
+         * An import writes two DataStores with no transaction spanning them, and a process killed
+         * between the two would leave the preferences new and the saved themes old. So the second
+         * store's whole payload is written **inside the first store's atomic edit**, applied, then
+         * cleared: the next start finds either nothing pending or the exact bytes the second store
+         * should hold, and applying them again is idempotent.
          */
         val PENDING_IMPORT_THEMES = stringPreferencesKey("pending_import_themes")
 
@@ -432,11 +340,9 @@ class WallpaperPrefs internal constructor(
         val LIVE_WEATHER_ENABLED = booleanPreferencesKey("live_weather_enabled")
         val LIVE_WEATHER_API_KEY = stringPreferencesKey("live_weather_api_key")
         val WEATHER_PROVIDER = stringPreferencesKey("weather_provider")
-        // v3.7 renamed this from `visual_crossing_api_key` when that provider was removed. A key
-        // for a service the app no longer talks to is not worth migrating: it would not
-        // authenticate anywhere. The old entry is simply left unread, and the stored
-        // `weather_provider` value `visual_crossing` no longer matches an id, so
-        // `WeatherProviderId.fromStorageId` returns the default -- see WeatherProviderSelectionTest.
+        // A store may still hold `visual_crossing_api_key` and the provider id `visual_crossing`, a
+        // service the app does not talk to: the key is left unread, and the id reads as the default
+        // (`WeatherProviderId.fromStorageId`, WeatherProviderSelectionTest).
         val WEATHER_API_COM_API_KEY = stringPreferencesKey("weatherapi_com_api_key")
         val OPEN_WEATHER_API_KEY = stringPreferencesKey("open_weather_api_key")
         val LIVE_WEATHER_STATUS = stringPreferencesKey("live_weather_status")
@@ -453,13 +359,9 @@ class WallpaperPrefs internal constructor(
         val PENDING_CUSTOMIZATION_THEME_ID = stringPreferencesKey("pending_customization_theme_id")
 
         /**
-         * One theme's whole customization, as JSON, under a key named after that theme.
-         *
-         * Deliberately a JSON blob rather than ~60 more namespaced keys: the serialisation
-         * already exists, is round-trip tested (`CustomThemeDataJsonTest`), and is
-         * the same one `CustomThemeStore` persists saved themes with -- so a saved theme and a
-         * customised built-in are the same bytes in two places rather than two formats to keep in
-         * step. Purely additive: an install that has never written one simply has no such key.
+         * One theme's whole customization, as JSON, under a key named after that theme: the same
+         * serialisation `CustomThemeStore` saves themes with (round-trip tested by
+         * `CustomThemeDataJsonTest`), so a saved theme and a customised built-in are one format.
          */
         fun themeCustomization(themeId: String) =
             stringPreferencesKey("$THEME_CUSTOMIZATION_KEY_PREFIX$themeId")
@@ -472,12 +374,9 @@ class WallpaperPrefs internal constructor(
         fun colorNight2(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_night_2")
 
         /**
-         * Which half of each pair the user owns, stored as [AutoColorMode.storageId].
-         *
-         * A string rather than a boolean because there are three states, not two, and because a
-         * pair whose meaning depended on an enum's ordinal would repaint itself the day somebody
-         * inserted a constant. Absent means [AutoColorMode.MANUAL], which is what every install
-         * predating the feature reads.
+         * Which half of each pair the user owns, stored as [AutoColorMode.storageId]: a string, for
+         * three states and so that a constant inserted in the enum repaints nothing. Absent means
+         * [AutoColorMode.MANUAL].
          */
         fun autoMode1(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_1")
         fun autoMode2(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_2")
@@ -546,19 +445,18 @@ class WallpaperPrefs internal constructor(
         val FALL_COLORS_ENABLED = booleanPreferencesKey("fall_colors_enabled")
         val WINTER_COLORS_ENABLED = booleanPreferencesKey("winter_colors_enabled")
         /**
-         * *Lights on the buildings* since v5.16, *Christmas lights* before: the key keeps its name, and the two switches the
-         * one became read it where they have no key of their own ([CHRISTMAS_TREE_LIGHTS_ENABLED], [CHRISTMAS_FIRS_ENABLED]).
+         * *Lights on the buildings*, under the key of the single Christmas switch older stores hold, which the other two
+         * read where they have no key of their own ([CHRISTMAS_TREE_LIGHTS_ENABLED], [CHRISTMAS_FIRS_ENABLED]).
          */
         val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
-        /** *Lights on the trees* and *Christmas firs* (v5.16). Absent, each reads [CHRISTMAS_DECORATIONS_ENABLED]. */
+        /** *Lights on the trees* and *Christmas firs*. Absent, each reads [CHRISTMAS_DECORATIONS_ENABLED]. */
         val CHRISTMAS_TREE_LIGHTS_ENABLED = booleanPreferencesKey("christmas_tree_lights_enabled")
         val CHRISTMAS_FIRS_ENABLED = booleanPreferencesKey("christmas_firs_enabled")
         val FLOWERS_ENABLED = booleanPreferencesKey("flowers_enabled")
         val PALMS_ENABLED = booleanPreferencesKey("palms_enabled")
         /**
-         * The Palms switch on a theme whose layout plants no palm (v5.10C). Absent from every store
-         * written before v5.10 -- where [PALMS_ENABLED] reads `true` on every theme the app ever
-         * wrote, chosen or not -- and absent reads off. See `SceneCustomization.palmsInsteadOfTrees`.
+         * The Palms switch on a theme whose layout plants no palm. Absent reads off: [PALMS_ENABLED]
+         * is `true` on every theme, chosen or not (`SceneCustomization.palmsInsteadOfTrees`).
          */
         val PALMS_INSTEAD_OF_TREES = booleanPreferencesKey("palms_instead_of_trees")
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
@@ -566,9 +464,8 @@ class WallpaperPrefs internal constructor(
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
 
         /**
-         * The Halloween switches v5.16 added. Absent from every store written before, where each reads as the theme's own:
-         * on in the Halloween theme, off in every other -- and the decorations off where the Christmas ones are on, which
-         * came first (`DecorationExclusion`).
+         * The Halloween switches. Absent, each reads as the theme's own: on in the Halloween theme, off in every other --
+         * and the decorations off where the Christmas ones are on, the side chosen first (`DecorationExclusion`).
          */
         val LAUGHING_MOON_ENABLED = booleanPreferencesKey("laughing_moon_enabled")
         val NIGHT_SKY_BY_DAY_ENABLED = booleanPreferencesKey("night_sky_by_day_enabled")
@@ -576,23 +473,24 @@ class WallpaperPrefs internal constructor(
         val BLOOD_RAIN_ENABLED = booleanPreferencesKey("blood_rain_enabled")
         val HEADLESS_HORSEMAN_ENABLED = booleanPreferencesKey("headless_horseman_enabled")
 
-        /** The distant houses on the mountains (v5.11). Absent reads off, at 50 %. */
+        /** *Moon stays in place*. Absent, it reads as the theme's own, as the switches above. */
+        val STILL_MOON_ENABLED = booleanPreferencesKey("still_moon_enabled")
+
+        /** The distant houses on the mountains. Absent reads off, at 50 %. */
         val DISTANT_HOUSES_VISIBLE = booleanPreferencesKey("distant_houses_visible")
         val DISTANT_HOUSES_DENSITY = floatPreferencesKey("distant_houses_density")
 
         /**
          * Whether the live edit's keys were written by a build that knows the shops have colours of
-         * their own (v5.11). Absent in a store written before -- whose shops were drawn in the
-         * Buildings colours -- and set by the first edit since, which carries those colours over into
-         * the shops' own keys first ([ensureFreshPendingTheme]). See [readFlatCustomization].
+         * their own. Absent in a store whose shops were drawn in the Buildings colours; set by the
+         * first edit, which carries those colours into the shops' keys first ([ensureFreshPendingTheme],
+         * [readFlatCustomization]).
          */
         val SCRATCH_KNOWS_SHOPS = booleanPreferencesKey("scratch_knows_shops")
 
         /**
-         * Whether the live edit's keys were written by a build that knows the public buildings have
-         * colours and hours of their own (v5.13). Absent in a store written before -- whose school wore
-         * the shops' colours and hours -- and set by the first edit since, which carries them over into
-         * the public buildings' own keys first ([carryPublicsOver]). See [readFlatCustomization].
+         * The same for the public buildings' colours and hours: absent in a store whose school wore the
+         * shops', set by the first edit, which carries them over first ([carryPublicsOver]).
          */
         val SCRATCH_KNOWS_PUBLICS = booleanPreferencesKey("scratch_knows_publics")
     }
@@ -609,23 +507,37 @@ class WallpaperPrefs internal constructor(
             autoMode2 = AutoColorMode.fromStorageId(prefs[Keys.autoMode2(category)]),
         )
 
-    // **Read again when the saved themes change** (v5.13, [CustomThemeRegistry.generationFlow]): a theme
-    // of the user's own resolves its defaults -- and the public buildings of a store written before v5.13
-    // -- through the registry, which its own collector fills in no fixed order with this one.
+    // **Read again when the saved themes change** ([CustomThemeRegistry.generationFlow]): a theme of the
+    // user's own resolves its defaults (and a store's public buildings without keys) through the registry,
+    // which its own collector fills in no fixed order with this one.
     val settingsFlow: Flow<WallpaperSettings> = store.data.recoveringFromReadErrors()
         .combine(CustomThemeRegistry.generationFlow) { prefs, _ -> prefs }
-        .map { prefs ->
-        // Falls back to whichever theme's pending edit is currently tagged (see
-        // PENDING_CUSTOMIZATION_THEME_ID) -- crucial for seasonal categories specifically:
-        // editing just one (e.g. turning snowmen off for Christmas) must NOT silently reset every
-        // *other* untouched category (gifts, houses, ...) back to a flat, theme-agnostic default;
-        // they should keep reading as Christmas's own defaults until the user explicitly changes
-        // them too. Falls back to "sunset" (an all-off theme) when nothing is being edited right
-        // now, which is safe since pendingCustomization is only ever consulted by
-        // CustomThemeRegistry.resolveActiveCustomization when its own themeId actually matches
-        // this tag.
+        .map { prefs -> settingsOf(prefs) }
+
+    /**
+     * The settings as stored, read once, or `null` when the store cannot be read just now (an `IOException`).
+     *
+     * For a reader that keeps what it reads, a backup: [settingsFlow] answers such a read with a fresh install's
+     * settings ([PrefsRecovery.recoveringFromReadErrors]), which a backup would keep, and restore, as the user's. A
+     * corrupt file is the store's handler's: rewritten empty once, it reads as a fresh install's.
+     */
+    suspend fun readSettings(): WallpaperSettings? {
+        val prefs = try {
+            store.data.first()
+        } catch (_: IOException) {
+            return null
+        }
+        return settingsOf(prefs)
+    }
+
+    /** Every setting [prefs] holds, an absent one read as a fresh install's. */
+    private fun settingsOf(prefs: Preferences): WallpaperSettings {
+        // The scratch keys are read against the defaults of the theme they are tagged with, so turning
+        // Christmas's snowmen off leaves its other categories at Christmas's defaults, not flat ones.
+        // Untagged, "sunset" (all off): pendingCustomization applies only to the theme it is tagged with
+        // (CustomThemeRegistry.resolveActiveCustomization).
         val pendingThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID]
-        WallpaperSettings(
+        return WallpaperSettings(
             themeId = prefs[Keys.THEME_ID] ?: "sunset",
             syncWithRealTime = prefs[Keys.SYNC_REAL_TIME] ?: true,
             useLocationForSunTimes = prefs[Keys.USE_LOCATION] ?: false,
@@ -655,10 +567,8 @@ class WallpaperPrefs internal constructor(
             seasonalCalendar = seasonalCalendarFromJsonString(prefs[Keys.SEASONAL_CALENDAR]),
             pendingCustomizationThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID],
             pendingCustomization = readFlatCustomization(prefs, pendingThemeId ?: "sunset"),
-            // The theme under live edit has its state in the flat scratch keys, not yet in its own
-            // archive -- that write happens when the user leaves it. Folding it in here means a
-            // reader never sees an incomplete picture, and in particular that a backup taken
-            // mid-edit contains the edit.
+            // The theme under live edit is in the scratch keys until the user leaves it: folded in, so a
+            // reader (a backup taken mid-edit) sees the edit.
             themeCustomizations = readThemeCustomizations(prefs).let { stored ->
                 if (pendingThemeId == null) stored
                 else stored + (pendingThemeId to readFlatCustomization(prefs, pendingThemeId))
@@ -667,29 +577,27 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * The customization the flat scratch keys currently hold, read against [themeId]'s defaults.
-     *
-     * Extracted from [settingsFlow] in v4.3 so that [ensureFreshPendingTheme] can *archive* the
-     * same value it would otherwise have thrown away. Nothing about what it reads changed.
+     * The customization the scratch keys hold, read against [themeId]'s defaults: what [settingsFlow]
+     * shows and what [ensureFreshPendingTheme] archives.
      */
     private fun readFlatCustomization(prefs: Preferences, themeId: String): SceneCustomization {
         val defaults = defaultCustomizationFor(themeId)
         val shops = readShops(prefs, defaults)
-        // Each group's own keys, or -- in a store written before v5.12 -- the one setting both had.
+        // Each group's own keys, or the single setting an older store holds.
         val shopHoursEnabled = prefs[Keys.SHOP_HOURS_ENABLED] ?: prefs[Keys.BUSINESS_HOURS_ENABLED] ?: defaults.shopHoursEnabled
         val shopOpenHour = prefs[Keys.SHOP_OPEN_HOUR] ?: prefs[Keys.BUSINESS_OPEN_HOUR] ?: defaults.shopOpenHour
         val shopCloseHour = prefs[Keys.SHOP_CLOSE_HOUR] ?: prefs[Keys.BUSINESS_CLOSE_HOUR] ?: defaults.shopCloseHour
-        // The public buildings' (v5.13): their keys, or -- in a store written before -- the shops' hours,
-        // which the school kept until then, and the theme's defaults once this build has written the space.
+        // The public buildings' hours: their keys; in a store that does not know them, the shops' hours (which
+        // its school kept); once it knows them, the theme's defaults.
         val publicsKnown = prefs[Keys.SCRATCH_KNOWS_PUBLICS] == true
-        // The three switches *Christmas lights* became (v5.16): its key is the first's, and the other two read it where
-        // they have none -- whoever had the lights on finds all three on.
+        // The three Christmas switches: the single switch's key is the first's, and the other two read it where they
+        // have none -- whoever had the lights on finds all three on.
         val christmasLights = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED]
         val christmasBuildingLights = christmasLights ?: defaults.christmasBuildingLightsEnabled
         val christmasTreeLights = prefs[Keys.CHRISTMAS_TREE_LIGHTS_ENABLED] ?: christmasLights ?: defaults.christmasTreeLightsEnabled
         val christmasFirs = prefs[Keys.CHRISTMAS_FIRS_ENABLED] ?: christmasLights ?: defaults.christmasFirsEnabled
         // Without a key of their own, the Halloween decorations are the theme's -- and off where the Christmas ones are
-        // on, which came first (`DecorationExclusion`).
+        // on, the side chosen first (`DecorationExclusion`).
         val halloweenDecorations = prefs[Keys.HALLOWEEN_DECORATIONS_ENABLED]
             ?: (defaults.halloweenDecorationsEnabled && !(christmasBuildingLights || christmasTreeLights || christmasFirs))
         return SceneCustomization(
@@ -704,8 +612,7 @@ class WallpaperPrefs internal constructor(
             stored = prefs[Keys.PEOPLE_NIGHT_DENSITY],
             dayDensity = prefs[Keys.density(ObjectCategory.PEOPLE)] ?: defaults.people.density,
         ),
-        // The cars' night density resolves through the same rule as the pedestrians', against the
-        // cars' own daytime value -- see Keys.CARS_NIGHT_DENSITY.
+        // The pedestrians' rule, against the cars' own daytime value.
         carsNightDensity = PeopleDensity.resolveNightDensity(
             stored = prefs[Keys.CARS_NIGHT_DENSITY],
             dayDensity = prefs[Keys.density(ObjectCategory.CARS)] ?: defaults.cars.density,
@@ -834,25 +741,23 @@ class WallpaperPrefs internal constructor(
             horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
             laughingMoonEnabled = prefs[Keys.LAUGHING_MOON_ENABLED] ?: defaults.laughingMoonEnabled,
             nightSkyByDayEnabled = prefs[Keys.NIGHT_SKY_BY_DAY_ENABLED] ?: defaults.nightSkyByDayEnabled,
+            stillMoonEnabled = prefs[Keys.STILL_MOON_ENABLED] ?: defaults.stillMoonEnabled,
             halloweenDecorationsEnabled = halloweenDecorations,
             bloodRainEnabled = prefs[Keys.BLOOD_RAIN_ENABLED] ?: defaults.bloodRainEnabled,
             headlessHorsemanEnabled = prefs[Keys.HEADLESS_HORSEMAN_ENABLED] ?: defaults.headlessHorsemanEnabled,
             santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
-        ).let { DecorationExclusion.resolved(it, defaults) }
+        ).let { DecorationExclusion.resolvedOn(it, defaults, themeId) }
     }
 
     /**
      * The shops' colours in the live edit.
      *
-     * **A store written before v5.11 has no shop keys, and its shops were drawn in the Buildings
-     * colours.** Where such a live edit holds a Buildings colour the user chose, the shops are read
-     * as the Buildings pair the old build drew them in: each colour the key it stored, or the slate
-     * every theme's buildings had before v5.11 ([SceneCustomization.DEFAULT]'s), and the two modes the
-     * stored ones -- the theme keeps the look it had. Where it holds none, the shops start from the
-     * theme's own new colours, as the towers do. The first edit made since carries that reading into
-     * the shops' own keys and marks the space ([Keys.SCRATCH_KNOWS_SHOPS],
-     * [ensureFreshPendingTheme]), after which the shop keys are read like any other category's -- so
-     * "Reset Shops to default" means the theme's shop colours, not the Buildings ones.
+     * **A store without shop keys drew its shops in the Buildings colours.** Where its live edit holds
+     * a Buildings colour the user chose, the shops read as that pair (each colour stored, or the slate
+     * of [SceneCustomization.DEFAULT], and the stored modes), keeping the look; where it holds none,
+     * they start from the theme's own shop colours, as the towers do. The first edit writes that into
+     * the shop keys and marks the space ([Keys.SCRATCH_KNOWS_SHOPS], [ensureFreshPendingTheme]); then
+     * "Reset Shops to default" means the theme's shop colours.
      */
     private fun readShops(prefs: Preferences, defaults: SceneCustomization): ObjectVariantConfig {
         if (prefs[Keys.SCRATCH_KNOWS_SHOPS] == true || !holdsCategoryColour(prefs, ObjectCategory.BUILDINGS)) {
@@ -870,14 +775,10 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * The public buildings' colours in the live edit (v5.13).
-     *
-     * **A store written before v5.13 has no public keys, and its school wore the shops' colours.** Read
-     * as [publicsCarriedOver] says: the shops' colours [shops] where the user had changed them by hand,
-     * the theme's new pair where they had not. The first edit made since carries that reading into the
-     * public buildings' own keys and marks the space ([Keys.SCRATCH_KNOWS_PUBLICS], [carryPublicsOver]),
-     * after which they are read like any other category's -- so "Reset Public buildings to default" means
-     * the theme's public colours, not the shops'.
+     * The public buildings' colours in the live edit. **A store without public keys dressed its school
+     * in the shops' colours**, read as [publicsCarriedOver] says: [shops] where changed by hand, the
+     * theme's own pair where not. The first edit writes that into the public keys and marks the space
+     * ([Keys.SCRATCH_KNOWS_PUBLICS], [carryPublicsOver]).
      */
     private fun readPublics(prefs: Preferences, defaults: SceneCustomization, shops: ObjectVariantConfig): ObjectVariantConfig =
         if (prefs[Keys.SCRATCH_KNOWS_PUBLICS] == true || holdsCategoryColour(prefs, ObjectCategory.PUBLICS)) {
@@ -887,12 +788,10 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * What the live edit's Buildings keys are read against: the theme's defaults -- or, for a live edit
-     * written before v5.11 that holds a Buildings colour the user chose, the slate its towers were
-     * drawn in for the colours it did not store. Such a pair keeps the look it had (the colours stored,
-     * the slate for the rest) instead of mixing the user's colour with the theme's new starting ones;
-     * a live edit that never touched the Buildings colours takes the new ones, as a theme never edited
-     * does. Carried into the keys by [carryShopsOver] at the first edit since.
+     * What the live edit's Buildings keys are read against: the theme's defaults -- or, for a store
+     * without shop keys that holds a Buildings colour the user chose, the slate its towers were drawn
+     * in, so the pair keeps its look instead of mixing the user's colour with the theme's. Written into
+     * the keys by [carryShopsOver] at the first edit.
      */
     private fun towersDrawnIn(prefs: Preferences, defaults: ObjectVariantConfig): ObjectVariantConfig {
         if (prefs[Keys.SCRATCH_KNOWS_SHOPS] == true || !holdsCategoryColour(prefs, ObjectCategory.BUILDINGS)) return defaults
@@ -922,18 +821,12 @@ class WallpaperPrefs internal constructor(
 
 
     /**
-     * Writes [c] into the flat scratch keys -- the inverse of [readFlatCustomization], key for key.
-     *
-     * **It was not, until v5.8, and the test that was meant to say so could not.** It wrote none of
-     * the automatic day/night modes -- the two per category and the nine that live outside the
-     * loop -- so a theme restored from its archive came back with every pair on MANUAL, and the
-     * first edit after returning to it wrote that loss to disk: "Day sets night" on Autumn's hills
-     * turned back into "Both" and the night colour changed by itself (reproduced on a device,
-     * assessment v5.7 M7). `ThemeCustomizationPersistenceTest.everyCustomizationFieldSurvivesTheArchiveRoundTrip`
-     * writes a fully non-default customization, forces the archive/restore cycle and asserts
-     * equality; it never set a mode, which is why it stayed green. It now sets every one, so a
-     * field added to [SceneCustomization] and forgotten here fails there -- provided the test sets
-     * it too.
+     * Writes [c] into the flat scratch keys -- the inverse of [readFlatCustomization], key for key,
+     * the automatic day/night modes included: a field left out comes back at its default when the
+     * theme is restored from its archive, and the next edit writes that loss to disk.
+     * `ThemeCustomizationPersistenceTest.everyCustomizationFieldSurvivesTheArchiveRoundTrip` sets every
+     * field to a non-default and round-trips it, so a field added to [SceneCustomization] and
+     * forgotten here fails there -- provided the test sets it too.
      */
     private fun MutablePreferences.writeFlatCustomization(c: SceneCustomization) {
         fun variant(category: ObjectCategory, config: ObjectVariantConfig) {
@@ -972,7 +865,7 @@ class WallpaperPrefs internal constructor(
         this[Keys.PUBLIC_HOURS_ENABLED] = c.publicHoursEnabled
         this[Keys.PUBLIC_OPEN_HOUR] = c.publicOpenHour
         this[Keys.PUBLIC_CLOSE_HOUR] = c.publicCloseHour
-        // All three groups are written, so the one setting of before v5.12 has nothing left to say.
+        // All three groups are written, so the single older setting has nothing left to say.
         remove(Keys.BUSINESS_HOURS_ENABLED)
         remove(Keys.BUSINESS_OPEN_HOUR)
         remove(Keys.BUSINESS_CLOSE_HOUR)
@@ -1052,6 +945,7 @@ class WallpaperPrefs internal constructor(
         this[Keys.HORROR_SKY_ENABLED] = c.horrorSkyEnabled
         this[Keys.LAUGHING_MOON_ENABLED] = c.laughingMoonEnabled
         this[Keys.NIGHT_SKY_BY_DAY_ENABLED] = c.nightSkyByDayEnabled
+        this[Keys.STILL_MOON_ENABLED] = c.stillMoonEnabled
         this[Keys.HALLOWEEN_DECORATIONS_ENABLED] = c.halloweenDecorationsEnabled
         this[Keys.BLOOD_RAIN_ENABLED] = c.bloodRainEnabled
         this[Keys.HEADLESS_HORSEMAN_ENABLED] = c.headlessHorsemanEnabled
@@ -1062,8 +956,8 @@ class WallpaperPrefs internal constructor(
     /**
      * [replaceAll], plus the saved-themes document the caller is about to apply to the other store.
      *
-     * One atomic edit carrying both halves of an import's first step -- see [Keys.PENDING_IMPORT_THEMES]
-     * for why the second store's payload travels inside the first store's write (BCK-06).
+     * One atomic edit carrying both halves of an import's first step ([Keys.PENDING_IMPORT_THEMES] says
+     * why the second store's payload travels inside the first store's write).
      */
     suspend fun replaceAllStagingThemes(
         settings: AppBackup.BackupSettings,
@@ -1083,16 +977,11 @@ class WallpaperPrefs internal constructor(
     /**
      * Replaces every global preference and every per-theme customization in one transaction.
      *
-     * Used by backup import, and by its own rollback. **One `edit` block**, so a reader either
-     * sees the whole previous state or the whole new one and never a mixture — which is the half
-     * of "atomic import" this store can guarantee on its own; the other half, keeping it in step
-     * with `CustomThemeStore`, is [BackupRepository]'s job.
-     *
-     * The flat scratch keys and their marker are cleared rather than restored: they are one
-     * theme's in-progress edit, the restored per-theme blobs are the truth, and carrying a stale
-     * scratch across a restore is exactly the confusion this release exists to remove. Runtime
-     * state a backup deliberately does not carry -- the resolved GPS fix, its timestamp, the live
-     * weather status line -- is left exactly as it is on this device.
+     * Used by backup import and its rollback. **One `edit` block**, so a reader sees the whole previous
+     * state or the whole new one, never a mixture; keeping it in step with `CustomThemeStore` is
+     * [BackupRepository]'s job. The scratch keys and their marker are cleared, not restored: the
+     * restored per-theme blobs are the truth. Runtime state a backup does not carry (the GPS fix, its
+     * timestamp, the live weather status) is left as it is on this device.
      */
     suspend fun replaceAll(
         settings: AppBackup.BackupSettings,
@@ -1125,9 +1014,8 @@ class WallpaperPrefs internal constructor(
         prefs[Keys.SWIPE_SCROLL] = settings.swipeScroll
         prefs[Keys.SCROLL_SPEED] = settings.scrollSpeed
         prefs[Keys.AUTO_THEME_BY_DATE] = settings.autoThemeByDate
-        // The factory calendar is the absence of the key, not a document that happens to agree with
-        // it: writing one would pin this install to today's factory dates for good. A backup taken
-        // before this field existed, and one taken from an untouched install, both arrive as "".
+        // The factory calendar is the absence of the key: a document agreeing with it would pin this
+        // install to today's factory dates. A backup without the field, or of an untouched install, is "".
         if (settings.seasonalCalendarJson.isEmpty()) prefs.remove(Keys.SEASONAL_CALENDAR)
         else prefs[Keys.SEASONAL_CALENDAR] = settings.seasonalCalendarJson
 
@@ -1144,12 +1032,9 @@ class WallpaperPrefs internal constructor(
     suspend fun setTheme(themeId: String) = store.editDurably { it[Keys.THEME_ID] = themeId }
 
     /**
-     * [themeId] chosen **and shown**: *Automatic theme by date* off in the same edit (v5.10C, row 9).
-     *
-     * What the question "The calendar is showing Autumn today. Show it anyway?" writes when the user
-     * says yes. One edit and not [setTheme] then [setAutoThemeByDate], because between two edits the
-     * wallpaper would draw the theme picked before for a frame or more: the manual pick with the
-     * calendar off.
+     * [themeId] chosen **and shown**: *Automatic theme by date* off in the same edit, what a yes to "The
+     * calendar is showing Autumn today. Show it anyway?" writes. One edit, or between two the wallpaper
+     * would draw the previous pick for a frame or more.
      */
     suspend fun setThemeTurningAutoThemeOff(themeId: String) = store.editDurably {
         it[Keys.THEME_ID] = themeId
@@ -1168,12 +1053,9 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * Turns on device location and says which positioning system it may use, in one edit.
-     *
-     * One call rather than two because the pair is one decision. Written separately, a moment
-     * would exist where device location is on and the kind is still the previous one, and the
-     * engine watches those settings -- it would start a fix from the wrong system and then throw
-     * it away. Custom location is cleared here for the same reason [setUseLocation] clears it.
+     * Turns on device location and says which positioning system it may use, in one edit: written
+     * apart, the engine could see location on with the previous kind and start a fix from the wrong
+     * system. Custom location is cleared, as [setUseLocation] does.
      */
     suspend fun setDeviceLocation(kind: DeviceLocationKind) =
         store.editDurably {
@@ -1193,16 +1075,15 @@ class WallpaperPrefs internal constructor(
         store.editDurably {
             it[Keys.CUSTOM_LOCATION_LAT] = latitude
             it[Keys.CUSTOM_LOCATION_LON] = longitude
-            it[Keys.CUSTOM_LOCATION_LABEL] = label
+            it[Keys.CUSTOM_LOCATION_LABEL] = keptText(label)
         }
 
     suspend fun setLiveWeatherEnabled(enabled: Boolean) =
         store.editDurably { it[Keys.LIVE_WEATHER_ENABLED] = enabled }
 
     /**
-     * Live Weather on **and** the scene back on real time, in one edit (v5.10C, row 4): what a tap on
-     * the Live Weather switch writes while a fixed hour is what holds it off. One edit, so the engine
-     * never sees the pair half-written.
+     * Live Weather on **and** the scene back on real time, in one edit: what a tap on the Live Weather
+     * switch writes while a fixed hour holds it off. One edit, so the engine never sees half the pair.
      */
     suspend fun setLiveWeatherOnFollowingRealTime() = store.editDurably {
         it[Keys.LIVE_WEATHER_ENABLED] = true
@@ -1210,33 +1091,33 @@ class WallpaperPrefs internal constructor(
     }
 
     suspend fun setLiveWeatherApiKey(apiKey: String) =
-        store.editDurably { it[Keys.LIVE_WEATHER_API_KEY] = apiKey }
+        store.editDurably { it[Keys.LIVE_WEATHER_API_KEY] = keptText(apiKey) }
 
     /** Writes only the provider. Nothing else about Live Weather or the location is touched. */
     suspend fun setWeatherProvider(provider: WeatherProviderId) =
         store.editDurably { it[Keys.WEATHER_PROVIDER] = provider.storageId }
 
     suspend fun setWeatherApiComApiKey(apiKey: String) =
-        store.editDurably { it[Keys.WEATHER_API_COM_API_KEY] = apiKey }
+        store.editDurably { it[Keys.WEATHER_API_COM_API_KEY] = keptText(apiKey) }
 
     suspend fun setOpenWeatherApiKey(apiKey: String) =
-        store.editDurably { it[Keys.OPEN_WEATHER_API_KEY] = apiKey }
+        store.editDurably { it[Keys.OPEN_WEATHER_API_KEY] = keptText(apiKey) }
 
     suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
         store.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
 
-    /** The two update switches as stored: what the update job reads, and nothing else (v5.15). */
+    /** The two update switches as stored: what the update job reads, and nothing else. */
     data class UpdateSwitches(val automaticCheck: Boolean, val notifications: Boolean)
 
     /**
-     * The two update switches, read once from the store (v5.15): what `UpdateCheckJobs` schedules the job
-     * from and what each run of it reads first. Not [settingsFlow], which builds every setting of the app
-     * and emits again whenever the saved themes change; and never a screen's state, whose first value is a fresh install's.
+     * The two update switches, read once from the store: what `UpdateCheckJobs` schedules the job from
+     * and what each run reads first. Not [settingsFlow], which builds every setting and emits again
+     * whenever the saved themes change; never a screen's state, whose first value is a fresh install's.
      *
-     * **Null when the read fails for a passing reason** (an `IOException`, inventory I-968), not a fresh
-     * install's switches: [PrefsRecovery.recoveringFromReadErrors] serves those for one emission of a flow that
-     * will read again, and here they would be acted on -- both off, the job cancelled until the next start.
-     * A corrupt file is the store's own handler's (it is rewritten empty once, and reads as both off).
+     * **Null when the read fails for a passing reason** (an `IOException`), not a fresh install's
+     * switches: [PrefsRecovery.recoveringFromReadErrors] serves those to a flow that will read again,
+     * and here they would be acted on (both off, the job cancelled until the next start). A corrupt
+     * file is the store's handler's: rewritten empty once, it reads as both off.
      */
     suspend fun readUpdateSwitches(): UpdateSwitches? {
         val prefs = try {
@@ -1254,23 +1135,16 @@ class WallpaperPrefs internal constructor(
         store.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
 
     /**
-     * Records whether Live Weather has fallen back to the theme's manual weather.
-     *
-     * Called from the wallpaper service, never from the UI. Writing it re-emits the settings flow,
-     * which is how the settings screen learns about it without polling or a restart -- so it is
-     * only written when the value actually changes, or every evaluation of the weather loop would
-     * wake every collector for nothing.
+     * Records what Live Weather is doing. Called by the wallpaper service, never the UI, and only on a
+     * change: the write re-emits the settings flow, which is how the settings screen learns of it.
      */
     suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
         store.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
     /**
-     * Saves the position the device reported, with the moment it was saved.
-     *
-     * This is the cache the whole device-location path falls back to. It survives a reboot, a
-     * revoked permission and a spell with no signal, which is the difference between a scene that
-     * keeps showing the right town's weather and one that jumps somewhere else the first time the
-     * provider is slow.
+     * Saves the position the device reported, with the moment it was saved: the fallback of the whole
+     * device-location path, surviving a reboot and a spell with no signal, so the scene keeps the
+     * right town when the provider is slow.
      */
     suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float) =
         store.editDurably {
@@ -1291,7 +1165,7 @@ class WallpaperPrefs internal constructor(
         store.editDurably { it[Keys.SWIPE_SCROLL] = enabled }
 
     /**
-     * The home screen has moved the wallpaper with a swipe (v5.10E, [WallpaperSettings.swipeReported]).
+     * The home screen has moved the wallpaper with a swipe ([WallpaperSettings.swipeReported]).
      * Written once; never written back to false.
      */
     suspend fun setSwipeReported() =
@@ -1304,11 +1178,8 @@ class WallpaperPrefs internal constructor(
         store.editDurably { it[Keys.AUTO_THEME_BY_DATE] = enabled }
 
     /**
-     * Stores [calendar], or removes the key entirely when it is back to the factory shape.
-     *
-     * The removal is the half that matters. "Reset to factory dates" has to leave the install
-     * indistinguishable from one that never touched the calendar, or the reset would freeze it on
-     * the dates this release happens to ship.
+     * Stores [calendar], or removes the key when it is back to the factory shape: "Reset to factory
+     * dates" leaves the install like one that never touched the calendar, not frozen on today's dates.
      */
     suspend fun setSeasonalCalendar(calendar: SeasonalCalendar) =
         store.editDurably {
@@ -1319,11 +1190,9 @@ class WallpaperPrefs internal constructor(
     /** Puts every window back on its code-declared dates. */
     suspend fun resetSeasonalCalendar() = setSeasonalCalendar(SeasonalCalendar.DEFAULT)
 
-    // Every mutator below except resetAllCategories (which removes the tag) also stamps
-    // PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same atomic edit, so it's always
-    // unambiguous which theme the in-progress edit belongs to (see
-    // CustomThemeRegistry.resolveActiveCustomization). This is how "scene object changes apply
-    // live only to the current theme" is enforced -- other themes simply never match the tag.
+    // Every mutator below except resetAllCategories (which removes the tag) stamps
+    // PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same edit: the live edit applies only to the
+    // theme it is tagged with (CustomThemeRegistry.resolveActiveCustomization).
 
     suspend fun setCategoryVisible(category: ObjectCategory, visible: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
@@ -1351,7 +1220,7 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** The shops' opening hours on or off (the restaurant, the bar and the shop; v5.12). */
+    /** The shops' opening hours on or off (the restaurant, the bar and the shop). */
     suspend fun setShopHoursEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.SHOP_HOURS_ENABLED] = enabled
@@ -1370,7 +1239,7 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** The towers' opening hours on or off (v5.12). */
+    /** The towers' opening hours on or off. */
     suspend fun setTowerHoursEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.TOWER_HOURS_ENABLED] = enabled
@@ -1389,7 +1258,7 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** The public buildings' opening hours on or off (the school's: the two stations never close; v5.13). */
+    /** The public buildings' opening hours on or off (the school's: the two stations never close). */
     suspend fun setPublicHoursEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PUBLIC_HOURS_ENABLED] = enabled
@@ -1450,14 +1319,14 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** *Show distant houses* on [forThemeId] (v5.11). */
+    /** *Show distant houses* on [forThemeId]. */
     suspend fun setDistantHousesVisible(visible: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.DISTANT_HOUSES_VISIBLE] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** The distant houses' amount on [forThemeId], 0..1 (v5.11). */
+    /** The distant houses' amount on [forThemeId], 0..1. */
     suspend fun setDistantHousesDensity(density: Float, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.DISTANT_HOUSES_DENSITY] = density.coerceIn(0f, 1f)
@@ -1592,11 +1461,9 @@ class WallpaperPrefs internal constructor(
 
     // ---- Automatic day/night colours -------------------------------------------------------
     //
-    // One setter per colour pair, each writing nothing but the mode. **The colours themselves are
-    // never touched here**, which is the whole reversibility guarantee: a pair switched to
-    // automatic and back returns the two values the user last chose, because they stayed on disk
-    // throughout. The derivation happens on read, once, in
-    // `CustomThemeRegistry.resolveActiveCustomization`.
+    // One setter per colour pair, writing only the mode. **The colours are never touched here**, so a
+    // pair switched to automatic and back returns the two values the user last chose. The derivation
+    // happens on read, in `CustomThemeRegistry.resolveActiveCustomization`.
 
     suspend fun setCategoryAutoMode1(category: ObjectCategory, mode: AutoColorMode, forThemeId: String) =
         setAutoMode(Keys.autoMode1(category), mode, forThemeId)
@@ -1713,10 +1580,8 @@ class WallpaperPrefs internal constructor(
     suspend fun setRainbowOpacity(opacity: Float, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_OPACITY] = opacity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
-    /** Mutually exclusive with [setWinterColorsEnabled] -- turning Fall Colors on always turns
-     * Winter Colors off in the same edit (Christmas decorations are untouched), same pattern
-     * PrecipitationConfig.type already uses for Rain vs Snow (see
-     * [SceneCustomization.fallColorsEnabled]'s own doc comment). */
+    /** Exclusive with [setWinterColorsEnabled]: Fall Colors on turns Winter Colors off in the same edit
+     * (the Christmas decorations untouched; [SceneCustomization.fallColorsEnabled]). */
     suspend fun setFallColorsEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.FALL_COLORS_ENABLED] = enabled
@@ -1725,14 +1590,15 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * *Lights on the buildings*, *Lights on the trees* and *Christmas firs* (v5.16), the three switches *Christmas lights*
-     * became.
+     * *Lights on the buildings*, *Lights on the trees* and *Christmas firs*, the three Christmas switches.
      *
-     * **Independent of both seasonal palettes, unlike them of each other.** Fall Colors and Winter
-     * Colors are two readings of the same leaves and cannot both be true; Christmas lights are
-     * hung *on top of* whatever the trees look like, so this clears nothing and nothing clears it.
-     * **But none turns on while the theme's Halloween decorations are on** ([DecorationExclusion]: the first on wins;
-     * the settings grey the switch and say why): a refused tap changes no switch.
+     * **Independent of the seasonal palettes**, which are two readings of the same leaves and exclude
+     * each other: the lights hang on whatever the trees look like. **But none turns on while the theme's
+     * Halloween decorations count** -- on, with a house or a shop standing to carry them
+     * ([DecorationExclusion.halloweenOn]; the first on wins, and the settings grey the switch and say
+     * why): a refused tap changes no switch. With nothing to carry them they do not count, the tap goes
+     * through and the store holds both on; when the buildings come back, [DecorationExclusion.resolved]
+     * reads one side.
      */
     suspend fun setChristmasBuildingLightsEnabled(enabled: Boolean, forThemeId: String) =
         setChristmasDecoration(Keys.CHRISTMAS_DECORATIONS_ENABLED, enabled, forThemeId)
@@ -1744,52 +1610,59 @@ class WallpaperPrefs internal constructor(
         setChristmasDecoration(Keys.CHRISTMAS_FIRS_ENABLED, enabled, forThemeId)
 
     /**
-     * One of the three, **with the other two written as they read now** (v5.16B; the mid-round review): a store without
-     * the two newer keys reads them from the first's, the one *Christmas lights* had ([readFlatCustomization]), so writing
-     * that key alone moved all three -- *Lights on the buildings* turned off took the trees' lights and the firs with it,
-     * turned on on a theme without them it lit them too. And the Halloween decorations as they read now, which without a
-     * key of their own follow the Christmas ones and would turn on by themselves when the last of these goes off.
+     * One of the three, **with the other two written as they read now**: a store without the two newer keys reads them
+     * from the first's ([readFlatCustomization]), so writing that key alone would move all three. The Halloween
+     * decorations are written as they read too: without a key of their own they follow the Christmas ones, and would turn
+     * on by themselves when the last of these goes off.
      *
-     * The scratch space is the theme's from [ensureFreshPendingTheme] on, so it is stamped so before a refusal returns:
-     * until then a refused tap on another theme than the one last edited left that theme's look marked as the other's.
+     * The scratch space is the theme's from [ensureFreshPendingTheme] on, so it is stamped before a refusal returns, or a
+     * refused tap would leave this theme's look in the scratch marked as the theme edited before.
      */
     private suspend fun setChristmasDecoration(key: Preferences.Key<Boolean>, enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
             val now = readFlatCustomization(it, forThemeId)
-            if (enabled && !DecorationExclusion.christmasAllowed(now)) return@editDurably
+            if (enabled && !DecorationExclusion.christmasAllowed(now, DecorationExclusion.streetOf(forThemeId))) return@editDurably
             it[Keys.CHRISTMAS_DECORATIONS_ENABLED] = now.christmasBuildingLightsEnabled
             it[Keys.CHRISTMAS_TREE_LIGHTS_ENABLED] = now.christmasTreeLightsEnabled
             it[Keys.CHRISTMAS_FIRS_ENABLED] = now.christmasFirsEnabled
-            it[Keys.HALLOWEEN_DECORATIONS_ENABLED] = now.halloweenDecorationsEnabled
+            // Stored on and set aside by the reading because nothing on the street carries them: kept, as their line says.
+            it[Keys.HALLOWEEN_DECORATIONS_ENABLED] = now.halloweenDecorationsEnabled || (it[Keys.HALLOWEEN_DECORATIONS_ENABLED] == true &&
+                !DecorationExclusion.halloweenDecorationsHang(now, DecorationExclusion.streetOf(forThemeId)))
             it[key] = enabled
         }
 
     /**
-     * *Halloween decorations* (v5.16): the cobwebs, the bats and the jack-o'-lanterns of the houses and the shops. Not turned
-     * on while any of the theme's Christmas decorations is ([DecorationExclusion]): a refused tap changes no switch, and
-     * the scratch space is stamped as the theme's before it returns, as in [setChristmasDecoration].
+     * *Halloween decorations*: the cobwebs and the jack-o'-lanterns of the houses and the shops. Not turned
+     * on while any of the theme's Christmas decorations counts -- on, with something standing to carry it
+     * ([DecorationExclusion.christmasOn]): a refused tap changes no switch, and the scratch space is stamped as the
+     * theme's before it returns, as in [setChristmasDecoration]. A Christmas switch on with nothing to carry it does
+     * not refuse the tap, and the store then holds both on.
      */
     suspend fun setHalloweenDecorationsEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
-            if (enabled && !DecorationExclusion.halloweenAllowed(readFlatCustomization(it, forThemeId))) return@editDurably
+            if (enabled && !DecorationExclusion.halloweenAllowed(readFlatCustomization(it, forThemeId), DecorationExclusion.streetOf(forThemeId))) return@editDurably
             it[Keys.HALLOWEEN_DECORATIONS_ENABLED] = enabled
         }
 
-    /** *Laughing moon* (v5.16). Stored as chosen: what it needs to show is the settings' to say (`SettingsUiModel`). */
+    /** *Laughing moon*. Stored as chosen: what it needs to show is the settings' to say (`SettingsUiModel`). */
     suspend fun setLaughingMoonEnabled(enabled: Boolean, forThemeId: String) =
         setFlag(Keys.LAUGHING_MOON_ENABLED, enabled, forThemeId)
 
-    /** *Night sky by day* (v5.16). Stored as chosen, as [setLaughingMoonEnabled]. */
+    /** *Night sky by day*. Stored as chosen, as [setLaughingMoonEnabled]. */
     suspend fun setNightSkyByDayEnabled(enabled: Boolean, forThemeId: String) =
         setFlag(Keys.NIGHT_SKY_BY_DAY_ENABLED, enabled, forThemeId)
 
-    /** *Blood rain* (v5.16). */
+    /** *Moon stays in place*. Stored as chosen, as [setLaughingMoonEnabled]. */
+    suspend fun setStillMoonEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.STILL_MOON_ENABLED, enabled, forThemeId)
+
+    /** *Blood rain*. */
     suspend fun setBloodRainEnabled(enabled: Boolean, forThemeId: String) =
         setFlag(Keys.BLOOD_RAIN_ENABLED, enabled, forThemeId)
 
-    /** *Headless Horseman* (v5.16), a plain per-theme switch as [setSantaEnabled]. */
+    /** *Headless Horseman*, a plain per-theme switch as [setSantaEnabled]. */
     suspend fun setHeadlessHorsemanEnabled(enabled: Boolean, forThemeId: String) =
         setFlag(Keys.HEADLESS_HORSEMAN_ENABLED, enabled, forThemeId)
 
@@ -1807,17 +1680,13 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * The Palms switch, on any theme (v5.10C): on a layout that plants palms it says whether they
-     * stay palms, on one that plants none whether its trees become palms. Independent of every
-     * other flag.
+     * The Palms switch, on any theme: on a layout that plants palms, whether they stay palms; on one
+     * that plants none, whether its trees become palms. Independent of every other flag.
      *
      * **Writes both fields behind the switch** ([SceneCustomization.palmsEnabled] and
-     * [SceneCustomization.palmsInsteadOfTrees]), so it needs no layout to know which one the theme
-     * reads, and from the first move the two agree. Only the store's older value of the first was
-     * ever written without the user, which is why a theme without palms reads the second.
-     *
-     * It does not touch TREES: the tree slots stay exactly as populated as they were and only the
-     * species that fills them changes, so this is not a second way to empty the shore.
+     * [SceneCustomization.palmsInsteadOfTrees]), so it needs no layout to know which the theme reads.
+     * The first can hold a `true` the user never chose, which is why a theme without palms reads the
+     * second. TREES is untouched: only the species filling the tree slots changes.
      */
     suspend fun setPalmsEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
@@ -1827,10 +1696,8 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * Halloween on or off. **Clears nothing and is cleared by nothing.**
-     *
-     * Winter and Christmas are untouched by this in both directions, which is the whole point of
-     * it being a third flag rather than a mode on either of them.
+     * Halloween on or off. **Clears nothing and is cleared by nothing**: Winter and Christmas are
+     * untouched both ways.
      */
     suspend fun setHalloweenEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
@@ -1860,21 +1727,14 @@ class WallpaperPrefs internal constructor(
         }
 
     /**
-     * **"Reset decorations to defaults"**, everything Seasons & decorations shows, in one write (v5.10E,
-     * inventory I-214 and I-294, the maintainer's *sì* of 2026-09-30 to row 10 and of 2026-10-04 to
-     * I-294): the seasonal palette and the snow and leaf piles under it, the seven decorations with their
-     * densities and colours ([ObjectCategory.DECORATIONS], the scarecrows since v5.16), and the switches -- the three
-     * Christmas lights' (v5.16), Santa, Halloween and the five v5.16 added beside it, the horror sky, the flowers -- back
-     * to the theme's own, on [forThemeId] only.
+     * **"Reset decorations to defaults"**: everything Seasons & decorations shows, in one write, back to
+     * the theme's own on [forThemeId] only (`DESIGN_NOTES.md` decision 42) -- the seasonal palette and the
+     * snow and leaf piles, the seven decorations with their densities and colours
+     * ([ObjectCategory.DECORATIONS]), and the switches: the three Christmas ones, Santa, Halloween and its
+     * six, the horror sky, the flowers. Not the palms, whose switch is on the Trees page ([resetCategory]).
      *
      * **Removed, not set false**: a reset means "forget what I chose", and the theme's own default may
      * be on (Winter, Christmas, New Year and Autumn turn their palettes on, Christmas its Santa).
-     *
-     * Until v5.10E the screen made eight writes (six `resetCategory`, the palettes, Santa), with no
-     * question first, and two things on its screen survived them: the **snow piles and the leaf piles**,
-     * which stayed where they had been dragged. And it took the **palms**, whose switch has been on the
-     * Trees page of World & scene since v5.10C2: now "Reset Trees to default" takes them
-     * ([resetCategory]), the reset of the page they are on.
      */
     suspend fun resetDecorations(forThemeId: String) = store.editDurably { prefs ->
         prefs.ensureFreshPendingTheme(forThemeId)
@@ -1892,6 +1752,7 @@ class WallpaperPrefs internal constructor(
         prefs.remove(Keys.HORROR_SKY_ENABLED)
         prefs.remove(Keys.LAUGHING_MOON_ENABLED)
         prefs.remove(Keys.NIGHT_SKY_BY_DAY_ENABLED)
+        prefs.remove(Keys.STILL_MOON_ENABLED)
         prefs.remove(Keys.HALLOWEEN_DECORATIONS_ENABLED)
         prefs.remove(Keys.BLOOD_RAIN_ENABLED)
         prefs.remove(Keys.HEADLESS_HORSEMAN_ENABLED)
@@ -1901,35 +1762,21 @@ class WallpaperPrefs internal constructor(
     /**
      * Resets one category's visibility/density/colors back to defaults, **on [forThemeId]**.
      *
-     * Takes the theme like every other per-theme mutator, and for the same reason. The flat
-     * customization keys belong to whichever theme `PENDING_CUSTOMIZATION_THEME_ID` names -- the
-     * last theme *edited*, which is not the theme being *viewed*, because [setTheme] deliberately
-     * writes only `THEME_ID` and leaves the tag alone. Until v4.8 `resetCategory` was the
-     * one per-theme mutator taking no theme and checking nothing, so a reset pressed as the first
-     * action after switching themes removed the *outgoing* theme's keys -- destroying that
-     * theme's customization for good the moment [ensureFreshPendingTheme] archived what was left
-     * of the scratch -- while the theme on screen, whose values come from its own archive, was not
-     * reset at all and the button appeared to do nothing. Reproduced on a device: customise
-     * `winter`, customise `christmas`, return to `winter` and reset one category; `christmas` lost
-     * that category and `winter` kept it.
-     *
-     * [ensureFreshPendingTheme] runs first, exactly as it does in the setters, so the scratch
-     * space is already this theme's before anything is removed from it -- which also means the
-     * reset reaches a theme whose state currently lives in its archive rather than in the scratch.
-     * The tag is stamped afterwards for the same reason the setters stamp it.
+     * The scratch keys belong to the theme `PENDING_CUSTOMIZATION_THEME_ID` names, the last theme
+     * *edited*, not necessarily the one *viewed* ([setTheme] writes only `THEME_ID`). So
+     * [ensureFreshPendingTheme] runs first, as in the setters: the scratch is this theme's before
+     * anything is removed, and the reset reaches a theme whose state is in its archive. Otherwise a
+     * reset right after switching themes would remove the other theme's keys and leave this one as it
+     * was. The tag is stamped afterwards, as the setters do.
      */
     suspend fun resetCategory(category: ObjectCategory, forThemeId: String) = store.editDurably { prefs ->
         prefs.ensureFreshPendingTheme(forThemeId)
         prefs.removeCategoryKeys(category)
-        // People carry a second density that lives outside the per-category keys; resetting the
-        // category has to clear it too, or "reset to default" would leave the night population
-        // wherever the user had dragged it. Cars carry the same pair since v4.22, and the towers, the
-        // shops and the public buildings carry their opening hours -- same rule, same reason, for each:
-        // since v5.12 "Reset Buildings to default" puts the towers' hours back and "Reset Shops to
-        // default" the shops', and since v5.13 "Reset Public buildings to default" the public buildings'.
-        // The settings of before are gone by now: [ensureFreshPendingTheme] above carried the one setting
-        // into the groups' keys ([carryHoursOver], [carryPublicsOver]), so removing a group's keys leaves
-        // the others'.
+        // Keys outside the per-category ones that belong to the category are reset with it: the people's
+        // and the cars' night densities, and the opening hours of the towers ("Reset Buildings"), the
+        // shops and the public buildings. [ensureFreshPendingTheme] above has already carried the single
+        // older setting into the groups' keys ([carryHoursOver], [carryPublicsOver]), so removing one
+        // group's keys leaves the others'.
         if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
         if (category == ObjectCategory.CARS) prefs.remove(Keys.CARS_NIGHT_DENSITY)
         if (category == ObjectCategory.BUILDINGS) {
@@ -1947,11 +1794,8 @@ class WallpaperPrefs internal constructor(
             prefs.remove(Keys.PUBLIC_OPEN_HOUR)
             prefs.remove(Keys.PUBLIC_CLOSE_HOUR)
         }
-        // And the trees carry the Palms switch, which is on their page since v5.10C2 (the
-        // maintainer, 2026-10-03: *«il flag non deve stare in summer ma in tree»*): "Reset Trees to default" puts
-        // the palms back to the theme's own -- on Beach and Desert, on; elsewhere, off -- and
-        // "Reset decorations to defaults" no longer does (v5.10E, inventory I-294, the maintainer's
-        // *«3 - si»* of 2026-10-04). Both fields of the switch, as every wipe here removes them.
+        // And the trees carry the Palms switch, which is on their page (`DESIGN_NOTES.md` decision 39):
+        // back to the theme's own, on for Beach and Desert, off elsewhere. Both fields of the switch.
         if (category == ObjectCategory.TREES) {
             prefs.remove(Keys.PALMS_ENABLED)
             prefs.remove(Keys.PALMS_INSTEAD_OF_TREES)
@@ -1967,22 +1811,17 @@ class WallpaperPrefs internal constructor(
         remove(Keys.colorNight1(category))
         remove(Keys.colorDay2(category))
         remove(Keys.colorNight2(category))
-        // The two automatic-colour modes belong to this category's two pairs, so a reset that
-        // restored the colours but left a pair on FROM_DAY would hand back a default the user
-        // cannot see -- the derived half would still be overriding it.
+        // The modes go with the colours: a pair left on FROM_DAY would hide the default under the derived half.
         remove(Keys.autoMode1(category))
         remove(Keys.autoMode2(category))
     }
 
     /**
-     * Removes every per-theme scratch customization key -- every field that's meaningful only
-     * in the context of *which theme* is currently being edited (as opposed to global settings
-     * like scroll speed or Live Weather, which apply no matter which theme is active). Shared by
-     * [ensureFreshPendingTheme] (called at the start of every per-theme setter, see its own doc
-     * comment for why), [resetAllCategories] (the "Reset this theme's scene to defaults" button)
-     * and [replaceAll] (a backup restore) -- all need the exact same "wipe every per-theme
-     * override" behavior, just triggered differently (automatically on a theme mismatch, manually
-     * via a button, or by a restore).
+     * Removes every per-theme scratch key (not the global settings, such as scroll speed or Live
+     * Weather). Used by [ensureFreshPendingTheme] on a theme change, [resetAllCategories] ("Reset this
+     * theme's scene") and [replaceAll] (a backup restore). **Every key a `forThemeId` setter writes
+     * belongs here**: one left out survives every wipe and leaks one theme's value into the next theme
+     * edited, a reset and a restore.
      */
     private fun MutablePreferences.clearAllThemeCustomizationKeys() {
         for (category in ObjectCategory.entries) {
@@ -1995,10 +1834,7 @@ class WallpaperPrefs internal constructor(
             remove(Keys.autoMode1(category))
             remove(Keys.autoMode2(category))
         }
-        // The nine pair modes that live outside the per-category loop. They are scratch state for
-        // this theme exactly like the colours they govern, and a wipe that cleared the colour but
-        // left the mode would hand back a default the user cannot see -- the derived half would
-        // still be overriding it. This is the same failure PEOPLE_NIGHT_DENSITY had below.
+        // The nine pair modes outside the per-category loop, for the reason removeCategoryKeys gives.
         remove(Keys.HILLS_AUTO_MODE)
         remove(Keys.mountainAutoMode(true))
         remove(Keys.mountainAutoMode(false))
@@ -2008,18 +1844,7 @@ class WallpaperPrefs internal constructor(
         remove(Keys.CLOUDS_AUTO_MODE)
         remove(Keys.PRECIPITATION_RAIN_AUTO_MODE)
         remove(Keys.PRECIPITATION_SNOW_AUTO_MODE)
-        // The night pedestrian density is per-theme scratch state exactly like everything else in
-        // this list -- written by a `forThemeId` setter, read by `readFlatCustomization`, archived
-        // and restored with the rest -- but it is the one such field that lives *outside* the
-        // per-category keys the loop above covers, and it was missed when it was added. Left
-        // behind, it survived every wipe this function performs: a theme switch carried one
-        // theme's night crowd into the next theme edited (the leak `ensureFreshPendingTheme`
-        // exists to prevent), "reset everything to defaults" left the slider where the user had
-        // dragged it, and a backup restore left it for the first post-restore edit to pick up.
-        // `resetCategory(PEOPLE, ...)` has always removed it; this is the same field, in the wipe
-        // that is supposed to clear everything. The v4.22 additions below are the same class of
-        // field -- per-theme scratch outside the per-category loop -- added here the day they were
-        // born so the leak this comment records cannot repeat with a new name.
+        // Per-theme keys outside the per-category loop.
         remove(Keys.PEOPLE_NIGHT_DENSITY)
         remove(Keys.CARS_NIGHT_DENSITY)
         remove(Keys.SHOP_HOURS_ENABLED)
@@ -2094,29 +1919,19 @@ class WallpaperPrefs internal constructor(
         remove(Keys.PRECIPITATION_THUNDERSTORM)
         remove(Keys.RAINBOW_VISIBLE)
         remove(Keys.RAINBOW_OPACITY)
-        // Previously missing from this list entirely (added after Fall/Winter Colors and Santa
-        // were introduced later than the rest) -- meant "Reset everything to defaults" silently
-        // left these 3 untouched. Also exactly the 3 fields involved in aa's own bug report: a
-        // stale WINTER_COLORS_ENABLED=true (or a stale HILLS_COLOR_DAY, etc.) surviving a theme
-        // switch is precisely what [ensureFreshPendingTheme] below now prevents.
         remove(Keys.FALL_COLORS_ENABLED)
         remove(Keys.WINTER_COLORS_ENABLED)
         remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
         remove(Keys.CHRISTMAS_TREE_LIGHTS_ENABLED)
         remove(Keys.CHRISTMAS_FIRS_ENABLED)
         remove(Keys.FLOWERS_ENABLED)
-        // The palms switch is per-theme scratch state like every flag around it -- written by a
-        // `forThemeId` setter, read by `readFlatCustomization`, archived and restored with the
-        // rest -- and it was the one per-theme key no function removed. Left behind, it survived
-        // every wipe here: Beach's "off" became Desert's the first time Desert was edited, a scene
-        // reset brought it back on the next edit, and a backup restore left it for the first
-        // post-restore edit to pick up. Measured on a device (assessment v5.7, M1).
         remove(Keys.PALMS_ENABLED)
         remove(Keys.PALMS_INSTEAD_OF_TREES)
         remove(Keys.HALLOWEEN_ENABLED)
         remove(Keys.HORROR_SKY_ENABLED)
         remove(Keys.LAUGHING_MOON_ENABLED)
         remove(Keys.NIGHT_SKY_BY_DAY_ENABLED)
+        remove(Keys.STILL_MOON_ENABLED)
         remove(Keys.HALLOWEEN_DECORATIONS_ENABLED)
         remove(Keys.BLOOD_RAIN_ENABLED)
         remove(Keys.HEADLESS_HORSEMAN_ENABLED)
@@ -2124,31 +1939,17 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * Called as the very first statement in every per-theme setter (`setXxxVisible`,
-     * `setHillsColorDay`, etc. -- anything taking a `forThemeId` parameter except
-     * [resetAllCategories]), inside the same DataStore edit transaction, before that setter
-     * applies its own specific field change.
+     * The first statement of every per-theme setter (anything taking `forThemeId` except
+     * [resetAllCategories]), inside the same edit, before the setter's own change.
      *
-     * The bug this fixes: aa reported that turning on Winter/Christmas Colors while on the Beach
-     * theme also turned the hills white. Root cause -- every one of this class's ~80 per-theme
-     * setters writes its own one field *plus* `PENDING_CUSTOMIZATION_THEME_ID = forThemeId`, but
-     * every other field (hills color, sky, precipitation, everything) is a single global flat
-     * DataStore key, not namespaced per theme. `CustomThemeRegistry.resolveActiveCustomization`
-     * only ever falls back to a theme's defaults/saved entry while `PENDING_CUSTOMIZATION_THEME_ID`
-     * differs from the theme actually being viewed; the instant *any* setter fires for a
-     * *different* theme than whatever was last edited, that check starts passing again and every
-     * one of those stale flat fields -- last written for a *previous* theme, e.g. hills set white
-     * while editing the Christmas/Winter theme -- leaks straight into the newly "pending" theme,
-     * even though the edit being made only meant to touch one unrelated field (Winter Colors, in
-     * aa's report).
-     * This isn't specific to Winter Colors or to hills/Beach -- it's a general architectural gap
-     * that could surface with any field, on any theme, the moment you edit a second theme after
-     * customizing a first one.
-     *
-     * The fix: whenever a setter's own `forThemeId` doesn't match whichever theme the scratch
-     * state currently belongs to, wipe every per-theme field first (via
-     * [clearAllThemeCustomizationKeys]) so the setter's own change lands on that theme's true
-     * baseline, not contaminated leftovers from whatever was edited previously.
+     * The scratch keys are one flat set, not namespaced per theme, and
+     * `CustomThemeRegistry.resolveActiveCustomization` reads them for whichever theme
+     * `PENDING_CUSTOMIZATION_THEME_ID` names. So when [forThemeId] is not the theme the scratch belongs
+     * to, the outgoing theme's state is archived under its own key, every per-theme key is wiped
+     * ([clearAllThemeCustomizationKeys]) and the incoming theme's state is written in: the setter's
+     * change lands on that theme's own baseline, never on another theme's leftovers (the hills one
+     * theme turned white showing on the next). On the same theme, an older store's shops, hours and
+     * public buildings are carried into their own keys once.
      */
     private fun MutablePreferences.ensureFreshPendingTheme(forThemeId: String) {
         val outgoing = this[Keys.PENDING_CUSTOMIZATION_THEME_ID]
@@ -2158,34 +1959,18 @@ class WallpaperPrefs internal constructor(
             carryPublicsOver(forThemeId)
             return
         }
-        // **Archive, do not destroy.** Until v4.3 this branch called
-        // [clearAllThemeCustomizationKeys] and nothing else, which is exactly right for stopping
-        // the leak it was written for and exactly wrong for the user's data: the scratch space is
-        // the *only* place a customization lives until the user explicitly saves the theme in the
-        // gallery, so editing one control on a second theme silently deleted everything they had
-        // done to the first. Reproduced on a device: customise `beach`, touch one slider on
-        // `winter`, and `beach` resolves byte for byte to its factory default.
-        //
-        // The outgoing theme's state is now written to its own key first. The wipe still happens
-        // -- the flat keys must not carry one theme's values into another, which is the whole
-        // point of the guard -- but what it wipes has already been kept.
+        // **Archive, do not destroy**: the scratch is the only place an edit lives until the theme is
+        // saved in the gallery, so the outgoing theme's state is written to its own key before the wipe.
         if (outgoing != null) {
             this[Keys.themeCustomization(outgoing)] =
                 readFlatCustomization(this, outgoing).toJson().toString()
         }
         clearAllThemeCustomizationKeys()
-        // And the incoming theme's own archived state is restored, so re-editing a theme picks up
-        // where the user left off rather than starting from defaults.
-        //
-        // **With no archive, the look it was saved with** (v5.10E, inventory I-295, the maintainer's
-        // *«Ripararlo (consigliato)»* of 2026-10-04). A theme saved in the gallery -- "Replace with
-        // current" on a built-in, or a theme of the user's own -- and never edited from these menus had
-        // nothing here, so the scratch space read its *factory* values ([readFlatCustomization]) plus the
-        // one control touched; and edits win over a saved version
-        // (`CustomThemeRegistry.resolveActiveCustomization`), so the first touch of any control -- the moon
-        // turned off and on again, on the phone -- put the theme back to how it ships and hid the saved
-        // look. Now the edit starts from the saved look and changes only what was touched. A reset of one
-        // page still means the theme's own factory values for that page, as its button says.
+        // The incoming theme's archived state is restored, so re-editing picks up where the user left off.
+        // **With no archive, the look it was saved with in the gallery** (`DESIGN_NOTES.md` decision 43): edits
+        // win over a saved version (`CustomThemeRegistry.resolveActiveCustomization`), so starting from the
+        // factory values would make the first touch of any control hide the saved look. A reset of one page
+        // still means the theme's factory values for that page, as its button says.
         val archived = this[Keys.themeCustomization(forThemeId)]
         if (archived != null) {
             writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(archived) }.getOrNull(), themeKnownAs(forThemeId)))
@@ -2198,11 +1983,10 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * A live edit written before v5.11, edited again: the shops' colours it is read with
-     * ([readShops]) written into the shops' own keys, and the towers' colours it did not store written
-     * as the slate it is read with ([towersDrawnIn]), once, and the space marked as this build's. From
-     * then on the keys are the truth, as every other category's are -- so a reset of either page
-     * means the theme's own colours.
+     * A live edit without shop keys, edited again: the shops' colours it is read with ([readShops])
+     * written into the shops' keys and the towers' colours it did not store written as the slate
+     * ([towersDrawnIn]), once, and the space marked. From then on the keys are the truth, so a reset of
+     * either page means the theme's own colours.
      */
     private fun MutablePreferences.carryShopsOver(themeId: String) {
         if (this[Keys.SCRATCH_KNOWS_SHOPS] == true) return
@@ -2224,12 +2008,10 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * A live edit written before v5.12, edited again: the one setting of the opening hours it holds
-     * written into both groups' own keys -- the shops' and the towers' -- and removed, once. Until then
-     * each group reads it ([readFlatCustomization]); from then on each group's keys are the truth, so
-     * an edit to one group's hours leaves the other's, and a reset of one page ([resetCategory]) puts
-     * back that group's alone. A key the setting did not hold is not written: the group reads its
-     * default there, as it did.
+     * A live edit holding the single opening-hours setting, edited again: the setting written into the
+     * shops' and the towers' keys and removed, once. From then on each group's keys are the truth, so
+     * an edit or a reset ([resetCategory]) of one group leaves the other's. A key the setting did not
+     * hold is not written: the group reads its default there.
      */
     private fun MutablePreferences.carryHoursOver() {
         val enabled = this[Keys.BUSINESS_HOURS_ENABLED]
@@ -2254,11 +2036,10 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * A live edit written before v5.13, edited again: the public buildings' colours and hours it is read
-     * with ([readPublics], [readFlatCustomization]) written into their own keys, once, and the space
-     * marked as this build's -- after the shops' and the hours' own carrying over, which they are read
-     * from. From then on the keys are the truth, so an edit to the shops' colours or hours leaves the
-     * public buildings', and a reset of either page puts back that page's alone.
+     * A live edit without public keys, edited again: the public buildings' colours and hours it is read
+     * with ([readPublics], [readFlatCustomization]) written into their keys, once, and the space marked
+     * -- after the shops' and the hours' carrying over, which they are read from. From then on an edit
+     * or a reset of the shops leaves the public buildings'.
      */
     private fun MutablePreferences.carryPublicsOver(themeId: String) {
         if (this[Keys.SCRATCH_KNOWS_PUBLICS] == true) return
@@ -2277,9 +2058,9 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
-     * Resets every theme in [themeIds] as [resetAllCategories] resets one, **in one write** (v5.8C):
-     * *Advanced & about*'s "Reset current edits to built-in themes". One transaction, so a crash
-     * half-way cannot leave some of the themes reset and the rest not.
+     * Resets every theme in [themeIds] as [resetAllCategories] resets one, **in one write**, so a crash
+     * cannot leave some reset and the rest not: *Advanced & about*'s "Reset current edits to built-in
+     * themes".
      */
     suspend fun resetCustomizations(themeIds: Set<String>) = store.editDurably { prefs ->
         val pending = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID]
@@ -2294,18 +2075,14 @@ class WallpaperPrefs internal constructor(
      * if the scratch space is this theme's -- clears every per-theme scratch key and the
      * pending-edit tag. */
     suspend fun resetAllCategories(forThemeId: String) = store.editDurably { prefs ->
-        // Only if the scratch space is *this* theme's. Clearing it unconditionally would reset
-        // whichever theme happened to be under live edit -- caught by
-        // `ThemeCustomizationPersistenceTest.resetIsTheOnlyThingThatRemovesACustomization`, which
-        // resets `beach` while `city` is the theme being edited and asserts `city` is untouched.
+        // Only if the scratch is *this* theme's, or the theme under live edit would be reset
+        // (`ThemeCustomizationPersistenceTest.resetIsTheOnlyThingThatRemovesACustomization`).
         if (prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] == forThemeId) {
             prefs.clearAllThemeCustomizationKeys()
             prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
         }
-        // A reset is the one place a customization is *meant* to disappear, so the archive goes
-        // too -- otherwise "reset this theme" would leave the old look waiting to be restored the
-        // next time the theme was edited. Explicit and user-driven, which is the only way a
-        // customization may now be lost.
+        // The archive goes too, or the old look would come back at the next edit: a reset is the one
+        // place a customization is meant to disappear.
         prefs.remove(Keys.themeCustomization(forThemeId))
     }
 }

@@ -6,15 +6,13 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **At a fixed hour the location does not count** (v5.10D, the maintainer's decision of 2026-09-30 on
- * row 6 of the v5.10A table, *«6 - voglio B»*, against the PM's recommendation): the scene draws the
- * default 6:00 and 20:00 and the wallpaper asks the phone for nothing, so the Location row's grey
- * "Available while the scene follows real time" is true.
+ * **At a fixed hour the location does not count** (`DESIGN_NOTES.md` §12, decision 41, 2026-09-30:
+ * *«6 - voglio B»*): the scene draws the default 6:00 and 20:00 and the wallpaper asks the phone for
+ * nothing, so the Location row's grey "Available while the scene follows real time" is true.
  *
  * The rules are [SolarDaySchedule.sceneDay] and [SolarDaySchedule.onTick] (`SolarDayScheduleTest`); this
  * holds the engine to calling them, on its source -- the engine is a `WallpaperService` inner class the
- * JVM cannot build, the reasoning `WeatherLoopVisibilityTest` gives. The photograph (19:00 at Milan,
- * before and after) is in `consegna_v5_10d/foto/`.
+ * JVM cannot build, the reasoning `WeatherLoopVisibilityTest` gives.
  */
 class FixedHourIgnoresLocationTest {
 
@@ -34,11 +32,15 @@ class FixedHourIgnoresLocationTest {
     @Test
     fun `the frame draws the scene day, never the held one directly`() {
         val render = engine.substring(engine.indexOf("private fun renderScene("))
-        assertTrue(render.contains("val today = SolarDaySchedule.sceneDay(current.syncWithRealTime, solarDay)"))
+        val frame = render.substringBefore("renderer?.draw(")
+        assertTrue(render.contains("val today = SolarDaySchedule.sceneDay(current.syncWithRealTime, held.day)"))
         // ...from the same read of the settings as the hour, so one frame cannot mix the two.
         assertTrue(render.contains("val current = settings"))
         assertTrue(render.contains("current.fixedHour"))
-        assertEquals("solarDay reaches the frame only through sceneDay", 1, Regex("""\bsolarDay\b""").findAll(render.substringBefore("renderer?.draw(")).count())
+        // ...and from one read of the sun times, the hour's offset with them (SolarDaySchedule.sceneHour).
+        assertEquals("the sun times are read once a frame", 1, Regex("""\bsunTimes\b""").findAll(frame).count())
+        assertEquals("the day reaches the frame only through sceneDay", 1, Regex("""\bheld\.day\b""").findAll(frame).count())
+        assertEquals("never the held day directly", 0, Regex("""\bsolarDay\b""").findAll(frame).count())
     }
 
     @Test

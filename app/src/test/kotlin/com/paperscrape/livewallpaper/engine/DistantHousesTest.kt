@@ -156,7 +156,7 @@ class DistantHousesTest {
     }
 
     /**
-     * **No house where a mountain of its layer drawn after it covers any of it** (v5.14C2, ROADMAP A188; the maintainer's
+     * **No house where a mountain of its layer drawn after it covers any of it** (the maintainer's
      * *«Spostala dove si vede»*, 2026-10-16). Measured here without [DistantHouses.hiddenPlaces]: each standing house's
      * drawing -- the ink of its own PNG, at its size there -- sampled on a grid of 9 x 9 points, each point tested against
      * the parabola of every mountain of the layer drawn after its own, on the copies around it. On the twelve built-ins,
@@ -458,7 +458,7 @@ class DistantHousesTest {
     }
 
     /**
-     * **The gallery card's houses stand where they show too** (v5.14C2, ROADMAP A188): the card's mountains are fixed, so
+     * **The gallery card's houses stand where they show too**: the card's mountains are fixed, so
      * the rule is asked of every house on every built-in's card with the houses at 30 %, 50 % and 100 %, by day and at
      * night, with the Christmas lights on (the houses' bulbs drawn too; the ink measured is the house's): no part of a house under a later mountain of its own
      * layer -- the wallpaper's rule -- and its middle under no mountain at all drawn after it. The front layer stands in

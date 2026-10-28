@@ -16,11 +16,11 @@ import kotlin.math.sin
 /**
  * **Every occupant looks the way their vehicle is going** (v5.9B, inventory row I-42).
  *
- * `BACKLOG_v4_25.md` item 62: the seated artwork is drawn three-quarter with the hair toward -x,
+ * The seated artwork is drawn three-quarter with the hair toward -x,
  * so the face looks toward +x of its canvas, and +x in a vehicle's local frame is its rear. Every
  * occupant of every car rode facing the boot, in both directions equally, until v4.25 mirrored the
- * bust (`SceneObjectRenderer.drawSeatedOccupant`, `scale(-scale, scale)`). The item recorded what
- * guarded that line afterwards: one pillar-clearance test that failed by accident, and **nothing
+ * bust (`SceneObjectRenderer.drawSeatedOccupant`, `scale(-scale, scale)`). What guarded that line
+ * afterwards was one pillar-clearance test that failed by accident, and **nothing
  * that asserted which way a person is looking**. On a cabin with symmetric clearance the reversal
  * would have been invisible to every test and every golden.
  *
@@ -56,7 +56,7 @@ class OccupantFacingTest {
                 }
             }
             // The renderer draws the direction it is asked for. `VehicleOccupantAbCapture` carried
-            // this as its one assertion (item 8: its harness had hardcoded `reverse = true`) until
+            // this as its one assertion (its harness had hardcoded `reverse = true`) until
             // v5.9C removed the capture; here it is read off the real renderer's own frames.
             assertEquals("$type: forward and reverse travel the same way, so the flag is ignored", -travels[0], travels[1])
         }

@@ -1,9 +1,8 @@
 """Padding and grid normalisation: the rule, and the plan it produces.
 
-A shipped sprite carries transparent padding that is decoded, held and blitted
-for no visual result -- 18.3 MB of it across the set when Phase 3.3 measured it, more
-than half of everything the app then decoded; since that pass none is left outside
-`EXCLUSIONS`. Removing it is not a redraw: cropping rows and columns whose
+Transparent padding on a shipped sprite is decoded, held and blitted for no
+visual result, and outside `EXCLUSIONS` no referenced sprite carries any
+(`test_normalize` fails on one that does). Removing it is not a redraw: cropping rows and columns whose
 alpha is zero changes no visible pixel. What it does change is where the bitmap's
 own pixel (0,0) sits, and `SpriteBlitter` places exactly that pixel at the
 caller's origin. So a crop is only correct together with a compensation at the
@@ -157,13 +156,7 @@ def co_registered_groups(names: set[str]) -> list[Group]:
 EXCLUSIONS: tuple[Exclusion, ...] = (
     Exclusion(
         "palmtree_fronds",
-        "**v5.1 rewrote this entry, and every word of what it said had stopped being true.** It "
-        "described a 102x176 canvas off the authoring grid, a pair sharing a hand-tuned -87.45 "
-        "origin, and a deferral to the perspective work; the sprite had been 120x120 since the V2 "
-        "set and the origin had been derived from a declared attachment since then too. The "
-        "exclusion survived because an exclusion is never re-read: nothing fails when its reason "
-        "goes stale, which is the whole hazard of a list like this one. The v5.1 palm is 168x144 "
-        "and the reason it is here is now a real one. Its margin IS the registration: all three "
+        "A 168x144 canvas whose margin IS the registration: all three "
         "crowns are drawn around one DECLARED_ATTACHMENT at (84, 78) px, which is where the "
         "blades converge and which drawPalmTree blits negated, so cropping to the ink would move "
         "the crown against the trunk and against the other two crowns. The same registration crop "
@@ -171,13 +164,13 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "wave_tube_body",
-        "One of the two masks of the v4.28 wave, which share a 360x132 canvas and one blit "
+        "One of the two masks of the wave WA3 \"Tube\", which share a 360x132 canvas and one blit "
         "origin. The pair *is* croppable as a group -- their union leaves 11 empty columns on the "
         "left -- and the group crop would keep them registered, so the reason to leave it is not "
-        "registration. It is that the artwork is byte-identical to the PNG the maintainer "
-        "approved from the phase-3 photographs, and a crop trades that provenance plus an origin "
-        "compensation with a device look attached for 12 672 decoded bytes across the pair. The "
-        "same trade the two trees' shared origin made (ROADMAP A41, 2026-09-27), at a third of the size.",
+        "registration. It is that the artwork is byte-identical to the approved PNG, and a crop "
+        "trades that provenance plus an origin compensation with a device look attached for "
+        "12 672 decoded bytes across the pair: the trade the two trees' shared origin makes "
+        "(tree_canopy_snowcap), at a third of the size.",
     ),
     Exclusion(
         "wave_tube_crest",
@@ -185,7 +178,7 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "tree_fir_snow",
-        "The fir A's snow (v5.14): fir/build_fir.py trims it to its content on the 3x grid and writes "
+        "The fir A's snow: fir/build_fir.py trims it to its content on the 3x grid and writes "
         "its own blit origin (FirTable.SNOW_X/SNOW_Y, beside the fir's FIR_X/FIR_Y) in the same run, so "
         "rounded outward there is nothing to crop here, and the generator owns its canvas: "
         "tests/test_fir.py fails on any of its files that is not the generator's output.",
@@ -210,11 +203,9 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "palmtree_fronds_frost",
-        "The winter palette's crown for the palm. **Not an overlay any more**: until v5.1 this was "
-        "five white caps blitted on top of the live crown, and this entry said so; it is a whole "
-        "frosted crown now, drawn instead of the live one, on the same canvas at the same declared "
-        "attachment. The reason not to crop is unchanged and is now the registration rather than a "
-        "shared off-grid canvas.",
+        "The winter palette's crown for the palm: a whole frosted crown, drawn instead of the live "
+        "one, on the same canvas at the same declared attachment. The reason not to crop is that "
+        "registration: cropping it alone would move it against the trunk and the other two crowns.",
     ),
     *(
         Exclusion(
@@ -224,8 +215,7 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
             "positions the sun and all four moon phases from one number, and their content boxes "
             "differ, so cropping each to its own would need that constant separated per sprite and "
             "the anchor rule changed with it -- an anchor-model decision, not padding removal. "
-            "`SkySpriteAnchoringTest` pins the surviving relationship between each canvas and its "
-            "origin, and it is the test that caught defect D-1 twice.",
+            "`SkySpriteAnchoringTest` pins the relationship between each canvas and its origin.",
         )
         for name in (
             "sun_body", "moon_full", "moon_half", "moon_gibbous", "moon_crescent", "moon_jack_o_lantern",
@@ -234,7 +224,7 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "moon_jack_o_lantern_laugh_light",
-        "The light inside the laughing Halloween moon's face (v5.16): moon/build_jack_moon_laugh.py trims it to its content "
+        "The light inside the laughing Halloween moon's face: moon/build_jack_moon_laugh.py trims it to its content "
         "with a guard pixel on every side, rounded up to the 3-px grid, and writes the origin it blits at from the moon's "
         "centre (PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X/Y, which tests/test_jack_moon_laugh.py compares with it), so "
         "there is nothing to crop here and the generator owns its canvas. It is not one of the moon's phases: it does not "
@@ -248,8 +238,9 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     Exclusion(
         "star_sparkle",
         "`SPRITE_CENTRE`, positioned by `STAR_SPRITE_ORIGIN_UNITS` against the 16-unit "
-        "`STAR_SPRITE_RADIUS_DIVISOR` (32 until v4.23). The crop is symmetric and would be safe on its own, but it moves the canvas the "
-        "origin constant is expressed against, and that constant is the one D-1 broke. Left with "
+        "`STAR_SPRITE_RADIUS_DIVISOR`. The crop is symmetric and would be safe on its own, but it moves the canvas the "
+        "origin constant is expressed against, and a canvas, its convention and its origin are only "
+        "correct together. Left with "
         "the other canvas-anchored sprites so the sky set moves as one decision or not at all.",
     ),
     Exclusion(
@@ -257,8 +248,8 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "Drawn on `pumpkin_body`'s canvas at `pumpkin_body`'s origin so the carved face registers "
         "with the fruit exactly. Its content is the eyes and the grin, which sit well inside the "
         "pumpkin, so the margin around them *is* the body it is cut into: cropping it would leave "
-        "the face to be positioned against the body by a second constant, which is the anchor "
-        "model D-1 broke. `SpriteCanvasConventionTest` declares the same margin load-bearing.",
+        "the face to be positioned against the body by a second constant, which would have to stay "
+        "in step with both canvases. `SpriteCanvasConventionTest` declares the same margin load-bearing.",
     ),
     Exclusion(
         "firework",
@@ -269,18 +260,16 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     Exclusion(
         "tree_canopy_snowcap",
         "Blitted at the crown's own origin (`TreeSpriteLayout.SNOWCAP_X == CANOPY_X`), so a snow "
-        "cap meets the trunk exactly where the leaves did and a redraw has to move both or "
+        "cap meets the trunk exactly where the leaves do and a redraw has to move both or "
         "neither: its 6-unit leading margin *is* that shared origin, and cropping it would turn "
-        "the equality into a derived offset. Closed without cropping by the maintainer's "
-        "decision of 2026-09-27 (ROADMAP row A41); declared here since v5.10G, so a check of "
-        "the shipped set stops asking for the crop.",
+        "the equality into a derived offset. Declared here so a check of the shipped set does not "
+        "ask for the crop.",
     ),
     Exclusion(
         "tree_dead_branches",
         "Blitted at the crown's own origin (`TreeSpriteLayout.DEAD_BRANCHES_X == CANOPY_X`), for "
         "the same reason as `tree_canopy_snowcap`: its 11-unit leading margin is the shared "
-        "origin. Closed without cropping on 2026-09-27 (ROADMAP row A41); declared here since "
-        "v5.10G.",
+        "origin.",
     ),
 )
 
@@ -303,14 +292,14 @@ def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
     canvas itself has to stay a whole multiple of the grid on both axes whatever
     convention positions it, because `SpriteGeometryTest` requires that of the whole
     shipped set and makes no exception. Rounding a `CANVAS_PIXELS` sprite to its own
-    pixel instead took `bird_body` to 88x21, which is off the grid on both axes.
+    pixel instead can leave a canvas that is off the grid on both axes.
     Rounding outward can only leave padding behind, never remove artwork, and a trim
     that is a multiple of the grid is still a whole number of pixels.
 
     ### The guard column, and why cropping to the ink is not free
 
-    **v4.31.** This function used to round to the grid and stop, which on a sprite whose
-    ink begins exactly on a grid line left the drawing touching the new canvas edge. That
+    Rounding to the grid and stopping there would leave a sprite whose ink begins
+    exactly on a grid line with its drawing touching the new canvas edge. That
     looks like the tightest correct crop and it is not correct, because **the transparent
     margin is not empty space -- it is the neighbour the bilinear filter reads.**
 
@@ -322,8 +311,8 @@ def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
     ink is at the same coordinates in the sprite's own space, and the origin compensation
     keeps it there on screen -- but the rasterised edge is not the one it was.
 
-    Measured, on the BV6600: cropping `dolphin_body`, `sailboat_hull` and `sailboat_sail`
-    to the grid changed **6 pixels in each of three lake goldens**, up to 70 levels on a
+    Measured on the BV6600: cropped to the grid alone, `dolphin_body`, `sailboat_hull` and
+    `sailboat_sail` changed **6 pixels in each of three lake goldens**, up to 70 levels on a
     single contour pixel, in scenes where every other pixel of 288 000 was identical. The
     two sprites that lost their whole margin on a side are the ones that did it.
 
@@ -333,8 +322,8 @@ def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
     and a change to the artwork.
 
     A side whose ink already touches the canvas edge is untouched: no margin exists there
-    to preserve, the sampler has been clamping since the sprite was authored, and the crop
-    is not what did it.
+    to preserve, the sampler clamps there whatever the crop does, and the crop is not what
+    makes it.
     """
     if not boxes:
         raise ValueError("a normalised box needs at least one content box")
@@ -352,10 +341,10 @@ def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
 
     # **A sprite's transparent margin is not waste; it is what the filter reads.**
     #
-    # See `keeps_a_guard_column`'s own reasoning below. On a side the crop actually
-    # trims, the result must leave at least one transparent pixel between the ink and
-    # the new canvas edge. A side whose ink already reached the edge is left alone --
-    # there was no margin to preserve and the crop is not the thing that removed it.
+    # The reasoning is in the guard-column section of the docstring above. On a side the
+    # crop actually trims, the result must leave at least one transparent pixel between the
+    # ink and the new canvas edge. A side whose ink already reaches the edge is left alone --
+    # there is no margin to preserve and the crop is not the thing that removes it.
     if left == ink_left and ink_left > 0:
         left -= grid
     if top == ink_top and ink_top > 0:

@@ -8,42 +8,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * A shop front must be visible, whole, and one of a kind: the rc2 criterion as corrected by rc3,
- * across every built-in theme's generated layout.
+ * A shop front must be visible and whole, across every built-in theme's generated layout: no more
+ * than 40 % of its ENTIRE front covered by the union of everything nearer, and no trunk or pole
+ * across it -- a front can read 40 % covered and still be cut in two by a trunk over its door.
+ * `SceneObjectCatalog.separateShopFrontages` places the shops by that rule; this test re-measures
+ * all twelve built-in themes.
  *
- * On the delivered rc1 Autumn frame a house covered nine tenths of the trattoria; the rc2 pass
- * fixed that but measured only the worst single occluder against the frontage's lower half, and
- * the delivered rc2 day frame answered with a pub numerically at 40% and visually cut in two by
- * a tree trunk planted over its door -- and with two identical trattorias in the same screen.
- * `SceneObjectCatalog.separateShopFrontages` now measures the union of everything nearer over
- * the shop's ENTIRE front, rejects any trunk or pole across it, and the catalogue then emitted at
- * most one shop per storefront per tile (five places a tile since v5.13B2, below). This test
- * re-measures all twelve built-in themes.
- *
- * The 40% ceiling is the acceptance criterion's own number. The measurement is at the reference
- * viewport (1080x2340), which is where every visual judgement in this project is made.
+ * The measurement is at the reference viewport (1080x2340), which is where every visual judgement
+ * in this project is made.
  *
  * Deliberately re-derived here rather than calling the catalogue's own private geometry -- and
  * deliberately grid-sampled where the catalogue sweeps exact rectangle unions -- so a bug in the
- * separation pass and a bug in this measurement have to agree to hide a covered shop.
+ * separation pass and a bug in this measurement have to agree to hide a covered shop. The crown
+ * rectangles are the one input measured once: they come from [SpriteOccluderTable], measured off
+ * the shipped artwork, through arithmetic written for this file alone (`crowns`), because a crown's
+ * extent is a fact about a PNG and not a choice, and a hand-typed copy in two files would not
+ * survive a redraw that moves a crown's canvas.
  *
- * **v5.2 moved half of that re-derivation and says so here rather than leaving it to be found.**
- * The three crown rectangles used to be hand-typed literals in this file, a second copy of the
- * catalogue's. They are now derived from [SpriteOccluderTable], which is measured off the shipped
- * artwork, by arithmetic written for this file alone -- see `crowns`. The geometry is still
- * written twice; the *measurement* is written once, because it is a fact about a PNG and not a
- * choice, and because the copy that existed could not survive a redraw: v5.1 moved the palm's
- * crown canvas from 40x40 units to 56x48 by hand in two files and nothing would have failed if
- * only one of them had been edited.
- *
- * **Since v5.13 a place among the houses holds any of six buildings**, dealt by the street as it scrolls
- * ([StorefrontStreet]), and this file measures each place with the family of its row of the size table --
- * the building that stood in that row until then: the restaurant in the two far places, the school in the
- * middle one, the bar in the two near ones (five places since v5.13B2). `StorefrontFrontVisibilityTest`
- * measures all six in all five places (the plan is laid out for all six, `SceneObjectCatalog.frontRects`),
- * and `StorefrontStreetTest` holds the criterion this file's duplication test was written for, now the
- * street's: never two alike on screen -- the test itself, one building per row per tile, went with v5.13B2,
- * which put two places in the restaurant's row and two in the bar's.
+ * **A place among the houses holds any of six buildings**, dealt by the street as it scrolls
+ * ([StorefrontStreet]), and this file measures each place with the family of its row of the size
+ * table: the restaurant in the two far places, the school in the middle one, the bar in the two near
+ * ones. `StorefrontFrontVisibilityTest` measures all six in all five places (the plan is laid out
+ * for all six, `SceneObjectCatalog.frontRects`), and `StorefrontStreetTest` holds that no two alike
+ * stand on screen.
  */
 class ShopFrontVisibilityTest {
 
@@ -57,36 +44,15 @@ class ShopFrontVisibilityTest {
     private val tile = refW * 2f
 
     /**
-     * The worst ink-measured shop-front coverage over the twelve built-in layouts, as v5.5 leaves
-     * it: **32.5 %, `halloween`/BAR**. It was 31.2 % on the same shop at v5.4, and **43.5 %**
-     * (`easter`/RESTAURANT) before item 113 -- that correction moved nine shops on eight themes
-     * and took the worst reading under the ceiling.
+     * The worst ink-measured shop-front coverage over the twelve built-in layouts: **38.2 %,
+     * `easter`'s school**, on five places a street planned along the whole tile and each house as
+     * tall as it draws by the renderer's deal -- inside the criterion, with 1.8 points of margin.
      *
-     * **Why it moved in v5.5, and why re-pinning is the right response.** The repair deals the
-     * house catalogue across the ten house slots ([SilhouetteDeal]), so which slots are
-     * `HOUSE_SMALL` and which `HOUSE_LARGE` changed on every theme -- and a house's family is its
-     * drawn half-width, which is what this pass measures its neighbours' occlusion with. So
-     * [SceneObjectCatalog.separateShopFrontages] re-solved with different neighbours and settled
-     * **10 of the 24 shops** somewhere else; `city`'s bar wrapped the tile origin (0.00073 ->
-     * 0.99073) rather than moving a tile's width.
-     *
-     * The criterion itself did not move and is still met by every one of the 24, with **7.5 points
-     * of margin** on the worst. This number is the drift tripwire the method below documents, and
-     * a tripwire that fires on a layout change is doing its job: the change is attributed shop by
-     * shop in the delivery's `registri/40_shop_front_attribuzione.txt`, and the reading is a
-     * consequence of the deal rather than a shop getting quietly more covered.
+     * A drift tripwire, and one that fires on a layout change is doing its job: which slots hold
+     * which house, where the plan stands a place and how wide a front draws all move it while the
+     * criterion stays where it is. The change is attributed shop by shop and the number re-pinned,
+     * so the reading is a consequence of the layout rather than a shop getting quietly more covered.
      */
-    // v5.6F: 0.3125, new_year's bar, down from 0.325. The bar moved from depth 0.711 to 0.800
-    // when the shop band was divided in three -- there are three storefronts to place in six
-    // candidate depths now, and the bar takes the nearest of them. A nearer shop is a larger shop
-    // with fewer things in front of it, so the worst reading falls; the criterion did not move.
-    // v5.8E: 0.375, halloween's restaurant, measured for the first time with the buildings' true
-    // widths (V3-01) on the shops the plan placed. Higher than 0.3125 because the fronts are now as
-    // wide as they are drawn -- the old reading divided by a restaurant two thirds its real width --
-    // and still inside the criterion, with 2.5 points of margin.
-    // v5.13B2: 0.382, easter's school, on five places a street planned along the whole tile (trees and
-    // parasols moved where a place needed it) and with each house as tall as it draws, by the renderer's
-    // deal; inside the criterion, with 1.8 points of margin.
     private val INK_WORST = 0.3816f
 
     @Test
@@ -108,17 +74,15 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * **The count guard is not decoration, and v5.4's sweep of item 117 is why it is here.**
+     * **The count guard is not decoration.**
      *
      * Every assertion in this method lives inside `for (shop in objects.filter { isShop(it) })`.
      * If [isShop] stopped selecting anything -- it reads
-     * `SceneSpace.BUILDING_TOWER_MAX_DEPTH`, a constant that belongs to somebody else and has
-     * moved before -- the loop would run zero times and this test would report success over
-     * nothing, in exactly the shape `BACKLOG_v5_1.md` item 117 describes: a check run where its
-     * condition is true by construction. The sibling coverage test above has carried
-     * `shopsChecked >= 2 * themes.size` since it was written, and the duplication test that stood below,
-     * guarded by its `byVariant.keys` equality, went with v5.13B2 (see the class comment). This method was
-     * the one with nothing, and a guard in a neighbouring method guards nothing.
+     * `SceneSpace.BUILDING_TOWER_MAX_DEPTH`, a constant another file owns and may move -- the loop
+     * would run zero times and this test would report success over nothing: a check run where its
+     * condition is true by construction.
+     * The sibling coverage test above has its own guard, `shopsChecked >= 2 * themes.size`, and a
+     * guard in a neighbouring method guards nothing.
      */
     @Test
     fun `no trunk or pole crosses any shop front on any built-in theme`() {
@@ -146,14 +110,14 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * The school a saved street is given (item 141, v5.7F) obeys the frontage rules, and never
+     * The school a saved street is given obeys the frontage rules, and never
      * stands in front of the shops the street already had.
      *
      * Measured with this class's own model rather than the one that placed it, which is the point
      * of the model being written twice. The streets are the twelve built-ins as saved at their
      * defaults (`keepCandidate`-filtered, which is what a saved theme stores) with their school
-     * taken out -- since v5.13B2 four places, two in the restaurant's row and two in the bar's, and no
-     * school; a theme saved before v5.6 has one of each of those two rows and no school.
+     * taken out -- four places, two in the restaurant's row and two in the bar's, and no school; a
+     * theme saved before v5.6 has one of each of those two rows and no school.
      */
     @Test
     fun `a school added to a saved street clears its own front and leaves the saved shops as they were`() {
@@ -187,35 +151,18 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * The same criterion, measured where the shop's ink actually stops — **and it now holds.**
+     * The same criterion, measured where the shop's ink actually stops.
      *
-     * The 40% ceiling above divides by [frontRect], whose top edge is `spriteUnitsTall`. Until
-     * v5.4 that number was not what the two shops draw: the restaurant declared 96 units and
-     * blits 56, so **42% of the rectangle the ceiling was measured over was empty sky**. A crown
-     * covering three fifths of the actual frontage was divided by an area two fifths of which no
-     * shop was ever drawn in, and read as passing.
+     * The 40 % ceiling above divides by [frontRect], whose top edge is the declared
+     * `spriteUnitsTall`. A declaration taller than the drawing puts empty sky in the rectangle, and
+     * a crown covering most of the actual frontage is divided by an area part of which no shop is
+     * drawn in, and reads as passing: a criterion is only as good as the rectangle it divides by.
+     * So this asserts `<= 0.40` again, on the measurement that is what a viewer sees.
      *
-     * v5.3 measured it and pinned the numbers rather than the criterion, because re-declaring the
-     * shops was the maintainer's decision and not an implementation's:
-     *
-     * | | worst reading, v5.3 |
-     * |---|---|
-     * | the ceiling as the test above measures it | 31.2% (winter's bar) |
-     * | over the ink, which is what a viewer sees | **43.5%** (easter's restaurant) |
-     *
-     * with `desert`'s restaurant at 43.0% and `easter`'s at 43.5% over the ceiling.
-     *
-     * **v5.4 took that decision and the criterion bites again.** With the declaration corrected
-     * the separation pass places the shops by a height they actually have, and the ink-measured
-     * worst reading over all twelve themes falls under the ceiling — so this method asserts
-     * `<= 0.40`, which is the criterion itself, on the measurement that is what a viewer sees.
-     * The two readings above are kept in this comment because the difference between them is the
-     * whole of item 113: an acceptance criterion is only as good as the rectangle it divides by.
-     *
-     * It is still measured **per instance**, over the drawn extent of that instance's own deal,
-     * with the neighbouring buildings occluding at their drawn extent too — both sides moved
-     * together. The declaration is a family's, and the bar has two deals; measuring on ink is what
-     * keeps the shorter of them honest.
+     * It is measured **per instance**, over the drawn extent of that instance's own deal, with the
+     * neighbouring buildings occluding at their drawn extent too -- both sides together. The
+     * declaration is a family's, and the bar has two deals; measuring on ink is what keeps the
+     * shorter of them honest.
      */
     @Test
     fun `measured where the ink stops, every shop front is inside the forty percent criterion`() {
@@ -249,12 +196,12 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * **Palms in the trees' places keep every front clear** (v5.10C). The ten streets without palms
-     * of their own were laid out around broadleaf trees -- the shop plan runs on the layout, before
-     * any switch -- and since v5.10C the Palms switch can turn every one of those trees into a palm,
-     * where it stands (`palmSpeciesApplied`). So the fronts are measured again with the palms in
-     * place, by both of this class's rules and on ink: no front over the ceiling, no trunk across a
-     * front. The worst reading is printed for the round's register.
+     * **Palms in the trees' places keep every front clear.** The ten streets without palms of their
+     * own are laid out around broadleaf trees -- the shop plan runs on the layout, before any
+     * switch -- and the Palms switch can turn every one of those trees into a palm, where it stands
+     * (`palmSpeciesApplied`). So the fronts are measured again with the palms in place, by both of
+     * this class's rules and on ink: no front over the ceiling, no trunk across a front. The worst
+     * reading is printed.
      */
     @Test
     fun `with palms in place of the trees, every shop front still keeps both rules`() {
@@ -296,11 +243,11 @@ class ShopFrontVisibilityTest {
      * The drawn extent of one building instance's own deal, in the variant's units.
      *
      * The deal is the renderer's -- [NeighbourhoodComposer.deal] of the object, which reads the silhouette
-     * the street dealt it ([SilhouetteDeal], since v5.5) -- so this is the building that will actually be
-     * blitted at this spot, not a family average. Until v5.13B2 this read the deal by position, which since
-     * v5.5 is what only an undealt object draws: a house dealt a storey more stood here a storey lower than
-     * it draws. Snow, porch lamps and window occupants are excluded on the same reading
-     * `BuildingHeightDeclarationTest` uses: a drift is weather, not building.
+     * the street dealt it ([SilhouetteDeal]) -- so this is the building that will actually be blitted at
+     * this spot, not a family average. The deal by position is what only an undealt object draws: read
+     * here, a house dealt a storey more would stand a storey lower than it draws. Snow, porch lamps and
+     * window occupants are excluded on the same reading `BuildingHeightDeclarationTest` uses: a drift is
+     * weather, not building.
      */
     private fun drawnUnits(o: StaticSceneObject): Float {
         val v = SceneObjectRenderer.variantFor(o)
@@ -329,18 +276,17 @@ class ShopFrontVisibilityTest {
     private fun halfWidthPx(o: StaticSceneObject): Float {
         val v = SceneObjectRenderer.variantFor(o)
         val units = when (v) {
-            // v5.8E (V3-01): the six buildings are measured off their PNGs here, not typed. Both this
-            // file and the catalogue typed 48 / 75 / 34 / 34 / 45 for the houses, the shops and the
-            // tower -- the restaurant 68 units wide where it draws 104 -- so the two copies agreed and a
-            // covered front passed on both sides. The catalogue keeps literals; this measures the ink.
+            // The six buildings are measured off their PNGs here, not typed: two typed copies of a
+            // wrong width agree with each other, and a covered front passes on both sides. The
+            // catalogue keeps literals; this measures the ink.
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.TOWER, SceneSpace.SceneVariant.SCHOOL,
             -> inkHalfWidth(v)
-            // v4.21: re-measured off `tree_canopy` at its blit origin -- 101 units of content at
-            // -50 spans x -50..51. Read from the artwork here as it is read from the artwork in
-            // the catalogue, and deliberately not imported from it: the whole point of this file
-            // is that a wrong number has to be typed twice to hide a covered shop.
+            // `tree_canopy` at its blit origin: 101 units of content at -50 spans x -50..51. Read
+            // from the artwork here as it is read from the artwork in the catalogue, and
+            // deliberately not imported from it: the whole point of this file is that a wrong
+            // number has to be typed twice to hide a covered shop.
             SceneSpace.SceneVariant.TREE -> 51f
             SceneSpace.SceneVariant.PALM_TREE -> 28f
             SceneSpace.SceneVariant.PARASOL -> 34f
@@ -378,8 +324,8 @@ class ShopFrontVisibilityTest {
 
     /** Everything one nearer object puts in front of a shop: bodies, crowns, trunks, canopies,
      * poles -- the whole silhouette, boxed. Same artwork measurements as the renderer's blits. A place
-     * among the houses is boxed as the building of its row, the school's row included (v5.13C; before, a
-     * nearer place of that row covered nothing here); the envelope of all six buildings in every place is
+     * among the houses is boxed as the building of its row, the school's row included, or a nearer place
+     * of that row would cover nothing here; the envelope of all six buildings in every place is
      * `StorefrontFrontVisibilityTest`'s. */
     private fun occluderBoxes(o: StaticSceneObject, onInk: Boolean = false): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
@@ -387,8 +333,7 @@ class ShopFrontVisibilityTest {
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * tile
         return when (v) {
-            // v4.21 "Broad Oak": stem 32x62 u at (-16,-62). The crown is no longer a literal
-            // here -- see `crowns` below.
+            // The oak's stem, 32x62 u at (-16,-62); its crown is `crowns` below.
             SceneSpace.SceneVariant.TREE ->
                 crowns(SpriteOccluderTable.TREE_CROWN, x, g, s) +
                     floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
@@ -414,18 +359,16 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * The crown rectangles, re-derived here, and this is where the independence of this file
-     * moved to in v5.2 rather than where it was lost.
+     * The crown rectangles, re-derived here: this is where the independence of this file lives for
+     * the crowns.
      *
-     * Until v5.2 the two sides of item 124 were two hand-typed copies of the same literal
-     * rectangles, and the reason this file kept its own was stated above: a wrong number has to
-     * be typed twice to hide a covered shop. That defence only ever caught a typo, and the defect
-     * item 124 is about was not a typo -- it was a *correct* transcription of a canvas that was
-     * two thirds air, typed identically on both sides and wrong on both. It also could not
-     * survive v5.1's palm redraw, which moved the crown's canvas from 40x40 units to 56x48 in two
-     * files by hand.
+     * Two hand-typed copies of the same literal rectangles, one on each side, guard only against a
+     * typo -- the reason this file keeps its own, stated above: a wrong number has to be typed twice
+     * to hide a covered shop. A *correct* transcription of a canvas that is two thirds air is typed
+     * identically on both sides and wrong on both, and a redraw that moves a crown's canvas would
+     * have to be copied into two files by hand.
      *
-     * So the number is no longer typed on either side. It is measured off the shipped PNG by
+     * So the number is typed on neither side. It is measured off the shipped PNG by
      * `tools/assets/build_occluder_table.py` into [SpriteOccluderTable], and what each side still
      * writes for itself is the **model** -- the arithmetic below, which is deliberately not the
      * catalogue's `crownBoxes` imported, and deliberately not shaped like it either: the
@@ -436,7 +379,7 @@ class ShopFrontVisibilityTest {
      * sides are wrong together, and no arrangement of two copies would have caught that. What
      * guards it instead is that the model's inputs are a measurement rather than a choice, that
      * `SpriteOccluderTableFreshnessTest` re-measures every one of them straight from the PNG
-     * without the generator, and that the frame was looked at (`V5_2A_REPORT.md` section 6).
+     * without the generator, and that the frame was looked at.
      */
     private fun crowns(
         family: List<SpriteOccluderTable.InkBox>,
@@ -504,13 +447,11 @@ class ShopFrontVisibilityTest {
     }
 
     /**
-     * The condition the maintainer set for the width repair (V3-01, 2026-09-26): **no more built-in
-     * themes than before may put a shop in the same spot of the street -- at most four.** "The same
-     * spot" is one point of the tile that the most themes' fronts of one row of the size table all cover,
-     * at the reference viewport and at the drawn width measured above; a theme with two places in a row
-     * (v5.13B2: two in the restaurant's, two in the bar's) counts once. Before the plan the counts were
-     * restaurant 4, school 8, bar 12 (the bar stood in one spot on every theme); with the true widths
-     * and no plan, 10, 7 and 12.
+     * **No more than four built-in themes may put a shop in the same spot of the street**, so the
+     * twelve streets do not all stand a building of one kind in one place. "The same spot" is one
+     * point of the tile that the most themes' fronts of one row of the size table all cover, at the
+     * reference viewport and at the drawn width measured above; a theme with two places in a row
+     * (two in the restaurant's, two in the bar's) counts once.
      */
     @Test
     fun `no more than four built-in themes put a shop in the same spot of the street`() {

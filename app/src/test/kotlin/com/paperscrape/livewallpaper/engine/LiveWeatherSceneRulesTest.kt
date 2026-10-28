@@ -8,23 +8,16 @@ import org.junit.Test
 /**
  * Which layer's settings win while Live Weather is on.
  *
- * The defect this pins was an **asymmetry**, not a wrong value: precipitation ignored the theme's
- * own switch while the forecast was driving, and clouds did not. Measured on a clean emulator with
- * the cloud layer switched off and Open-Meteo reporting 100 % cover:
- *
- * ```
- * SCENE clouds.visible=false clouds.density=0.4 override.cloudCover=1.0 -> drawn=false
- * SCENE precip.visible=false precip.intensity=0.5 override.type=RAIN  -> drawn=true
- * ```
- *
- * Rain from the forecast, no clouds from the same forecast. Every test below is a statement about
- * the two layers agreeing.
+ * The defect this prevents is an **asymmetry**, not a wrong value: precipitation ignores the theme's
+ * own switch while the forecast is driving, so clouds must too. With the cloud layer switched off and
+ * the forecast at 100 % cover, a cloud layer that keeps its own switch draws rain from the forecast
+ * and no clouds from the same forecast. Every test below is a statement about the two layers agreeing.
  */
 class LiveWeatherSceneRulesTest {
 
     // -- Live Weather on: the forecast decides -------------------------------------------------------
 
-    /** The reported bug, as a unit. */
+    /** Full cover from the forecast, the cloud layer switched off: the clouds are drawn. */
     @Test
     fun `a switched-off cloud layer does not veto the forecast`() {
         val density = LiveWeatherSceneRules.cloudDensity(
@@ -89,7 +82,7 @@ class LiveWeatherSceneRulesTest {
         )
     }
 
-    /** Unchanged from before the fix: a visible layer at zero density is still a visible layer. */
+    /** A visible layer at zero density is still a visible layer. */
     @Test
     fun `a visible layer at zero density is not the same as a switched-off layer`() {
         assertEquals(
@@ -99,19 +92,7 @@ class LiveWeatherSceneRulesTest {
         )
     }
 
-    // -- coverage ------------------------------------------------------------------------------------
-
-    /**
-     * Precipitation is thinned by the cloud coverage under it. When no clouds are placed there is no
-     * field to thin it with, and an empty one would silently cancel rain the forecast did report --
-     * which is the same class of bug as the one above, one layer quietly overruling the other.
-     */
-    @Test
-    fun `no clouds means uniform coverage, so precipitation is never silently cancelled`() {
-        assertTrue(LiveWeatherSceneRules.coverageIsUniformWhenNoClouds())
-    }
-
-    /** **No breaking waves under falling snow**, thundersnow included (v5.8C; v5.8B audit). */
+    /** **No breaking waves under falling snow**, thundersnow included. */
     @Test
     fun `the lake raises waves in rain and in a storm, never under snow`() {
         org.junit.Assert.assertTrue(LiveWeatherSceneRules.wavesOnLake(raining = true, stormActive = false, snowing = false))

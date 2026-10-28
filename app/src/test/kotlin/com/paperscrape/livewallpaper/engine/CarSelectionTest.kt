@@ -140,7 +140,7 @@ class CarSelectionTest {
      *
      * This is the guard against the fixed-hand trap: a constant first pick would empty the same
      * lane in every theme the app ships, which is exactly the shape of defect the ten-valued
-     * candidate identity produced twice before (`BACKLOG_v4_20.md`).
+     * candidate identity produced twice before.
      */
     @Test
     fun `different shipped themes put the single car in different lanes and slots`() {

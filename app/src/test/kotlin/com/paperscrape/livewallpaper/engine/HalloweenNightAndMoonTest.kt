@@ -92,8 +92,8 @@ class HalloweenNightAndMoonTest {
     fun `the renderer draws every layer and the business hours with the one phase`() {
         val renderer = source("engine/PaperRenderer.kt")
         val draw = renderer.substringAfter("    fun draw(canvas: SceneCanvas, framePhase: SunPositionCalculator.DayPhase").substringBefore("\n    }\n")
-        assertTrue(draw.contains("val dayPhase = nightOverDay(framePhase)"))
-        assertEquals("framePhase is read once, by the night by day", 1, Regex("""framePhase\b""").findAll(draw).count())
+        assertTrue(draw.contains("val dayPhase = stillMoon(nightOverDay(framePhase))"))
+        assertEquals("framePhase is read once, by the night by day and the still moon", 1, Regex("""framePhase\b""").findAll(draw).count())
         assertTrue("the opening hours read the phase's hour, the clock's", draw.contains("screenHeight.toFloat(), dayPhase.hour24)"))
         // And the night by day is the one the settings say: the renderer's gate is the same function.
         assertTrue(renderer.contains("if (!sceneCustomization.nightOverDayActive()) return phase"))

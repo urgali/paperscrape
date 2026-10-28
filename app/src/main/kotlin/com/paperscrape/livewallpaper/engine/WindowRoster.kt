@@ -2,19 +2,16 @@ package com.paperscrape.livewallpaper.engine
 
 /**
  * Who stands at a building's windows, and -- in a house -- which of its windows are lit at night, at
- * each moment of the scene's clock (v5.12).
+ * each moment of the scene's clock.
  *
  * ### What it promises
  *
- * The maintainer's decisions of 2026-10-09, to the table that said each of these (his words to it:
- * *«il resto si a tutto»*; and before it, *«le persone non devono rimanere alle stesse identiche
- * finestre ma devono poter affacciarsi anche alle nuove»*, *«farei accese 2 su 4 come ratio; inoltre
- * [...] non devono essere accese sempre le stesse ma in modo randomico»*):
+ * `DESIGN_NOTES.md` §12, decisions 54, 55 and 59:
  *
  * - **A house lights half its windows at night** -- [litCount]: half its panes, a half rounded up,
  *   and every window somebody stands at among them, so a house whose people are more than half its
  *   windows lights all of theirs. The others stay dark glass (`SceneObjectRenderer.UNLIT_GLASS_NIGHT`).
- * - **The number of people at a building is the one it always had** (`WindowOccupants.occupantCount`
+ * - **The number of people at a building does not change** (`WindowOccupants.occupantCount`
  *   over `NeighbourhoodComposer.Deal.peopleWindows`), and **they may stand at any of its windows**.
  * - **Both change with time, one thing at a time, while you watch, and no light ever blinks.** Every
  *   [TICK_MIN_SECONDS] to [TICK_MAX_SECONDS] -- a building's own interval, from its seed -- one thing
@@ -22,20 +19,19 @@ package com.paperscrape.livewallpaper.engine
  *   flicker), or a person leaves a window for another; a house alternates the two, so its people move
  *   every other change. Never two changes at once in one building, and where there is a person the
  *   window is lit. **A person who leaves a window walks out of it, and walks into the next one**
- *   ([WindowWalk]: the maintainer's *«le persone devono "camminare" e uscire dalla visuale finestre,
- *   non sparire»*, 2026-10-09) -- the same person, who keeps their look from window to window. So with
+ *   ([WindowWalk], decision 59) -- the same person, who keeps their look from window to window. So with
  *   a dozen houses on the screen something changes somewhere every ten seconds or so, and any one house
- *   every couple of minutes: as slow as the scene's motion is meant to be (`DESIGN_NOTES.md` §1,
- *   "Nothing moves quickly"). A shop and the school move a person at each change while they are open
- *   (their glass all lights together, as it always has); at closing they walk out one at a time, and
+ *   every couple of minutes: as slow as the scene's motion is meant to be, where nothing moves
+ *   quickly. A shop and the school move a person at each change while they are open
+ *   (their glass all lights together); at closing they walk out one at a time, and
  *   at opening they walk in ([WindowWalk.Doorway]). A tower's people stay where they are, and walk out
  *   and in with its hours too.
  *
  * ### How, and what it costs
  *
  * A building's whole future is worked out **once**, when the scene's objects are built ([plan]): its
- * first state -- the people placed by the rule of before v5.12 (the same seed, channel and address,
- * ranked over all the windows the building has now), the lights by a seeded order -- and then [STEPS]
+ * first state -- the people placed by [WindowOccupants.rankOf] (the occupants' seed, channel and
+ * address, ranked over all the windows the building has), the lights by a seeded order -- and then [STEPS]
  * states, each one change from the one before, chosen by the building's own seed. The scene's clock
  * picks which state shows ([stateAt]): a tick every [Plan.period] seconds from [Plan.phase], walking the
  * states forward and then back again, so that after [STEPS] changes the building retraces them one by
@@ -47,7 +43,7 @@ package com.paperscrape.livewallpaper.engine
  * A state is one `Long`: the lit panes in the low 32 bits (a house's only), the occupied windows in
  * the high 32. A house's window `k` is its pane `k` (`BuildingPiece.panes`). **Who** stands at each
  * occupied window is [Plan.seat]: person `p` is the one whose window ranked `p` in the first state --
- * the order of before, in which the last leave first at closing -- and keeps the look dealt at that
+ * [WindowOccupants.rankOf]'s order, in which the last leave first at closing -- and keeps the look dealt at that
  * first window ([Plan.origin]) wherever they go.
  */
 internal object WindowRoster {
@@ -86,7 +82,7 @@ internal object WindowRoster {
         val period: Double,
         /** Where in its first interval the building's clock starts, in seconds. */
         val phase: Double,
-        /** Each window's place in the order of before ([WindowOccupants.rankOf]): at closing the last leave first. */
+        /** Each window's place in [WindowOccupants.rankOf]'s order: at closing the last leave first. */
         internal val ranks: IntArray,
         /** The states, [STEPS] + 1 of them; see [WindowRoster]. */
         internal val states: LongArray,
@@ -148,8 +144,8 @@ internal object WindowRoster {
     }
 
     /**
-     * The first state: the people at the windows whose rank is below their number -- the rule that
-     * placed them until v5.12 -- and, in a house, their windows lit and as many more panes as it takes
+     * The first state: the people at the windows whose rank is below their number, and, in a house,
+     * their windows lit and as many more panes as it takes
      * to reach [lit], in an order the building's own seed deals.
      */
     private fun initialState(seed: Int, buildingSeed: Int, windows: Int, panes: Int, people: Int, lit: Int, ranks: IntArray, house: Boolean): Long {

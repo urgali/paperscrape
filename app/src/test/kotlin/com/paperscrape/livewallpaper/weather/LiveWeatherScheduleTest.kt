@@ -13,11 +13,10 @@ import org.junit.Test
 /**
  * The live-weather loop's own rules: when to try again, and what may draw.
  *
- * These are the tests the scheduling never had. Until v4.8 the whole of it lived inline in
- * `PaperWallpaperService`'s `while (true)`, where no unit test could reach it, and three separate
- * defects sat there undisturbed -- a transient failure that cost a full hour, a status that said
- * the theme was drawing the scene while a fetched snapshot still was, and conditions with no expiry
- * at all. What was testable was the *predicate* for a single fetch (`LiveWeatherRefreshTest`),
+ * Inline in `PaperWallpaperService`'s `while (true)` no unit test could reach them, and they hold
+ * three separate defects apart: a transient failure that costs a full hour, a status that says
+ * the theme is drawing the scene while a fetched snapshot still is, and conditions with no expiry
+ * at all. The *predicate* for a single fetch is `LiveWeatherRefreshTest`'s,
  * which is a different question from what the loop does over time.
  *
  * **No clock is read here.** Every time is an explicit `Long`, so there is nothing to flake: no
@@ -54,7 +53,7 @@ class LiveWeatherScheduleTest {
 
     /**
      * The cap is *derived* from the refresh interval, so "three intervals" cannot rot; what a test
-     * still has to guard is that three intervals is a **defensible duration**.
+     * has to guard is that three intervals is a **defensible duration**.
      *
      * Asserting the absolute value is the point. The derivation makes a changed refresh interval
      * carry the cap with it automatically -- which is right, and is also how a cap could quietly
@@ -90,8 +89,8 @@ class LiveWeatherScheduleTest {
     // ---------------------------------------------------------------- 2. transient -> early retry
 
     /**
-     * The WEA-01 regression, stated as the thing that was wrong: one dropped request used to cost
-     * a full hour because the timer was stamped before the fetch and never reset by its outcome.
+     * One dropped request must not cost a full hour, as it does with the timer stamped before the
+     * fetch and never reset by its outcome.
      */
     @Test
     fun `one transient failure retries in minutes, not in an hour`() {
@@ -108,21 +107,64 @@ class LiveWeatherScheduleTest {
         // Answers, not accidents: the service was reached and said no.
         assertFalse(LiveWeatherSchedule.isTransient(failed(WeatherFailure.UNAUTHORIZED)))
         assertFalse(LiveWeatherSchedule.isTransient(failed(WeatherFailure.RATE_LIMITED)))
+        assertFalse(LiveWeatherSchedule.isTransient(failed(WeatherFailure.REQUEST_REFUSED)))
         // Nothing was sent at all, so there is nothing to retry.
         assertFalse(LiveWeatherSchedule.isTransient(WeatherFetchResult.MissingApiKey))
         assertFalse(LiveWeatherSchedule.isTransient(success))
         assertFalse("no fetch is not a failure", LiveWeatherSchedule.isTransient(null))
     }
 
-    /** A rejected key must not buy a faster schedule, however many times it is rejected. */
+    /**
+     * **A rejected key must not buy a faster schedule, however many times it is rejected**, a timeout before it or not: a
+     * rejected key is not transient, the wallpaper service's loop counts a failure only when it is and starts again from
+     * none on any other answer, and none is the normal interval. The loop's counting is read off its source, whole lines
+     * with the comments taken off: a loop that kept its count over an answer that is not transient would retry a rejected
+     * key after a timeout within minutes, and every rule here would still hold.
+     */
     @Test
     fun `a rejected key never shortens the interval`() {
-        // The loop only increments the counter for transient failures, so a rejected key leaves it
-        // at zero however often it happens -- which is the normal interval.
+        assertFalse(LiveWeatherSchedule.isTransient(failed(WeatherFailure.UNAUTHORIZED)))
+        val loop = serviceCodeLines()
+        val counted = loop.indexOf("weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {")
+        assertTrue("the service counts its failures by isTransient", counted >= 0)
+        assertEquals(
+            "a transient failure counts one more, any other answer none",
+            listOf("weatherTransientFailures + 1", "} else {", "0", "}"),
+            loop.subList(counted + 1, counted + 5),
+        )
+        assertEquals(
+            "every line that reads or writes the count: declared at none, read for the wait, counted, and back to none when Live Weather stops",
+            listOf(
+                "private var weatherTransientFailures = 0",
+                "consecutiveTransientFailures = weatherTransientFailures,",
+                "weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {",
+                "weatherTransientFailures + 1",
+                "weatherTransientFailures = 0",
+            ),
+            loop.filter { "weatherTransientFailures" in it },
+        )
         assertEquals(
             WEATHER_REFRESH_INTERVAL_MS,
             LiveWeatherSchedule.nextAttemptDelayMillis(0, WEATHER_REFRESH_INTERVAL_MS),
         )
+    }
+
+    /** `PaperWallpaperService.kt`'s lines, trimmed, without comments: a line comment cut off, a comment line dropped. */
+    private fun serviceCodeLines(): List<String> {
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperWallpaperService.kt")
+                if (f.isFile) {
+                    return f.readLines().map { it.trim() }
+                        .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+                        .map { it.substringBefore(" //").trim() }
+                        .filter { it.isNotEmpty() }
+                }
+            }
+            dir = dir.parentFile
+        }
+        error("PaperWallpaperService.kt not found")
     }
 
     // ---------------------------------------------------------------- 3. no aggressive polling
@@ -214,7 +256,7 @@ class LiveWeatherScheduleTest {
     // ---------------------------------------------------------------- 7. stale + not authorised
 
     /**
-     * The WEA-06 regression: an expired snapshot stops driving, and the status stops claiming it is.
+     * An expired snapshot stops driving, and the status stops claiming it is.
      */
     @Test
     fun `an expired snapshot neither draws nor is reported as driving`() {
@@ -233,7 +275,7 @@ class LiveWeatherScheduleTest {
     }
 
     /**
-     * Item 135 (v5.7F): an expiry is the one way off Live Weather that nobody chose, and it is the
+     * An expiry is the one way off Live Weather that nobody chose, and it is the
      * only one the decision marks as lapsed -- which is what lets the renderer ease the sky there
      * and snap it everywhere else.
      */
@@ -310,10 +352,9 @@ class LiveWeatherScheduleTest {
     }
 
     /**
-     * The WEA-02 regression, in the shape it was reproduced in: location switched off while a
-     * perfectly fresh snapshot is in hand. The status has always said NO_LOCATION here -- which
-     * unlocks the theme's cloud and precipitation controls -- and the snapshot used to keep
-     * drawing anyway, so those controls did nothing.
+     * Location switched off while a perfectly fresh snapshot is in hand. The status says
+     * NO_LOCATION here -- which unlocks the theme's cloud and precipitation controls -- so a
+     * snapshot that kept drawing anyway would leave those controls doing nothing.
      */
     @Test
     fun `losing the location stops the fetched conditions drawing`() {
@@ -331,7 +372,7 @@ class LiveWeatherScheduleTest {
         assertNull("the theme was told it drives the scene, so it must", decision.snapshotForScene)
     }
 
-    /** The same for the two key states, which are the other half of the WEA-02 shape. */
+    /** The same for the two key states, which unlock the same controls. */
     @Test
     fun `a missing or rejected key stops the fetched conditions drawing`() {
         val now = 10 * hour
@@ -382,6 +423,7 @@ class LiveWeatherScheduleTest {
             failed(WeatherFailure.RATE_LIMITED),
             failed(WeatherFailure.HTTP_ERROR),
             failed(WeatherFailure.MALFORMED_RESPONSE),
+            failed(WeatherFailure.REQUEST_REFUSED),
         )
         val snapshots = listOf(null, snapshotAt(now), snapshotAt(now - 2 * hour), snapshotAt(now - 9 * hour))
         var checked = 0
@@ -456,10 +498,10 @@ class LiveWeatherScheduleTest {
     }
 
     /**
-     * **After a move, a failed fetch does not leave the old place's weather drawing** (v5.8C).
-     * Until then the loop kept whatever it held, so moving the Custom location from Milan to
-     * Naples and failing the first fetch drew Milan's sky until a later fetch succeeded (v5.8B
-     * comment audit). A failure at the same place still keeps the last known-good conditions:
+     * **After a move, a failed fetch does not leave the old place's weather drawing**: a loop that
+     * kept whatever it held, with the Custom location moved from Milan to Naples and the first
+     * fetch failed, would draw Milan's sky until a later fetch succeeded. A failure at the same
+     * place keeps the last known-good conditions:
      * that is [LiveWeatherStatus.STALE]'s whole point, and a GPS fix a few metres off is not a move.
      */
     @Test
@@ -480,10 +522,10 @@ class LiveWeatherScheduleTest {
     }
 
     /**
-     * **Live Weather runs only over a scene that follows real time** (v5.8C), the rule the
-     * settings screen states; until then the loop never read the clock setting, so a frozen hour
-     * went on fetching and drawing the sky while the screen said "Not running" (v5.8B audit). The
-     * engine's loop must take every one of its decisions from [LiveWeatherSchedule.runs].
+     * **Live Weather runs only over a scene that follows real time**, the rule the settings
+     * screen states: a loop that does not read the clock setting goes on fetching and drawing the
+     * sky over a frozen hour while the screen says "Not running". The engine's loop must take
+     * every one of its decisions from [LiveWeatherSchedule.runs].
      */
     @Test
     fun `live weather runs only when switched on over a scene that follows real time`() {

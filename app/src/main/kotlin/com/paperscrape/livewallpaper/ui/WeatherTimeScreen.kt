@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LocationOff
+import com.paperscrape.livewallpaper.ui.icons.filled.Key
+import com.paperscrape.livewallpaper.ui.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.WaterDrop
+import com.paperscrape.livewallpaper.ui.icons.outlined.Cloud
+import com.paperscrape.livewallpaper.ui.icons.outlined.Schedule
+import com.paperscrape.livewallpaper.ui.icons.outlined.WaterDrop
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -66,37 +66,29 @@ import com.paperscrape.livewallpaper.weather.WeatherProviderId
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.update.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
  * Time of day, location and Live Weather -- the settings that are global rather than part of a
- * theme, which is why they are one destination of their own rather than a heading inside
- * "World & scene".
+ * theme, so a destination of their own rather than a heading inside "World & scene".
  *
- * None of this was a new preference in v2.9 (the weather provider, its two extra keys and the
- * GPS/Network split came later). What v2.9 changed is the shape of two of them:
- *
- * - The two mutually exclusive location switches ("phone location" / "custom location"), whose
- *   titles differed by three words and whose subtitles each had to explain the other, are one
- *   three-way choice then, four-way now (Off / GPS / Network / Custom).
- *   [SettingsUiModel.locationMode] reads the stored flags into it; the writes, made inline below,
- *   are `setUseLocation`, `setUseCustomLocation` and `setDeviceLocation`.
- * - Live Weather, the location choice and the API key used to be *inside* the "Follow real time"
- *   branch, so switching the clock to a fixed hour removed them from the screen with no
- *   explanation. They now stay put: the location choice goes disabled with the reason stated,
- *   and the API keys, under Advanced, stay editable. Live Weather went disabled too until v5.10C;
- *   since then it reads off while it cannot run, says why, and its tap goes to what is missing
- *   ([SettingsUiModel.liveWeather]).
+ * - The location is one four-way choice (Off / GPS / Network / Custom): [SettingsUiModel.locationMode]
+ *   reads the stored flags into it; the writes, inline below, are `setUseLocation`,
+ *   `setUseCustomLocation` and `setDeviceLocation`.
+ * - At a fixed hour nothing leaves the screen: the location choice is disabled with the reason
+ *   stated, the API keys under Advanced stay editable, and Live Weather reads off, says why, and its
+ *   tap goes to what is missing ([SettingsUiModel.liveWeather]).
  */
 @Composable
 internal fun WeatherTimeScreen(
     settings: WallpaperSettings,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
-    /** The permission dialog for a GPS or Network choice (v5.10D: both location permissions for GPS). */
+    /** The permission dialog for a GPS or Network choice (both location permissions for GPS). */
     onRequestLocationPermission: (kind: DeviceLocationKind, onResult: (LocationPermissionAnswer) -> Unit) -> Unit,
     onOpenWeatherEffects: () -> Unit,
-    /** The system's preview, where PaperScrape is set as the wallpaper: Live Weather's tap when it is not (v5.10C). */
+    /** The system's preview, where PaperScrape is set as the wallpaper: Live Weather's tap when it is not. */
     onApplyWallpaper: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -110,8 +102,8 @@ internal fun WeatherTimeScreen(
         settings.deviceLocationKind,
     )
     val locationEnabled = settings.syncWithRealTime
-    // What the phone gives for GPS or Network, read from the phone each time this page comes back
-    // (v5.10D, row 5): never the stored choice alone.
+    // What the phone gives for GPS or Network, read from the phone each time this page comes back:
+    // never the stored choice alone.
     val deviceAccess = rememberDeviceLocationAccess(settings)
     val deviceRow = deviceAccess?.let { SettingsUiModel.deviceLocationRow(locationMode, it) }
     val context = LocalContext.current
@@ -122,8 +114,7 @@ internal fun WeatherTimeScreen(
         runCatching { context.startActivity(intent) }
     }
     // Asks for exactly what [kind] needs and acts on the answer: the choice stored when granted, kept
-    // when refused, and PaperScrape's page opened when the system will not ask again -- which until
-    // v5.10D was a tap that did nothing at all.
+    // when refused, and PaperScrape's page opened when the system will not ask again.
     fun askLocation(kind: DeviceLocationKind, choiceAlreadyStored: Boolean) =
         onRequestLocationPermission(kind) { answer ->
             when (
@@ -193,12 +184,9 @@ internal fun WeatherTimeScreen(
         SettingsSectionHeader("Location")
         SettingsGroup(modifier = Modifier.bringIntoViewRequester(locationChoice)) {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                // Four choices, because "Phone" was two different things wearing one label: the
-                // provider it actually used depended on what happened to be enabled, so the cheap
-                // option could quietly start the GNSS receiver. Naming them separately is the
-                // point -- a user picking Network/Cell has said no to GPS, and the app now has to
-                // honour that. Short labels because four segments have to fit a phone's width;
-                // the caption underneath carries the meaning.
+                // GPS and Network apart: a user picking Network has said no to the GPS receiver, and
+                // the app honours it. Short labels, because four segments fit a phone's width; the
+                // caption underneath carries the meaning.
                 SettingsSegmentedChoice(
                     options = listOf("Off", "GPS", "Network", "Custom"),
                     selectedIndex = locationMode.ordinal,
@@ -209,11 +197,9 @@ internal fun WeatherTimeScreen(
                                 prefs.setUseLocation(false)
                                 prefs.setUseCustomLocation(false)
                             }
-                            // Each device mode asks for its own permission and is only written if
-                            // that permission is actually granted, so a refused prompt leaves the
-                            // previous choice in place rather than switching to a mode that
-                            // cannot work; where the system will not ask again, PaperScrape's page opens,
-                            // where it is given (v5.10D).
+                            // Each device mode asks for its own permission and is written only once it
+                            // is granted, so a refusal leaves the previous choice in place; where the
+                            // system will not ask again, PaperScrape's page opens, where it is given.
                             LocationMode.GPS -> askLocation(DeviceLocationKind.GPS, choiceAlreadyStored = locationMode == LocationMode.GPS)
                             LocationMode.NETWORK -> askLocation(DeviceLocationKind.NETWORK, choiceAlreadyStored = locationMode == LocationMode.NETWORK)
                             LocationMode.CUSTOM -> scope.launch { prefs.setUseCustomLocation(true) }
@@ -222,15 +208,12 @@ internal fun WeatherTimeScreen(
                 )
                 Text(
                     text = when {
-                        // True since v5.10D (the maintainer's row 6): at a fixed hour no position
-                        // counts, and the scene uses the default sunrise and sunset.
+                        // At a fixed hour no position counts: the scene uses the default sunrise and sunset.
                         !locationEnabled ->
                             "Available while the scene follows real time. At a fixed hour, sunrise and sunset are " +
                                 "6:00 and 20:00."
-                        // What `LocationRequestThrottle` does, in its words (v5.10E): once an hour while
-                        // the phone answers, and 5, 15 and 30 minutes after a search that finds nothing
-                        // -- the maintainer's decision of 2026-10-04. Until v5.10E the two lines said
-                        // "at most once an hour", true for v5.10D and not any more.
+                        // What `LocationRequestThrottle` does, in its words: once an hour while the phone
+                        // answers, and 5, 15 and 30 minutes after a search that finds nothing.
                         locationMode == LocationMode.GPS ->
                             "Uses the GPS receiver for a precise position, never continuously: once an hour " +
                                 "at most. If a search finds nothing, it tries again after 5, 15 and 30 minutes."
@@ -248,7 +231,7 @@ internal fun WeatherTimeScreen(
                 )
             }
             if (locationEnabled && deviceRow != null) {
-                // **What the phone gives, not what was chosen** (v5.10D, row 5). Not working: a row
+                // **What the phone gives, not what was chosen.** Not working: a row
                 // that says why, and whose tap goes where it is put right -- the permission dialog
                 // (PaperScrape's page once the system will not ask), or the phone's location page.
                 val kind = settings.deviceLocationKind
@@ -293,7 +276,7 @@ internal fun WeatherTimeScreen(
                 if (deviceRow.working && !hasSaved) {
                     SettingsRow(
                         title = "No position from your phone yet",
-                        // The tries of `LocationRequestThrottle` (v5.10E): 5, 15 and 30 minutes after a
+                        // The tries of `LocationRequestThrottle`: 5, 15 and 30 minutes after a
                         // search that found nothing, then the hour, and round again until one arrives.
                         supporting = "PaperScrape asks your phone again after 5, 15 and 30 minutes, then after an " +
                             "hour, and the same again until a position arrives. Until then, sunrise and " +
@@ -333,15 +316,11 @@ internal fun WeatherTimeScreen(
 
         SettingsSectionHeader("Live weather")
         SettingsGroup {
-            // **On only while real weather can drive the scene** (v5.10C, the maintainer's decision
-            // of 2026-09-30, inventory I-204). Until then it showed the stored flag: on over a fixed
-            // hour, with no location, with no key, with another wallpaper -- while the scene ran on
-            // the theme's own weather. Now it is off there, the line says what is missing, and the
-            // tap goes to it: the real time back on, the Location choice above, the provider's key,
-            // the system's wallpaper preview. The stored choice is written only by a tap that means
-            // it -- turning it off when it shows on, or on when it shows off -- and comes back by
-            // itself once nothing is missing. It always accepts a tap, so there is no state with no
-            // way out (the dead end `LiveWeatherUiState` records). See [SettingsUiModel.liveWeather].
+            // **On only while real weather can drive the scene** (`DESIGN_NOTES.md` §12, decision 40):
+            // otherwise off, the line says what is missing and the tap goes to it -- the real time back
+            // on, the Location choice above, the provider's key, the system's wallpaper preview. The
+            // stored choice is written only by a tap that means it, and shows by itself once nothing is
+            // missing. See [SettingsUiModel.liveWeather].
             SettingsSwitchRow(
                 title = stringResource(R.string.live_weather_title),
                 supporting = when (liveWeather.blocker) {
@@ -384,9 +363,8 @@ internal fun WeatherTimeScreen(
                     }
                 },
             )
-            // **Where it goes, said** (v5.10E, inventory I-225): the row opens World & scene, where
-            // Clouds, Rain and snow and Rainbow are three of the Sky rows at the top -- not a page of
-            // its own, which "Clouds, rain and snow, rainbow" made it look like.
+            // **Where it goes, said**: the row opens World & scene, where Clouds, Rain and snow and
+            // Rainbow are three of the Sky rows at the top, not a page of their own.
             SettingsNavigationRow(
                 title = "Weather effects",
                 supporting = "Opens World & scene: Clouds, Rain and snow and Rainbow are under Sky, at the top",
@@ -394,20 +372,17 @@ internal fun WeatherTimeScreen(
                 onClick = onOpenWeatherEffects,
             )
         }
-        // **Shown only while what it reports is the reason, or the switch is on** (v5.10C). The
-        // switch's own line names a missing hour, location, key or wallpaper, and the engine's last
-        // report says nothing true about any of them: with another wallpaper no engine runs and the
-        // report is the last one it made; a key typed in a moment ago has not been tried. What only
-        // the engine can know -- a refused key, a phone that gives no position -- still comes here.
+        // **Shown only while what it reports is the reason, or the switch is on.** A missing hour,
+        // location, key or wallpaper is the switch's own line, and the engine's last report says nothing
+        // true about them (another wallpaper runs no engine; a key typed a moment ago is untried). What
+        // only the engine can know -- a refused key, a phone that gives no position -- comes here.
         val statusIsTheStory = when (liveWeather.blocker) {
             LiveWeatherBlocker.NONE, LiveWeatherBlocker.REJECTED_KEY, LiveWeatherBlocker.LOCATION_UNAVAILABLE -> true
             else -> false
         }
         if (settings.liveWeatherEnabled && statusIsTheStory) {
-            // Published by the wallpaper service through the same settings flow this screen
-            // already collects, so it appears and clears as the service changes it -- no polling,
-            // no restart. Shown only while Live Weather is on: with it off there is no state to
-            // report.
+            // Published by the wallpaper service through the settings flow this screen collects, so
+            // it appears and clears as the service changes it, with no polling.
             val status = settings.liveWeather
             when (status) {
                 LiveWeatherStatus.MISSING_API_KEY -> SettingsBanner(
@@ -416,17 +391,10 @@ internal fun WeatherTimeScreen(
                         "Enter a key below, or switch back to Open-Meteo, which needs none.",
                     isError = true,
                 )
-                // Deliberately not "could not be reached": the provider *was* reached and said
-                // no. Saying otherwise sends the user to check their connection over a problem
-                // that is entirely in the key -- and for OpenWeather the key is very often not
-                // even wrong, just not yet active, which is the one thing this banner has to be
-                // able to tell them.
-                //
-                // What happens next is what the loop does, not what it used to be described as
-                // doing (v5.8): a rejection is not transient, so the loop keeps its normal hourly
-                // interval and asks again -- which is exactly what lets a key that was merely not
-                // yet active start working on its own -- and REJECTED_API_KEY does not drive the
-                // scene, so the theme's own weather is what shows (LiveWeatherSchedule.decide).
+                // Not "could not be reached": the provider was reached and said no, and for
+                // OpenWeather the key is often not wrong, only not yet active. The loop keeps its
+                // hourly interval and asks again, so such a key starts working on its own; meanwhile
+                // the theme's own weather shows (`LiveWeatherSchedule.decide`).
                 LiveWeatherStatus.REJECTED_API_KEY -> SettingsBanner(
                     text = "${provider.displayName} rejected this API key. Check that it is " +
                         "correct - and if you have only just created it, a new key can take a " +
@@ -450,18 +418,42 @@ internal fun WeatherTimeScreen(
                         "the last conditions it fetched.",
                     isError = true,
                 )
+                // The provider answered with its limit (HTTP 429, or WeatherAPI.com's spent monthly quota): it was
+                // reached, so not "could not be reached", and the key is not wrong, so not "rejected".
+                LiveWeatherStatus.RATE_LIMITED -> SettingsBanner(
+                    text = "${provider.displayName} answered that its limit of requests has been reached for now, " +
+                        "and there are no earlier conditions to fall back on, so the scene is running on this " +
+                        "theme's own weather. PaperScrape asks again about once an hour.",
+                    isError = true,
+                )
+                LiveWeatherStatus.RATE_LIMITED_STALE -> SettingsBanner(
+                    text = "${provider.displayName} answered that its limit of requests has been reached for now. " +
+                        "The scene is still showing the last conditions it fetched, and PaperScrape asks again " +
+                        "about once an hour.",
+                    isError = true,
+                )
+                // The provider answered and refused the request itself (a place it cannot find, say): reached, so not
+                // "could not be reached"; asked again at the hourly interval, as a limit is.
+                LiveWeatherStatus.REFUSED -> SettingsBanner(
+                    text = "${provider.displayName} refused the request, and there are no earlier conditions to fall " +
+                        "back on, so the scene is running on this theme's own weather. PaperScrape asks again about " +
+                        "once an hour.",
+                    isError = true,
+                )
+                LiveWeatherStatus.REFUSED_STALE -> SettingsBanner(
+                    text = "${provider.displayName} refused the request. The scene is still showing the last conditions " +
+                        "it fetched, and PaperScrape asks again about once an hour.",
+                    isError = true,
+                )
                 LiveWeatherStatus.OK -> SettingsBanner(
                     "Real conditions are driving this scene's clouds and precipitation, so their " +
                         "screens leave them to the forecast. Their colours stay editable.",
                 )
-                // OFF while the switch is on means no wallpaper engine has reported yet: the
-                // preview never publishes, and the home-screen engine only does once it is
-                // visible again -- or, since v5.10C, that the provider or a key has just changed and
-                // the engine has forgotten an answer about the old ones. Until a report arrives the
-                // theme's own weather is what you are looking at; this branch was once grouped with
-                // OK and claimed the forecast was in charge. Its second message, "not running: it
-                // needs real time and a location", is the switch's own line since v5.10C, and this
-                // banner is not shown then (`statusIsTheStory`).
+                // OFF while the switch is on: no wallpaper engine has reported yet (the preview never
+                // publishes, the home-screen engine only once visible again), or the provider or a key
+                // has just changed and the engine forgot its answer about the old ones. Until a report
+                // arrives the theme's own weather shows. A missing hour or location is the switch's own
+                // line, and this banner is not shown then (`statusIsTheStory`).
                 LiveWeatherStatus.OFF -> SettingsBanner(
                     "Waiting for the first forecast. Until it arrives the scene is on this " +
                         "theme's own weather.",
@@ -492,15 +484,15 @@ internal fun WeatherTimeScreen(
         SettingsGroup {
             SettingsNavigationRow(
                 title = "Open-Meteo API key",
-                // There is no built-in key: v5.3 stopped shipping one (OpenMeteoProvider.resolveApiKey
-                // says why). A blank key is Open-Meteo's free, keyless service, which works.
+                // There is no built-in key (OpenMeteoProvider.resolveApiKey): a blank key is Open-Meteo's
+                // free, keyless service, which works.
                 supporting = SettingsUiModel.apiKeyLine(WeatherProviderId.OPEN_METEO, provider, keySet = settings.liveWeatherApiKey.isNotBlank()),
                 icon = Icons.Filled.Key,
                 onClick = { showApiKey = true },
             )
             SettingsNavigationRow(
                 title = "WeatherAPI.com API key",
-                // "Required" only for the provider chosen (v5.10D, inventory I-221).
+                // "Required" only for the provider chosen.
                 supporting = SettingsUiModel.apiKeyLine(WeatherProviderId.WEATHER_API_COM, provider, keySet = settings.weatherApiComApiKey.isNotBlank()),
                 icon = Icons.Filled.Key,
                 onClick = { showWeatherApiComKey = true },
@@ -540,13 +532,10 @@ internal fun WeatherTimeScreen(
 }
 
 /**
- * OpenWeather's key. Required, like WeatherAPI.com's: there is no anonymous tier, so without one
- * the provider makes no request at all and the settings screen says so.
- *
- * Stored in this install's own DataStore, sent over the network only to OpenWeather, and copied
- * into an app backup only when the user exports one (the export row says so). Nothing about it is
- * compiled into the app, written to the build, or logged -- the field is masked here for the same
- * reason.
+ * OpenWeather's key. Required, like WeatherAPI.com's: there is no anonymous tier, so without one the
+ * provider makes no request and the settings screen says so. Stored in this install's DataStore, sent
+ * only to OpenWeather, copied into a backup only when the user exports one; never compiled in or
+ * logged, and masked here.
  */
 @Composable
 private fun OpenWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
@@ -580,29 +569,14 @@ private fun OpenWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, o
 }
 
 /**
- * Where the device says it is: the **place name and the coordinates, together**.
+ * Where the device says it is: the **place name and the coordinates, together** -- the name as the
+ * title, the coordinates under it, the shape of [SelectedCustomLocationRow].
  *
- * v4.0 changed what this row shows, not how it finds it. Before, the resolved name *replaced* the
- * coordinates -- the row's title was the city name when geocoding succeeded and the coordinates
- * when it failed, so the two facts were never on screen at once and a user who wanted to check the
- * numbers lost them the moment the name arrived. Now the name is the title and the coordinates sit
- * under it, which is the shape [SelectedCustomLocationRow] has always used for the manual case.
- *
- * **The coordinates are never lost, at any instant.** Before the name arrives, and if it never
- * does, the title *is* the coordinates -- so there is no state in which this row fails to answer
- * "where does the app think I am". A geocoder that is offline, absent or slow costs the name and
- * nothing else: it is not a location failure and is never reported as one.
- *
- * That is also why there is no longer a "Finding your location..." placeholder. It said the wrong
- * thing -- the location was already found, it was the *name* that was pending -- and the honest
- * alternative is to show the coordinates that were already known.
- *
- * Coordinates stay [Coordinates.formatCoarse], two decimals: the precision this row has always
- * used, and the precision a network fix actually has.
- *
- * Lookups go through [LocalityLabelCache], which is what keeps re-entering this screen or taking a
- * new fix a few metres away from being a new geocode. Re-resolves on the coordinates changing
- * (`latitude`/`longitude` as the `LaunchedEffect` key), never on recomposition.
+ * **The coordinates are never lost**: before the name arrives, and if it never does, the title is the
+ * coordinates. A geocoder offline, absent or slow costs the name and nothing else; it is not a location
+ * failure. Coordinates are [Coordinates.formatCoarse], two decimals, the precision a network fix has.
+ * Names come through [LocalityLabelCache], looked up again when the coordinates change (the
+ * `LaunchedEffect` key), never on recomposition.
  */
 @Composable
 private fun LocationRow(latitude: Float?, longitude: Float?, supporting: String) {
@@ -655,16 +629,9 @@ private fun SelectedCustomLocationRow(label: String, latitude: Float, longitude:
 }
 
 /**
- * Setting a custom location: search for a city by name, or type coordinates.
- *
- * The search is a *convenience for filling the same fields*, not a second location system. A
- * selected result writes latitude, longitude and label through `prefs.setCustomLocation` -- the
- * one call the manual Apply button has always made -- so Live Weather, the sunrise/sunset
- * calculation, the cache and the fallback cannot tell the two apart, and there is nothing new for
- * them to handle.
- *
- * Nothing is written until a result is tapped. A failed search, an empty one, or a cancelled one
- * leaves the current custom location exactly as it was.
+ * Setting a custom location: search for a city by name, or type coordinates. A chosen result writes
+ * through `prefs.setCustomLocation`, the manual Apply button's own call, so nothing downstream can tell
+ * the two apart. Nothing is written until a result is tapped.
  */
 @Composable
 private fun CustomLocationFields(
@@ -690,20 +657,52 @@ private fun CustomLocationFields(
         }
     }
 
+    val scope = rememberCoroutineScope()
+    // **One search at a time**: a new one -- the typing settled, the keyboard's search, Try again -- takes the place of
+    // the one running, so an older answer never lands over a newer one; and the typing's own search is not asked when
+    // the keyboard's has asked the same text meanwhile, so one city is one request.
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+    var searchJobText by remember { mutableStateOf("") }
+    fun startSearch(text: String) {
+        // Too short to ask about: nothing is asked, and the search running is left to the field's own change.
+        if (!CityGeocoder.isQuerySearchable(text)) return
+        searchJob?.cancel()
+        searchJobText = text.trim()
+        searchJob = scope.launch { runSearch(text) }
+    }
+
+    // A search is for the words it was asked with: once the field holds other words, or none (the X), it stops, or
+    // its answer would land under text it does not belong to. Words stopped before their answer count as not
+    // searched, so typing them again asks again.
+    fun stopSearch() {
+        if (searchJob?.isActive != true) return
+        searchJob?.cancel()
+        if (searchState == CitySearchUiState.Searching) lastSearched = ""
+    }
+
     // Typing settles before anything is asked. 500 ms is long enough that a whole city name is one
     // request rather than one per letter, and the search action on the keyboard is there for
     // anyone who does not want to wait for it.
     LaunchedEffect(query) {
         val trimmed = query.trim()
+        if (trimmed != searchJobText) stopSearch()
         if (trimmed.isEmpty()) {
+            // An emptied field, by the X or by the keyboard, forgets the last search: the same place typed again asks again.
+            lastSearched = ""
             searchState = CitySearchUiState.Idle
             return@LaunchedEffect
         }
-        if (!CityGeocoder.isQuerySearchable(trimmed) || trimmed == lastSearched) return@LaunchedEffect
+        if (!CityGeocoder.isQuerySearchable(trimmed)) {
+            // Too short to ask about, so no answer is on its way to wait for.
+            if (searchState == CitySearchUiState.Searching) searchState = CitySearchUiState.Idle
+            return@LaunchedEffect
+        }
+        if (trimmed == lastSearched) return@LaunchedEffect
         delay(SEARCH_DEBOUNCE_MS)
-        runSearch(trimmed)
+        // The keyboard's search asked it while the typing settled.
+        if (trimmed == lastSearched) return@LaunchedEffect
+        startSearch(trimmed)
     }
-    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -717,7 +716,7 @@ private fun CustomLocationFields(
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
-                    IconButton(onClick = { query = ""; searchState = CitySearchUiState.Idle }) {
+                    IconButton(onClick = { query = ""; lastSearched = ""; stopSearch(); searchState = CitySearchUiState.Idle }) {
                         Icon(Icons.Filled.Close, contentDescription = "Clear search")
                     }
                 }
@@ -726,7 +725,7 @@ private fun CustomLocationFields(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = {
                 keyboard?.hide()
-                scope.launch { runSearch(query) }
+                startSearch(query)
             }),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -755,7 +754,7 @@ private fun CustomLocationFields(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
-                OutlinedButton(onClick = { scope.launch { runSearch(lastSearched) } }) { Text("Try again") }
+                OutlinedButton(onClick = { startSearch(lastSearched) }) { Text("Try again") }
             }
 
             is CitySearchUiState.Results -> Column {
@@ -834,14 +833,9 @@ private fun CityResultRow(city: GeocodedCity, onSelect: () -> Unit) {
 }
 
 /**
- * Latitude/longitude/label entry, unchanged.
- *
- * Local text state (not committed to prefs on every keystroke, unlike this screen's usual pattern
- * of firing a prefs write per Slider/Switch change) because a lat/long is only valid once fully
- * typed -- writing "4" then "45" then "45." as separate coordinate values as the user types would
- * spam invalid, incomplete fixes through to the sunrise/sunset and Live Weather calculation on
- * every keystroke. Committed via the explicit "Apply" button instead, the same reasoning as why a
- * hex colour field in [ColorPickerDialog] commits on "Apply" rather than per-keystroke.
+ * Latitude/longitude/label entry, committed with "Apply" rather than per keystroke: a coordinate is
+ * valid only once fully typed, and "4", "45", "45." would each reach the sunrise/sunset and Live
+ * Weather calculation.
  */
 @Composable
 private fun ManualCoordinateFields(
@@ -888,12 +882,8 @@ private fun ManualCoordinateFields(
             onClick = {
                 if (isValid) {
                     onApply(parsedLat, parsedLon, labelText)
-                    // aa reported that applying a manual location gave no confirmation it had
-                    // actually taken effect. A Toast is the right fit here specifically because
-                    // the row above is a *persistent* on-screen confirmation (the selected-location
-                    // row, showing these same coordinates and the label typed with them) -- the
-                    // Toast is the immediate "yes, that tap registered" feedback, the row is the
-                    // lasting proof.
+                    // The Toast says the tap registered; the selected-location row above, showing these
+                    // coordinates and label, is the lasting confirmation.
                     Toast.makeText(context, "Location applied", Toast.LENGTH_SHORT).show()
                 }
             },
@@ -918,12 +908,9 @@ private const val SEARCH_DEBOUNCE_MS = 500L
 
 /**
  * WeatherAPI.com's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so
- * without one the provider makes no request at all and the settings screen says so.
- *
- * The key is stored in this install's own DataStore, sent over the network only to WeatherAPI.com,
- * and copied into an app backup only when the user exports one (the export row says so). Nothing
- * about it is compiled into the app, written to the build, or logged -- the field is masked here
- * for the same reason.
+ * without one the provider makes no request and the settings screen says so. Stored in this install's
+ * DataStore, sent only to WeatherAPI.com, copied into a backup only when the user exports one; never
+ * compiled in or logged, and masked here.
  */
 @Composable
 private fun WeatherApiComApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
@@ -956,16 +943,11 @@ private fun WeatherApiComApiKeyScreen(apiKey: String, onApply: (String) -> Unit,
 }
 
 /**
- * Optional user-entered Open-Meteo API key for Live Weather (see
- * [com.paperscrape.livewallpaper.weather.OpenMeteoProvider.resolveApiKey]). Blank is a perfectly
- * valid, fully-supported state: Open-Meteo's free tier needs no key at all, so this exists purely
- * as an upgrade path for a user who wants Open-Meteo's higher-limit customer endpoint under their
- * own account, not a requirement to make Live Weather work. That is why it is one level down,
- * under "Advanced", rather than in the main flow where v2.8 put it.
- *
- * It used to be described as taking "priority over the app's own baked-in key". v5.3 removed that
- * baked-in key -- it shipped readable in the dex -- so this is now the only key there is, and since
- * v5.9G the line under the field says what it is used instead of: the free service.
+ * Optional Open-Meteo API key for Live Weather
+ * ([com.paperscrape.livewallpaper.weather.OpenMeteoProvider.resolveApiKey]). Blank is fully supported:
+ * the free tier needs no key, so this is only for a user who wants Open-Meteo's higher-limit customer
+ * endpoint under their own account -- hence under "Advanced". There is no built-in key; the line under
+ * the field says what it is used instead of: the free service.
  */
 @Composable
 private fun LiveWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {

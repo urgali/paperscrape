@@ -19,14 +19,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.AcUnit
+import com.paperscrape.livewallpaper.ui.icons.filled.Casino
+import com.paperscrape.livewallpaper.ui.icons.filled.Event
+import com.paperscrape.livewallpaper.ui.icons.filled.Palette
+import com.paperscrape.livewallpaper.ui.icons.filled.Tune
+import com.paperscrape.livewallpaper.ui.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Landscape
-import androidx.compose.material.icons.outlined.WbSunny
+import com.paperscrape.livewallpaper.ui.icons.outlined.Landscape
+import com.paperscrape.livewallpaper.ui.icons.outlined.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -38,9 +38,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
@@ -51,14 +54,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
+import com.paperscrape.livewallpaper.engine.FirstFrameGate
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
+import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.hasPalmSlots
@@ -83,61 +91,35 @@ import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
 import com.paperscrape.livewallpaper.update.UpdateNotifier
 import com.paperscrape.livewallpaper.update.UpdatePrefs
 import com.paperscrape.livewallpaper.weather.WeatherRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZonedDateTime
 
 /**
- * The five places settings live, plus the theme gallery.
- *
- * v2.8 had one home screen holding every wallpaper preference inline plus two full-screen
- * dialogs; the home screen alone was about four and a half screens of scrolling, and weather had
- * no section of its own -- it lived inside "Behavior" and disappeared entirely when "Follow real
- * time" was switched off. Each destination below owns one kind of decision; the home screen keeps
- * only the theme choice itself -- which theme is showing, whether the calendar picks it (the
- * "Automatic theme by date" switch), a random shuffle -- and says where everything else is.
+ * The home screen, the five screens settings live on, and the theme gallery. Each screen owns one kind of
+ * decision; the home screen keeps only the theme choice itself -- which theme is showing, whether the
+ * calendar picks it ("Automatic theme by date"), a random shuffle -- and says where everything else is.
  */
 private enum class SettingsDestination { HOME, THEME_GALLERY, WEATHER, SEASONS, CALENDAR, WORLD, ADVANCED }
 
 /**
- * The saved themes, as state the settings tree can read -- **published on every emission, not
- * only on the ones Compose considers a change** (v4.6).
+ * The saved themes, as state the settings tree can read -- **published on every emission, not only on
+ * the ones Compose considers a change** ([neverEqualPolicy]).
  *
- * ### The defect
+ * [com.paperscrape.livewallpaper.engine.SceneTheme] compares by id alone and a `CustomThemeEntry` is a
+ * data class holding one, so two themes with the same id and different colours, names and flags compare
+ * equal: under the default structural policy a backup restoring a renamed theme would leave the open
+ * screen showing the old name. Widening `SceneTheme.equals` would touch every `==` in the app; the
+ * policy costs a recomposition per restore, save and rename.
  *
- * `collectAsState` stores into a `mutableStateOf` with the default [structuralEqualityPolicy], so
- * an emission that is `==` to the value already held is not a change and nothing recomposes. That
- * is normally exactly right. It is wrong here because [com.paperscrape.livewallpaper.engine.SceneTheme]
- * declares
- *
- * ```
- * override fun equals(other: Any?): Boolean = other is SceneTheme && other.id == id
- * ```
- *
- * and a `CustomThemeEntry` is a data class holding one. So two themes with the same id and
- * *completely different colours, names and flags* compare equal, the `CustomThemeData` containing
- * them compares equal, and the settings screen never repaints.
- *
- * Reproduced on a device before the fix: restore a backup whose saved theme has the same id and a
- * different `displayName`, and the DataStore holds the new name while the open settings screen
- * keeps showing the old one until the Activity is recreated. The backup was never the problem --
- * it had already written both stores correctly.
- *
- * ### Why the fix is here and not on `SceneTheme`
- *
- * Widening `SceneTheme.equals` to compare content would touch every `==` in the app, on a class
- * whose fields are `IntArray`s, to solve a problem that belongs to one screen's state holder.
- * [neverEqualPolicy] states the actual requirement -- *this* store's emissions are always news --
- * in the one place that needs it. A DataStore write is a rare event, so the cost is a recomposition
- * per restore, per theme save and per rename.
- *
- * Updating [CustomThemeRegistry] from the same collector is the second half: it used to be a
- * separate collector in `SettingsActivity`, which left the order of the two undefined. Here the
- * registry is current *before* the state that triggers the recomposition is published, so a
- * composable that reads both -- `ThemeCatalog.byId` goes to the registry, the theme grid to this
- * state -- cannot see one of them stale.
+ * The same collector updates [CustomThemeRegistry] *before* publishing, so a composable that reads both
+ * (`ThemeCatalog.byId` goes to the registry, the theme grid to this state) cannot see one of them stale.
+ * Null until the store's first answer, which the screen waits for before it draws.
  */
 @Composable
-private fun rememberCustomThemeData(store: CustomThemeStore): State<CustomThemeData> {
-    val state = remember(store) { mutableStateOf(CustomThemeData.EMPTY, neverEqualPolicy()) }
+private fun rememberCustomThemeData(store: CustomThemeStore): State<CustomThemeData?> {
+    val state = remember(store) { mutableStateOf<CustomThemeData?>(null, neverEqualPolicy()) }
     LaunchedEffect(store) {
         store.dataFlow.collect { data ->
             CustomThemeRegistry.update(data)
@@ -155,114 +137,118 @@ fun SettingsScreen(
     updatePrefs: UpdatePrefs,
     onApplyWallpaper: () -> Unit,
     onRequestLocationPermission: (kind: DeviceLocationKind, onResult: (LocationPermissionAnswer) -> Unit) -> Unit,
-    /** See `AdvancedScreen`'s parameter of the same name (A1, v5.7D). */
+    /**
+     * Which of the Activity's comings to the front are openings ([SettingsOpenings]): `SettingsActivity` tells it of
+     * every page of another app it starts, and the screen feeds it the lifecycle.
+     */
+    settingsOpenings: SettingsOpenings,
+    /** See `AdvancedScreen`'s parameter of the same name. */
     onRequestNotificationPermission: (onResult: (granted: Boolean, canAskAgain: Boolean) -> Unit) -> Unit =
         { it(true, true) },
     /**
-     * The release tag carried by a tapped update notification, or null on an ordinary open (A3).
-     *
-     * Set by `SettingsActivity` from [UpdateNotifier.EXTRA_SHOW_UPDATE_TAG]. Its presence is what
-     * makes the check below run and the dialog appear **whatever the opt-in and the snooze say**:
-     * the tap is the request, exactly as the button in *Advanced & about* is, and both are the user
-     * asking rather than the app volunteering.
-     *
-     * Only its presence is tested; the tag itself is not used -- the check that follows produces
-     * the real [UpdateInfo], with release notes and assets, and the notification is cancelled by
-     * the tag that check returns.
+     * The release tag of a tapped update notification ([UpdateNotifier.EXTRA_SHOW_UPDATE_TAG], set by
+     * `SettingsActivity`), or null on an ordinary open. Its presence makes the check below run and the
+     * dialog appear **whatever the opt-in and the snooze say**: the tap is the user asking, as the button
+     * in *Advanced & about* is. The tag itself is not used: the check returns the real [UpdateInfo], and
+     * the notification is cancelled by its tag.
      */
     openUpdateForTag: String? = null,
 ) {
-    val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
+    // The stored settings, null until the store first answers. Until then everything below runs on a fresh install's
+    // settings, as it always has (the update check keyed on its switch, the job put back), and nothing is drawn.
+    val storedSettings by prefs.settingsFlow.collectAsState<WallpaperSettings, WallpaperSettings?>(initial = null)
+    val freshInstall = remember { WallpaperSettings() }
+    val settings = storedSettings ?: freshInstall
     val savedThemes = rememberCustomThemeData(customThemeStore)
     val scope = rememberCoroutineScope()
 
     /**
-     * The update flow's state, held **here** rather than inside `AdvancedScreen` (ARC-08).
-     *
-     * The download is launched into [scope], which belongs to this composable; its state used to be
-     * `remember`ed one level down, in the screen the user can navigate away from. So the job and the
-     * thing it reports to had different lifetimes: walking back to the settings home mid-download
-     * left the transfer running with nowhere to report, and returning showed `Idle` for a download
-     * that had already finished into the cache.
-     *
-     * Hoisting it here is the whole fix for that half: the state now lives exactly as long as the
-     * coroutine that writes it. The other half -- the Activity being torn down under both of them --
-     * is the `configChanges` on `SettingsActivity`.
+     * The update flow's state, held **here**, beside the [scope] the download is launched into, and not in
+     * `AdvancedScreen`, which the user can navigate away from mid-download: the state lives exactly as long
+     * as the coroutine that writes it. `SettingsActivity`'s `configChanges` keeps the Activity from being
+     * torn down under both.
      */
     val updateState = remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
     var destination by remember { mutableStateOf(SettingsDestination.HOME) }
     /**
-     * Where **World & scene** was opened from, so back returns there (N3, v5.7C).
-     *
-     * `destination` is a single value, not a stack, which is right for a tree of screens that are
-     * all one tap from home -- except that World & scene has *two* doors. The second is Weather &
-     * time's "Weather effects" row, and because every sub-screen's `onBack` was hard-wired to
-     * HOME, going through that door and coming back landed on the settings home: the screen the
-     * user had been on was gone, and the one back press they expected to undo the tap undid two.
-     *
-     * One field rather than a back stack because this is the only screen with a second door on
-     * another sub-screen. Advanced & about has a second door too, the update dialog's "Install
-     * update", which can open over any screen; back from there always goes home. It is set on every
-     * route *into* WORLD, including the home one, so it can never be left pointing at a screen the
-     * user did not come from.
+     * Where **World & scene** was opened from, so back returns there: it has two doors, the home screen
+     * and Weather & time's "Weather effects" row. One field rather than a back stack, because it is the
+     * only screen with a door on another sub-screen (the update dialog's "Install update" opens Advanced
+     * & about over any screen, and back from there goes home). Set on every route into WORLD, so it never
+     * points at a screen the user did not come from.
      */
     var worldOpenedFrom by remember { mutableStateOf(SettingsDestination.HOME) }
 
-    // Checked once each time this screen is composed -- which is once per app launch, since
-    // `SettingsActivity` holds the composition across every configuration change it can (see its
-    // `configChanges`) -- and again whenever the opt-in below is switched on. It runs only while
-    // that opt-in is on, or when a tapped update notification asks for it (A3). Never as a
-    // background or recurring check: this is an in-app-only prompt, not a system notification.
+    // **The openings after the first** -- the update check below runs again at each. The Activity outlives an
+    // opening -- Home leaves it in the background, and from Android 12 Back does too, in the wallpaper's process that
+    // lives for days -- so an opening is an ON_START, not this composition: any ON_START but the first (the opening
+    // this composition comes up in) and but the return from a page of another app the settings started themselves
+    // -- the browser, the file picker, the installer, the phone's settings pages, the wallpaper picker
+    // ([SettingsOpenings]).
+    var openings by remember { mutableIntStateOf(0) }
+    // The date the screen reads -- the calendar's theme of today, "Today: ...", the Holiday calendar's window of today,
+    // the theme Seasons and World & scene edit -- read again each time the settings come to the front (every ON_START,
+    // the return from a page included) and at midnight, so a screen left open over midnight edits today's theme.
+    var today by remember { mutableStateOf(LocalDate.now()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val power = LocalContext.current.getSystemService(android.os.PowerManager::class.java)
+    DisposableEffect(lifecycleOwner, settingsOpenings) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (settingsOpenings.isOpening(event, screenOn = power?.isInteractive != false)) openings++
+            if (event == Lifecycle.Event.ON_START) today = LocalDate.now()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(today) {
+        // Until the date moves on: a wait that ends a moment early waits again.
+        while (LocalDate.now() == today) delay(SettingsUiModel.millisUntilNextDay(ZonedDateTime.now()))
+        today = LocalDate.now()
+    }
+
+    // Checked each time the settings open -- this composition, and each later opening (`openings`: "each time you open
+    // these settings", the line under the switch says; the return from a page the settings started is not one) -- and
+    // whenever the opt-in below is switched on; only while it is on, or when a tapped update notification asks. This
+    // is the in-app prompt; the background check is `UpdateCheckJobService`'s.
     //
-    // The keyed `LaunchedEffect` below is what runs it, **not** `LaunchedEffect(Unit)`, which is
-    // what this comment used to claim. The key matters: `settings` arrives from a flow with a
-    // defaults-shaped initial value, so the first pass always sees the switch off, and it is the
-    // key changing to `true` when the stored value lands that runs the check at all.
+    // The keyed `LaunchedEffect` below runs it. `settings` arrives with a defaults-shaped first value, so the first
+    // pass sees the switch off and it is the key turning `true` when the stored value lands that runs the check;
+    // `key(openings)` around it runs it again at each opening.
     var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var showSnoozeChoice by remember { mutableStateOf(false) }
     // Set when the update dialog's "Install update" is tapped: Advanced & about opens with this
-    // release already being downloaded, so the one tap starts the flow rather than dropping the
-    // user on a screen where they have to find it and start it again. A second tap for the same
-    // release starts again once the first download has failed (`mayStartDownload`, v5.8C).
+    // release already being downloaded, so the one tap starts the flow. A second tap for the same
+    // release starts again once the first download has failed (`mayStartDownload`).
     var pendingInstall by remember { mutableStateOf<UpdateInfo?>(null) }
 
-    // **No automatic check.** Opening the settings screen used to reach the network every time,
-    // which is a request the user never made, for a feature they may not want. The check now runs
-    // only if they have opted in (or tapped an update notification, below), and the manual button
-    // in Advanced works whether they have or not.
     // Held here rather than read inside the effect: `LocalContext` is a composition local and the
     // effect's body is a coroutine that outlives the composition pass that started it.
     val screenContext = LocalContext.current
     // **The update job is put back where the switches say whenever this screen opens and whenever they
-    // change** (v5.15, `UpdateCheckJobService`): the screen opening is one of the two moments PaperScrape
-    // learns it may run after a force stop took the job away (the wallpaper's service starting is the
-    // other), and a backup restored here can change the switches. The job reads the switches from the
-    // store, so the defaults-shaped first value of `settings` cannot cancel it. A job put back here does not
-    // check at once -- no run at once of its own, and its periodic runs start a period later -- because this
-    // screen checks itself as it opens (below), and GitHub would be asked twice (inventory I-956).
+    // change** (`UpdateCheckJobService`): the screen opening is one of the two moments PaperScrape learns it
+    // may run after a force stop took the job away (the wallpaper's service starting is the other), and a
+    // backup restored here can change the switches. The job reads the switches from the store, so the
+    // defaults-shaped first value of `settings` cannot cancel it. It does not check at once, and its
+    // periodic runs start a period later, because this screen checks as it opens (below): GitHub would be
+    // asked twice.
     LaunchedEffect(settings.automaticUpdateCheckEnabled, settings.updateNotificationsEnabled) {
         UpdateCheckJobs.reconcile(screenContext, checkAtOnce = false)
     }
-    // A tapped notification's check does not start again when the stored settings replace the first,
-    // defaults-shaped value: it does not depend on them, and starting again asked GitHub a second time
-    // (until v5.15). The check of an opening that nobody asked for follows the switch, as before.
-    LaunchedEffect(settings.automaticUpdateCheckEnabled.takeIf { openUpdateForTag == null }, openUpdateForTag) {
-        // A tapped notification is a request, so it runs whatever the opt-in says -- the user has
-        // just asked, the same way the button in Advanced & about is an ask (A3, v5.7D).
-        val askedByNotification = openUpdateForTag != null
+    // A tapped notification's check does not depend on the stored settings, so it does not start again (asking
+    // GitHub twice) when they replace the first, defaults-shaped value; an opening's own check follows the switch.
+    key(openings) { LaunchedEffect(settings.automaticUpdateCheckEnabled.takeIf { openUpdateForTag == null }, openUpdateForTag) {
+        // A tapped notification is a request, so it runs whatever the opt-in says, as the button in
+        // Advanced & about does. The tap asked once: coming back later is an opening like any other.
+        val askedByNotification = openUpdateForTag != null && openings == 0
         if (!askedByNotification && !settings.automaticUpdateCheckEnabled) return@LaunchedEffect
         val snooze = updatePrefs.readSnoozeState()
-        // Deliberately only the one outcome for a check nobody asked for: it has nothing to say
-        // about a network that was not there, and reporting it would turn opening the settings
-        // screen on a train into an error message. A tapped notification **did** ask, so there the
-        // other outcomes are shown too -- Advanced & about with "could not check" or "up to date",
-        // the same state its own button reports (v5.8C; until then an offline tap showed nothing
-        // at all, and the notification looked broken).
-        // With the reply kept from the last check, so an unchanged list costs no download (v5.10D). Not
-        // inside a limit GitHub set, unless a tapped notification asked (v5.15): opening the screen is
-        // nobody's request, and GitHub would refuse it. And an answer GitHub gave less than a minute ago
-        // stands for it (v5.15C2): the wallpaper the phone binds again after a force stop may have just
-        // checked, as this screen opened.
+        // A check nobody asked for shows only an update: a network that was not there is no error to
+        // show for opening the settings on a train. A tapped notification **did** ask, so there the other
+        // outcomes show too, in Advanced & about ("could not check", "up to date"), as its own button does.
+        // With the reply kept from the last check, so an unchanged list costs no download. Unless a tapped
+        // notification asked, not inside a limit GitHub set (it would refuse), and an answer GitHub gave
+        // less than a minute ago stands for it: the wallpaper bound again after a force stop may just have
+        // checked.
         val result = UpdateChecker.checkForUpdate(
             BuildConfig.VERSION_NAME,
             updatePrefs,
@@ -277,8 +263,7 @@ fun SettingsScreen(
             }
             return@LaunchedEffect
         }
-        // The same rule the update job's notification consults (`UpdateCheckJobs.runOnce`), read from one place so the two cannot
-        // drift -- see UpdateNotificationPolicy.isSnoozed, which is this expression moved.
+        // The rule the update job's notification consults too (`UpdateCheckJobs.runOnce`), so the two cannot drift.
         val isSnoozedForThisVersion = UpdateNotificationPolicy.isSnoozed(
             tagName = update.tagName,
             snoozedTag = snooze.versionTag,
@@ -288,28 +273,19 @@ fun SettingsScreen(
         if (askedByNotification || !isSnoozedForThisVersion) {
             availableUpdate = update
         }
-        // The dialog is now open on this release, so the notification about it has done its job.
-        // Left in the shade it would be a second, now-redundant copy of what is on screen.
+        // The dialog is open on this release: the notification about it would be a second copy.
         if (askedByNotification) UpdateNotifier.cancel(screenContext, update.tagName)
-    }
+    } }
 
-    // **Read here, in this scope, deliberately.**
-    //
-    // `ThemeCatalog.byId` and `resolveActiveCustomization` both resolve through
-    // `CustomThemeRegistry`, which is an `AtomicReference` and not Compose state -- so neither call
-    // below creates a dependency Compose can see, and neither will run again just because a saved
-    // theme changed. `savedThemes` is the state that moves in step with the registry:
-    // [rememberCustomThemeData] refreshes the registry first and publishes this second.
-    //
-    // So this line is the subscription for everything under it. Inline it into its use sites and
-    // the home screen goes back to showing a restored theme's old name and old colours until the
-    // Activity is recreated, which is exactly v4.6's P2 defect -- and it comes back *narrower* than
-    // before, because the theme grid reads this state directly and would update while the row above
-    // it did not.
-    val customThemeData = savedThemes.value
+    // **Read here, in this scope, deliberately**: it is the subscription for everything under it.
+    // `ThemeCatalog.byId` and `resolveActiveCustomization` resolve through `CustomThemeRegistry`, an
+    // `AtomicReference` Compose cannot see, and `savedThemes` is the state that moves in step with it
+    // ([rememberCustomThemeData]). Inlined into its use sites, the home screen would show a restored
+    // theme's old name and colours until the Activity is recreated.
+    val customThemeData = savedThemes.value ?: CustomThemeData.EMPTY
 
     val calendarThemeId = if (settings.autoThemeByDate) {
-        SeasonalThemeRules.themeForDate(calendar = settings.seasonalCalendar)
+        SeasonalThemeRules.themeForDate(date = today, calendar = settings.seasonalCalendar)
     } else {
         null
     }
@@ -328,15 +304,29 @@ fun SettingsScreen(
         SceneObjectCatalog.layoutFor(effectiveThemeId, effectiveTheme.accentColor)
     }
     val themeHasPalms = themeLayout.hasPalmSlots()
-    // Whether the trees this theme keeps would all be Christmas firs with the palms on (v5.10C2): then the
+    // Whether the trees this theme keeps would all be Christmas firs with the palms on: then the
     // Palms switch has no palm to put anywhere, and reads off. See `SettingsUiModel.palms`.
     val palmsOnlyFirs = themeLayout.keepsOnlyFirsUnderPalms(customization)
+    // What the theme's street stands under the edit, category by category: a switch of the street reads on only where one
+    // stands (`SettingsUiModel.amountSwitch`).
+    val standing = SettingsUiModel.standing(themeLayout, customization)
     // See [WallpaperEngineCensus] for why the engines are counted rather than WallpaperManager asked.
     val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
-    // What the phone gives for GPS or Network, read each time the screen comes back (v5.10D, row 5).
+    // What the phone gives for GPS or Network, read each time the screen comes back.
     val deviceAccess = rememberDeviceLocationAccess(settings)
-    // *Shuffle* while the calendar is choosing: the question first (v5.10C, row 9).
+    // *Shuffle* while the calendar is choosing: the question first.
     var confirmShuffle by remember { mutableStateOf(false) }
+
+    // **Nothing is drawn until the stored settings and the saved themes have been read**
+    // (`DESIGN_NOTES.md` §12, decision 94): drawn before, the screen would show a fresh install's theme for a moment, then the user's. The
+    // window's background shows meanwhile. Past [FirstFrameGate.WAIT_LIMIT_MS] it draws with what has arrived, as the
+    // wallpaper does, rather than stay empty on a store that does not answer.
+    var waitedTooLong by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(FirstFrameGate.WAIT_LIMIT_MS)
+        waitedTooLong = true
+    }
+    if (!waitedTooLong && (storedSettings == null || savedThemes.value == null)) return
 
     ProvideSettingsBottomInset {
     Scaffold(
@@ -355,12 +345,9 @@ fun SettingsScreen(
                 pickedByDate = calendarThemeId != null,
             )
 
-            // Directly under the preview, as it has always been: applying the wallpaper never
-            // requires scrolling past anything. The label says what the phone is showing (assessment
-            // v5.7, row 13: it used to invite a user to set a wallpaper they had just set); see
-            // [WallpaperEngineCensus] for why it counts the engines rather than asking WallpaperManager.
-            // The tap does the same either way -- the system's preview, where it can be set again,
-            // which is also the way back when the home screen is blank after a force-stop.
+            // Directly under the preview, so applying the wallpaper never needs a scroll. The label says
+            // what the phone is showing ([WallpaperEngineCensus]); the tap is the same either way -- the
+            // system's preview, which is also the way back when the home screen is blank after a force-stop.
             Button(
                 onClick = onApplyWallpaper,
                 modifier = Modifier
@@ -386,7 +373,7 @@ fun SettingsScreen(
                     onCheckedChange = { scope.launch { prefs.setAutoThemeByDate(it) } },
                 )
                 if (settings.autoThemeByDate) {
-                    val label = SeasonalThemeRules.labelForDate(calendar = settings.seasonalCalendar)
+                    val label = SeasonalThemeRules.labelForDate(date = today, calendar = settings.seasonalCalendar)
                     SettingsRow(
                         title = if (label != null) "Today: $label" else "Today: your own pick",
                         supporting = if (label != null) {
@@ -408,15 +395,10 @@ fun SettingsScreen(
                 )
                 SettingsRow(
                     title = "Shuffle a random theme",
-                    supporting = if (RandomSceneGenerator.isRandomThemeId(settings.themeId)) {
-                        "Random theme active - tap again to generate another one"
-                    } else {
-                        "Builds a new theme from scratch and selects it"
-                    },
+                    supporting = SettingsUiModel.shuffleLine(settings.themeId, calendarThemeId),
                     icon = Icons.Filled.Casino,
                     // While the calendar is choosing, a new random theme would be saved and not
-                    // shown: the tap changed nothing on the wallpaper and the line above it read
-                    // "Random theme active" over the calendar's scene (inventory I-212). So it asks.
+                    // shown, so it asks.
                     onClick = {
                         if (SettingsUiModel.pickNeedsCalendarQuestion(calendarThemeId, pickedThemeId = null)) {
                             confirmShuffle = true
@@ -429,8 +411,8 @@ fun SettingsScreen(
 
             SettingsSectionHeader("Customise this theme")
             SettingsGroup {
-                // Live Weather "on" here only when its switch is (v5.10C, row 4): the same rule, from the
-                // same inputs, as Weather & time's own switch.
+                // Live Weather "on" here only when its switch is: the same rule, from the same inputs,
+                // as Weather & time's own switch.
                 val liveWeather = SettingsUiModel.liveWeather(
                     liveWeatherEnabled = settings.liveWeatherEnabled,
                     followRealTime = settings.syncWithRealTime,
@@ -450,7 +432,7 @@ fun SettingsScreen(
                 )
                 SettingsNavigationRow(
                     title = "Seasons & decorations",
-                    supporting = seasonsRowSummary(customization),
+                    supporting = seasonsRowSummary(customization, themeLayout),
                     icon = Icons.Outlined.AcUnit,
                     onClick = { destination = SettingsDestination.SEASONS },
                 )
@@ -509,12 +491,15 @@ fun SettingsScreen(
         SettingsDestination.CALENDAR -> HolidayCalendarScreen(
             calendar = settings.seasonalCalendar,
             autoThemeEnabled = settings.autoThemeByDate,
+            today = today,
             prefs = prefs,
             scope = scope,
             onBack = { destination = SettingsDestination.HOME },
         )
         SettingsDestination.SEASONS -> SeasonsScreen(
             customization = customization,
+            themeLayout = themeLayout,
+            standing = standing,
             forThemeId = effectiveThemeId,
             themeName = effectiveTheme.displayName,
             prefs = prefs,
@@ -529,6 +514,7 @@ fun SettingsScreen(
             themeName = effectiveTheme.displayName,
             themeHasPalms = themeHasPalms,
             palmsOnlyFirs = palmsOnlyFirs,
+            standing = standing,
             prefs = prefs,
             customThemeStore = customThemeStore,
             customThemeData = customThemeData,
@@ -580,11 +566,9 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             Text("What's new:", style = MaterialTheme.typography.labelLarge)
                             Spacer(modifier = Modifier.height(4.dp))
-                            // **One release a block, laid out only when scrolled to** (v5.10D). The notes
-                            // are every newer release's, whole: from 1.0 that is 68 releases and 211 558
-                            // characters, and as one Text in a scrolling column the BV6600 froze for ~3 s
-                            // (175 frames skipped) laying it out before the dialog appeared. A lazy list
-                            // lays out the blocks on screen; the text is the same, block for block.
+                            // **One release a block, laid out only when scrolled to**: the notes are every
+                            // newer release's, whole, and as one Text the BV6600 freezes for seconds laying
+                            // them out before the dialog appears. The text is the same, block for block.
                             val blocks = remember(notes) { UpdateChecker.notesByRelease(notes) }
                             LazyColumn(modifier = Modifier.heightIn(max = 340.dp)) {
                                 items(blocks) { block ->
@@ -594,16 +578,8 @@ fun SettingsScreen(
                         }
                     }
                 },
-                // Three actions, and the one that reads like the main one now installs.
-                //
-                // Until v2.13 "Update now" opened the release page, which was the whole update
-                // path before there was an in-app one and stayed the default afterwards -- so the
-                // download/verify/install flow that v2.11 built was reachable only by finding it
-                // in Advanced & about. Installing is the primary action; the release's page is
-                // available for anyone who wants to read the release on GitHub, and is now what it
-                // says it is rather than a redirect standing in for an update. It was called "Check
-                // project page" and opened the page of this one release, not the project's (v5.10E,
-                // inventory I-225): "Open release page" names what opens.
+                // Three actions: the main one installs; "Open release page" opens this release's page
+                // on GitHub, and says so (`DESIGN_NOTES.md` §12, decision 45).
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -618,7 +594,7 @@ fun SettingsScreen(
                         TextButton(onClick = { showSnoozeChoice = true }) { Text("Remind me later") }
                         TextButton(
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, update.releasePageUrl.toUri()))
+                                context.startActivityOrSay(Intent(Intent.ACTION_VIEW, update.releasePageUrl.toUri()), MissingApp.BROWSER)
                             },
                         ) { Text("Open release page") }
                     }
@@ -645,10 +621,8 @@ fun SettingsScreen(
                             showSnoozeChoice = false
                             availableUpdate = null
                         },
-                        // **"Not now", not "Next app launch"** (A4, v5.7D). The old label promised
-                        // a schedule the app does not keep: with the automatic check off -- the
-                        // default -- nothing asks again next launch, so the button named a thing
-                        // that never happened. This one is true in both configurations.
+                        // **"Not now"**, which promises no schedule: with the automatic check off,
+                        // nothing asks again at the next launch.
                     ) { Text("Not now") }
                 },
             )
@@ -661,16 +635,9 @@ fun SettingsScreen(
  * The preview at the top of the home screen, with the theme's own name on it and a badge when the
  * calendar is the one that chose it.
  *
- * v2.8 drew the same preview with no label at all, so the one question the screen exists to
- * answer -- which theme am I looking at -- was answered only indirectly, by a caption under a
- * switch further down.
- *
  * **4:3, the shape the scene is composed at** ([ThemePreviewGeometry.ASPECT_RATIO]), like the
- * gallery's cards and the World & scene strip. It was 16:9 until v5.9F, which showed only the top
- * 180 of the scene's 240 units: the road, the cars, the gifts, pumpkins and eggs on the ground
- * were cut off and the people showed only their heads (inventory I-88; changed on the maintainer's
- * decision of 2026-09-28, after the photograph of the two). The card is a sixth of a screen taller,
- * and the top button still fits on the first screen.
+ * gallery's cards and the World & scene strip, so the road, the cars, what stands on the ground and
+ * the people are all on it; the top button still fits on the first screen.
  */
 @Composable
 private fun HomeThemePreview(theme: SceneTheme, customization: SceneCustomization, pickedByDate: Boolean) {
@@ -728,11 +695,8 @@ private fun themeRowSummary(themeName: String, customThemeData: CustomThemeData)
 }
 
 /**
- * The one-line summary under "Holiday calendar".
- *
- * Names the count of moved windows rather than today's window: the row is about the calendar's
- * shape, and, while the automatic switch is on, the row above it already says what today resolved
- * to.
+ * The one-line summary under "Holiday calendar": the count of moved windows, not today's window -- the
+ * row is about the calendar's shape, and the row above already says what today resolved to.
  */
 private fun calendarRowSummary(calendar: SeasonalCalendar): String {
     val moved = calendar.spans.size + if (calendar.easter != EasterSpan.FACTORY) 1 else 0
@@ -757,8 +721,7 @@ private fun weatherRowSummary(
     liveWeather: LiveWeatherUiState,
     deviceAccess: DeviceLocationAccess?,
 ): String {
-    // What the phone gives, read from the phone (v5.10D, row 5): "GPS location" was said over a
-    // permission taken away, with nothing from the phone in use.
+    // What the phone gives, read from the phone: a location it does not give is said so.
     val notGiven = when (deviceAccess) {
         DeviceLocationAccess.NOT_ALLOWED, DeviceLocationAccess.APPROXIMATE_ONLY -> ", not allowed"
         DeviceLocationAccess.LOCATION_OFF -> ", phone location off"
@@ -776,16 +739,16 @@ private fun weatherRowSummary(
     return "$weather - $location"
 }
 
-private fun seasonsRowSummary(customization: SceneCustomization): String {
+private fun seasonsRowSummary(customization: SceneCustomization, themeLayout: SceneObjectLayout): String {
     val palette = when (SettingsUiModel.seasonalPalette(customization.fallColorsEnabled, customization.winterColorsEnabled)) {
         SeasonalPalette.NONE -> "No seasonal palette"
         SeasonalPalette.AUTUMN -> "Autumn palette"
         SeasonalPalette.WINTER -> "Winter palette"
     }
-    // Each decoration the way its own switch shows it: at 0 % density it is off (v5.10C). The palms
-    // are not one of them since v5.10C2: their switch is on the Trees page of World & scene. See
+    // Each decoration the way its own switch shows it: off where none stands on the theme's street, at 0 % or at an
+    // amount that keeps none. The palms are not one of them: their switch is on the Trees page of World & scene. See
     // [SettingsUiModel.decorationsOn].
-    return when (val decorations = SettingsUiModel.decorationsOn(customization)) {
+    return when (val decorations = SettingsUiModel.decorationsOn(customization, themeLayout)) {
         0 -> "$palette - no decorations on"
         1 -> "$palette - 1 decoration on"
         else -> "$palette - $decorations decorations on"

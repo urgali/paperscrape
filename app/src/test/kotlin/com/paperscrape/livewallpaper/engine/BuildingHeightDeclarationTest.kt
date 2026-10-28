@@ -43,7 +43,7 @@ import org.junit.Test
  * | `SCHOOL` | **72 u = 6.15 m** | 74.0 u | 6.32 m |
  * | `BAR` | **74.5 u = 6.24 m** | 54.1 – 74.5 u | 4.53 – 6.24 m |
  *
- * ### v5.4 closed item 113, and the two shop rows above are what moved
+ * ### The two shop rows above
  *
  * They read **96 u = 8.20 m** and **92 u = 7.70 m** from v5.0 to v5.3, and this file said in as
  * many words that the restaurant drew 58 % of that on every deal it had. The maintainer's ruling
@@ -126,8 +126,7 @@ class BuildingHeightDeclarationTest {
         // each a storey taller for the hall where its people stand (I-406), under the two crowns, so
         // 0.93 to 1.37 of the 15.6 m it declares. The declaration stays the middle body's family,
         // and so does the scale every piece is drawn at (`correcting the tower moved no pixel`). **The two shops
-        // are in this list since v5.4** -- they used to have a method of their own recording that
-        // they drew a little over half their declaration, which is the defect item 113 closed.
+        // are in this list too**, each held around its own declaration.
         // The restaurant has one deal and hits its declaration exactly; the bar declares its
         // taller deal, so its shorter one sits at 0.73; the school has one deal and sits 2.8 %
         // over, which is its turret cornice rounded out to the sprite grid.
@@ -157,9 +156,8 @@ class BuildingHeightDeclarationTest {
     /**
      * What the two shops draw, to the unit, unchanged by v5.4's correction of what they declare.
      *
-     * These three figures are the *drawing*, and the whole claim of item 113's repair is that the
-     * drawing did not move: the same 56, 54.09 and 74.50 the shipped v5.3 produced, now equal to
-     * or under a declaration that matches them instead of 42 % above.
+     * These three figures are the *drawing*, held where they are: 56, 54.09 and 74.50, equal to or
+     * under a declaration that matches them.
      */
     @Test
     fun `the shops draw what they draw, and it did not move`() {
@@ -176,8 +174,7 @@ class BuildingHeightDeclarationTest {
     }
 
     /**
-     * **Correcting the two shops' declaration moved no pixel of either shop**, which is the one
-     * thing item 113's repair had to be able to say.
+     * **Correcting the two shops' declaration moved no pixel of either shop.**
      *
      * The renderer multiplies a piece unit by `SceneVariant.baseScale * (spriteUnitsTall /
      * unitsTall)`, and `baseScale` is `metresTall * pixelsPerMetre / spriteUnitsTall`, so the whole
@@ -247,11 +244,11 @@ class BuildingHeightDeclarationTest {
      * drifted off it would put its windows and doors out of scale with its own people, which is a
      * different and worse fault than being a short building.
      *
-     * **The expression used to be written `metresTall / spriteUnitsTall * spriteUnitsTall /
-     * unitsTall`, and v5.4's sweep of `BACKLOG_v5_1.md` item 117 is why it is not any more.**
+     * **The expression is not written `metresTall / spriteUnitsTall * spriteUnitsTall /
+     * unitsTall`.**
      * Written that way it reads as the scene's scale times the family's, and so as though it
      * constrained `spriteUnitsTall` — which it does not: the factor cancels, and the test passes
-     * unchanged with `RESTAURANT`'s 96 set to 56, the exact edit item 113 is about. Measured, not
+     * unchanged with `RESTAURANT`'s 96 set to 56. Measured, not
      * argued: that mutation was run and this method stayed green while
      * `the two shops draw a little over half what they declare` went red at 32.67 against 56.
      *

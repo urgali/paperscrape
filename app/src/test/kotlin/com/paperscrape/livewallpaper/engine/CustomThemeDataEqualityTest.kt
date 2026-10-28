@@ -15,9 +15,9 @@ import org.junit.Test
  *
  * [SceneTheme] declares `equals` as "same id", which is deliberate and load-bearing -- the class
  * has `IntArray` fields, a data-class `equals` would compare them by identity, and the id is what
- * every lookup in the app actually means by "the same theme". `CLAUDE.md` already records the
- * first thing it broke: a round-trip test that asserted whole-object equality passed while every
- * colour was being lost.
+ * every lookup in the app actually means by "the same theme". The trap it sets: a round-trip
+ * test that asserts whole-object equality passes while every
+ * colour is lost.
  *
  * This is the second thing it broke, and it is what these tests exist to pin.
  * `CustomThemeEntry` is a data class *containing* a `SceneTheme`, and `CustomThemeData` contains

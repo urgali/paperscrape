@@ -10,7 +10,9 @@ import android.os.Build
 import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.Executor
@@ -21,7 +23,7 @@ import kotlin.coroutines.resume
 data class DeviceLocationFix(val latitude: Double, val longitude: Double)
 
 /**
- * [DeviceLocationProvider.currentFix]'s answer (v5.10D): the position, if any, and whether the phone was
+ * [DeviceLocationProvider.currentFix]'s answer: the position, if any, and whether the phone was
  * really consulted for it -- a real request made, or a cached position young enough to stand for one.
  * Only that answers a choice the user has just made; a request the throttle or a switched-off location did
  * not let through leaves the choice waiting.
@@ -31,14 +33,13 @@ data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean)
 /**
  * One position, asked for when something actually needs it.
  *
- * **This used to be a subscription and is now a question.** The old shape called
- * `requestLocationUpdates` with a ten-minute interval and left it running for as long as the
- * wallpaper lived, which meant the positioning stack was woken every ten minutes forever to serve
- * a forecast that is refreshed once an hour and a sunrise time that moves by about a minute a day.
- * It also picked its provider by availability -- network if enabled, otherwise GPS -- so the cheap
- * setting could quietly power the GNSS receiver.
+ * **A question, not a subscription.** A `requestLocationUpdates` with a ten-minute interval left
+ * running for as long as the wallpaper lives would wake the positioning stack every ten minutes
+ * forever, to serve a forecast that is refreshed once an hour and a sunrise time that moves by about
+ * a minute a day. A provider picked by availability -- network if enabled, otherwise GPS -- would let
+ * the cheap setting quietly power the GNSS receiver.
  *
- * What replaces it:
+ * So:
  *
  *  - **One fix per request, then nothing.** [currentFix] returns a position and leaves no listener
  *    behind. There is no continuous tracking to stop, and nothing to leak if the engine dies.
@@ -50,17 +51,17 @@ data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean)
  *    back to the position it saved last time.
  *  - **A request always ends.** Every path is bounded by `timeoutMillis`, so a provider that never
  *    calls back costs one pending continuation and no more.
- *  - **At most one request an hour while the phone answers** (v5.10D): [LocationRequestThrottle.shared]
- *    decides, for every engine of the process. Until then a weather outage, or a position that never
- *    arrived, made the loop ask every few minutes. **A request that finds nothing is tried again after
- *    5, 15 and 30 minutes, then the hour** (v5.10E, the maintainer's decision of 2026-10-04): it is told
+ *  - **At most one request an hour while the phone answers**: [LocationRequestThrottle.shared]
+ *    decides, for every engine of the process, so a weather outage, or a position that never arrives,
+ *    does not make the loop ask every few minutes. **A request that finds nothing is tried again after
+ *    5, 15 and 30 minutes, then the hour** (`DESIGN_NOTES.md` §12, decision 41): it is told
  *    how each request ended ([LocationRequestThrottle.requestEnded]).
  */
 class DeviceLocationProvider(private val context: Context) {
 
     /**
      * Whether a permission that serves [kind] has been granted: the precise location for GPS, either
-     * for Network ([DeviceLocationAccess.of]'s rule, v5.10D: the network provider answers to the
+     * for Network ([DeviceLocationAccess.of]'s rule: the network provider answers to the
      * precise permission too, and the screen calls that working).
      */
     fun hasPermission(kind: DeviceLocationKind): Boolean {
@@ -75,7 +76,7 @@ class DeviceLocationProvider(private val context: Context) {
 
     /**
      * What the phone allows for [kind] right now: the two permissions and the phone's location switch
-     * ([DeviceLocationAccess], v5.10D). Cheap -- two permission checks and one system call, no radio --
+     * ([DeviceLocationAccess]). Cheap -- two permission checks and one system call, no radio --
      * so the wallpaper reads it on every pass and the settings screen every time it comes back.
      */
     fun access(kind: DeviceLocationKind): DeviceLocationAccess {
@@ -102,15 +103,15 @@ class DeviceLocationProvider(private val context: Context) {
      *
      * A cached fix younger than [maxAgeMillis] short-circuits the whole thing. Beyond that, one
      * current-location request is made and abandoned after [timeoutMillis] -- **only if [throttle]
-     * allows it** (v5.10D): an hour after a request that brought a position; 5, 15 and 30 minutes after
-     * the first, second and third in a row that did not, then the hour, and round again (v5.10E);
+     * allows it**: an hour after a request that brought a position; 5, 15 and 30 minutes after
+     * the first, second and third in a row that did not, then the hour, and round again;
      * whoever asks, unless [forceRequest] says the user has just chosen this source. If no request is made or it comes back empty, a stale cached fix is still better than
      * nothing and is returned rather than discarded.
      *
      * **What the throttle is told** ([plan]): how a request it let through ended, and a fresh cached fix
      * as a position arrived. Nothing about the two cases where the phone is not asked at all -- no
      * permission, the provider (the phone's location) off: those are not failed tries, and they leave
-     * the wait where it was (the maintainer, 2026-10-04: the settings screen says what to do there).
+     * the wait where it was: the settings screen says what to do there (`DESIGN_NOTES.md` §12, decision 41).
      */
     suspend fun currentFix(
         kind: DeviceLocationKind,
@@ -193,7 +194,7 @@ class DeviceLocationProvider(private val context: Context) {
                 continuation.invokeOnCancellation { signal.cancel() }
             } else {
                 lateinit var listener: LocationListener
-                listener = LocationListener { location ->
+                listener = oneFixListener { location ->
                     manager.safeRemove(listener)
                     settle(location.toFix())
                 }
@@ -222,7 +223,14 @@ class DeviceLocationProvider(private val context: Context) {
 
     private fun Location.toFix() = DeviceLocationFix(latitude, longitude)
 
-    private fun Location.ageMillis(): Long = System.currentTimeMillis() - time
+    /**
+     * How long ago the system took this position, on the clock that cannot move: `elapsedRealtimeNanos`, which every
+     * position the system hands out carries. The wall clock's `time` is read only for a position without it; moved
+     * back by hand, that clock makes a position of ten minutes ago two hours in the future ([plan]).
+     */
+    private fun Location.ageMillis(): Long =
+        if (elapsedRealtimeNanos > 0L) (SystemClock.elapsedRealtimeNanos() - elapsedRealtimeNanos) / 1_000_000L
+        else System.currentTimeMillis() - time
 
     /** What [currentFix] does, in the order it decides it ([plan]). */
     internal enum class FixStep {
@@ -245,12 +253,16 @@ class DeviceLocationProvider(private val context: Context) {
     companion object {
 
         /**
-         * [currentFix]'s decision, without the phone (v5.10E): the permission, the system's cached
+         * [currentFix]'s decision, without the phone: the permission, the system's cached
          * position, the provider, then the throttle -- and what the throttle is told on the way. A fresh
          * cached position is a position arrived ([LocationRequestThrottle.positionArrived]); a request is
          * counted from now ([LocationRequestThrottle.tryAcquire]), and [currentFix] tells it how the
          * request ended. **No permission and a provider switched off touch nothing**: they are not tries
-         * (the maintainer's rule of 2026-10-04), and `LocationRetryLadderTest` holds that here.
+         * (`DESIGN_NOTES.md` §12, decision 41), and `LocationRetryLadderTest` holds that here.
+         *
+         * **A negative age is not fresh**: a position "from the future" says the clock moved, not that the
+         * position is new, and taken for fresh it would stand in for every request -- and reset the tries
+         * after a failure -- for as long as the clock was moved back.
          */
         internal fun plan(
             permitted: Boolean,
@@ -261,7 +273,7 @@ class DeviceLocationProvider(private val context: Context) {
             force: Boolean,
         ): FixStep = when {
             !permitted -> FixStep.NOT_PERMITTED
-            cachedAgeMillis != null && cachedAgeMillis <= maxAgeMillis -> {
+            cachedAgeMillis != null && cachedAgeMillis in 0L..maxAgeMillis -> {
                 throttle.positionArrived()
                 FixStep.FRESH_CACHE
             }
@@ -281,5 +293,19 @@ class DeviceLocationProvider(private val context: Context) {
 
         /** How long one request may wait before the caller falls back to what it already had. */
         const val REQUEST_TIMEOUT_MS = 20_000L
+
+        /**
+         * The listener a request below API 30 registers, handing [onFix] the first position.
+         *
+         * **A `LocationListenerCompat`, never a lambda of the framework's `LocationListener`.** Compiled against
+         * API 30 and later, where `onProviderEnabled`, `onProviderDisabled` and `onStatusChanged` have bodies, a
+         * lambda implements `onLocationChanged` alone; Android 8, 9 and 10 declare the other three abstract, and
+         * call `onProviderDisabled` on the main thread when the location is switched off while the request is open
+         * -- by the user, or by the battery saver with the screen off -- which on the BV6600 (Android 10) throws
+         * `AbstractMethodError` and ends the wallpaper's process. androidx.core's interface gives the three empty
+         * bodies on every version. `PlatformCompatibilityTest` calls them on the phone.
+         */
+        internal fun oneFixListener(onFix: (Location) -> Unit): LocationListener =
+            LocationListenerCompat { location -> onFix(location) }
     }
 }

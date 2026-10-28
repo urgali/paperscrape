@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
-"""The Halloween moon (v5.15): the moon with a jack-o'-lantern's face cut out of it, lit from inside.
+"""The Halloween moon: the moon with a jack-o'-lantern's face cut out of it, lit from inside.
 
-The maintainer, 2026-10-18: *«migliorare estetica/sprite zucca halloween che prende il posto della luna»*. Shown three
-pumpkins in the moon's place (2026-10-19): *«va bene l'espressione da zucca ma non deve essere una zucca, è comunque la
-luna / rifalla»*; shown three moons, *«C – faccia accesa»* (2026-10-19). So it is the moon -- the full moon's disc cut
-with the scissors' 40 facets, five craters, always full -- with the pumpkins' carved face: two slanted triangle eyes, a
-triangle nose and a wide grin with two teeth left in it, cut out of the disc (`DESIGN_NOTES.md` §16, "carved rather
-than painted"), and a warm light inside the cuts.
+It is the moon, not a pumpkin (`DESIGN_NOTES.md` §12, decision 74): the full moon's disc cut with the scissors' 40
+facets, five craters, always full -- with a jack-o'-lantern's carved face: two slanted triangle eyes, a triangle nose
+and a wide grin with two teeth left in it, cut out of the disc (carved rather than painted), and a warm light inside the
+cuts.
 
 It writes, from one geometry, in the moon's frame (240 x 240 px, `CANVAS_PIXELS`, its middle on the moon's centre, as
 every moon):
 
 * ``sources/svg/moon_jack_o_lantern.svg`` -- the moon with its craters and the face cut out, a **tintable mask** as
   every moon is (one light tone and the craters a little darker, `#F4F4F4` and `#E1E1E1` as `moon_full`): the renderer
-  gives it the theme's own moon colour (until v5.15 an orange fixed for every theme);
+  gives it the theme's own moon colour;
 * ``sources/svg/moon_jack_o_lantern_light.svg`` -- fixed art, blitted over the moon untinted: the light inside the cuts,
   a warm yellow with an orange rim, so the face glows as a lit lantern's does. **Trimmed to the face** with a
   transparent guard pixel on every side (`ARCHITECTURE.md` §5, "The transparent margin is part of the drawing") and
-  rounded up to the 3-px grid, so it
-  costs its own content rather than the moon's whole canvas (inventory I-940); where it blits from the moon's centre
-  ([light_origin]) is `PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X`/`_Y`, which `tests/test_jack_moon.py` compares with it.
+  rounded up to the 3-px grid, so it costs its own content rather than the moon's whole canvas; where it blits from the
+  moon's centre ([light_origin]) is `PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X`/`_Y`, which `tests/test_jack_moon.py`
+  compares with it.
 
 With ``--res`` the two are rendered with the pipeline's own rasteriser into ``app/src/main/res/drawable-nodpi/``;
 ``--check`` writes nothing and fails unless every committed output is what this draws (``tests/test_jack_moon.py``).
@@ -27,14 +25,12 @@ With ``--res`` the two are rendered with the pipeline's own rasteriser into ``ap
 **Every crater, eye and nose, and the paper between two of them, 11 px of the 240 or more** -- 2 px on the gallery card
 (where the moon's 240-px frame is about 44 px) and 7 px on the BV6600's wallpaper (about 158). The grin's two teeth are
 about 14 px of the 240 wide; the first is 10 to 11 px long (1.8 to 2.1 px on the card), the second 12 to 13 (measured on
-the generator's own corners by the seal v5.15D): the first stays so, the maintainer's *«Lascia così (consigliata)»*
-(2026-10-20), asked with the card's photograph. **The light's orange rim is [RIM] px of the 240 wide all along every
-cut** -- 2.6 px on the wallpaper, under 1 px on the card, where it reads as the yellow's edge (chosen so with the moon C,
-*«C – faccia accesa»*, 2026-10-19, on the page of v5.15A that gave the card's rim as about 0.8 px): the cut's own outline
-stroked twice that wide over the yellow and
-clipped to the cut, so the rim follows the corners and the teeth too. Until v5.15C2 the rim was only what the yellow, the
-cut drawn smaller and lower, left of the cut: 3 px of the 240 somewhere in every cut, but 0.3 to 0.8 px at the corners of
-the eyes and the nose and none along the teeth.
+the generator's own corners): the first stays just under the rule on the card, as decision 74 keeps it. **The light's
+orange rim is [RIM] px of the 240 wide all along every cut** -- 2.6 px on the wallpaper, under 1 px on the card, where
+it reads as the yellow's edge (decision 74): the cut's own outline stroked twice that wide over the yellow and clipped
+to the cut, so the rim follows the corners and the teeth too. The yellow alone, the cut drawn smaller and lower, leaves
+a rim of uneven width, thinnest at the corners of the eyes and the nose and none along the teeth: that is why the rim
+is stroked.
 
 Usage, from ``tools/assets`` with the venv's interpreter:
 
@@ -54,7 +50,7 @@ HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent
 sys.path.insert(0, str(ASSETS))
 from papercut import cut, d, ellipse  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 REPO = ASSETS.parent.parent
 SVG_DIR = ASSETS / "sources" / "svg"
@@ -75,12 +71,12 @@ def disc():
 
 
 def face():
-    """The carved face, the pumpkins' expression the maintainer liked, set on the disc."""
+    """The carved face, a jack-o'-lantern's expression, set on the disc."""
     cx, cy = C, C - 10.0
     le = [(cx - 54, cy - 30), (cx - 16, cy - 20), (cx - 30, cy + 4)]
     rg = [(cx + 54, cy - 30), (cx + 16, cy - 20), (cx + 30, cy + 4)]
-    # The nose a little larger than in the drawing photographed in v5.15A (22 x 17), so the square that fits in it is 11 px of the 240: 2 px
-    # on the gallery card.
+    # The nose is 26 x 20, large enough that the square that fits in it is 11 px of the 240: 2 px on the gallery
+    # card.
     nose = [(cx, cy - 4), (cx + 13, cy + 16), (cx - 13, cy + 16)]
     mouth = [(cx - 66, cy + 20), (cx - 44, cy + 28), (cx - 34, cy + 28), (cx - 34, cy + 40), (cx - 20, cy + 40),
              (cx - 20, cy + 30), (cx + 8, cy + 32), (cx + 8, cy + 44), (cx + 22, cy + 44), (cx + 22, cy + 31),
@@ -91,14 +87,13 @@ def face():
 
 def craters():
     """Five irregular craters where the face leaves room: the forehead, the temples, a cheek, the chin's side."""
-    # Each at least 16 px across its narrow way (the two smallest of v5.15A's drawing were 14): an 11-px square, 2 px on the
-    # gallery card, fits in every one.
+    # Each at least 16 px across its narrow way: an 11-px square, 2 px on the gallery card, fits in every one.
     spots = [(C - 18, C - 70, 13, 9, 10), (C + 30, C - 62, 10, 8, -15), (C - 78, C + 6, 8, 11, 5), (C + 80, C + 12, 8, 12, -8),
              (C + 60, C + 68, 11, 8, 20)]
     return [cut(ellipse(x, y, rx, ry, 10, rot), f"crater{i}", 0.6) for i, (x, y, rx, ry, rot) in enumerate(spots)]
 
 
-MOON_COMMENT = ("The Halloween moon (v5.15, the maintainer's «C – faccia accesa», 2026-10-19): the full moon's disc and five "
+MOON_COMMENT = ("The Halloween moon (DESIGN_NOTES.md §12, decision 74): the full moon's disc and five "
                 "craters, the jack-o'-lantern's face cut out of it so the sky shows through. Tintable mask, one tone #F4F4F4 and the "
                 "craters #E1E1E1, in the moon's 240-px frame. Generated by tools/assets/moon/build_jack_moon.py: edit that, not this.")
 
@@ -135,7 +130,7 @@ def light_paths(cuts=None) -> list[str]:
 
 
 #: How much smaller than its cut the yellow is drawn, across and down, for the two eyes, the nose and the mouth: the
-#: small cuts' a little smaller still than the mouth's (0.76 and 0.7 for all four in v5.15A's drawing).
+#: small cuts' a little smaller still than the mouth's.
 LIGHT_SCALE = ((0.72, 0.64), (0.72, 0.64), (0.62, 0.56), (0.76, 0.7))
 
 #: The orange rim's width inside every cut, in px of the 240: 2.6 px on the BV6600's wallpaper (158 px across), so the
@@ -151,7 +146,7 @@ def light_box(cuts=None) -> tuple[int, int, int, int]:
     ys, xs = np.where(a > 0)
     x0, y0 = int(xs.min()) - 1, int(ys.min()) - 1
     x1, y1 = int(xs.max()) + 2, int(ys.max()) + 2
-    # A whole number of the 3-px grid every shipped sprite is authored on (DESIGN_NOTES.md §4): what is over goes to the
+    # A whole number of the 3-px grid every shipped sprite is authored on: what is over goes to the
     # right and the bottom, so the origin stays the guard pixel's.
     w, h = -(-(x1 - x0) // 3) * 3, -(-(y1 - y0) // 3) * 3
     return x0, y0, w, h
@@ -163,7 +158,7 @@ def light_origin(cuts=None) -> tuple[int, int]:
     return x - int(C), y - int(C)
 
 
-LIGHT_COMMENT = ("The light inside the Halloween moon's carved face (v5.15, the maintainer's «C – faccia accesa», 2026-10-19): a warm "
+LIGHT_COMMENT = ("The light inside the Halloween moon's carved face (DESIGN_NOTES.md §12, decision 74): a warm "
                  "yellow with an orange rim. Fixed art, blitted untinted over the moon at ({ox},{oy}) px from its centre: trimmed to the "
                  "face, a transparent pixel round it. Generated by tools/assets/moon/build_jack_moon.py: edit that, not this.")
 
@@ -193,7 +188,7 @@ def main(argv) -> int:
     res, check = "--res" in argv, "--check" in argv
     out = build()
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

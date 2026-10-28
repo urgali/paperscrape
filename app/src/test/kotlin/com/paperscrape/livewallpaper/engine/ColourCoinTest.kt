@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Item 134 (v5.7F): the menu's "Each one randomly uses Color 1 or Color 2" is a fair coin, and
+ * The menu's "Each one randomly uses Color 1 or Color 2" is a fair coin, and
  * making it one changed which colour objects wear and nothing about which objects stand.
  *
  * Read through [colorFor] -- the function the renderer and the gallery card both call -- rather
@@ -153,11 +153,9 @@ class ColourCoinTest {
     @Test
     fun `the coin does not decide which objects stand`() {
         val total = ThemeCatalog.ALL.sumOf { standing(it.id).size }
-        // 300 until v5.8C; 295 since the density threshold reads a real fraction (item 134,
-        // `DensityResolutionTest`): five objects on the step 0.65 cuts through went -- a house, a
-        // tree, a palm and two gifts -- and none appeared. 302 since v5.13B2: two more places on each
-        // of the twelve streets (24, never thinned) and the 17 towers that stood on the two candidates
-        // that became places gone; the trees and parasols the plan moved stand as they stood. This test
+        // The count follows the density rule (`DensityResolutionTest`: the threshold reads a real
+        // fraction) and the streets' plan, never the coin: two places among the houses on each of the
+        // twelve streets (24, never thinned), and no tower on the candidates they take. This test
         // is about the coin, which still decides no object's presence, as the loop below shows.
         assertEquals("objects wearing a colour pair that stand at the twelve defaults", 302, total)
         // And recolouring every category leaves the same set standing, object for object.

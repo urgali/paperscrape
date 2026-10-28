@@ -36,13 +36,19 @@ import org.junit.runner.RunWith
 class BackupRepositoryTest {
 
     // Restores the real preference store around every test: these tests write the app's own
-    // DataStore on purpose, and without this the phone kept their last theme. See RealPrefsGuard.
+    // DataStore on purpose, and without this the phone would keep their last theme. See RealPrefsGuard.
     @get:org.junit.Rule
     val realPrefs = RealPrefsGuard()
+
+    // And the real saved themes: [wipe] empties them, and an import replaces them. See RealPrefsGuard.
+    @get:org.junit.Rule
+    val realSavedThemes = RealPrefsGuard(CUSTOM_THEME_STORE_NAME)
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val prefs get() = WallpaperPrefs(context)
     private val store get() = CustomThemeStore(context)
+    // Every `snapshot()` and `export()` below is taken with `!!`: each is null only while the settings or the saved themes
+    // cannot be read, which nothing here causes, and a test that met one should fail there.
     private fun repo() = BackupRepository(prefs, store, "test")
 
     @Before fun clean() = runBlocking { wipe() }
@@ -84,18 +90,18 @@ class BackupRepositoryTest {
     @Test
     fun anExportedBackupRestoresTheStateItWasTakenFrom() = runBlocking {
         makeItInteresting()
-        val before = repo().snapshot()
-        val file = repo().export()
+        val before = repo().snapshot()!!
+        val file = repo().export()!!
 
         // Wipe everything the way a fresh install would look, then restore.
         wipe()
-        val cleared = repo().snapshot()
+        val cleared = repo().snapshot()!!
         assertNotEquals("the wipe did nothing, so the restore proves nothing", before.settings, cleared.settings)
 
         val result = repo().import(file)
         assertTrue("import was refused: $result", result is BackupRepository.ImportResult.Applied)
 
-        val after = repo().snapshot()
+        val after = repo().snapshot()!!
         assertEquals("global settings", before.settings, after.settings)
         assertEquals("theme customizations", before.themeCustomizations, after.themeCustomizations)
         assertEquals("overrides", before.customThemeData.overrides.keys, after.customThemeData.overrides.keys)
@@ -111,17 +117,17 @@ class BackupRepositoryTest {
         )
     }
 
-    /** The per-theme customizations are the ones the persistence fix added; they must travel too. */
+    /** The per-theme customizations are part of the user's state; they must travel too. */
     @Test
     fun everyThemesOwnCustomizationSurvivesTheRoundTrip() = runBlocking {
         makeItInteresting()
-        val before = repo().snapshot()
+        val before = repo().snapshot()!!
         assertTrue("nothing was customised to test", before.themeCustomizations.size >= 2)
-        val file = repo().export()
+        val file = repo().export()!!
         wipe()
         repo().import(file)
         for ((id, customization) in before.themeCustomizations) {
-            assertEquals("$id did not come back", customization, repo().snapshot().themeCustomizations[id])
+            assertEquals("$id did not come back", customization, repo().snapshot()!!.themeCustomizations[id])
         }
     }
 
@@ -130,7 +136,7 @@ class BackupRepositoryTest {
     @Test
     fun aRefusedImportLeavesEveryStoreExactlyAsItWas() = runBlocking {
         makeItInteresting()
-        val before = repo().snapshot()
+        val before = repo().snapshot()!!
 
         val rubbish = listOf(
             null,
@@ -143,7 +149,7 @@ class BackupRepositoryTest {
         for (raw in rubbish) {
             val result = repo().import(raw)
             assertTrue("a bad file was accepted: $raw", result is BackupRepository.ImportResult.Refused)
-            val after = repo().snapshot()
+            val after = repo().snapshot()!!
             assertEquals("settings changed after refusing $raw", before.settings, after.settings)
             assertEquals("themes changed after refusing $raw", before.themeCustomizations, after.themeCustomizations)
             assertEquals(
@@ -158,12 +164,12 @@ class BackupRepositoryTest {
     @Test
     fun aNewerBackupIsRefusedAndNothingIsApplied() = runBlocking {
         makeItInteresting()
-        val before = repo().snapshot()
-        val newer = org.json.JSONObject(repo().export())
+        val before = repo().snapshot()!!
+        val newer = org.json.JSONObject(repo().export()!!)
             .put("schemaVersion", AppBackup.SCHEMA_VERSION + 1).toString()
         val result = repo().import(newer)
         assertTrue(result is BackupRepository.ImportResult.Refused)
-        assertEquals(before.settings, repo().snapshot().settings)
+        assertEquals(before.settings, repo().snapshot()!!.settings)
     }
 
     // ------------------------------------------------------------------ theme files
@@ -195,7 +201,7 @@ class BackupRepositoryTest {
     @Test
     fun aThemeFileIsRefusedAsABackupAndABackupAsAThemeFile() = runBlocking {
         makeItInteresting()
-        val backupFile = repo().export()
+        val backupFile = repo().export()!!
         val themeFile = ThemeShare
             .of("beach", "Seaside", defaultCustomizationFor("beach"), "test", 0L).toJsonString()
 
@@ -203,18 +209,18 @@ class BackupRepositoryTest {
         assertTrue(parseThemeShare(backupFile) is ThemeParseResult.Failed)
     }
 
-    // ------------------------------------------------------------------ cancellation (v4.6)
+    // ------------------------------------------------------------------ cancellation
 
     /**
      * **An import cancelled between its two writes still finishes both of them.**
      *
-     * The staging in [BackupRepository] guards against one write throwing. It did not guard against
-     * the *caller* going away, and the caller is `rememberCoroutineScope()` — the settings screen's
+     * The staging in [BackupRepository] guards against one write throwing. The *caller* going away
+     * is another matter, and the caller is `rememberCoroutineScope()` — the settings screen's
      * composition, which Compose cancels on a rotation, a back press, or the system reclaiming the
-     * Activity. A cancellation landing between the two `replaceAll`s left the preferences new and
-     * the saved themes old, and then skipped the rollback as well: the `catch` caught the
-     * `CancellationException`, the rollback suspended on a job that was already cancelled, threw
-     * immediately, and the whole thing reported `Broken` to a UI that no longer existed.
+     * Activity. Unguarded, a cancellation landing between the two `replaceAll`s would leave the
+     * preferences new and the saved themes old, and then skip the rollback as well: the `catch` would
+     * catch the `CancellationException`, the rollback would suspend on a job already cancelled and
+     * throw immediately, and the whole thing would report `Broken` to a UI that no longer exists.
      *
      * The cancellation is injected **exactly where it hurts** rather than raced for: the theme
      * store cancels the importing job on its way into the second write. Cancelling from outside and
@@ -224,7 +230,7 @@ class BackupRepositoryTest {
     @Test
     fun anImportCancelledBetweenTheTwoWritesStillFinishesBoth() = runBlocking {
         makeItInteresting()
-        val file = repo().export()
+        val file = repo().export()!!
 
         // A state visibly different from the file's, in *both* stores, so neither assertion below
         // can pass by the import having done nothing.
@@ -244,7 +250,7 @@ class BackupRepositoryTest {
                 "transaction and took it down, which is the defect NonCancellable exists to stop",
             cancelling.wrote,
         )
-        val after = repo().snapshot()
+        val after = repo().snapshot()!!
         assertEquals("the preferences did not come from the file", "beach", after.settings.themeId)
         assertEquals(0.42f, after.settings.scrollSpeed, 0.0001f)
         assertEquals(
@@ -262,24 +268,24 @@ class BackupRepositoryTest {
     /**
      * A write that fails for a real reason still rolls both stores back.
      *
-     * The point of the change was to stop cancellation skipping the rollback, so the rollback
+     * The uncancellable region keeps cancellation from skipping the rollback, and the rollback
      * itself has to keep working — checked by handing the repository a store whose *first* write
      * throws and whose second, the rollback's own, does not. Nothing the user had may be lost.
      */
     @Test
     fun anExplicitFailureOnTheSecondStoreRollsTheFirstOneBack() = runBlocking {
         makeItInteresting()
-        val file = repo().export()
+        val file = repo().export()!!
 
         prefs.setTheme("winter")
         prefs.setScrollSpeed(0.11f)
-        val before = repo().snapshot()
+        val before = repo().snapshot()!!
 
         val poisoned = BackupRepository(prefs, FailOnceThemeStore(context), "test")
         val result = poisoned.import(file)
 
         assertTrue("expected a rollback, got $result", result is BackupRepository.ImportResult.RolledBack)
-        val after = repo().snapshot()
+        val after = repo().snapshot()!!
         assertEquals("the preferences were not put back", "winter", after.settings.themeId)
         assertEquals(0.11f, after.settings.scrollSpeed, 0.0001f)
         assertEquals(
@@ -296,14 +302,14 @@ class BackupRepositoryTest {
      * [FailOnceThemeStore] and for nothing else -- see its own doc comment. There is no honest way to
      * make a real DataStore fail, or to be cancelled at a chosen instant, from outside.
      */
-    // ------------------------------------------------------------------ process kill (v4.15)
+    // ------------------------------------------------------------------ process kill
 
     /**
-     * **BCK-06, against the real stores: a kill between the two writes is recovered.**
+     * **Against the real stores: a kill between the two writes is recovered.**
      *
      * `NonCancellable` protects the pair from the *caller* going away. It cannot protect it from the
-     * process being killed, and between the two writes the preferences were new while the saved
-     * themes were still old -- with nothing anywhere recording that.
+     * process being killed, and between the two writes the preferences are new while the saved
+     * themes are still old -- which the staged document in the first store records.
      *
      * The kill is injected the way the cancellation above is, at the only moment it matters: a store
      * that throws a fatal-looking error on its way into the second write, leaving exactly the state
@@ -313,7 +319,7 @@ class BackupRepositoryTest {
     @Test
     fun aKillBetweenTheTwoWritesIsFinishedAtTheNextStart() = runBlocking {
         makeItInteresting()
-        val file = repo().export()
+        val file = repo().export()!!
 
         prefs.setTheme("winter")
         prefs.setScrollSpeed(0.11f)
@@ -343,7 +349,7 @@ class BackupRepositoryTest {
         assertTrue("the pending import must have been completed", finished)
         assertEquals("nothing may be left pending", null, prefs.pendingImportThemes())
 
-        val after = repo().snapshot()
+        val after = repo().snapshot()!!
         assertEquals("the preferences came from the file", "beach", after.settings.themeId)
         assertEquals(0.42f, after.settings.scrollSpeed, 0.0001f)
         assertEquals(
@@ -356,7 +362,7 @@ class BackupRepositoryTest {
     @Test
     fun aCompletedImportLeavesNothingPending() = runBlocking {
         makeItInteresting()
-        val file = repo().export()
+        val file = repo().export()!!
         repo().import(file)
         assertEquals(
             "a clean import must clear its own staging",
@@ -378,9 +384,9 @@ class BackupRepositoryTest {
         var wrote = false
             private set
 
-        // **`replaceAllJson`, not `replaceAll`.** v4.15's atomic import (BCK-06) writes this store
-        // from the exact string staged in the preference store rather than re-serialising a parsed
-        // copy, so that is the seam the import actually goes through now. `replaceAll` delegates
+        // **`replaceAllJson`, not `replaceAll`.** The atomic import writes this store from the
+        // exact string staged in the preference store rather than re-serialising a parsed copy,
+        // so that is the seam the import actually goes through. `replaceAll` delegates
         // here, so overriding this one intercepts both callers and this double keeps working for
         // whichever the code under test uses.
         override suspend fun replaceAllJson(json: String) {
@@ -394,7 +400,7 @@ class BackupRepositoryTest {
     private class FailOnceThemeStore(context: android.content.Context) : CustomThemeStore(context) {
         private var failed = false
 
-        // See CancellingThemeStore: the import's seam is `replaceAllJson` since v4.15, and
+        // See CancellingThemeStore: the import's seam is `replaceAllJson`, and
         // `replaceAll` delegates to it, so one override covers both.
         override suspend fun replaceAllJson(json: String) {
             if (!failed) {

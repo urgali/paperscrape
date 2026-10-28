@@ -8,26 +8,19 @@ import org.json.JSONObject
  * matches a [ThemeCatalog.ALL] id, e.g. "christmas") or a fully independent theme the user
  * created from scratch (its [id] looks like "custom:<token>").
  *
- * Both [theme] and [layout] are complete snapshots — everything needed to render the scene
- * except the seasonal-decoration slots, which [SceneObjectCatalog.layoutFor] deals from the
- * entry's id at load, as it does for a built-in. This is what makes the saved-version half of
- * "Reset to default" trivial: deleting the override is enough for [ThemeCatalog.byId] to fall back
- * to the hardcoded built-in again (the gallery's reset also clears the theme's edits from the menus,
- * `resetBuiltinToDefault`).
+ * [theme] and [layout] are complete snapshots of what is drawn. The seasonal decorations the
+ * layout carries are read back by [SceneObjectCatalog.layoutFor] (`withSeasonalDecorations`), which
+ * lays the whole set of the built-in they came from. Deleting an override is enough for
+ * [ThemeCatalog.byId] to fall back to the built-in (the gallery's reset also clears the theme's menu
+ * edits, `resetBuiltinToDefault`).
  */
 data class CustomThemeEntry(
     val id: String,
     /**
-     * The name the user gave this theme, and **the one every screen shows** (v5.9B, I-01).
-     *
-     * [theme] carries a second copy, `displayName`, and that copy is what the screens actually read
-     * -- the gallery card, the preview at the top of the settings, the Theme row, Seasons and
-     * World & scene all go through [SceneTheme.displayName], most of them via
-     * [ThemeCatalog.byId]. "Rename" used to write this field alone, from v1.0 to v5.9A, so a renamed
-     * theme kept its old name everywhere the user looked while the file held the new one. The two
-     * are now one fact: [customThemeEntryFromJson] reads `displayName` from here, which also puts
-     * right every theme renamed before the repair, and `CustomThemeStore.renameCustomTheme` writes
-     * both.
+     * The name the user gave this theme, and **the one every screen shows**: the screens read
+     * [theme]'s `displayName` ([SceneTheme.displayName]), which [customThemeEntryFromJson] takes from
+     * here, and `CustomThemeStore.renameCustomTheme` writes both. A file whose two names differ (a
+     * rename that wrote this field alone) is read with this one.
      */
     val name: String,
     val theme: SceneTheme,
@@ -57,37 +50,23 @@ data class CustomThemeData(
 }
 
 /**
- * A saved theme this build cannot read, kept exactly as it was stored (item 18, v5.9A).
+ * A saved theme this build cannot read, kept exactly as it was stored.
  *
- * ### Why it is kept rather than skipped
+ * The reader reads entry by entry and carries an entry that fails here, as text, because those bytes
+ * are the user's only copy: skipped, the next save would write the document back without it; and
+ * one bad entry must not empty the whole document, losing every saved theme.
  *
- * Until v5.9A one unreadable entry made the whole document read as [CustomThemeData.EMPTY]: every
- * saved theme vanished from the Themes screen, a wallpaper set to one of them fell back to Sunset,
- * and every later edit was dropped, because `CustomThemeStore.update` refuses to write over a
- * document it cannot read (BCK-05). Skipping the entry instead would have been worse -- the next
- * save would write the document back without it, and those bytes are the only copy the user has.
- * So the reader now reads entry by entry, and an entry that fails is carried here, as text.
+ * [toJsonString] writes it into a section of its own, `unreadableEntries`: where the entry came from
+ * (`overrides` and its key, or `customThemes`), the schema version its bytes were written in, and the
+ * entry verbatim. Not in its old place, because the rewritten document is stamped with the current
+ * schema -- a later build that learned to read the entry would skip its migrations (1 -> 2 changes
+ * what `scale` means) -- and because an override kept under its key would collide with a new one
+ * the user saves for the same built-in.
  *
- * ### Where it lives on disk, and why not where it was
- *
- * [toJsonString] writes it into a section of its own, `unreadableEntries`, as one item holding
- * where the entry came from (`overrides` and its key, or `customThemes`), the schema version its
- * bytes were written in, and the entry itself verbatim. It is moved out of `overrides` and
- * `customThemes` for two reasons. The rewritten document is stamped with the current schema, and
- * an entry written under another one would be mislabelled in place -- a later build that learned
- * to read it would skip its migrations (1 -> 2 changes what `scale` means). And an override kept
- * under its key would collide with a new override the user saves for the same built-in: one of the
- * two would have to go.
- *
- * ### How it comes back
- *
- * Every read tries each item again, migrating it from the version it records. One that reads, and
- * whose place is free, rejoins the other saved themes; the next write puts it back where it came
- * from. Nothing in this build can make an entry readable that was not, so today that is the path a
- * later build takes -- one that restores an object type or relaxes a field that made the entry fail.
- *
- * [itemJson] is the whole item as it stands in the section, which is what makes a second, third and
- * hundredth write leave it byte-identical.
+ * Every read tries each item again, migrating it from the version it records; one that reads, and
+ * whose place is free, rejoins the saved themes and the next write puts it back where it came from
+ * (the path of a later build that restores an object type or relaxes a field). [itemJson] is the
+ * whole item as it stands, so every later write leaves it byte-identical.
  */
 data class UnreadableThemeEntry(val itemJson: String) {
 
@@ -151,38 +130,26 @@ private fun JSONArray.toIntArray(): IntArray = IntArray(length()) { getInt(it) }
 /**
  * A required number that is finite **as the `Float` it is stored as**, or the document is malformed.
  *
- * **BCK-03.** `org.json` coerces strings, so the literal `"NaN"` in a theme or backup file reads
- * back as [Double.NaN] from `getDouble`, and `Infinity` likewise. Nothing downstream checked: the
- * value went into a `depthFraction` or a `laneYFraction`, through `SceneSpace`'s arithmetic, and out
- * to the renderer as a coordinate that is not a number. Every comparison against it is false, so an
- * object silently stops being drawn or is drawn nowhere, and — the part that makes it worth fixing —
- * the poisoned value is **persisted**, so it survives restarts and re-exports until the key is
- * rewritten by hand.
- *
- * Throwing is the right answer for a required field: both import paths already wrap parsing in
- * `runCatching`, so the file is reported as malformed and refused, which is what a file containing
- * `"NaN"` deserves. See [optFinite] for the optional fields, which fall back instead.
+ * Android's `org.json` reads the string `"NaN"` as [Double.NaN] from `getDouble`, and `Infinity`
+ * likewise. Let through, the value would reach the renderer as a coordinate that is not a number --
+ * an object drawn nowhere -- and be **persisted**, surviving restarts and re-exports. Both import
+ * paths wrap parsing in `runCatching`, so throwing reports the file as malformed and refuses it.
+ * The optional fields fall back instead ([optFinite]).
  */
 internal fun JSONObject.requireFinite(name: String): Float {
     val value = getDouble(name)
-    // Checked after the narrowing, not before (v5.8). `1e300` is a finite Double and an infinite
-    // Float, so checking the Double let it through, and the value the app then held could not be
-    // written back: the next `JSONObject.put` -- the import's own staging copy -- threw
-    // "Forbidden numeric value: Infinity" from a coroutine with no catch, and the app closed. A
-    // 173-byte backup did it on the BV6600 (assessment v5.7, registri/72). NaN narrows to NaN, so
-    // one check still covers both.
+    // Checked after the narrowing: `1e300` is a finite Double and an infinite Float, which the next
+    // `JSONObject.put` (the import's staging copy) refuses with "Forbidden numeric value", closing the
+    // app. NaN narrows to NaN, so one check covers both.
     val narrowed = value.toFloat()
     require(narrowed.isFinite()) { "$name is not a finite 32-bit number: $value" }
     return narrowed
 }
 
 /**
- * An optional number; anything that is not finite as a `Float` reads as absent and takes [fallback].
- *
- * The counterpart to [requireFinite] for fields that already have a default. A `"NaN"` density is
- * not a reason to refuse a whole backup — the file is still readable, that one value is not — so it
- * takes the default the field would have had if the key were missing. Checked after the narrowing
- * for the reason [requireFinite] gives: `1e300` is finite until it becomes a `Float`.
+ * An optional number; anything that is not finite as a `Float` reads as absent and takes [fallback]:
+ * a `"NaN"` density is no reason to refuse a whole backup. Checked after the narrowing, as in
+ * [requireFinite].
  */
 internal fun JSONObject.optFinite(name: String, fallback: Float): Float {
     val narrowed = optDouble(name, fallback.toDouble()).toFloat()
@@ -216,9 +183,7 @@ fun StaticSceneObject.toJson(): JSONObject = JSONObject().apply {
 
 fun staticSceneObjectFromJson(json: JSONObject): StaticSceneObject = StaticSceneObject(
     type = SceneObjectType.valueOf(json.getString("type")),
-    // Falls back to the old discrete "layer" (0..8 row index) field, converted to an equivalent
-    // continuous fraction, for custom themes saved before the continuous-depth refactor -- so an
-    // existing user's saved custom theme still loads instead of crashing on a missing key.
+    // Files written before `depthFraction` carry the discrete row `layer` (0..8), read as the same fraction.
     depthFraction = if (json.has("depthFraction")) {
         json.requireFinite("depthFraction")
     } else {
@@ -226,10 +191,8 @@ fun staticSceneObjectFromJson(json: JSONObject): StaticSceneObject = StaticScene
     },
     tileFractionX = json.requireFinite("tileFractionX"),
     scale = json.optFinite("scale", 1f),
-    // Absent from every payload written before v5.5, and the fallback is what those payloads
-    // need: `UNDEALT` means "hash the drawing from the position", which is exactly what the build
-    // that saved them did. So an existing custom theme loads as the same street it was saved as,
-    // with no migration and no schema bump -- the same shape `CarObject.type` was added in.
+    // Files written before `silhouette` have none: `UNDEALT` hashes the drawing from the position, as the
+    // build that saved them did, so they load as the same street with no migration.
     silhouette = json.optInt("silhouette", StaticSceneObject.UNDEALT),
 )
 
@@ -248,31 +211,27 @@ fun carObjectFromJson(json: JSONObject): CarObject = CarObject(
     startDelaySeconds = json.requireFinite("startDelaySeconds"),
     color = json.getInt("color"),
     reverse = json.optBoolean("reverse", false),
-    // optString + runCatching: existing saved custom themes from before this field existed
-    // simply get CarType.PLAIN, the same vehicle they always rendered as.
+    // A file without `type`, or with an unknown one, reads as CarType.PLAIN.
     type = runCatching { CarType.valueOf(json.optString("type", "PLAIN")) }.getOrDefault(CarType.PLAIN),
 )
 
 /**
- * **The layout as a saved theme, a theme file or a backup holds it: without the scarecrows** (v5.16). Their places are the
- * snowmen's, which the catalogue lays again under every layout it loads (`SceneObjectCatalog.layoutFor` adds the seasonal
- * candidates to a saved one as to a built-in, from the theme's own id): a built-in saved over itself ("Replace with
- * current") keeps them where they stood; a theme saved under a new name, or imported, stands them in the places its own id
- * gives, as it does its snowmen, gifts and the rest of the seasonal decorations. And a build before v5.16 reading the type
- * would refuse the whole layout. What is saved and what is read back are then the same list: [toJson] writes this, and a
- * theme saved or shared is built from it.
+ * **The layout as a saved theme, a theme file or a backup holds it: without the scarecrows.** They stand on the snowmen's
+ * places and `SceneObjectCatalog.layoutFor` lays them again at load; a build that does not know the type would refuse the
+ * whole layout. The other seasonal decorations stay in the saved street, so a theme saved over itself, under a new name or
+ * shared stands them as the theme it came from did (`DESIGN_NOTES.md` §12, decision 89). [toJson] writes this,
+ * and a theme saved or shared is built from it.
  */
 fun SceneObjectLayout.asSaved(): SceneObjectLayout =
     if (staticObjects.none { it.type == SceneObjectType.SCARECROW }) this
     else copy(staticObjects = staticObjects.filter { it.type != SceneObjectType.SCARECROW })
 
 fun SceneObjectLayout.toJson(): JSONObject = JSONObject().apply {
-    // A place the loader moved is written where the theme stored it (v5.13B2, [SceneObjectLayout.placesAsSaved]); the
-    // scarecrows are not written ([asSaved]).
+    // A place the loader moved is written where the theme stored it ([SceneObjectLayout.placesAsSaved]); the scarecrows
+    // are not written ([asSaved]).
     put("staticObjects", JSONArray(asSaved().staticObjects.map { (placesAsSaved[it] ?: it).toJson() }))
     put("cars", JSONArray(cars.map { it.toJson() }))
-    // Which density rule thinned these objects (v5.8C). Additive: a payload without it was
-    // written before the key existed, by an app that thinned with the grid.
+    // Which density rule thinned these objects; a payload without it was thinned with the grid.
     put("densityScheme", densityScheme)
 }
 
@@ -281,24 +240,20 @@ fun sceneObjectLayoutFromJson(json: JSONObject): SceneObjectLayout {
     val staticObjects = (0 until staticArray.length()).map { staticSceneObjectFromJson(staticArray.getJSONObject(it)) }
     val carsArray = json.getJSONArray("cars")
     val cars = (0 until carsArray.length()).map { carObjectFromJson(carsArray.getJSONObject(it)) }
-    // Traffic geometry is recomputed on **every** load, whatever schema version the
-    // payload carries. A stored lane coordinate is a copy of a SceneSpace constant,
-    // and that constant has moved three times since custom themes started saving it;
-    // a copy that disagrees with the current road drags the road back to where it was
-    // saved, because the painted strip is derived from the layout's own lanes. Doing
-    // this in a schema migration only ever fixes the payloads written before the
-    // migration -- see SceneObjectCatalog.canonicaliseTraffic for why that is not
-    // enough.
-    // Each place where all six buildings keep their fronts clear (v5.13B2): a saved street's places were
-    // planned for the one building each held until v5.13. On every load, as the traffic below -- see
-    // SceneObjectCatalog.placesClearedOnSavedStreet -- and a place moved remembers where it was stored.
+    // Traffic geometry is recomputed on **every** load, whatever the schema: a stored lane is a copy of a
+    // SceneSpace constant, and a copy that disagrees with today's road would drag the painted strip (derived
+    // from the layout's lanes) to where it was saved. A migration would fix only the payloads older than
+    // itself (SceneObjectCatalog.canonicaliseTraffic).
+    // Likewise each place is moved, on every load, off any of the six buildings it would cross
+    // (SceneObjectCatalog.placesClearedOnSavedStreet: files can hold places planned for one building), and a
+    // place moved remembers where it was stored.
     val cleared = SceneObjectCatalog.placesClearedOnSavedStreet(staticObjects)
     return SceneObjectLayout(
         staticObjects = cleared,
         placesAsSaved = cleared.indices.filter { cleared[it] != staticObjects[it] }.associate { cleared[it] to staticObjects[it] },
         cars = SceneObjectCatalog.canonicaliseTraffic(cars),
-        // Absent means a layout saved before v5.8C, thinned by the grid: kept on it so it keeps
-        // every object it stored. See [DENSITY_SCHEME_GRID].
+        // Absent: a layout written before the key, thinned by the grid and kept on it, so it keeps
+        // every object it stored ([DENSITY_SCHEME_GRID]).
         densityScheme = json.optInt("densityScheme", DENSITY_SCHEME_GRID),
     )
 }
@@ -310,9 +265,7 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
     put("colorNight1", colorNight1)
     put("colorDay2", colorDay2)
     put("colorNight2", colorNight2)
-    // Written as the storage id, and read back with a MANUAL fallback below, so a theme saved
-    // before automatic pairs existed reads exactly as it always did. No schema bump is needed:
-    // every reader here is already an `opt*` with a default.
+    // Written as the storage id; a file without it reads as MANUAL, the colours as stored.
     put("autoMode1", autoMode1.storageId)
     put("autoMode2", autoMode2.storageId)
 }
@@ -320,22 +273,12 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
 fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
     visible = json.optBoolean("visible", default.visible),
     density = json.optFinite("density", default.density),
-    // `optInt` with the default, like the mountains, the lake and the sky. These four read
-    // `getInt` until v5.3, and `getInt` **throws** when the key is present but is not an integer,
-    // where `optInt` falls back. That is the whole of the v5.3B audit's S2: a backup with
-    // `"colorDay1":"nope"` in it -- 129 bytes, and no attacker needed, just a truncated download
-    // -- threw out through `sceneCustomizationFromJson` and closed the settings screen, because
-    // both parsers' call sites are inside a Compose `scope.launch { }` with no catch.
-    // `ImportParserFuzzTest` is the check that found it and it stays: it went from 221 escaping
-    // throwables to 0 on these four lines alone.
-    //
-    // `optInt(name, fallback)` also drops the `has` guard, which was doing nothing the fallback
-    // does not already do -- absent and unreadable now take the same path, which is the one the
-    // document deserves either way.
-    //
-    // The hills and the bird colours did not, until v5.8C: `optInt` with no fallback turned a
-    // present but unreadable colour into 0, which is transparent. The theme and car colours use
-    // `getInt`, which throws inside the importers' `runCatching` -- a refused file, not a wrong one.
+    // `optInt` with the default, as for the mountains, the lake, the sky, the hills and the birds:
+    // `getInt` throws on a present value that is not an integer (`"colorDay1":"nope"`, a truncated
+    // download), and these parsers run inside a Compose `scope.launch { }` with no catch, so it would
+    // close the settings screen (`ImportParserFuzzTest`); `optInt` with no fallback would read it as
+    // 0, transparent. Absent and unreadable take the same path. The theme and car colours use `getInt`
+    // on purpose: it throws inside the importers' `runCatching`, a refused file rather than a wrong one.
     colorDay1 = json.optInt("colorDay1", default.colorDay1),
     colorNight1 = json.optInt("colorNight1", default.colorNight1),
     colorDay2 = json.optInt("colorDay2", default.colorDay2),
@@ -347,44 +290,31 @@ fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig):
 fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("houses", houses.toJson())
     put("buildings", buildings.toJson())
-    // The shops' own colours (v5.11). A payload without them is read with the Buildings colours
-    // beside it, which is what its shops were drawn in -- see `sceneCustomizationFromJson`.
+    // A payload without `shops` or `publics` is read as `sceneCustomizationFromJson` says.
     put("shops", shops.toJson())
-    // The public buildings' own colours (v5.13). A payload without them is read by
-    // `publicsCarriedOver`: the shops' colours where they were changed by hand, the theme's new pair
-    // where they were not -- see `sceneCustomizationFromJson`.
     put("publics", publics.toJson())
     put("cars", cars.toJson())
     put("parasols", parasols.toJson())
     put("people", people.toJson())
-    // Written alongside the people block rather than inside it: it belongs to the pedestrians,
-    // not to ObjectVariantConfig, which every other category shares. A theme saved before v2.12
-    // has no such key, and reading falls back to that theme's own daytime density -- so an old
-    // saved theme keeps behaving exactly as it did.
+    // Beside the people and cars blocks rather than inside them: they belong to the pedestrians and the
+    // traffic, not to the ObjectVariantConfig every category shares. A payload without them reads its
+    // own daytime density (PeopleDensity.resolveNightDensity's rule).
     put("peopleNightDensity", peopleNightDensity.toDouble())
-    // The cars' pair of the same field, beside the cars block for the same reason. A theme saved
-    // before v4.22 has no such key, and reading falls back to that theme's own daytime car
-    // density -- the upgrade rule PeopleDensity.resolveNightDensity states, applied to a payload.
     put("carsNightDensity", carsNightDensity.toDouble())
-    // The opening hours (v4.22), in groups since v5.12 (three since v5.13, the public buildings'). Absent from
-    // every payload before v4.22, where reading falls back to the defaults, whose switch-off state
-    // renders identically to the feature not existing; a payload written from v4.22 to v5.11 holds
-    // one setting for both, which `sceneCustomizationFromJson` reads into each.
+    // The opening hours, in three groups; a payload without them reads the defaults (off), and one with
+    // the single `businessHours*` setting reads it into each group (`sceneCustomizationFromJson`).
     put("shopHoursEnabled", shopHoursEnabled)
     put("shopOpenHour", shopOpenHour.toDouble())
     put("shopCloseHour", shopCloseHour.toDouble())
     put("towerHoursEnabled", towerHoursEnabled)
     put("towerOpenHour", towerOpenHour.toDouble())
     put("towerCloseHour", towerCloseHour.toDouble())
-    // The third group, the public buildings (v5.13). A payload written before has none, and its
-    // public buildings read the shops' hours, which held for the school until then.
     put("publicHoursEnabled", publicHoursEnabled)
     put("publicOpenHour", publicOpenHour.toDouble())
     put("publicCloseHour", publicCloseHour.toDouble())
-    // And the one setting of before, still written -- as the shops' -- so the shape stays additive
-    // ([CUSTOM_THEME_SCHEMA_VERSION]: no field removed, no bump) and a build before v5.12 reading this
-    // payload reads hours it knows (`AI_PROJECT_RULES.md` 9.4, best effort): for the shops as stored,
-    // for its towers the same. This build reads it only where a group has no field of its own.
+    // The single setting older builds know, still written as the shops', so the shape stays additive
+    // ([CUSTOM_THEME_SCHEMA_VERSION]: no field removed, no bump) and an older build reads hours it knows
+    // (a newer payload is read best-effort, never rejected). Read here only where a group has no field of its own.
     put("businessHoursEnabled", shopHoursEnabled)
     put("businessOpenHour", shopOpenHour.toDouble())
     put("businessCloseHour", shopCloseHour.toDouble())
@@ -416,7 +346,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
         put("colorNight", mountainsBack.colorNight)
         put("autoMode", mountainsBack.autoMode.storageId)
     })
-    // The distant houses (v5.11). Absent from every older payload, which reads them off.
+    // A payload without the distant houses reads them off.
     put("distantHouses", JSONObject().apply {
         put("visible", distantHouses.visible)
         put("density", distantHouses.density.toDouble())
@@ -474,8 +404,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     })
     put("fallColorsEnabled", fallColorsEnabled)
     put("winterColorsEnabled", winterColorsEnabled)
-    // *Lights on the buildings* keeps the name *Christmas lights* was stored under (v5.16): a build before it reads its
-    // one switch from there.
+    // *Lights on the buildings* is stored under the name older builds read their one Christmas switch from.
     put("christmasDecorationsEnabled", christmasBuildingLightsEnabled)
     put("christmasTreeLightsEnabled", christmasTreeLightsEnabled)
     put("christmasFirsEnabled", christmasFirsEnabled)
@@ -486,6 +415,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("horrorSkyEnabled", horrorSkyEnabled)
     put("laughingMoonEnabled", laughingMoonEnabled)
     put("nightSkyByDayEnabled", nightSkyByDayEnabled)
+    put("stillMoonEnabled", stillMoonEnabled)
     put("halloweenDecorationsEnabled", halloweenDecorationsEnabled)
     put("bloodRainEnabled", bloodRainEnabled)
     put("headlessHorsemanEnabled", headlessHorsemanEnabled)
@@ -495,16 +425,18 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
 /**
  * A [SceneCustomization] read back from [json] -- a theme's archived edit, a saved theme, a theme file,
  * a backup -- best effort, field by field ([CUSTOM_THEME_SCHEMA_VERSION]). [theme] is the theme the
- * payload belongs to, when the caller knows it: a payload written before v5.13 has no public buildings'
- * colours, and they are read against that theme's starting ones ([publicsCarriedOver]).
+ * payload belongs to, when the caller knows it: a payload without public buildings' colours reads them
+ * against that theme's starting ones ([publicsCarriedOver]). [layout] is the street a saved theme holds; a
+ * payload with both the Christmas and the Halloween decorations on is judged on it, or on the street
+ * [theme] draws ([DecorationExclusion.resolved]).
  */
-fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): SceneCustomization {
+fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, layout: SceneObjectLayout? = null): SceneCustomization {
     val defaults = SceneCustomization.DEFAULT
     if (json == null) return defaults
-    // What the switches v5.16 added read as where a payload has none (every payload written before v5.16): the theme's
-    // own starting value when the theme is known -- an archived Halloween edit of 5.15 gets the Halloween theme's new
-    // switches on, as a Halloween nobody edited does --, and off otherwise.
-    val since516 = theme?.let { defaultCustomizationFor(it.id, it) } ?: defaults
+    // A Halloween switch (or the scarecrows) a payload lacks reads as the theme's own starting value when the theme is known
+    // (an archived Halloween edit gets the Halloween theme's switches on, as an unedited Halloween does), and off
+    // otherwise: a copy saved under a name of its own is a theme of its own id, which starts with them off.
+    val asItStarts = theme?.let { defaultCustomizationFor(it.id, it) } ?: defaults
     // *Lights on the buildings* is *Christmas lights*' stored field (see below); the two other Christmas switches read it
     // where they have no field of their own: whoever had *Christmas lights* on finds all three on.
     val christmasLights = if (json.has("christmasDecorationsEnabled")) {
@@ -514,13 +446,12 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
     }
     val christmasTreeLights = json.optBoolean("christmasTreeLightsEnabled", christmasLights)
     val christmasFirs = json.optBoolean("christmasFirsEnabled", christmasLights)
-    // The Halloween decorations of a payload without them: the theme's starting value -- but off where the Christmas
-    // decorations are on, which came first ([DecorationExclusion]): a Halloween theme lit for Christmas in 5.15 keeps its
-    // lights.
+    // The Halloween decorations of a payload without them: the theme's starting value, but off where the Christmas
+    // decorations are on, the side chosen first, which wins ([DecorationExclusion]).
     val halloweenDecorations = if (json.has("halloweenDecorationsEnabled")) {
         json.optBoolean("halloweenDecorationsEnabled", false)
     } else {
-        since516.halloweenDecorationsEnabled && !(christmasLights || christmasTreeLights || christmasFirs)
+        asItStarts.halloweenDecorationsEnabled && !(christmasLights || christmasTreeLights || christmasFirs)
     }
     val buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings
     val shops = json.optJSONObject("shops")?.let { objectVariantConfigFromJson(it, buildings) } ?: buildings
@@ -530,72 +461,57 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
     return SceneCustomization(
         houses = json.optJSONObject("houses")?.let { objectVariantConfigFromJson(it, defaults.houses) } ?: defaults.houses,
         buildings = buildings,
-        // **A payload written before v5.11 has no shops of its own, and its shops were drawn in its
-        // Buildings colours**: the two were one pair until the shops got theirs. So the shops of such
-        // a payload are read as those colours -- a theme saved, archived, backed up or shared before
-        // v5.11 keeps the look it had -- and a field missing from a shops block written since falls
-        // back the same way. Visibility and density come with them and are read by nothing
-        // (`SceneCustomization.shops`).
+        // **A payload without `shops` drew its shops in its Buildings colours**, and reads them so, keeping
+        // its look; a field missing from a shops block falls back the same way. Visibility and density come
+        // with them and are read by nothing (`SceneCustomization.shops`).
         shops = shops,
-        // **A payload written before v5.13 has no public buildings, and its school wore the shops'
-        // colours.** Whoever had changed those by hand finds them on the school and the two stations
-        // too; whoever had not gets the theme's new pair ([publicsCarriedOver], the maintainer's *«il
-        // resto accetto i consigliati»* of 2026-10-11). Without a theme to compare against, the shops'.
+        // **A payload without `publics` drew its school in the shops' colours.** Shops' colours changed by
+        // hand go on the public buildings too; untouched ones give the theme's own pair
+        // ([publicsCarriedOver]); without a theme, the shops'.
         publics = json.optJSONObject("publics")?.let { objectVariantConfigFromJson(it, shops) }
             ?: publicsCarriedOver(shops, theme),
         cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars,
         parasols = json.optJSONObject("parasols")?.let { objectVariantConfigFromJson(it, defaults.parasols) } ?: defaults.parasols,
-        // Absent from every payload written before v76.12, which is why it falls back to the
-        // default rather than needing a schema step: a missing category is not a changed one.
+        // A missing category is not a changed one: the default, with no schema step.
         people = json.optJSONObject("people")?.let { objectVariantConfigFromJson(it, defaults.people) } ?: defaults.people,
         peopleNightDensity = json.optFinite(
             "peopleNightDensity",
             json.optJSONObject("people")?.optFinite("density", defaults.people.density)
                 ?: defaults.people.density,
         ),
-        // Same fallback shape as the people's: a pre-v4.22 payload has no night key, and its
-        // night traffic must be its day traffic -- the payload's own, not the default's.
+        // Without a night key the night is the payload's own day, not the default's (both night densities).
         carsNightDensity = json.optFinite(
             "carsNightDensity",
             json.optJSONObject("cars")?.optFinite("density", defaults.cars.density)
                 ?: defaults.cars.density,
         ),
-        // **One setting until v5.12, two since** (the maintainer's decision of 2026-10-09: whoever had
-        // the hours on finds them on in both groups, at the same hours). A payload written before has
-        // `businessHours*` alone, the setting that held for the shops and the towers alike, and each
-        // group reads it where it has no field of its own -- a theme saved, archived, backed up or
-        // shared before v5.12 opens and closes as it did. A payload written since has both groups'.
+        // A payload with `businessHours*` alone, the one setting for shops and towers, gives it to each group
+        // without a field of its own: whoever had the hours on finds them on in both, at the same hours.
         shopHoursEnabled = shopHoursEnabled,
         shopOpenHour = shopOpenHour,
         shopCloseHour = shopCloseHour,
         towerHoursEnabled = json.optBoolean("towerHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.towerHoursEnabled)),
         towerOpenHour = json.optFinite("towerOpenHour", json.optFinite("businessOpenHour", defaults.towerOpenHour)),
         towerCloseHour = json.optFinite("towerCloseHour", json.optFinite("businessCloseHour", defaults.towerCloseHour)),
-        // **Three groups since v5.13**: a payload written before has no public buildings' hours, and
-        // the school kept the shops' -- so whoever had the shops' hours on finds them on in both, at
-        // the same hours (the maintainer's *«il resto accetto i consigliati»* of 2026-10-11).
+        // Without the public buildings' hours a payload kept its school on the shops': they read the shops'.
         publicHoursEnabled = json.optBoolean("publicHoursEnabled", shopHoursEnabled),
         publicOpenHour = json.optFinite("publicOpenHour", shopOpenHour),
         publicCloseHour = json.optFinite("publicCloseHour", shopCloseHour),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
-        // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
-        // and saveable exactly like the structural categories above (see the ObjectCategory doc
-        // comment in WallpaperPrefs.kt), so saving "Christmas with snowmen turned off" needs to
-        // actually persist that choice, not silently drop it.
+        // The seasonal decorations are saved per theme like the categories above, so "Christmas with
+        // snowmen off" stays off.
         snowmen = json.optJSONObject("snowmen")?.let { objectVariantConfigFromJson(it, defaults.snowmen) } ?: defaults.snowmen,
         gifts = json.optJSONObject("gifts")?.let { objectVariantConfigFromJson(it, defaults.gifts) } ?: defaults.gifts,
         penguins = json.optJSONObject("penguins")?.let { objectVariantConfigFromJson(it, defaults.penguins) } ?: defaults.penguins,
         bunnies = json.optJSONObject("bunnies")?.let { objectVariantConfigFromJson(it, defaults.bunnies) } ?: defaults.bunnies,
         easterEggs = json.optJSONObject("easterEggs")?.let { objectVariantConfigFromJson(it, defaults.easterEggs) } ?: defaults.easterEggs,
         pumpkins = json.optJSONObject("pumpkins")?.let { objectVariantConfigFromJson(it, defaults.pumpkins) } ?: defaults.pumpkins,
-        scarecrows = json.optJSONObject("scarecrows")?.let { objectVariantConfigFromJson(it, since516.scarecrows) }
-            ?: since516.scarecrows,
+        scarecrows = json.optJSONObject("scarecrows")?.let { objectVariantConfigFromJson(it, asItStarts.scarecrows) }
+            ?: asItStarts.scarecrows,
         hillsVariation = json.optFinite("hillsVariation", defaults.hillsVariation),
         snowPiles = json.optFinite("snowPiles", defaults.snowPiles),
         leafPiles = json.optFinite("leafPiles", defaults.leafPiles),
-        // With the default as the fallback, like every colour around it: until v5.8C this was
-        // `has` + `optInt` with no fallback, so a present but unreadable colour imported as 0 --
-        // fully transparent hills (v5.8B comment audit).
+        // The default as the fallback, like every colour around it: without one an unreadable colour is 0, transparent.
         hillsColorDay = json.optInt("hillsColorDay", defaults.hillsColorDay),
         hillsColorNight = json.optInt("hillsColorNight", defaults.hillsColorNight),
         hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode")),
@@ -642,8 +558,7 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
             val colors = if (colorsArray != null) {
                 (0 until colorsArray.length()).map { idx ->
                     val c = colorsArray.getJSONObject(idx)
-                    // The default colour of this slot as the fallback (v5.8C): `optInt` with none
-                    // turned an unreadable colour into 0, a transparent bird.
+                    // The slot's default colour as the fallback: without one an unreadable colour is 0, transparent.
                     val fallback = (defaults.birds.colors.getOrNull(idx) ?: defaults.birds.colors.first()).color
                     BirdColorWeight(c.optInt("color", fallback), c.optFinite("weight", 0.25f))
                 }
@@ -722,35 +637,39 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): Sc
         } ?: defaults.rainbow,
         fallColorsEnabled = json.optBoolean("fallColorsEnabled", defaults.fallColorsEnabled),
         winterColorsEnabled = json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled),
-        // Absent from every payload written before the winter/Christmas split (v2.0), and every
-        // payload since writes it. Before the split "the lights hung off the winter flag"
-        // (RELEASE_HISTORY, v2.0), so such a payload's winter flag *is* its lights: a theme saved
-        // with the winter presentation on showed them and gets them back, one saved with it off
-        // showed none and gets none. Until v5.8C this fell back to [SceneCustomization.DEFAULT]
-        // (off), so a Christmas theme saved lit came back dark (v5.8B comment audit).
+        // A payload without `christmasDecorationsEnabled` has one flag for winter and Christmas, the
+        // lights hanging off the winter flag: its winter flag is its lights (`christmasLights` above), so
+        // a theme saved lit comes back lit.
         christmasBuildingLightsEnabled = christmasLights,
         christmasTreeLightsEnabled = christmasTreeLights,
         christmasFirsEnabled = christmasFirs,
         flowersEnabled = json.optBoolean("flowersEnabled", defaults.flowersEnabled),
-        // Absent from every payload written before v5.1, and the default it falls back to is
-        // `true` precisely so that a Beach or Desert theme saved before then keeps its palms
-        // rather than coming back planted with oaks. See `SceneCustomization.palmsEnabled`.
+        // Absent reads `true`, so a Beach or Desert theme saved without the field keeps its palms rather
+        // than oaks (`SceneCustomization.palmsEnabled`).
         palmsEnabled = json.optBoolean("palmsEnabled", defaults.palmsEnabled),
-        // Absent from every payload written before v5.10, and **absent means off** -- the reason
-        // the field exists: such a payload's `palmsEnabled` is `true` on every theme, chosen or
-        // not, and on a theme without palms of its own it was never something the user could see.
-        // So a saved Autumn, a backup or a shared file from 5.9 comes back with its trees, and only
-        // a switch moved in v5.10 or later puts palms in them. See `SceneCustomization.palmsInsteadOfTrees`.
+        // **Absent means off**: `palmsEnabled` is `true` on every theme, chosen or not, so it cannot be
+        // the switch; a payload without this field comes back with its trees
+        // (`SceneCustomization.palmsInsteadOfTrees`).
         palmsInsteadOfTrees = json.optBoolean("palmsInsteadOfTrees", defaults.palmsInsteadOfTrees),
         halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
         horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
-        laughingMoonEnabled = json.optBoolean("laughingMoonEnabled", since516.laughingMoonEnabled),
-        nightSkyByDayEnabled = json.optBoolean("nightSkyByDayEnabled", since516.nightSkyByDayEnabled),
+        laughingMoonEnabled = json.optBoolean("laughingMoonEnabled", asItStarts.laughingMoonEnabled),
+        nightSkyByDayEnabled = json.optBoolean("nightSkyByDayEnabled", asItStarts.nightSkyByDayEnabled),
+        stillMoonEnabled = json.optBoolean("stillMoonEnabled", asItStarts.stillMoonEnabled),
         halloweenDecorationsEnabled = halloweenDecorations,
-        bloodRainEnabled = json.optBoolean("bloodRainEnabled", since516.bloodRainEnabled),
-        headlessHorsemanEnabled = json.optBoolean("headlessHorsemanEnabled", since516.headlessHorsemanEnabled),
+        bloodRainEnabled = json.optBoolean("bloodRainEnabled", asItStarts.bloodRainEnabled),
+        headlessHorsemanEnabled = json.optBoolean("headlessHorsemanEnabled", asItStarts.headlessHorsemanEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),
-    ).let { DecorationExclusion.resolved(it, since516) }
+    ).let { read ->
+        // Both sides read on by their amounts: judged on the street, where a category above 0 % can keep nothing. Only then
+        // is the street worked out -- the saved theme's own, or the one [theme] draws.
+        val street = if (DecorationExclusion.christmasOn(read) && DecorationExclusion.halloweenOn(read)) {
+            layout ?: theme?.let { SceneObjectCatalog.layoutFor(it.id, it.accentColor) }
+        } else {
+            null
+        }
+        DecorationExclusion.resolved(read, asItStarts, street)
+    }
 }
 
 fun CustomThemeEntry.toJson(): JSONObject = JSONObject().apply {
@@ -763,40 +682,31 @@ fun CustomThemeEntry.toJson(): JSONObject = JSONObject().apply {
 
 fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry {
     val name = json.getString("name")
+    val layout = sceneObjectLayoutFromJson(json.getJSONObject("layout"))
     return CustomThemeEntry(
         id = json.getString("id"),
         name = name,
-        // The name every screen shows is the entry's own (v5.9B, I-01): see [CustomThemeEntry.name].
-        // Read this way rather than trusted from the file because every "Rename" before v5.9B wrote
-        // `name` alone and left the theme's copy behind.
+        // The name every screen shows is the entry's own ([CustomThemeEntry.name]), not the theme's copy,
+        // which a rename that wrote `name` alone left behind.
         theme = sceneThemeFromJson(json.getJSONObject("theme")).copy(displayName = name),
-        layout = sceneObjectLayoutFromJson(json.getJSONObject("layout")),
-        customization = sceneCustomizationFromJson(json.optJSONObject("customization"), sceneThemeFromJson(json.getJSONObject("theme"))),
+        layout = layout,
+        customization = sceneCustomizationFromJson(json.optJSONObject("customization"), sceneThemeFromJson(json.getJSONObject("theme")), layout),
     )
 }
 
 // --- Schema versioning -------------------------------------------------------------------
 
 /**
- * Current schema version written by [CustomThemeData.toJsonString].
- *
- * Bump this whenever a *breaking* change is made to the persisted shape — a field that changes
- * type or meaning, or one that is removed. Purely additive changes (a new optional field with a
- * sensible default) do not need a bump, because every read below is already defensive.
- *
- * When bumping, add the corresponding step to [migrateCustomThemeJson] and a test that loads a
- * fixture of the old shape and asserts the migrated result.
+ * Current schema version written by [CustomThemeData.toJsonString]. Bumped for a *breaking* change
+ * (a field that changes type or meaning, or is removed), with its step in [migrateCustomThemeJson]
+ * and a test on a fixture of the old shape; an additive field needs no bump, every read being defensive.
  */
 const val CUSTOM_THEME_SCHEMA_VERSION = 5
 
 /**
- * Version reported for data written before schema versioning existed (v73 and earlier). Such
- * payloads simply have no `schemaVersion` key.
- *
- * Version 0 and version 1 describe the *same* shape: version 1 exists to mark the point from
- * which the version is actually recorded, so that a future breaking change has a reliable
- * baseline to migrate from. Migrating 0 -> 1 is therefore a no-op by construction, not by
- * oversight.
+ * The version of a payload with no `schemaVersion` key, written before the version was recorded.
+ * Versions 0 and 1 are the same shape (1 marks where the version starts being recorded), so
+ * 0 -> 1 is a no-op by construction.
  */
 const val CUSTOM_THEME_SCHEMA_VERSION_LEGACY = 0
 
@@ -814,28 +724,20 @@ fun readCustomThemeSchemaVersion(raw: String?): Int? {
     }
 }
 
-/**
- * Runs the custom-theme migrations over a document that embeds `overrides` and `customThemes`.
- *
- * **BCK-07.** A whole-app backup carries theme entries written by `CustomThemeEntry.toJson`, the
- * same shape the theme store holds, but the import path parsed them directly and never ran the
- * store's migrations. Harmless while no breaking step exists after the backup format shipped, and
- * silently wrong the first time one does: a version 2 payload restored into a version 4 app would
- * be read as if it were version 4.
- *
- * The version a backup records is the one to migrate *from*. A backup that records none was written
- * before this existed (v4.15), by an app whose theme schema was 3. It is read as current, not
- * legacy: the legacy default of 0 would re-run `1 -> 2`, which divides every object's scale by its
- * base scale a second time, so **that default would corrupt every backup in existence**. Nor is it
- * current: backups exist since v4.3 and the field since v4.15, and schema 3 held for that whole
- * span (3 -> 4 came with v4.20), so absent means **3** ([BACKUP_SCHEMA_BEFORE_THE_FIELD]). Until
- * v5.8C it was read as current, which skipped `3 -> 4` and `4 -> 5`: such a backup restored its
- * saved themes without the duplicate-storefront and duplicate-vehicle repair and without the
- * school (v5.8B comment audit). `BackupAndThemeShareTest` pins both halves.
- */
 /** The custom-theme schema of a backup that records none: see [migrateEmbeddedCustomThemes]. */
 const val BACKUP_SCHEMA_BEFORE_THE_FIELD = 3
 
+/**
+ * Runs the custom-theme migrations over a document that embeds `overrides` and `customThemes`: a
+ * whole-app backup holds entries in the theme store's shape, and without the store's migrations an
+ * older payload would be read as current.
+ *
+ * The version a backup records is the one to migrate *from*. A backup that records none was written
+ * by an app whose theme schema was 3, and is read as **3** ([BACKUP_SCHEMA_BEFORE_THE_FIELD]): not
+ * legacy 0, which would re-run `1 -> 2` and divide every object's scale by its base scale a second
+ * time, and not current, which would skip `3 -> 4` and `4 -> 5` (the duplicate repair, the school).
+ * `BackupAndThemeShareTest` pins both.
+ */
 fun migrateEmbeddedCustomThemes(root: JSONObject, fromVersion: Int) {
     migrateCustomThemeJson(root, fromVersion)
 }
@@ -844,15 +746,13 @@ fun migrateEmbeddedCustomThemes(root: JSONObject, fromVersion: Int) {
  * Brings a parsed payload up to [CUSTOM_THEME_SCHEMA_VERSION], mutating [root] in place, and
  * returns the version the payload is at afterwards.
  *
- * Payloads newer than this build understands are passed through untouched rather than rejected.
- * A user who installs an older APK over a newer one would otherwise lose every saved theme,
- * which is far worse than silently ignoring fields this build has no concept of. The reader
- * below is defensive about unknown and missing keys, so a forward-read degrades to "the parts
- * this build understands" instead of failing.
- *
- * Note the one real consequence of that choice: if such a payload is then *saved* again by this
- * older build, the fields it did not understand are not written back. That is accepted, and is
- * why this function is the single place a future migration must be registered.
+ * Payloads newer than this build understands are passed through untouched rather than rejected:
+ * a user who installs an older APK over a newer one would otherwise lose every saved theme. The
+ * reader is defensive about unknown and missing keys, so a forward-read gives "the parts this build
+ * understands". Saved again by this build, such a payload loses the fields it did not understand,
+ * and the entries it read are stamped with this build's [CUSTOM_THEME_SCHEMA_VERSION]; only the
+ * entries it could not read keep their schema ([UnreadableThemeEntry]). Both are accepted, and are
+ * why this function is the single place a migration is registered.
  */
 private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // Payloads at or ahead of the current version are passed through untouched.
@@ -861,12 +761,9 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // 0 -> 1: identical shape, so there is nothing to rewrite. See
     // CUSTOM_THEME_SCHEMA_VERSION_LEGACY for why that is deliberate.
 
-    // 1 -> 2: `StaticSceneObject.scale` changed meaning, from the category's whole base
-    // size to a relative variation around 1.
-    //
-    // Breaking in the quiet way -- the field is still a float and still parses, it just means
-    // something else now, so a payload left unmigrated renders as a scene of objects half again
-    // too large rather than as a parse failure.
+    // 1 -> 2: `StaticSceneObject.scale` holds the category's whole base size in version 1 and a
+    // relative variation around 1 since. It still parses, so unmigrated it would draw objects half
+    // again too large rather than fail.
     if (fromVersion < 2) {
         forEachEntry(root) { entry ->
             val layout = entry.optJSONObject("layout") ?: return@forEachEntry
@@ -874,39 +771,22 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
         }
     }
 
-    // 2 -> 3: the traffic lanes moved, and this is no longer a migration's business.
-    //
-    // Version 2 canonicalised lanes as a migration step, which fixed the payloads written
-    // before it and nothing after -- and the lanes moved twice more, in v76.6 and v76.7, so
-    // a theme saved on either renders with its road pulled back over the pavement and its
-    // pedestrians walking on tarmac. `sceneObjectLayoutFromJson` now recanonicalises on every
-    // load, at any version, which is why there is nothing to rewrite here.
-    //
-    // The bump is not decoration. It records that a version 2 payload may hold lane
-    // coordinates that no longer describe any road the app draws, so a future reader knows
-    // those numbers were already advisory when it was written.
+    // 2 -> 3: nothing to rewrite. The traffic lanes are recanonicalised on every load at any version
+    // (`sceneObjectLayoutFromJson`), because a migration fixes only the payloads older than itself. The
+    // bump records that a version 2 payload may hold lane coordinates no road the app draws matches.
 
-    // 3 -> 4: two things a stored theme can carry that its generator can no longer produce.
+    // 3 -> 4: two things a stored theme can carry that its generator does not produce. One-shot
+    // repairs, not a canonicalise-on-load: a saved theme's content is the user's, and is rewritten once
+    // for a defect the app produced, not second-guessed on every read.
     //
-    // Both are the same shape of problem -- a generator was fixed and the themes saved before the
-    // fix were not -- and both are genuinely one-shot, which is what makes them migrations rather
-    // than another canonicalise-on-load: the *content* of a saved theme is the user's, and
-    // rewriting it on every read would be the app second-guessing them forever. Rewriting it once,
-    // for a defect the app itself shipped, is a repair.
+    //  - **Duplicate storefronts**: the catalogue emits one shop per storefront variant a tile
+    //    ([SceneObjectCatalog.singleShopPerVariant]); a payload older than schema 4 can hold two.
+    //  - **Duplicate special vehicles**: the per-type cap applies where the types are rolled
+    //    ([SceneObjectCatalog.capSpecialsToOnePerType]), which repairs nothing a stored theme holds.
     //
-    //  - **Duplicate storefronts** (item 9 of `BACKLOG_v4_19.md`). Pass six made the catalogue emit
-    //    exactly one restaurant and one bar per tile ([SceneObjectCatalog.singleShopPerVariant])
-    //    and never migrated what was already saved, so a theme older than that can still show two
-    //    of the same shop on one tile.
-    //  - **Duplicate special vehicles** (items 11 and 14, closed for new themes in v4.20). The same
-    //    story one release later: the per-type cap is applied where the types are rolled, which
-    //    does nothing for a theme rolled before it existed.
-    //
-    // **Neither step may be able to fail the read.** `customThemeDataFromJsonString` turns any
-    // exception from here into `CustomThemeData.EMPTY`, which is every saved theme the user has;
-    // the DataStore corruption fixed in v3.1 is the reminder of what that costs. So each entry is
-    // repaired inside its own `runCatching` and anything unexpected leaves that entry exactly as it
-    // was found. The failure mode is "this one theme is not repaired", never "there are no themes".
+    // **Neither step may fail the read**: `customThemeDataFromJsonString` turns an exception from here
+    // into `CustomThemeData.EMPTY`, every saved theme lost. Each entry is repaired inside its own
+    // `runCatching`, and anything unexpected leaves that one entry as it was found.
     if (fromVersion < 4) {
         forEachEntry(root) { entry ->
             runCatching {
@@ -917,21 +797,13 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
         }
     }
 
-    // 4 -> 5: the school a street saved before v5.6 never had (item 141, v5.7F).
+    // 4 -> 5: the school. The shop band is three thirds with a school in the middle one; a street of
+    // schema 4 has a restaurant and a bar and nothing in the middle third, so the school would never
+    // appear. Such streets get it, one-shot for the same reason as 3 -> 4.
     //
-    // The same shape as 3 -> 4 -- a generator was changed and the themes saved before the change
-    // were not -- and one-shot for the same reason: the content of a saved theme is the user's.
-    // v5.6 split the shop band into three and put a school in the middle third; a street saved
-    // before that has a restaurant and a bar and nothing in the middle third, so the school never
-    // appears however the sliders are set. The maintainer's decision of 2026-09-21 is that these
-    // streets get it (*«voglio che prendano la scuola»*).
-    //
-    // **It adds; it does not move.** See [SceneObjectCatalog.missingSchoolFor] for why a saved
-    // street has nothing that could be promoted without taking a building the user can see off
-    // their skyline. Runs after 3 -> 4 on purpose: the storefront repair may itself leave a
-    // building in the middle third of a very old payload, and then there is nothing to add.
-    //
-    // Guarded exactly as 3 -> 4 is: a failure leaves that one theme as it was found.
+    // **It adds; it does not move** ([SceneObjectCatalog.missingSchoolFor] says why nothing can be
+    // promoted). After 3 -> 4 on purpose: the storefront repair may leave a building in the middle
+    // third of a very old payload, and then there is nothing to add. Guarded as 3 -> 4 is.
     if (fromVersion < 5) {
         forEachEntry(root) { entry ->
             runCatching {
@@ -950,18 +822,14 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
 /**
  * Appends the school a stored street is missing, or leaves it exactly as it is.
  *
- * Reads the stored objects the way the loader does ([staticSceneObjectFromJson]) because the
- * placement measures each one's drawn extent, and a street that cannot be read whole is left
- * alone rather than repaired from part of itself: the loader would reject it anyway, and a school
- * placed against half a street could stand on a house nobody measured. Idempotent, because a
- * second run finds the school it added in the middle third.
+ * Reads the stored objects the way the loader does ([staticSceneObjectFromJson]), because the
+ * placement measures each one's drawn extent; a street that cannot be read whole is left alone (the
+ * loader rejects it anyway, and a school placed against half a street could stand on a house nobody
+ * measured). Idempotent: a second run finds the school in the middle third.
  *
- * Two callers, one rule: the 4 -> 5 step above, for the themes the store saved before v5.6, and
- * `parseThemeShare`, for a theme **file** exported before v5.6 and imported now (since v5.9F,
- * inventory I-93: the maintainer's decision of 2026-09-21 that those streets get the school covers
- * the files too, his answer of 2026-09-28). A file carries no store version, and the share format's
- * own version (1) has never changed, so the file cannot say it is old: it is simply given the school
- * if it has none, which a street from v5.6 on always has.
+ * Two callers, one rule: the 4 -> 5 step above, and `parseThemeShare` for an imported theme
+ * **file**, which gets the school too. A file carries no store version and the share format has one
+ * version of its own (1), so a file without a school is given one.
  */
 internal fun addMissingSchool(objects: JSONArray?) {
     if (objects == null) return
@@ -973,30 +841,18 @@ internal fun addMissingSchool(objects: JSONArray?) {
 /**
  * Keeps one commercial building per storefront variant and moves the rest to tower depths.
  *
- * The same rule and the same arithmetic as [SceneObjectCatalog.singleShopPerVariant], applied to a
- * stored layout instead of a generated one -- the one-shot repair of a payload older than schema 4, and
- * nothing else (a street saved since v5.13B2, five places with two in the restaurant's third and two in
- * the bar's, is written at schema 5 and never read by it). Of the shop-band candidates
- * (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`), the depth-middle one of each of the
- * three bands (see [SceneSpace.RESTAURANT_MAX_DEPTH]) stays a shop, and every other one keeps its
- * slot, its x and its size and takes a tower depth interleaved across the tower band.
+ * The rule of [SceneObjectCatalog.singleShopPerVariant] applied to a stored layout, as the one-shot
+ * repair of a payload older than schema 4 (a street saved at schema 5, with two places in a third,
+ * never reaches it). Of the shop-band candidates (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`),
+ * the depth-middle one of each of the three bands ([SceneSpace.RESTAURANT_MAX_DEPTH],
+ * [SceneSpace.SCHOOL_MAX_DEPTH]) stays a shop; every other keeps its slot, x and size and takes a tower
+ * depth interleaved across the tower band. The three bands are written out here, not read from a
+ * table: a new storefront band must be added here too, or two candidates in one band stay two
+ * identical shops.
  *
- * **v5.6F added the third band here too, and this file is not one of the six places the pass
- * brief listed.** It is a seventh, and it is the one a compiler cannot find: the two halves were
- * written out as two `filter` calls rather than read from a table, so adding a storefront leaves
- * this migration keeping one shop per *half*-band -- which, on a payload that carries two
- * candidates in the same new third, is two identical schools in one frame, the exact defect this
- * function exists to remove. No layout this app generated before v5.13B2 could produce that (a generated
- * shop stood at 0.444 or 0.711, which are in different thirds), so it is a hole rather than a
- * bug; it is closed because "the same rule and the same arithmetic" above is a claim, not a hope.
- *
- * Only `depthFraction` moves, and only for the surplus. A shop's depth *is* what makes it a shop
- * (see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), so this changes what a building is drawn as and
- * nothing else about the theme -- not its colours, not its density, not how many buildings it has.
- *
- * Idempotent by construction: after it runs there is at most one shop per third of the shop band,
- * so a second run finds nothing to move. That matters because a payload is migrated on every load
- * until the user next saves it.
+ * Only `depthFraction` moves, only for the surplus: a shop's depth is what makes it a shop, so this
+ * changes what a building is drawn as and nothing else. Idempotent -- at most one shop per band
+ * remains -- which matters because a payload is migrated on every load until the user next saves it.
  */
 private fun migrateDuplicateStorefronts(objects: JSONArray?) {
     if (objects == null) return
@@ -1029,13 +885,10 @@ private fun migrateDuplicateStorefronts(objects: JSONArray?) {
 /**
  * Demotes a stored theme's surplus special vehicles to [CarType.PLAIN], one of each type kept.
  *
- * The road side of the same story: [SceneObjectCatalog.capSpecialsToOnePerType] caps the types
- * where they are rolled, which repairs nothing that was rolled before it existed -- and eight of
- * the twelve *shipped* themes were in that state, so a user's saved copies of them are too.
- *
- * The first of each type is the one kept, matching the generator exactly, so a repaired theme and a
- * freshly generated one agree. Only `type` changes: the surplus vehicle keeps its lane, its slot,
- * its speed and its colour, so the theme still has the same number of cars on the same road.
+ * [SceneObjectCatalog.capSpecialsToOnePerType] caps the types where they are rolled, which repairs
+ * nothing a saved theme already holds. The first of each type is kept, as the generator does, so a
+ * repaired theme and a generated one agree. Only `type` changes: the surplus vehicle keeps its lane,
+ * slot, speed and colour.
  */
 private fun migrateDuplicateSpecialVehicles(cars: JSONArray?) {
     if (cars == null || cars.length() <= 1) return
@@ -1050,11 +903,8 @@ private fun migrateDuplicateSpecialVehicles(cars: JSONArray?) {
 }
 
 /**
- * Visits every saved theme in a payload, whether it overrides a built-in id or stands alone.
- *
- * Migrations that rewrite a theme's contents need both collections, and the two are stored under
- * different shapes -- an object keyed by built-in id, and a plain array -- so walking them is
- * worth doing once rather than at each step.
+ * Visits every saved theme in a payload: the overrides (an object keyed by built-in id) and the
+ * custom themes (an array).
  */
 private inline fun forEachEntry(root: JSONObject, body: (JSONObject) -> Unit) {
     root.optJSONObject("overrides")?.let { overrides ->
@@ -1071,16 +921,10 @@ private inline fun forEachEntry(root: JSONObject, body: (JSONObject) -> Unit) {
 }
 
 /**
- * Converts each object's absolute `scale` into the relative size variation that replaced it.
- *
- * Before Group 4 the field carried the category's entire base size, so a house was saved at about
- * 1.5 and a tree at about 1.3 -- numbers that only meant anything next to the per-category base
- * scale they were rolled around. Dividing by that base recovers the variation the value was always
- * expressing, and [SceneSpace.legacyBaseScaleFor] is the only remaining record of what those bases
- * were.
- *
- * An unreadable or absent type falls back to leaving the value alone, which is wrong by at most
- * the base scale and is still a scene rather than a lost theme.
+ * Converts each object's absolute `scale` into the relative size variation. In schema 1 the field
+ * holds the category's whole base size (a house about 1.5, a tree about 1.3); dividing by that base
+ * ([SceneSpace.legacyBaseScaleFor], the only record of those bases) gives the variation. An
+ * unreadable or absent type leaves the value alone: wrong by at most the base scale, still a scene.
  */
 private fun migrateStaticScalesToVariations(objects: JSONArray?) {
     if (objects == null) return
@@ -1089,9 +933,8 @@ private fun migrateStaticScalesToVariations(objects: JSONArray?) {
         val type = runCatching { SceneObjectType.valueOf(obj.optString("type")) }.getOrNull() ?: continue
         val legacyBase = SceneSpace.legacyBaseScaleFor(type)
         if (legacyBase <= 0f) continue
-        // Migration reads the *old* absolute scale and divides it into the relative one. A
-        // non-finite value here would write a non-finite value straight back into the store, so it
-        // takes the base scale, which is what the object was drawn at before the axis existed.
+        // A non-finite old scale would be written straight back into the store: it takes the base
+        // scale, a variation of 1.
         val legacyScale = obj.optFinite("scale", legacyBase)
         obj.put("scale", (legacyScale / legacyBase).toDouble())
     }
@@ -1110,7 +953,7 @@ fun CustomThemeData.toJsonString(): String {
     overrides.forEach { (builtinId, entry) -> overridesJson.put(builtinId, entry.toJson()) }
     root.put("overrides", overridesJson)
     root.put("customThemes", JSONArray(customThemes.map { it.toJson() }))
-    // A document with nothing unreadable in it is written exactly as it always was.
+    // A document with nothing unreadable in it is written without the section.
     if (unreadable.isEmpty()) return root.toString()
     // The kept entries go in as text, not as parsed JSON: `org.json` re-serialises what it parses
     // (numbers, escapes, key order), and those bytes are the only copy the user has. So the
@@ -1131,72 +974,28 @@ fun CustomThemeData.toJsonString(): String {
 }
 
 /**
- * Puts the cars back into a built-in override that was saved without them, or without all of them.
+ * Puts the cars back into a built-in override saved without them, or without all of them.
  *
- * ### What it repairs, and why it has to exist
+ * Files written by an older save path hold `rawLayout.cars.filter { keepCar(it) }`, so a theme saved
+ * with Cars low or off has an **empty or thinned car list**: empty, it loses the road
+ * (`SceneObjectRenderer.hasRoad`) and all traffic for good while the settings say "On - 100%";
+ * thinned, its traffic is capped for ever, one car deriving the painted road from half a lane pair.
  *
- * Until this release, saving a theme wrote `rawLayout.cars.filter { keepCar(it) }` into the entry, so a
- * theme saved while the Cars density was low -- or while Cars were switched off -- was stored with
- * an **empty car list**. `SceneObjectRenderer.hasRoad` is `layout.cars.isNotEmpty()`, so that
- * theme lost its road and all its traffic permanently: raising the density afterwards filters a
- * list that has nothing left in it, while the settings screen goes on reporting "On - 100%"
- * because the *customization* is intact. It is the layout that was damaged.
- *
- * The save path no longer does that. This repairs the installs where it already happened, which
- * the fix alone cannot reach.
- *
- * ### The guard, which is deliberately narrow
- *
- * All of these must hold, or the entry is returned untouched:
- *
- *  1. it is a **built-in override** -- the key of the `overrides` map, not a standalone theme;
- *  2. the **built-in it overrides still defines cars** ([SceneObjectCatalog.builtinCarsFor],
- *     which reads the original and not the override);
- *  3. its `layout.cars` holds **fewer cars than that canonical list**;
- *  4. and, when the stored list is not empty, it is **exactly what the old save path would have
- *     written** at this entry's own baked density -- see [oldSaveWouldHaveWritten].
- *
- * Anything less certain is left alone: a standalone custom theme has no canonical layout to
- * compare against, so **it is never speculatively repaired**, and a built-in whose own definition
- * has no cars is not given any.
- *
- * ### Why a partial list is repaired too (v4.4)
- *
- * The empty list is the visible half of the defect. The other half is a list the old save path
- * *thinned* rather than emptied -- measured on the real ten-car layout, saving at 65% wrote 8
- * cars, at 50% wrote 6, at 20% wrote 1. Those keep a road, so they were not what the original
- * report was about, but they are damaged in the same way and just as permanently: the inventory
- * is capped for ever, so raising the density afterwards can never bring the missing traffic
- * back, and a list thinned to a single car canonicalises onto **one** lane, which leaves the
- * painted road derived from half a lane pair.
- *
- * It is repaired because it can be *proved* rather than assumed, on two independent grounds.
- * First, by enumeration of the writers: the only thing that ever puts a layout into `overrides`
- * is `snapshotEntry`, and a backup restore of data that came from it -- a theme *import* is
- * always a new standalone theme and never an override -- so for a built-in override a partial
- * car list has no author but the old save path. Second, by reconstruction:
- * [oldSaveWouldHaveWritten] rebuilds that author's output and requires an exact match before
- * anything is written.
- *
- * ### What it does not touch
- *
- * Only `layout.cars`. Not the customization -- so the density, the visibility and every colour the
- * user chose survive exactly, and a theme repaired while its density was 10% still shows 10% of
- * the traffic, now on a road. Not the name, not the theme colours, not the static objects.
- *
- * ### Idempotent by construction
- *
- * After a repair, condition 3 no longer holds, so running it again is a no-op. That is what makes
- * it safe to run on **every load** rather than as a one-off migration -- see
- * [customThemeDataFromJsonString], which is the single funnel every reader of this data goes
- * through, including the wallpaper service starting with no UI in sight.
+ * **The guard is narrow**: an override of a built-in that defines cars
+ * ([SceneObjectCatalog.builtinCarsFor] reads the original), holding fewer than that list and -- if
+ * not empty -- exactly what the old save path wrote at the entry's own density
+ * ([oldSaveWouldHaveWritten]). The only writer of an override is `snapshotEntry` (an import is
+ * always a standalone theme), so such a list has no other author. A standalone theme has nothing to
+ * compare against and is never repaired. Only `layout.cars` changes: a theme repaired at 10 % shows
+ * 10 % of the traffic, on a road. Idempotent, so it runs on **every load**
+ * ([customThemeDataFromJsonString], the one funnel every reader goes through).
  */
 fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
     if (overrides.isEmpty()) return this
     var changed = false
     val repaired = overrides.mapValues { (builtinId, entry) ->
         // Each override is repaired on its own: a repair that throws leaves that one theme as it
-        // was read, and never costs the others (item 18, v5.9A).
+        // was read, and never costs the others.
         runCatching {
             val canonical = SceneObjectCatalog.builtinCarsFor(builtinId, entry.theme.accentColor)
             if (canonical.isEmpty()) return@runCatching entry
@@ -1216,27 +1015,16 @@ fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
 }
 
 /**
- * The car list the pre-v4.3 save path would have written for [canonical] under [customization],
- * as it comes back off disk.
+ * The car list the old save path would have written for [canonical] under [customization], as it
+ * comes back off disk. That path stored `rawLayout.cars.filter { keepCar(it) }` **and** the
+ * customization it filtered with, and every load runs the list through
+ * [SceneObjectCatalog.canonicaliseTraffic]: so a damaged entry carries its own proof, and only an
+ * exact, car-for-car match is repaired. [legacyKeepCar] is a threshold on a fixed per-car fraction
+ * (one of eleven nested subsets of a ten-car list), so anything else -- or a canonical layout
+ * generated differently -- fails the match and is left alone.
  *
- * `snapshotEntry` stored `rawLayout.cars.filter { keepCar(it) }` **and** the very customization it
- * filtered with, in the same entry, and every load then runs the list through
- * [SceneObjectCatalog.canonicaliseTraffic]. So a damaged entry carries its own proof: rebuilding
- * that expression from the canonical list and the entry's own baked customization has to
- * reproduce the stored list exactly, car for car.
- *
- * That is what turns the partial-inventory repair from a guess into a check. [legacyKeepCar] is a
- * threshold on a fixed per-car fraction, so the old filter could only ever emit one of eleven
- * nested subsets of a ten-car list; requiring an exact match against the one the entry's own
- * density selects refuses everything else, including any list this build cannot account for. If
- * the canonical layout is ever regenerated differently, the match simply stops succeeding and
- * nothing is written -- the failure mode is "leave it alone", which is the right one.
- *
- * **[legacyKeepCar], not the live selection.** The predicate here is the *author's*: the pre-v4.3
- * save path filtered with the threshold selection every release before v4.22 shipped, so its
- * output can only be reconstructed by that same frozen expression. v4.22 moved rendering to a
- * distributed count ([CarSelection]); following it here would silently stop every pre-v4.3
- * damaged install from matching, and the repair would never run again.
+ * **[legacyKeepCar], not the live selection ([CarSelection])**: the old path's output is
+ * reconstructed only by its own frozen expression; the live one would match no damaged entry.
  */
 private fun oldSaveWouldHaveWritten(
     canonical: List<CarObject>,
@@ -1247,15 +1035,11 @@ private fun oldSaveWouldHaveWritten(
 /**
  * The stored blob, or `null` if there is one and it cannot be read at all.
  *
- * The distinction [customThemeDataFromJsonString] deliberately hides -- an absent store and a
- * document that is not JSON both read as `CustomThemeData.EMPTY`, which is what a *reader* wants. A
- * read-modify-write needs to tell them apart or it overwrites the second with a document derived
- * from nothing; see `CustomThemeStore.update` for what that cost.
- *
- * **Since v5.9A (item 18) `null` means the document itself, not one theme in it.** A document whose
- * entries are unreadable one by one reads with those entries set aside in
- * [CustomThemeData.unreadable], and writing it back keeps them, so an edit no longer has to be
- * refused for their sake.
+ * [customThemeDataFromJsonString] reads an absent store and a document that is not JSON alike, as
+ * `CustomThemeData.EMPTY`, which is what a reader wants; a read-modify-write must tell them apart, or
+ * it overwrites the second with a document derived from nothing (`CustomThemeStore.update`). `null`
+ * means the document, not one theme in it: entries unreadable one by one are set aside in
+ * [CustomThemeData.unreadable] and written back, so an edit is not refused for their sake.
  */
 fun customThemeDataOrNull(raw: String?): CustomThemeData? {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY
@@ -1269,17 +1053,14 @@ fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
 }
 
 /**
- * Reads a saved-themes document **entry by entry** (item 18, v5.9A).
+ * Reads a saved-themes document **entry by entry**, so one damaged entry never reads as no saved
+ * themes at all.
  *
- * `null` only when [raw] is not a JSON object at all, or the migrations fail on it as a whole (none
- * can today: each step that reads a theme's contents is guarded per entry). Otherwise every entry
- * that reads is returned as before, and every one that does not is kept in
- * [CustomThemeData.unreadable] with its bytes as they stand in [raw] -- **before** the migrations
- * below rewrite the parsed copy -- and the schema version those bytes are in. Until v5.9A the whole
- * read sat in one `catch`, so one damaged entry read as "no saved themes at all".
- *
- * Kept entries that an earlier write put in the `unreadableEntries` section are tried again on every
- * read: see [recoverUnreadable].
+ * `null` only when [raw] is not a JSON object, or the migrations fail on it as a whole (none can
+ * today: each step that reads a theme's contents is guarded per entry). Every entry that reads is
+ * returned; every one that does not is kept in [CustomThemeData.unreadable] with its bytes as they
+ * stand in [raw] -- **before** the migrations rewrite the parsed copy -- and the schema those bytes
+ * are in. Entries already in the `unreadableEntries` section are tried again ([recoverUnreadable]).
  */
 private fun readCustomThemeDocument(raw: String): CustomThemeData? {
     val root = try {
@@ -1305,7 +1086,7 @@ private fun readCustomThemeDocument(raw: String): CustomThemeData? {
 
     val unreadable = mutableListOf<UnreadableThemeEntry>()
     val overrides = LinkedHashMap<String, CustomThemeEntry>()
-    // An explicit `null` holds nothing, so it reads as absent, as it always has.
+    // An explicit `null` holds nothing, so it reads as absent.
     fun present(value: Any?): Boolean = value != null && value != JSONObject.NULL
     val overridesValue = root.opt("overrides")
     if (overridesValue is JSONObject) {
@@ -1356,10 +1137,8 @@ private fun readCustomThemeDocument(raw: String): CustomThemeData? {
         emptyList()
     }
     val kept = recoverUnreadable(earlier, overrides, customThemes)
-    // Repaired on the way out, never on the way in: the bytes on disk are left as they are and
-    // the fix is applied to what the app uses. That is one fewer write on a startup path, it
-    // covers data that arrives later from a backup import just as well, and being idempotent
-    // it needs no schema bump and no migration entry. See [repairBuiltInOverrides].
+    // Repaired on the way out, never on the way in: the bytes on disk stay as they are, a startup
+    // makes no write, and data from a backup import is covered alike ([repairBuiltInOverrides]).
     return CustomThemeData(overrides = overrides, customThemes = customThemes, unreadable = unreadable + kept)
         .repairBuiltInOverrides()
 }

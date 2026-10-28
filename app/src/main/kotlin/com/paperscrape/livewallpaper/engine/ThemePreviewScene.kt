@@ -5,33 +5,31 @@ import com.paperscrape.livewallpaper.R
 /**
  * One blit of a preview object: the resource, the offset the renderer blits it at, and the tint
  * (null for fixed art). Offsets are in scene units and come from `SceneObjectRenderer`'s own draw
- * functions -- read from its constants where it has them, copied where it does not -- so a preview
- * house is assembled out of the parts, at the positions, the wallpaper assembles one from.
+ * functions (its constants where it has them, copied where it does not), so a preview house is
+ * assembled from the parts, at the positions, the wallpaper assembles one from.
  *
- * [added] is the people's and the neighbourhood's blend: the mask's contribution is **summed**
- * into the frame over a fixed layer rather than drawn over it, which is what makes a weight mask
- * interpolate. A preview that drew those masks with a plain tint would show the wall colour
- * covering the ink it is supposed to be added to -- the same mistake, in the gallery, that
- * `SpriteBlitter.drawTintedAdded` exists to prevent in the scene.
+ * [added] is the people's and the neighbourhood's blend: the mask is **summed** into the frame over
+ * a fixed layer, which is what makes a weight mask interpolate; drawn with a plain tint it would
+ * cover the ink it is added to (`SpriteBlitter.drawTintedAdded`).
  *
  * [shade] is how lit a piece of fixed art is, the neutral grey `SpriteBlitter.draw` multiplies it
- * by, and only for a part with no [tint]: the palm and, since v5.14, the fir, which the wallpaper shades
- * rather than tints (`SceneObjectRenderer.drawPalmTree`, `drawFir`, [nightShadeFor]). Full daylight, the
- * default, draws the art as authored.
+ * by, only for a part with no [tint]: the palm and the fir, which the wallpaper shades rather than
+ * tints (`SceneObjectRenderer.drawPalmTree`, `drawFir`, [nightShadeFor]). Full daylight, the default,
+ * draws the art as authored.
  *
  * A part with a [rectWidth] is no sprite: a flat card [rectWidth] x [rectHeight] at ([ox], [oy]) in
- * [tint] -- a house's lit window over its dark glass at night (v5.12), as the wallpaper lays it
- * (`SceneObjectRenderer.drawLitPanes`), or a shut building's blinds (v5.14, `SceneObjectRenderer.drawShut`).
- * A part with an [outline] is no sprite either: a flat card of that shape in [tint], its points `x0, y0, x1, y1,
- * ...` in the item's units -- a band of a shut building's shutter, cut from its door's outline as the wallpaper
- * cuts it ([DoorShutter.band]), or a tower's star. A part with a [discRadius] is a disc centred on
- * ([ox], [oy]) in [tint] at [alpha] -- a Christmas bulb, drawn as the wallpaper's preview draws one
- * (`SpriteBlitter.drawDisc`, a circle on a Canvas). [resId] is 0 for the three ([isFlat]).
+ * [tint], a house's lit window over its dark glass at night (`SceneObjectRenderer.drawLitPanes`) or a
+ * shut building's blinds (`SceneObjectRenderer.drawShut`). A part with an [outline] is a flat card of
+ * that shape in [tint], its points `x0, y0, x1, y1, ...` in the item's units: a band of a shut
+ * building's shutter, cut from its door's outline as the wallpaper cuts it ([DoorShutter.band]), or a
+ * tower's star. A part with a [discRadius] is a disc centred on ([ox], [oy]) in [tint] at [alpha], a
+ * Christmas bulb, drawn as the wallpaper's preview draws one (`SpriteBlitter.drawDisc`, a circle on a
+ * Canvas). [resId] is 0 for the three ([isFlat]).
  *
- * [scale] draws a sprite that many times its size from ([ox], [oy]): a tower's wreath, half as large again as a
- * house's (`SceneObjectRenderer.drawWreath`), and the card's decorations a little larger again (`decorations`).
- * [decoration] marks the parts of the Christmas decorations (v5.14C2): the bulbs, the stars and the wreaths -- not the
- * building's own paper, nor its shut sign.
+ * [scale] draws a sprite that many times its size from ([ox], [oy]): a tower's wreath, half as large
+ * again as a house's (`SceneObjectRenderer.drawWreath`), and the card's decorations a little larger
+ * again (`decorations`). [decoration] marks the parts of the Christmas decorations: the bulbs, the
+ * stars and the wreaths, not the building's own paper nor its shut sign.
  */
 data class PreviewSprite(
     val resId: Int,
@@ -47,7 +45,7 @@ data class PreviewSprite(
     val discRadius: Float = 0f,
     val scale: Float = 1f,
     val decoration: Boolean = false,
-    /** A sprite drawn mirrored left to right about its origin, at [scale]: the right-hand cobweb of a roof (v5.16). */
+    /** A sprite drawn mirrored left to right about its origin, at [scale]: the right-hand cobweb of a roof. */
     val mirrored: Boolean = false,
 ) {
     /** A flat card -- a rectangle, an outline or a disc -- and not a sprite. */
@@ -68,8 +66,8 @@ data class PreviewPeak(
     val halfWidth: Float,
     val colour: Int,
     /**
-     * The distant houses standing on this mountain (v5.11), painted right after it and before the
-     * next one, as the wallpaper paints them: empty unless the theme turns them on above 0 %.
+     * The distant houses standing on this mountain, painted right after it and before the next one,
+     * as the wallpaper paints them: empty unless the theme turns them on above 0 %.
      */
     val houses: List<PreviewItem> = emptyList(),
 )
@@ -78,12 +76,10 @@ data class PreviewPeak(
 data class PreviewBand(val top: Float, val bottom: Float, val colour: Int)
 
 /**
- * A single filled dot: a star, a snowflake, a raindrop, a falling leaf.
- *
- * [front] is where it is painted: behind everything, in the sky (a star), or over the whole card
- * (rain, snow and falling leaves, which the wallpaper draws after everything else). The painter
- * used to decide by radius, and rain and snow are smaller than a leaf, so both ended up in the
- * sky pass and a snowy card snowed only behind the town.
+ * A single filled dot: a star, a snowflake, a raindrop, a falling leaf. [front] is where it is
+ * painted: in the sky behind everything (a star), or over the whole card (rain, snow and falling
+ * leaves, which the wallpaper draws last). Said here, not read from the radius: rain and snow are
+ * smaller than a leaf and still fall in front of the town.
  */
 data class PreviewDot(
     val x: Float,
@@ -95,12 +91,9 @@ data class PreviewDot(
 )
 
 /**
- * Everything one theme's gallery preview draws, in the order it draws it.
- *
- * Deliberately a plain data description with no Android type in it beyond resource ids (which are
- * `Int`s): what a preview contains is a question about the theme, answerable and testable without a
- * `Canvas`. `ThemeScenePreview` in `ui/ThemePreview.kt` is the only thing that knows how to put it
- * on screen.
+ * Everything one theme's gallery preview draws, in the order it draws it: plain data with no
+ * Android type beyond resource ids, so what a preview contains is testable without a `Canvas`.
+ * `ThemeScenePreview` in `ui/ThemePreview.kt` is the only thing that puts it on screen.
  */
 data class ThemePreviewScene(
     val skyTop: Int,
@@ -117,12 +110,10 @@ data class ThemePreviewScene(
     val ground: List<PreviewItem>,
     val dots: List<PreviewDot>,
     /**
-     * What floats on the lake, drawn in a pass of its own immediately after the water.
-     *
-     * A list rather than more entries in [backdrop], because [backdrop] is split at the horizon by
-     * the painter -- everything above it goes behind the hills, everything below in front of them
-     * -- and the water band can sit on either side of that line. Beach's sea starts above the
-     * horizon, so a boat put in [backdrop] there is painted *under* the water and disappears.
+     * What floats on the lake, drawn in a pass of its own right after the water. Not in [backdrop],
+     * which the painter splits at the horizon (above it behind the hills, below in front), while the
+     * water can sit on either side: Beach's sea starts above the horizon, and a boat in [backdrop]
+     * there would be painted under the water.
      */
     val water: List<PreviewItem> = emptyList(),
 ) {
@@ -135,18 +126,10 @@ data class ThemePreviewScene(
 }
 
 /**
- * The one place a preview's size on screen is decided.
- *
- * Every place that shows a preview -- the gallery card, the settings home card and the strip at
- * the top of World & scene -- takes its scale from this, so none of them can drift into per-object
- * fitting factors of its own, and all three size themselves to [ASPECT_RATIO], so none can drift
- * into a different aspect ratio or crop. That drift is exactly what v2.9 shipped: the gallery
- * previews were composed in scene units while the World & scene strip still magnified the size
- * table with per-item fitting factors so three objects of very different heights would fit a
- * 120 dp band, and the two sat next to each other looking like different products. The settings
- * home card (`SettingsScreen`'s `HomeThemePreview`) was the last one out of step: 16:9 until v5.9F,
- * it showed only the top 180 of the scene's 240 units and cropped the pavement, the road and the
- * cars (inventory I-88).
+ * The one place a preview's size on screen is decided. Every place that shows a preview (the gallery
+ * card, the settings home card and the strip at the top of World & scene) takes its scale from this
+ * and sizes itself to [ASPECT_RATIO], so none grows fitting factors of its own, another aspect ratio,
+ * or a crop that hides the pavement, the road and the cars.
  */
 object ThemePreviewGeometry {
 
@@ -154,11 +137,8 @@ object ThemePreviewGeometry {
     const val ASPECT_RATIO = ThemePreviewScene.WIDTH_UNITS / ThemePreviewScene.HEIGHT_UNITS
 
     /**
-     * Scene units to pixels for a container [widthPx] wide.
-     *
-     * Uniform: the same factor on both axes, so nothing is stretched and no object needs a fitting
-     * factor of its own. A container is expected to hold the whole scene at [ASPECT_RATIO]; the
-     * height that requires is [heightFor].
+     * Scene units to pixels for a container [widthPx] wide, the same factor on both axes, so nothing
+     * is stretched. A container holds the whole scene at [ASPECT_RATIO], [heightFor] high.
      */
     fun scaleFor(widthPx: Float): Float = widthPx / ThemePreviewScene.WIDTH_UNITS
 
@@ -167,61 +147,43 @@ object ThemePreviewGeometry {
 }
 
 /**
- * Whether the wallpaper draws any of a thing at all: switched on **and above 0 %** (v5.10E). The card
- * read the switches alone, so with a density, an intensity or a number at 0 -- where the wallpaper draws
- * none (v5.10C, row 8: the switch reads off there) -- it went on showing trees, houses, the decorations,
- * clouds, birds, rain and boats over a scene that had none of them; the v5.10C2 round saw it for the trees.
- * Not for the buildings, whose shops stay at 0 %, nor the cars, one of which drives, nor the people, who
- * have their night density: those keep their switch alone, as the wallpaper does.
+ * Whether the wallpaper draws any of a thing at all: switched on **and above 0 %**, since at a
+ * density, an intensity or a number of 0 the wallpaper draws none and the switch reads off. Not for
+ * the buildings, whose shops stay at 0 %, nor the cars, one of which drives, nor the people, who have
+ * their night density: those keep their switch alone, as the wallpaper does.
  */
 private fun drawn(visible: Boolean, amount: Float): Boolean = visible && amount > 0f
 
 /**
  * Builds a theme's preview scene out of the customization the wallpaper would draw it with.
  *
- * **Nothing here decides what a theme contains.** Every object is conditional on the same flags
- * the wallpaper reads -- `lake.drawsWater`, `snowmen.visible` with its density ([drawn], v5.10E),
- * `winterColorsEnabled`, `halloweenEnabled`, `mountainsFront.visible` and so on -- so a preview shows what the scene
- * shows wherever the card reads the same flag. The one exception there was, a sparse wood
- * (`trees.density <= 0.25`) drawn as a fir, went in v5.8E (V3-48): the wallpaper draws a fir only
- * where [SceneObjectRenderer.drawsFirs] says so, and Tundra's card showed one its wallpaper never
- * draws. A sparse wood is now one tree of the kind the wallpaper stands there. The gallery
- * passes what `CustomThemeRegistry.resolveActiveCustomization` resolves for the theme, the same
- * resolution the wallpaper makes: an edit in progress, then the theme's own edits, then a saved
- * copy, then the defaults.
+ * **Nothing here decides what a theme contains.** Every object is conditional on the flags the
+ * wallpaper reads (`lake.drawsWater`, `snowmen.visible` with its density ([drawn]),
+ * `winterColorsEnabled`, `halloweenEnabled`, `mountainsFront.visible` and so on), a fir included
+ * ([SceneObjectRenderer.drawsFirs]). The gallery passes what
+ * `CustomThemeRegistry.resolveActiveCustomization` resolves for the theme, as the wallpaper does.
  *
  * **Nor does anything here decide a colour or a shape of the landscape.** The sky comes from
- * [SkyGradient], the road from `SceneObjectRenderer.roadColor` and `drawsRoad`, every other
- * day/night pair is blended on the same `dayBlend`, and whether trees are palms from the layout's
- * own slots -- all at the moment of the day the card shows, which is a real moment of the
- * wallpaper's day ([cardPhase]). `ThemePreviewTruthTest`'s R4 holds the card to it.
+ * [SkyGradient], the road from `SceneObjectRenderer.roadColor` and `drawsRoad`, every other day/night
+ * pair is blended on the same `dayBlend`, and whether trees are palms from the layout's own slots, all
+ * at a real moment of the wallpaper's day ([cardPhase]); `ThemePreviewTruthTest`'s R4 holds it.
  *
- * What lives here instead is *composition*: which slots exist and where they stand. The real scene
- * generates hundreds of objects across a screen five times this wide, and shrinking that produces a
- * grey mush; a preview is a dozen objects, one per family, in a far-to-near order chosen for the
- * card -- towers, restaurant, large house, school, small house, bar, then the trees, the pavement
- * and the road -- which follows the scene's shop depths but not its houses, which stand in both
- * house bands. See [forTheme].
+ * What lives here is *composition*: the real scene spreads hundreds of objects over a screen five
+ * times this wide, and shrunk that is a grey mush, so a preview is a dozen objects, one per family,
+ * far to near: towers, restaurant, large house, school, small house, bar, then the trees, the
+ * pavement and the road. It follows the scene's shop depths, not its houses, which stand in two
+ * bands ([forTheme]).
  */
 object ThemePreviewScenes {
 
     /**
-     * The depth rows the card's street is built on, far to near.
-     *
-     * v5.7 replaced four reading bands with an order taken from the scene's. `SceneSpace` gives each
-     * place among the houses its row of the size table by `depthFraction` -- the card's rows stand at
-     * 0.4444, 0.6222 and 0.8000, the nearer place of each row on all twelve built-ins (since v5.13B2 the
-     * restaurant's and the bar's rows also hold 0.3556 and 0.7111, and which of the six buildings stands
-     * in a place is the street's, [StorefrontStreet]), measured, not chosen here -- with the towers on
-     * the skyline (0.00-0.27); the
-     * houses of both families stand in two bands (0.28-0.48 and 0.62-0.95), so the card's two
-     * house rows are a choice, not the scene's order. A row is a ground line rather than a band:
-     * an object on a nearer row is appended later and is therefore drawn in front, which is the
-     * whole of the ordering.
-     *
-     * What this replaced put the restaurant and the bar side by side on one row with the two
-     * houses in front of them, so the bar -- the nearest of the scene's shops -- was 88 % hidden
-     * behind the small house on ten of the twelve cards.
+     * The depth rows the card's street is built on, far to near. The three building rows follow the
+     * scene's rows of the size table (`SceneSpace`): the card's places are the nearer place of each
+     * row on all twelve built-ins (0.4444, 0.6222 and 0.8000), and which building stands in a place is
+     * the street's ([StorefrontStreet]); the towers are on the skyline (0.00-0.27). The scene's houses
+     * stand in two bands (0.28-0.48 and 0.62-0.95), so the card's two house rows are a choice. A row is
+     * a ground line: an object on a nearer row is appended later and drawn in front. The bar, the
+     * nearest shop, stands in front of the small house, not hidden behind it.
      */
     private const val ROW_TOWERS = 168f
     private const val ROW_RESTAURANT = 178f
@@ -235,33 +197,22 @@ object ThemePreviewScenes {
     private const val ROW_CARS = 214f
 
     /**
-     * Where a seasonal decoration that used to stand at the right edge stands now.
-     *
-     * The bar is the nearest building and it sits on the right edge, so a snowman, a pumpkin or a
-     * rabbit left at 288-296 would cover the one building this layout exists to reveal. They move
-     * in front of the small house instead, which is the next gap going left.
+     * Where the card's right-hand seasonal decoration stands: in front of the small house, the next
+     * gap left of the bar, so a snowman, a pumpkin or a rabbit never covers the bar on the right edge.
      */
     private const val DECOR_RIGHT_X = 232f
 
     /**
-     * The water's lower edge, and how far it climbs when the lake is at full height.
-     *
-     * **This is the correction the round is named after.** `PaperRenderer.updateLakeBandY` anchors
-     * the lake's *bottom* to the guaranteed ground line and grows it *upward*; the card anchored
-     * its *top* to the horizon and grew it *downward*, and then stood boats and dolphins at
-     * constant offsets from that top. The two disagree for every lake shorter than about two
-     * thirds, which is every built-in lake but Beach's -- and the default is 0.33 -- so the
-     * animals were placed below the water they were supposed to be in. On Beach, the one card
-     * with no town in front to hide the mistake, a dolphin had 44 % of its body on the sand.
-     *
-     * 164 is the ground line the towers stand behind; 56 is the climb at full height, which takes
-     * the surface to 108, 42 units above the card's horizon line
-     * ([ThemePreviewScene.HORIZON_UNITS]) and among the back mountains' peaks (104..118).
+     * The water's lower edge, and how far it climbs at full height. As in
+     * `PaperRenderer.updateLakeBandY`, the lake's bottom is anchored to the ground and it grows
+     * upward, so the boats and dolphins, placed from the surface, stay in the water at every height.
+     * 164 is the ground line the towers stand behind; 56 takes the surface at full height to 108, 42
+     * units above the card's horizon ([ThemePreviewScene.HORIZON_UNITS]) and among the back
+     * mountains' peaks (104..118).
      *
      * Named `CARD_` and not `LAKE_` on purpose: these are lengths on the card's own 320x240
      * canvas, not lengths of the lake's sprites, and `UnitFrameTest`'s prefix table resolves
-     * `LAKE_` to the sprite frame. A number that declares the wrong frame is the one thing that
-     * test exists to stop.
+     * `LAKE_` to the sprite frame.
      */
     private const val CARD_LAKE_BOTTOM_UNITS = 164f
     private const val CARD_LAKE_FULL_HEIGHT_UNITS = 56f
@@ -272,53 +223,45 @@ object ThemePreviewScenes {
     private const val ROAD_TOP = 207f
     private const val ROAD_BOTTOM = 229f
 
-    /** See [car]: where a wheelless preview car's painted floor sits, kept from v4.18. */
+    /** See [car]: where a wheelless preview car's painted floor sits. */
     internal const val PREVIEW_CAR_FLOOR_DROP = 28f
 
     /**
      * Where the card's two bodies stop: the last row of ink of `car_body_saloon` and
      * `car_body_estate` is row 129, so the ink ends 130 / 3 units below the blit origin at
      * `bodyYUnits` = -17, which is 26.33 (`car_body_compact` ends at 26.00 and is not on any card).
-     *
-     * It read 30.5 until v5.8E -- the bottom of the v4.19 bodies plus half a unit of rim -- and the
-     * v5.6F bodies stop 4.17 units higher, so every car on every card stood 4.17 x 0.42 = 1.75 card
-     * units (1.7 px on the BV6600's 316 px card) above the floor [PREVIEW_CAR_FLOOR_DROP] gives it
-     * (V3-47). `ThemePreviewTruthTest` R5 measures the floor off the PNGs, so a redrawn body that
-     * moves its last row fails there rather than floating again.
+     * `ThemePreviewTruthTest` R5 measures it off the PNGs, so a redrawn body that moves its last row
+     * fails there instead of floating above the floor [PREVIEW_CAR_FLOOR_DROP] gives it.
      */
     private const val CAR_PAINTED_FLOOR_UNITS = -17f + 130f / 3f
 
     /**
-     * How wide the card's sleigh is, in the card's 320 units: what the card gave the sleigh until v5.15 (198 units at
-     * 0.26), kept for the group of v5.15 (the maintainer, 2026-10-19: *«Scheda slitta: lascia così»*).
+     * How wide the card's sleigh is, in the card's 320 units: the size the maintainer kept for it
+     * (2026-10-19: *«Scheda slitta: lascia così»*).
      */
     const val SLEIGH_CARD_WIDTH = 51f
 
     /**
-     * Where the card's Headless Horseman flies when Santa's sleigh is on the card too (v5.16): lower on the sky's right,
+     * Where the card's Headless Horseman flies when Santa's sleigh is on the card too: lower on the sky's right,
      * under the far cloud and clear of the Halloween moon, where the two groups do not cover each other.
      */
     const val HORSEMAN_CARD_X_BESIDE_SANTA = 194f
     const val HORSEMAN_CARD_Y_BESIDE_SANTA = 60f
 
     /**
-     * The card's scarecrow (v5.16): at the Easter eggs' third point, between the pumpkins, at their scale -- its drawing
-     * brought to a snowman's height in units ([scarecrow]), so on the card a little shorter than the snowmen, which stand at
-     * 0.56 and 0.50: the card of v5.16A's `sCard=1` the maintainer was shown, kept so.
+     * The card's scarecrow: at the Easter eggs' third point, between the pumpkins, at their scale, its drawing brought to
+     * a snowman's height in units ([scarecrow]), so a little shorter than the card's snowmen (0.56 and 0.50), as the
+     * maintainer was shown it.
      */
     const val SCARECROW_CARD_X = 92f
     const val SCARECROW_CARD_SCALE = 0.46f
 
     /**
      * The clock hours the card shows, on the default day `SunPositionCalculator.compute` assumes
-     * (sunrise 06:00, sunset 20:00).
-     *
-     * Noon for a day card, midnight for a night one, and for Sunset -- the one theme named after
-     * a moment of the day -- 19:00, an hour before that day's sunset, with the sun low. The card
-     * used to paint Sunset from the theme's old `skyDusk` array, whose coral top the wallpaper
-     * never draws at any hour; this is the wallpaper's own sky at a moment it does draw. All three
-     * are whole hours on purpose: they are what *Weather & time*'s fixed-time slider can set, so
-     * anybody can put the wallpaper at the card's moment and compare the two.
+     * (sunrise 06:00, sunset 20:00): noon for a day card, midnight for a night one, and for Sunset,
+     * the one theme named after a moment of the day, 19:00, an hour before sunset with the sun low.
+     * Whole hours on purpose: *Weather & time*'s fixed-time slider can set them, so the wallpaper can
+     * be put at the card's moment and the two compared.
      */
     internal const val CARD_DAY_HOUR = 12f
     internal const val CARD_NIGHT_HOUR = 0f
@@ -336,32 +279,15 @@ object ThemePreviewScenes {
         SunPositionCalculator.compute(cardHour(theme, night))
 
     /**
-     * [forceNight] overrides the time of day the theme would otherwise be shown at. The gallery
-     * never passes it -- a card shows the theme's own hour -- but the World & scene strip has
-     * always had a day/night toggle, because half the colours a user edits there are night
-     * colours and a preview that cannot show them is not much of a preview.
+     * [forceNight] overrides the time of day the theme would otherwise be shown at. The gallery never
+     * passes it (a card shows the theme's own hour); the World & scene strip's day/night toggle does,
+     * since half the colours edited there are night colours.
      *
-     * ### v5.7: the card shows the street, in the scene's own order
-     *
-     * The composition this replaced was arranged for a picture rather than after the scene, and a
-     * census of all twelve built-ins against the catalogue found forty-nine places where the card
-     * said something the wallpaper does not do: no card showed the school, which every theme
-     * builds; the bar was 88 % behind the small house on ten of them; Beach omitted its entire
-     * town; Big City omitted its three houses (and a test asserted it must); the birds nobody
-     * drew; and every boat and dolphin stood outside the water (see [CARD_LAKE_BOTTOM_UNITS]).
-     *
-     * So the six building families are laid out far to near with the shops in the order
-     * `SceneSpace` deals them -- towers, restaurant, school, bar -- and one house of each family
-     * between them; the road carries the fire appliance the traffic mix really contains one time
-     * in ten, gulls fly by day, and the lake's life is placed on lanes that are fractions of the
-     * band rather than at constant offsets.
-     *
-     * **Nothing here decides what a theme contains**: every object stays conditional on the flag
-     * the wallpaper reads, the fir included since v5.8E (V3-48). What changed is only where
-     * the objects stand, and `ThemePreviewTruthTest` is the measure that keeps it honest: it
-     * re-runs the census on every built-in and on a custom customization, and fails if a family
-     * the scene draws is missing from the card, if the card invents one, if a boat or a dolphin
-     * has ink outside the water, or if anything is more than half covered by what follows it.
+     * The road carries the fire appliance, one vehicle in ten of the scene's traffic; gulls fly by day;
+     * the lake's life stands on lanes that are fractions of the band. `ThemePreviewTruthTest` runs the
+     * census on every built-in and on a custom customization, and fails if a family the scene draws is
+     * missing from the card, if the card invents one, if a boat or a dolphin has ink outside the water,
+     * or if anything is more than half covered by what follows it.
      */
     fun forTheme(
         theme: SceneTheme,
@@ -372,31 +298,28 @@ object ThemePreviewScenes {
         val c = customization
         val winter = c.winterColorsEnabled
         val halloween = c.halloweenEnabled
-        // Night for the two themes whose subject *is* the night: the fireworks theme and the
-        // horror sky. Everything else reads its day palette, which is what a gallery is for -- but a theme with
-        // Halloween's night sky by day in force (v5.16) is night at every hour on the wallpaper, and so on its card,
-        // and on the World & scene strip's "Day" too (until the mid-round review of v5.16B the strip's "Day" drew a
-        // day the wallpaper never shows).
+        // Night for the two themes whose subject *is* the night: the fireworks theme and the horror
+        // sky. Everything else reads its day palette, which is what a gallery is for; but a theme with
+        // Halloween's night sky by day in force is night at every hour on the wallpaper, so on its card
+        // and on the World & scene strip's "Day" too.
         val night = (forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)) || c.nightOverDayActive()
-        // Every colour below that the wallpaper blends between day and night is blended here on
-        // this one number, so the card is one moment of the wallpaper's day and not a mixture.
+        // Every day/night colour below is blended on this one number: the card is one moment of the
+        // wallpaper's day, not a mixture.
         val phase = cardPhase(theme, night)
         val dayBlend = phase.dayBlend
-        // The card's hour, at which each building is as open as the wallpaper's own [BusinessHours]
-        // rule makes it -- by its group's hours, the towers', the shops' or the public buildings' (v5.13;
-        // the fire and the police station never close), a tower by what it is drawn as and a building
-        // among the houses by what it is ([SceneCustomization.opennessFor]): 1 with a group's switch off,
-        // which is the default, so only a user who turns opening hours on sees a night card's buildings go
-        // dark as the wallpaper's do (v5.9G, I-38).
+        // The card's hour, at which each building is as open as the wallpaper's [BusinessHours] rule
+        // makes it, by its group's hours (the towers', the shops' or the public buildings'; the fire and
+        // the police station never close), a tower by what it is drawn as and a building among the houses
+        // by what it is ([SceneCustomization.opennessFor]). 1 with a group's switch off, the default, so a
+        // night card's buildings go dark only for a user who turns opening hours on, as the wallpaper's do.
         val hour = cardHour(theme, night)
         // The theme's seed for who stands at a house's windows, the wallpaper's own (`themeId.hashCode()`
         // in `SceneObjectRenderer`): which of a house's windows the card lights at night follows it.
         val seed = theme.id.hashCode()
-        // Palms where the switch puts them, read the way the wallpaper reads it: on a layout that
-        // plants palms, with it off the palm slots draw the ordinary tree; on one that plants none,
-        // with it on the tree slots draw palms (v5.10C, `palmsShown`). Asked of the layout rather
-        // than of the theme's name, which said "oaks" about a theme saved from Beach while the
-        // wallpaper drew its palms.
+        // Palms where the switch puts them, as the wallpaper reads it (`palmsShown`): on a layout that
+        // plants palms, with it off the palm slots draw the ordinary tree; on one that plants none, with
+        // it on the tree slots draw palms. Asked of the layout, not the theme's name, so a theme saved
+        // from Beach keeps its palms.
         val layoutPlantsPalms = layout.hasPalmSlots()
         val palms = c.palmsShown(layoutPlantsPalms)
 
@@ -424,14 +347,13 @@ object ThemePreviewScenes {
         val dots = mutableListOf<PreviewDot>()
 
         // --- sun or moon ----------------------------------------------------------------------
-        // The moon at night, and on a card with *Halloween* on by day too (decided, inventory I-936) -- only
-        // while *Moon* is on, as the wallpaper's (`PaperRenderer.drawCelestialBody`): until v5.15C2 the card
-        // drew it whatever *Moon* said (inventory I-974). With *Moon* off such a card has neither moon nor sun.
+        // The moon at night, and by day too on a card with *Halloween* on, only while *Moon* is on, as on
+        // the wallpaper (`PaperRenderer.drawCelestialBody`). With *Moon* off such a card has neither moon nor sun.
         if (night || halloween) {
             if (c.moon.visible) {
                 // The Halloween moon is the moon in the theme's own moon colour, with the face cut out of it
-                // and the light inside the cuts over it, untinted (v5.15, `PaperRenderer.drawMoonWithPhase`):
-                // the light's origin is the wallpaper's, in the card's units.
+                // and the light inside the cuts over it, untinted (`PaperRenderer.drawMoonWithPhase`): the
+                // light's origin is the wallpaper's, in the card's units.
                 val moonSprite = if (halloween) R.drawable.moon_jack_o_lantern else R.drawable.moon_full
                 val moon = PreviewSprite(moonSprite, -40f, -40f, c.moon.color)
                 backdrop += PreviewItem(
@@ -454,10 +376,8 @@ object ThemePreviewScenes {
             val sunY = if (theme.id == "sunset") 118f else 46f
             val sunX = if (theme.id == "sunset") 262f else 248f
             // Both drawings untinted, as the wallpaper draws them (`PaperRenderer.drawCelestialBody`):
-            // they are finished art, and multiplied by the user's *Sun Color* anything but a warm
-            // pick turns the disc near-black. On the wallpaper that colour reaches only the ambient
-            // glow around the sun, which the card does not draw. Until v5.9F the card tinted both
-            // (inventory I-05), so with a chosen colour it showed a sun the wallpaper never draws.
+            // finished art, which *Sun Color* would turn near-black for anything but a warm pick. On the
+            // wallpaper that colour reaches only the ambient glow around the sun, which the card does not draw.
             backdrop += PreviewItem(
                 sunX, sunY, 0.55f,
                 listOf(
@@ -470,8 +390,7 @@ object ThemePreviewScenes {
         // --- clouds ---------------------------------------------------------------------------
         if (drawn(c.clouds.visible, c.clouds.density) && !night) {
             // The wallpaper's pair at the card's moment (`PaperRenderer.drawClouds`, before its storm
-            // dimming, which needs a forecast the card does not have). Until v5.9G the day colour on
-            // every card, which only Sunset's hour tells apart: its dayBlend at 19:00 is 0.80.
+            // dimming, which needs a forecast the card does not have).
             val cloudTint = blendRgb(c.clouds.colorNight, c.clouds.colorDay, dayBlend)
             val heavy = drawn(c.precipitation.visible, c.precipitation.intensity)
             backdrop += PreviewItem(70f, 40f, if (heavy) 0.30f else 0.22f,
@@ -481,9 +400,8 @@ object ThemePreviewScenes {
         }
 
         // --- birds ------------------------------------------------------------------------------
-        // The flock the card never drew. `BirdsConfig.nightBirds` is off in every built-in, so a
-        // night card owes none -- and reading the flag rather than the theme's name means a custom
-        // theme that turns night birds on gets them here too.
+        // `BirdsConfig.nightBirds` is off in every built-in, so a night card shows none; read from the
+        // flag, so a custom theme that turns night birds on gets them here too.
         if (drawn(c.birds.visible, c.birds.density) && (!night || c.birds.nightBirds)) {
             backdrop += PreviewItem(128f, 62f, 0.9f, bird(c))
             backdrop += PreviewItem(148f, 72f, 0.7f, bird(c))
@@ -498,35 +416,30 @@ object ThemePreviewScenes {
                 val x = ((seed ushr 8) % 3160) / 10f
                 seed = seed * 1664525 + 1013904223
                 val y = ((seed ushr 8) % 1080) / 10f
-                // StarsConfig has no colour of its own, and the scene's stars are fixed cream
-                // (`PaperRenderer.STAR_POINT_COLOR`), so the card's are too. Until v5.8B they took
-                // the theme's `starColor`, which the wallpaper stopped reading with the V2 artwork.
+                // The scene's stars are fixed cream (`PaperRenderer.STAR_POINT_COLOR`), so the card's are too.
                 dots += PreviewDot(x, y, 0.55f, PaperRenderer.STAR_POINT_COLOR, alpha = 215)
             }
         }
 
         // --- the street, far to near ------------------------------------------------------------
-        // The identities are `PreviewIdentity`'s, not invented here: each one is a position the
-        // deal reads, and it decides both the silhouette the slot composer produces and which of
-        // the category's two colours the building wears. Picking them rather than a colour is the
-        // whole difference from the flat-facade version -- see [neighbourhood].
+        // The identities are `PreviewIdentity`'s: each is a position the deal reads, deciding both the
+        // silhouette the slot composer produces and which of the category's two colours the building
+        // wears ([neighbourhood]).
         val cityLike = c.buildings.density >= 0.9f
-        // Tundra thins its woodland to a scattering rather than removing it, and that is exactly
-        // what its density says; the card reads the same number.
+        // A woodland thinned to a scattering (Tundra's), read from the same density as the wallpaper.
         val sparse = c.trees.density <= 0.25f
 
         fun tower(x: Float, y: Float, fit: Float, index: Int) = buildingItem(
             x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
             PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, hour, seed,
         )
-        // The three buildings among the houses (v5.13): three of the five places of the street's first copy, one in
+        // The three buildings among the houses: three of the five places of the street's first copy, one in
         // each row of the size table ([StorefrontStreet.firstStretch], [StorefrontStreet.cardPlaceOf]).
         // A street holds six, and the other three come by as the wallpaper scrolls: what the card leaves
-        // out (DESIGN_NOTES.md §9).
+        // out (`DESIGN_NOTES.md` §12, decision 65).
         val storefronts = StorefrontStreet.firstStretch(seed, StorefrontStreet.places(layout))
-        // **No tower the wallpaper does not draw** (v5.13, inventory I-609): with *Towers* at an amount
-        // that keeps none of the layout's towers the card drew two, against decision 45 ("the gallery
-        // card draws at 0 % nothing the wallpaper does not"). Asked of the wallpaper's own rule.
+        // **No tower the wallpaper does not draw** (`DESIGN_NOTES.md` §12, decision 45: at 0 % the card
+        // draws nothing the wallpaper does not), asked of the wallpaper's own rule.
         val towersDrawn = c.buildings.visible && layout.staticObjects.any {
             it.type == SceneObjectType.SKYSCRAPER && !StorefrontStreet.isPlace(it) && c.keepCandidate(it, layout.densityScheme)
         }
@@ -575,8 +488,8 @@ object ThemePreviewScenes {
 
         // --- trees ------------------------------------------------------------------------------
         if (drawn(c.trees.visible, c.trees.density)) {
-            // Two, or one where the woodland is a scattering -- and a fir and a palm, even in a
-            // scattering, where the scene keeps both (v5.10C2). See [cardTrees].
+            // Two, or one where the woodland is a scattering, and a fir and a palm, even in a
+            // scattering, where the scene keeps both ([cardTrees]).
             val kinds = cardTrees(c, layout, layoutPlantsPalms, palms, sparse)
             val xs = if (kinds.size == 1) listOf(262f) else listOf(70f, 262f)
             kinds.forEachIndexed { index, kind ->
@@ -610,9 +523,7 @@ object ThemePreviewScenes {
 
         // --- cars -------------------------------------------------------------------------------
         if (c.cars.visible) {
-            // The traffic the scene really carries: it keeps ten vehicles at the default density
-            // and one in ten of them is the appliance, which is the loudest thing on the road and
-            // was the one body the card never showed.
+            // The traffic the scene carries: ten vehicles at the default density, one of them the appliance.
             cars += PreviewItem(60f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorAt(0, dayBlend)))
             cars += PreviewItem(160f, ROW_CARS, 0.40f, fireTruck())
             cars += PreviewItem(262f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorAt(1, dayBlend)))
@@ -622,16 +533,11 @@ object ThemePreviewScenes {
         if (c.lake.drawsWater) lakeLife(c, lake, water)
 
         // --- the ground, then what stands on it ---------------------------------------------------
-        // **Wildflowers first.** `SceneObjectRenderer.drawGroundFlowers` says of itself that it
-        // draws "before anything that stands on it", and the card had them last -- after every
-        // seasonal decoration. No built-in showed it, because Spring is the only theme with
-        // flowers on and it has no snowmen, eggs or pumpkins; a customization that turns both on
-        // buried the decoration under a clump of grass, and the rule below caught it.
+        // **Wildflowers first**, as `SceneObjectRenderer.drawGroundFlowers` draws them, before anything
+        // that stands on the ground, or a seasonal decoration is buried under a clump of grass.
         if (c.flowersEnabled) {
-            // Which clump, from the renderer's own function rather than from a copy of its rule:
-            // the card is the one place a user sees the two side by side as they flip the seasonal
-            // palette, so a preview drawing the blooming clump under autumn leaves would be
-            // advertising a scene the wallpaper does not draw.
+            // Which clump, from the renderer's own function rather than a copy of its rule, so the
+            // card never shows the blooming clump under autumn leaves.
             val flowers = SceneObjectRenderer.groundFlowerSprite(c)
             var seed = theme.id.hashCode() xor 0x5EED
             repeat(10) { i ->
@@ -651,8 +557,7 @@ object ThemePreviewScenes {
             groundItems += PreviewItem(60f, ROW_GROUND, 0.50f, gift(c.gifts.colorAt(0, dayBlend)))
         }
         if (drawn(c.penguins.visible, c.penguins.density)) {
-            // 120 and 148 stood on the two adults at 118 and 142 and covered one of them by two
-            // thirds; 72 and 98 stand beside them.
+            // Beside the two adults at 118 and 142, not over them.
             groundItems += PreviewItem(72f, ROW_GROUND + 2f, 0.60f, penguin(c.penguins.colorAt(0, dayBlend)))
             groundItems += PreviewItem(98f, ROW_GROUND + 2f, 0.54f, penguin(c.penguins.colorAt(1, dayBlend)))
             groundItems += PreviewItem(236f, ROW_GROUND, 0.50f, penguin(c.penguins.colorAt(0, dayBlend)))
@@ -671,46 +576,33 @@ object ThemePreviewScenes {
             groundItems += PreviewItem(204f, ROW_GROUND, 0.50f, pumpkin(c.pumpkins.colorAt(1, dayBlend), carved = halloween))
             groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.48f, pumpkin(c.pumpkins.colorAt(0, dayBlend), carved = halloween))
         }
-        // **One scarecrow between the pumpkins** (v5.16; the maintainer's choice of v5.16A, *«il resto, si a tutte»*, 2026-10-21: in the
-        // snowmen's two points they stood over the pumpkins and hid them), at the Easter eggs' third point and scale; its
-        // pumpkin lit by the card's night, as the wallpaper's.
+        // **One scarecrow between the pumpkins** (`DESIGN_NOTES.md` §12, decision 80): in the snowmen's two points it
+        // would stand over the pumpkins and hide them. At the Easter eggs' third point and scale; its pumpkin lit by the
+        // card's night, as the wallpaper's.
         if (drawn(c.scarecrows.visible, c.scarecrows.density)) {
             groundItems += PreviewItem(SCARECROW_CARD_X, ROW_GROUND, SCARECROW_CARD_SCALE, scarecrow(((1f - dayBlend) * 255f).toInt().coerceIn(0, 255)))
         }
-        // Parasols are deliberately absent. The renderer draws them procedurally -- there is no
-        // parasol sprite in the library -- and standing in a differently-shaped sprite would be a
-        // preview showing something the scene does not contain, which is the one thing this file
-        // must not do. `ThemePreviewTruthTest` carries the same exception, named.
+        // Parasols are deliberately absent: the renderer draws them procedurally, with no sprite, and a
+        // stand-in would show something the scene does not contain. `ThemePreviewTruthTest` names the exception.
         if (theme.hasFireworks) {
             backdrop += PreviewItem(212f, 46f, 0.55f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFFFD166.toInt())))
             backdrop += PreviewItem(258f, 66f, 0.42f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFEF7DA8.toInt())))
             backdrop += PreviewItem(160f, 70f, 0.34f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFF8AD6F0.toInt())))
         }
-        // The sleigh, for the same reason the fireworks are three lines above it.
+        // The sleigh, a periodic flyby like the fireworks, read from `santaEnabled`: a flag with no hour
+        // and no theme gate (`PaperRenderer` hands it straight to `SantaSleighEffect.update`), so a day
+        // card carrying it says what the scene does, and the Seasons screen's switch reaches every theme.
         //
-        // Both are periodic flybys on a random interval rather than populations, and the card drew
-        // one and not the other; `ThemePreviewTruthTest` exempted the sleigh and named the
-        // inconsistency in the exemption's own text. The two cannot both be right, and this is the
-        // half that was missing: `santaEnabled` is a plain per-theme flag with no hour and no theme
-        // gate on it -- `PaperRenderer` hands it straight to `SantaSleighEffect.update` -- so a day
-        // card carrying it says exactly what the scene does.
-        //
-        // Read from the flag, not from the theme's name: `defaultCustomizationFor` seeds it from
-        // `theme.hasSantaSleigh` (Christmas alone), but the Seasons screen's switch reaches every
-        // theme, and a saved theme that turns it on gets the sleigh here too.
-        //
-        // **Placed where the effect flies it and where the sky is free.** `startFlight` picks
-        // `screenHeight * (0.10..0.26)`, which is 24..62 on this 240-unit canvas; 52 is inside that
-        // band. [SLEIGH_CARD_WIDTH] of the card's 320 units across it -- a shade under the near
-        // cloud's 58 -- and the span 116..167 is the gap between the two clouds, clear of the sun on
+        // **Placed where the effect flies it and the sky is free**: `startFlight` picks
+        // `screenHeight * (0.10..0.26)`, 24..62 on this 240-unit canvas, and 52 is inside it; at
+        // [SLEIGH_CARD_WIDTH] the span 116..167 is the gap between the two clouds, clear of the sun on
         // the right and a unit clear of the nearest gull below. Fixed art, untinted, like the scene's.
         //
-        // The group of v5.15 from its pieces, still, as `SantaSleighDrawer` lays them
-        // (`SantaSleighTable`): the two reindeer in their first pose, Rudolph's red nose over his, the
-        // sleigh with Santa and the presents; facing left, its middle on the flight point. As small as
-        // the card's sleigh was (the maintainer, 2026-10-19: *«Scheda slitta: lascia così»*), so its
-        // details are under 2 px there, as they were; the cords are left out, a fraction of a pixel on
-        // the gallery card and about one on the home card, as the strings' cords are.
+        // The group from its pieces, still, as `SantaSleighDrawer` lays them (`SantaSleighTable`): the
+        // two reindeer in their first pose, Rudolph's red nose over his, the sleigh with Santa and the
+        // presents; facing left, its middle on the flight point. At this size its details are under 2 px;
+        // the cords are left out, a fraction of a pixel on the gallery card and about one on the home
+        // card, as the strings' cords are.
         if (c.santaEnabled) {
             val mid = (SantaSleighTable.LEFT + SantaSleighTable.RIGHT) * 0.5f
             backdrop += PreviewItem(
@@ -737,9 +629,10 @@ object ThemePreviewScenes {
                 ),
             )
         }
-        // The Headless Horseman (v5.16), for the sleigh's reason: a flyby its switch puts on the scene. Still, in the
-        // first pose of his gallop, facing left, as `HeadlessHorsemanDrawer` lays his pieces (`HorsemanTable`), the reins
-        // left out as the sleigh's cords are; in the sleigh's point of the sky, or -- where Santa is on too -- lower on its
+        // The Headless Horseman, for the sleigh's reason: a flyby its switch puts on the scene. Still, in the
+        // first pose of his gallop, facing left, as `HeadlessHorsemanDrawer` lays his pieces (`HorsemanTable`): his
+        // body, then his near arm at rest with the pumpkin up in its hand (the arm throws only in flight), the
+        // reins left out as the sleigh's cords are; in the sleigh's point of the sky, or -- where Santa is on too -- lower on its
         // right, so the two do not cover each other; drawn at the sleigh's card scale times the wallpaper's ratio of the two
         // groups' scales ([HeadlessHorsemanScale.toSleighScale]), so the two keep their sizes against each other.
         if (c.headlessHorsemanEnabled) {
@@ -759,7 +652,17 @@ object ThemePreviewScenes {
                     ),
                     PreviewSprite(HorsemanTable.LEGS_RES[pose], HorsemanTable.LEGS_X[pose] - mid, HorsemanTable.LEGS_Y[pose]),
                     PreviewSprite(HorsemanTable.HORSE_RES[pose], HorsemanTable.HORSE_X[pose] - mid, HorsemanTable.HORSE_Y[pose]),
-                    PreviewSprite(HorsemanTable.RIDER_RES, seatX + HorsemanTable.RIDER_X - mid, seatY + HorsemanTable.RIDER_Y),
+                    PreviewSprite(HorsemanTable.BODY_RES, seatX + HorsemanTable.BODY_X - mid, seatY + HorsemanTable.BODY_Y),
+                    PreviewSprite(
+                        HorsemanTable.ARM_RES,
+                        seatX + HorsemanTable.ARM_PIVOT_X + HorsemanTable.ARM_X - mid,
+                        seatY + HorsemanTable.ARM_PIVOT_Y + HorsemanTable.ARM_Y,
+                    ),
+                    PreviewSprite(
+                        HorsemanTable.PUMPKIN_RES,
+                        seatX + HorsemanTable.PUMPKIN_X + HorsemanTable.PUMPKIN_BLIT_X - mid,
+                        seatY + HorsemanTable.PUMPKIN_Y + HorsemanTable.PUMPKIN_BLIT_Y,
+                    ),
                 ),
             )
         }
@@ -769,16 +672,14 @@ object ThemePreviewScenes {
             var seed = theme.id.hashCode() xor 0x50F1
             val snow = c.precipitation.type == PrecipitationType.SNOW
             // The wallpaper's own rule (`PaperRenderer.drawPrecipitation`): the theme's night colour
-            // blended toward its day colour by the day blend. On this card's one moment that is the
-            // day colour at noon and the night colour at midnight, so the night cards -- Halloween's
-            // and New Year's Eve's -- rain and snow in the colours the wallpaper uses at night. Until
-            // v5.9B (inventory I-03, item 73's residue) it was the day colour on every card. The
-            // rain is then carried off the card's own sky, as the wallpaper carries it off its own
-            // ([cardRainColour], since v5.9F); the snow is not (see there).
+            // blended toward its day colour by the day blend, so the night cards (Halloween's and New
+            // Year's Eve's) rain and snow in the wallpaper's night colours. The rain is then carried off
+            // the card's own sky, as the wallpaper carries it off its own ([cardRainColour]); the snow
+            // is not (see there).
             val colour = if (snow) {
                 blendRgb(c.precipitation.snowColorNight, c.precipitation.snowColorDay, dayBlend)
             } else {
-                // The blood rain's red in place of the rain's colours while it is on (v5.16), off the sky by the same rule.
+                // The blood rain's red in place of the rain's colours while it is on, off the sky by the same rule.
                 cardRainColour(
                     if (c.bloodRainEnabled) {
                         blendRgb(PaperRenderer.BLOOD_RAIN_NIGHT, PaperRenderer.BLOOD_RAIN_DAY, dayBlend)
@@ -815,7 +716,7 @@ object ThemePreviewScenes {
             groundColour = ground,
             peaks = peaks,
             lake = lake,
-            // As the wallpaper decides it, 0 % height included (v5.10E, `LakeConfig.drawsWater`).
+            // As the wallpaper decides it, 0 % height included (`LakeConfig.drawsWater`).
             hasLake = c.lake.drawsWater,
             hasRoad = SceneObjectRenderer.drawsRoad(layout, c),
             roadColour = SceneObjectRenderer.roadColor(dayBlend),
@@ -829,11 +730,8 @@ object ThemePreviewScenes {
     }
 
     /**
-     * The card's water band, anchored the way `PaperRenderer.updateLakeBandY` anchors the scene's.
-     *
-     * Bottom fixed, growing upward with the height the user sets. The version this replaced pinned
-     * the *top* to the horizon and grew downward, which put the surface in the right place only at
-     * full height and everywhere else left the lake's life below its own floor.
+     * The card's water band, anchored the way `PaperRenderer.updateLakeBandY` anchors the scene's:
+     * bottom fixed, growing upward with the height the user sets.
      */
     private fun lakeBand(c: SceneCustomization, dayBlend: Float): PreviewBand {
         val height = c.lake.height.coerceIn(0.1f, 1f)
@@ -871,14 +769,7 @@ object ThemePreviewScenes {
         }
     }
 
-    /**
-     * The dolphin, at the renderer's origin rather than at a copy of an older one.
-     *
-     * The literals here were `(-56.3, -28)`, the pair v4.31 measured as **(+0.87, +1.0) units off
-     * the animal's centre** and replaced in `PaperRenderer`; `DolphinLeapOriginTest` asserts the
-     * renderer is rid of them, and the card was still carrying them. Reading the constants is the
-     * fix that cannot drift again.
-     */
+    /** The dolphin, at the renderer's own origin constants, so the card cannot drift from it. */
     private fun dolphin() = listOf(
         PreviewSprite(R.drawable.dolphin_body, PaperRenderer.DOLPHIN_ORIGIN_X_UNITS, PaperRenderer.DOLPHIN_ORIGIN_Y_UNITS),
     )
@@ -898,11 +789,8 @@ object ThemePreviewScenes {
 
     /**
      * The fire appliance, at `SceneObjectRenderer.drawFireTruck`'s own two origins, ladder first.
-     *
-     * Without the beacons and the lamps: those are the two rectangles and two lenses the renderer
-     * brightens on the night ramp. The card has had an hour since v5.8B ([cardPhase]), so on a night
-     * card the wallpaper's are lit where the card has none; it draws no lamp, no porch light and no
-     * window occupant at any hour, and stays so on the maintainer's answer of 2026-09-29.
+     * Without the beacons and the lamps, the rectangles and lenses the renderer brightens on the night
+     * ramp: the card draws no lamp, porch light or window occupant at any hour.
      */
     private fun fireTruck(): List<PreviewSprite> = listOf(
         PreviewSprite(
@@ -916,17 +804,13 @@ object ThemePreviewScenes {
     )
 
     /**
-     * The two mountain layers, in their colours at [dayBlend].
-     *
-     * Where they stand is the card's own composition; what they look like is the wallpaper's. The
-     * Desert used to get a row of low jagged dunes here, and the wallpaper has no desert branch
-     * at all -- it draws the Desert's mountains exactly as every other theme's -- so the card
-     * showed a horizon the scene never has.
+     * The two mountain layers, in their colours at [dayBlend]. Where they stand is the card's own
+     * composition; what they look like is the wallpaper's, the Desert's included.
      */
     private fun buildPeaks(c: SceneCustomization, dayBlend: Float, winter: Boolean): List<PreviewPeak> {
         val out = mutableListOf<PreviewPeak>()
         var index = 0
-        // At 0 % the wallpaper draws no mountain of the layer, so neither does the card (v5.11, I-414).
+        // At 0 % the wallpaper draws no mountain of the layer, so neither does the card.
         if (c.mountainsBack.drawsAny) {
             val colour = blendRgb(c.mountainsBack.colorNight, c.mountainsBack.colorDay, dayBlend)
             for ((x, y, w) in BACK_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, winter))
@@ -939,15 +823,14 @@ object ThemePreviewScenes {
     }
 
     /**
-     * The distant houses on one of the card's mountains (v5.11): **the card follows the switch**, as
-     * everything it draws does -- none while *Distant houses* is off or at 0 %, which is every theme
-     * as it ships, and on, the wallpaper's three drawings, snow with the winter palette, and the
-     * wallpaper's own coins for each house's colour (one of the houses' two) and window (lit in four
-     * houses of five) from a seed per mountain of the card. One house a mountain, on one side and on the
-     * other from one mountain to the next, as the wallpaper's alternate (v5.14; the card's first mountain has it on
-     * the right, its second on the left -- the card's own count, not [DistantHouses.startsLeft]'s), and from
-     * 50 % two, one on each side, at the wallpaper's own places across the slope ([DistantHouses.SLOTS]);
-     * the drawings take turns from mountain to mountain, so a card shows all three.
+     * The distant houses on one of the card's mountains. **The card follows the switch**: none while
+     * *Distant houses* is off or at 0 % (every theme as it ships); on, the wallpaper's three drawings,
+     * snow with the winter palette, and the wallpaper's own coins for each house's colour (one of the
+     * houses' two) and window (lit in four houses of five), from a seed per mountain of the card. One
+     * house a mountain, alternating sides from one mountain to the next as the wallpaper's do (the
+     * card's first on the right, its second on the left: the card's own count, not
+     * [DistantHouses.startsLeft]'s), and from 50 % two, one on each side, at the wallpaper's places
+     * across the slope ([DistantHouses.SLOTS]); the drawings take turns, so a card shows all three.
      */
     private fun distantHouses(
         c: SceneCustomization,
@@ -986,7 +869,7 @@ object ThemePreviewScenes {
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
-            // Its three bulbs (v5.14C2), as the wallpaper hangs them ([ChristmasDecorations.forEachDistantHouseBulb]) -- the
+            // Its three bulbs, as the wallpaper hangs them ([ChristmasDecorations.forEachDistantHouseBulb]) -- the
             // share of the house they are on the BV6600's wallpaper ([CARD_DISTANT_BULB_SHARE]), still and lit as the wallpaper's
             // -- and, as the buildings' decorations ([decorations]), drawn large enough to be 2 px on the gallery card: 1.46 times.
             if (c.christmasBuildingLightsEnabled) {
@@ -1044,19 +927,14 @@ object ThemePreviewScenes {
      * ([PaperRenderer.PRECIPITATION_MIN_LUMA_GAP], divided by the alpha the dot is painted at), clear
      * of every sky between [skyTop] and [skyBottom].
      *
-     * **Why (inventory I-04, v5.9F, on the maintainer's decision of 2026-09-28).** The wallpaper
-     * carries its rain off the sky it falls through; the card painted the theme's colour as it was,
-     * and on four cards of twelve that colour is the brightness of the card's own sky -- Big City
-     * and Beach at noon, Sunset at seven, New Year's Eve as the World & scene strip shows it by day
-     * -- so their rain all but vanished (luma 0.44-1.41 clear of the sky, against the wallpaper's
-     * 13.47). Now 13.99-14.19. It moves two more cards a little (Christmas 9.90 -> 13.98, Halloween's
-     * night card 0.75 -> 13.01, where the blue drops read on the orange by their hue) and no other:
-     * a colour already clear is returned unchanged, bit for bit.
+     * **Why**: the wallpaper carries its rain off the sky it falls through, and on some cards the
+     * theme's rain is as bright as the card's own sky (Big City and Beach at noon, Sunset at seven,
+     * New Year's Eve on the World & scene strip by day), where it would all but vanish
+     * on the card. A colour already clear is returned unchanged, bit for bit.
      *
-     * **Why the rain and not the snow.** The wallpaper corrects both, and for the snow the correction
-     * resolves to nothing against its own skies. Against the card's skies the same rule would turn the
-     * white snow grey on seven cards while the wallpaper draws it white, which is the opposite of
-     * what this is for, so the snow keeps the theme's colour here.
+     * **Why the rain and not the snow**: against the wallpaper's skies the snow's correction comes
+     * to nothing, while against the card's it would turn the white snow grey on seven cards, so the
+     * snow keeps the theme's colour here.
      */
     internal fun cardRainColour(themeRain: Int, skyTop: Int, skyBottom: Int): Int {
         val top = PrecipitationContrast.rec601Luma(skyTop)
@@ -1075,36 +953,19 @@ object ThemePreviewScenes {
     )
 
     /**
-     * Where the card's buildings stand, as far as the deal is concerned.
+     * Where the card's buildings stand, as far as the deal is concerned: a card building's silhouette
+     * and colour both come from `(tileFractionX, depthFraction)` (the slot composer's position hash for
+     * a spec nobody dealt, and `variantIndexFor`'s), so a preview that wants a turret asks for a
+     * position, not for a turret.
      *
-     * A card building's silhouette and its colour both come from `(tileFractionX, depthFraction)`
-     * -- the slot composer's position hash for a spec nobody dealt, and `variantIndexFor`'s -- so a
-     * preview that wants to show a turret rather than a gable asks for a position, not for a
-     * turret.
+     * They are **positions dealt for a picture**: spire, dome, spire, dome across the four towers and
+     * one of each category colour on each row. They are not where the catalogue stands those families
+     * (the restaurant's 0.4618 and three of the four towers' depths are no such position), and they
+     * stay as dealt (the maintainer's decision of 2026-09-22): "restoring" them to the catalogue would
+     * move every shop on every card. `ThemePreviewSceneTest` pins what each deals.
      *
-     * They were chosen by dealing them: `spire, dome, spire, dome` across the four towers and one
-     * of each category colour on each row, which is what a skyline is for. Change one and the
-     * card changes -- `ThemePreviewSceneTest` pins what each currently deals, so the change is
-     * visible rather than silent.
-     *
-     * ### What these are, and what they are not
-     *
-     * They are **positions, dealt for a picture**. The paragraph that stood here said they were
-     * "positions buildings of their family really occupy in a built-in layout (the restaurant's
-     * and the bar's are the ones `SceneObjectCatalog` emits per tile)", and a census of all twelve
-     * built-ins said otherwise: the catalogue emitted the restaurant at depth **0.4444** and the bar
-     * at **0.8000** in every theme (since v5.13B2 the restaurant's row also stands a place at 0.3556
-     * and the bar's at 0.7111), and its towers never go past **0.2667**. So five of the nine depths
-     * below were positions no building of that family stood at; since v5.13B2 the bar's 0.7111 is the
-     * far place of the bar's row, and four still are -- the restaurant's and three of the four towers'. Nothing is wrong with the *card* that follows from them
-     * (a dealt silhouette is a real silhouette wherever the hash lands), but the derivation was
-     * not what it claimed, and a future edit "restoring" them to the catalogue would move every
-     * shop on every card. They stay as they are, by the maintainer's decision of 2026-09-22 (the
-     * cards' direction D1); this comment only stops the sentence being false.
-     *
-     * [SCHOOL_DEPTH] is the exception, and is measured: the catalogue puts the school's row at 0.6222
-     * in all twelve, so the card can stand it exactly where the scene does. Its x is the one
-     * Tundra's school gets, picked the same way the other nine were.
+     * [SCHOOL_DEPTH] is measured: the catalogue puts the school's row at 0.6222 in all twelve, so the
+     * card stands it where the scene does; its x is Tundra's school's.
      */
     internal object PreviewIdentity {
         val TOWER_X = floatArrayOf(0.0521f, 0.1319f, 0.44f, 0.2118f)
@@ -1128,30 +989,25 @@ object ThemePreviewScenes {
      *
      * ### Why this one is not "offsets as in SceneObjectRenderer"
      *
-     * Most other builders below are hand copies of a call site in `SceneObjectRenderer` (the
-     * trees, the palm, the cars, the fire truck and the dolphin read shared constants instead),
-     * and `PreviewRendererAgreementTest` exists because hand copies drift -- it was written when
-     * the winter tree's snow cap had been sitting three units right and two down of the
-     * wallpaper's for two releases. A stack of pieces chosen per instance is far more than a snow
-     * cap's worth of arithmetic to copy, so it is not copied: [NeighbourhoodComposer] deals it and
-     * this reads out the result.
+     * Most other builders below are hand copies of a call site in `SceneObjectRenderer` (the trees,
+     * the palm, the cars, the fire truck and the dolphin read shared constants instead), and
+     * `PreviewRendererAgreementTest` exists because hand copies drift. A stack of pieces chosen per
+     * instance is too much arithmetic to copy, so [NeighbourhoodComposer] deals it and this reads out
+     * the result.
      *
-     * The card deals from a position it picks for a picture, through the position hash the
-     * wallpaper uses for a spec nobody dealt (a pre-v5.5 custom theme, a shuffled layout); a
-     * built-in scene building instead wears the silhouette dealt at generation. The colour comes
-     * from the position on both sides, and both paths stack the pieces with the same arithmetic,
-     * so there is no second copy of that to disagree -- the agreement test checks the card against
-     * the position deal rather than comparing two lists of literals.
+     * The card deals from a position it picks for a picture, through the position hash the wallpaper
+     * uses for a spec nobody dealt (an older custom theme, a shuffled layout); a built-in scene
+     * building wears the silhouette dealt at generation. The colour comes from the position on both
+     * sides and both stack the pieces with the same arithmetic, so the agreement test checks the card
+     * against the position deal.
      *
-     * ### Two things the preview leaves out, and why
+     * ### Two things the preview leaves out
      *
-     * `OCCUPANTS` and `LAMP` are call-outs to behaviours that animate (`WindowOccupants` picks a
-     * bust from the scene's own people, a porch light glows on the night ramp). The preview is a
-     * still 320x240 card with no people layer; it has never drawn either. It has an hour since
-     * v5.8B ([cardPhase]), so a night card's porches are dark where the wallpaper's are lit, and
-     * that stays so on the maintainer's answer of 2026-09-29 (no porch lights, car lamps or window
-     * occupants on a card, at any hour). Snow is drawn, because `winterColorsEnabled` is a palette
-     * the user edits and a preview that cannot show it is not much of a preview.
+     * `OCCUPANTS` and `LAMP` are behaviours that animate (`WindowOccupants` picks a bust from the
+     * scene's people, a porch light glows on the night ramp), and the preview is a still 320x240 card
+     * with no people layer: no porch light, car lamp or window occupant at any hour
+     * on the card, so a night card's porches are dark where the wallpaper's are lit. Snow is
+     * drawn: `winterColorsEnabled` is a palette the user edits.
      */
     private fun neighbourhood(
         variant: SceneSpace.SceneVariant,
@@ -1166,23 +1022,19 @@ object ThemePreviewScenes {
         itemScale: Float,
         storefront: Storefront? = null,
     ): List<PreviewSprite> {
-        // A row among the houses draws the building the street's first stretch stands in it (v5.13),
+        // A row among the houses draws the building the street's first stretch stands in it,
         // at the row's own size ([neighbourhoodScale]), in its group's colours and hours.
         val family = storefront?.family ?: NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
         // The real object, so the real coin: which of the two colours this building wears is
-        // `variantIndexFor`'s answer about this very position, not a choice the preview makes. The
-        // preview used to invent its own blends here -- a tower 15 % towards white, a restaurant
-        // 30 % -- which showed the user a colour no building of theirs would ever be.
+        // `variantIndexFor`'s answer about this very position, not a choice the preview makes.
         //
-        // **Which pair, by what the card draws** (v5.11): three of the card's four towers stand at
-        // depths the scene keeps for shops ([PreviewIdentity]), so asking by the object's depth would
-        // paint them in the shops' colours. The card names the drawing, and the drawing names the pair.
+        // **Which pair, by what the card draws**: three of the card's four towers stand at depths the
+        // scene keeps for shops ([PreviewIdentity]), so asking by depth would paint them in the shops'
+        // colours. The card names the drawing, and the drawing names the pair.
         val spec = StaticSceneObject(type, depthFraction = depth, tileFractionX = tileX)
         val wall = if (storefront != null) c.storefrontWall(spec, storefront, dayBlend) else c.wallColourFor(spec, variant, dayBlend)
         // `SceneObjectRenderer.drawNeighbourhoodBuilding`'s glass: a house's windows lit by the night
-        // alone, a business's by the night and its opening hours at the card's hour. Until v5.9G the
-        // card lit every building by the night alone, so with opening hours on a midnight card's
-        // shops and towers glowed where the wallpaper's are dark.
+        // alone, a business's by the night and its opening hours at the card's hour.
         val night = 1f - dayBlend
         val openness = if (storefront != null) c.opennessFor(storefront, hour) else c.opennessFor(variant, hour)
         val glass = if (family.kind == WindowBuildingKind.HOUSE) {
@@ -1192,11 +1044,10 @@ object ThemePreviewScenes {
         }
         val deal = NeighbourhoodComposer.Deal()
         NeighbourhoodComposer.deal(family, tileX, depth, deal)
-        // A house at night lights half its windows, as the wallpaper's does (v5.12, inventory I-520):
-        // the same rule from the same seeds -- the theme's and the house's -- at the first moment of
-        // its roster, since a card is one moment and does not move. The people are not drawn (the card
-        // leaves them out, §9 of DESIGN_NOTES.md), but the windows they would stand at are among the
-        // lit ones, as on the wallpaper.
+        // A house at night lights half its windows, as the wallpaper's does: the same rule from the same
+        // seeds (the theme's and the house's) at the first moment of its roster, a card being one moment.
+        // The people are not drawn on the card, but the windows they would stand at are among
+        // the lit ones, as on the wallpaper.
         val litPanes = if (family.kind == WindowBuildingKind.HOUSE && night > 0f) {
             val buildingSeed = SceneObjectRenderer.buildingSeedOf(spec)
             val people = WindowOccupants.occupantCount(seed, buildingSeed, deal.peopleWindows, family.kind)
@@ -1234,31 +1085,32 @@ object ThemePreviewScenes {
         }
         if (family.kind != WindowBuildingKind.HOUSE && openness < 1f) shut(parts, deal, family.kind, night)
         if (c.christmasBuildingLightsEnabled) decorations(parts, deal, family.kind, SceneObjectRenderer.idleSeedOf(spec), itemScale)
-        // The Halloween decorations (v5.16), on the card's houses and shops where the wallpaper hangs them
+        // The Halloween decorations, on the card's houses and shops where the wallpaper hangs them
         // ([HalloweenDecorations]), still, the jack-o'-lanterns lit as the wallpaper lights them at the card's moment.
         if (c.halloweenDecorationsEnabled && HalloweenDecorations.decorates(family.kind, storefront)) {
-            halloweenDecorations(parts, deal, itemScale, night)
+            val dayWall = if (storefront != null) c.storefrontWall(spec, storefront, 1f) else c.wallColourFor(spec, variant, 1f)
+            val nightWall = if (storefront != null) c.storefrontWall(spec, storefront, 0f) else c.wallColourFor(spec, variant, 0f)
+            halloweenDecorations(parts, deal, itemScale, night, dayWall, nightWall, dayBlend)
         }
         return parts
     }
 
     /**
-     * The building's Christmas decorations, as the wallpaper hangs them (v5.14C2, ROADMAP A186; the maintainer's
-     * *«Aggiungili nella scheda»* of 2026-10-16): the same points of the same sequence ([ChristmasDecorations]) -- a bulb on
-     * every point of the roofline, a tower's star, a wreath on every front door, the bulbs of the strings under every sill
-     * of a building with four or fewer and three in four of a larger one's (the wallpaper's rule, under the card building's
-     * own [idleSeed]) -- in the same order after the shut sign.
-     * **Still and lit**: the card does not move, so its bulbs do not blink -- each at its full light, where the wallpaper's
-     * blink between about a quarter of their light and all of it (alpha 70 to 255, `drawDecorations`, `drawWindowLights`).
-     * Lit open or shut, by day and by night, as the wallpaper's.
+     * The building's Christmas decorations, as the wallpaper hangs them (`DESIGN_NOTES.md` §12, decision 67):
+     * the same points of the same sequence ([ChristmasDecorations]), a bulb on every point
+     * of the roofline, a tower's star, a wreath on every front door, the bulbs of the strings under every
+     * sill of a building with four or fewer and three in four of a larger one's (the wallpaper's rule,
+     * under the card building's own [idleSeed]), in the same order after the shut sign.
      *
-     * **A little larger than the wallpaper's, so they read** (the maintainer's *«A: un po' più grandi (consigliata)»*,
-     * 2026-10-16): a card is a
-     * miniature, and at the wallpaper's proportions on the gallery card -- 316 px across on the BV6600, its smallest -- a
-     * bulb or a wreath came to 1.0 to 1.9 px. So every decoration of a building is drawn [cardDecorationFactor] times its
-     * size, about the same point, which brings the smallest of them to 2 px there, 2.04 (`CardDecorationsTest`); the strings'
-     * cords are left out: 1.1 units is 0.4 to 0.7 px on the gallery card, a line no factor makes read without making it
-     * as thick as the bulbs it carries. Their bulbs are drawn, under the sill, as the wallpaper hangs them.
+     * **Still and lit**: the card does not move, so each bulb is at its full light, where the
+     * wallpaper's blink between about a quarter of it and all of it (alpha 70 to 255, `drawDecorations`,
+     * `drawWindowLights`). Lit open or shut, by day and by night, as the wallpaper's.
+     *
+     * **A little larger than the wallpaper's, so they read**: on the gallery card, 316 px across on the
+     * BV6600, a bulb or a wreath at the wallpaper's proportions is 1.0 to 1.9 px. So every decoration of
+     * a building is drawn [cardDecorationFactor] times its size about the same point, the smallest at
+     * 2 px there, 2.04 (`CardDecorationsTest`). The strings' cords are left out: 1.1 units is 0.4 to
+     * 0.7 px on the gallery card, a line no factor makes read without making it as thick as its bulbs.
      */
     private fun decorations(
         parts: MutableList<PreviewSprite>,
@@ -1300,32 +1152,33 @@ object ThemePreviewScenes {
     }
 
     /**
-     * The card's Halloween decorations of a house or a shop (v5.16): the cobwebs, the bats and the jack-o'-lantern by the
-     * front door, from the sequences the wallpaper hangs them by ([HalloweenDecorations]), still -- the bats unswung --, the
-     * candle lit by the [night] as the wallpaper's (`SceneObjectRenderer.drawHalloweenDecorations`: none by day; until the
-     * mid-round review of v5.16B the card lit it by day too), drawn [cardHalloweenFactor] times their size, so the cobweb's
-     * threads and the bat keep 2 px on the BV6600's gallery card.
+     * The card's Halloween decorations of a house or a shop: the cobweb and the jack-o'-lantern by the
+     * front door, from the sequences the wallpaper hangs them by ([HalloweenDecorations]), still. The
+     * cobweb in the corner the building's drawing chooses, tinted as its walls choose: their colours by
+     * day and at night, [dayWall] and [nightWall], at the card's [dayBlend], as the wallpaper's
+     * ([HalloweenDecorations.webTintAt]; at the card's hours, noon, midnight and Sunset's 19:00, every
+     * built-in wall's web is at rest). The candle lit by the [night], none by day, as the wallpaper's
+     * (`SceneObjectRenderer.drawHalloweenDecorations`). Drawn [cardHalloweenFactor] times their size, so
+     * the cobweb's threads keep 2 px on the BV6600's gallery card.
      */
     private fun halloweenDecorations(
         parts: MutableList<PreviewSprite>,
         deal: NeighbourhoodComposer.Deal,
         itemScale: Float,
         night: Float,
+        dayWall: Int,
+        nightWall: Int,
+        dayBlend: Float,
     ) {
         val s = cardHalloweenFactor(itemScale)
         val lit = (night * 255f).toInt().coerceIn(0, 255)
+        val web = HalloweenDecorations.webTintAt(dayWall, nightWall, dayBlend)
         HalloweenDecorations.forEachCobweb(deal) { x, y, mirror ->
             // The right one is the left one's drawing mirrored, from its corner: [PreviewSprite.mirrored] draws it to the
             // left of its origin.
             parts += PreviewSprite(
                 HalloweenDecorationTable.WEB_RES, x + HalloweenDecorationTable.WEB_X * s * mirror, y + HalloweenDecorationTable.WEB_Y * s,
-                scale = s, decoration = true, mirrored = mirror < 0f,
-            )
-        }
-        HalloweenDecorations.forEachBat(deal) { _, x, y ->
-            parts += PreviewSprite(
-                HalloweenDecorationTable.BAT_RES, x + HalloweenDecorationTable.BAT_X * s, y + HalloweenDecorationTable.BAT_Y * s,
-                scale = s, decoration = true,
+                tint = web, scale = s, decoration = true, mirrored = mirror < 0f,
             )
         }
         HalloweenDecorations.forEachDoorPumpkin(deal) { x, y ->
@@ -1347,8 +1200,7 @@ object ThemePreviewScenes {
      * How many times its size the card draws a decoration of a building of [kind] drawn at [itemScale] card units a unit:
      * enough for its smallest decoration -- the wreath's bow, 2.8 units across (a tower's half as large again), or a string's
      * bulb, 3 units, where it has [strings] -- to be [CARD_DECORATION_MIN_PX] on the BV6600's gallery card, and never less
-     * than its size: on the cards as they are, 1.13 on the houses, 1.57 to 2.03 on the towers and 1.72 to 1.94 on the buildings
-     * among the houses (`CardDecorationsTest` prints them, `CARD_DECORATION_PX`).
+     * than its size (`CardDecorationsTest` prints each card's, `CARD_DECORATION_PX`).
      */
     internal fun cardDecorationFactor(kind: WindowBuildingKind, strings: Boolean, itemScale: Float): Float {
         val bow = 2f * SceneObjectRenderer.WREATH_BOW_RADIUS * ChristmasDecorations.scaleFor(kind)
@@ -1357,8 +1209,8 @@ object ThemePreviewScenes {
     }
 
     /**
-     * How many times its size the card draws a building's Halloween decorations at [itemScale] card units a unit (v5.16):
-     * enough for their narrowest band -- the cobweb's threads and the bat, [HalloweenDecorationTable.DECORATION_BAND_UNITS]
+     * How many times its size the card draws a building's Halloween decorations at [itemScale] card units a unit:
+     * enough for their narrowest band -- the cobweb's threads, [HalloweenDecorationTable.DECORATION_BAND_UNITS]
      * -- to be [CARD_DECORATION_MIN_PX] on the BV6600's gallery card, and never less than their size.
      */
     internal fun cardHalloweenFactor(itemScale: Float): Float =
@@ -1368,13 +1220,13 @@ object ThemePreviewScenes {
     internal const val CARD_DECORATION_MIN_PX = 2f
 
     /**
-     * Pixels a card unit on the BV6600's gallery card, the smallest place the card is shown, taken on the 310 px its road shows
-     * (v5.14C2): the card is 316 px across, its rounded corners and border covering the road's ends, so this is 2 % under.
+     * Pixels a card unit on the BV6600's gallery card, the smallest place the card is shown, taken on the 310 px its road
+     * shows: the card is 316 px across, its rounded corners and border covering the road's ends, so this is 2 % under.
      */
     internal const val GALLERY_PX_PER_UNIT = 310f / ThemePreviewScene.WIDTH_UNITS
 
     /**
-     * A building the card shows shut, as the wallpaper draws one (`SceneObjectRenderer.drawShut`, v5.14): the
+     * A building the card shows shut, as the wallpaper draws one (`SceneObjectRenderer.drawShut`): the
      * blinds down in the windows a person may stand at and the shutter down over the front door, in the
      * wallpaper's colours at the card's hour -- flat cards. **The shutter is the wallpaper's**: the same bands
      * ([DoorShutter.forEachBand], fully down) cut from the door's own outline ([DoorShutter.band]) -- its card and
@@ -1420,13 +1272,10 @@ object ThemePreviewScenes {
     }
 
     /**
-     * The scale a dealt building is drawn at in the card.
-     *
-     * The pieces are authored in the family's own units and the wallpaper scales them by
-     * `variant.spriteUnitsTall / family.unitsTall` before it blits; the card has no nested scale,
-     * so the same factor is folded into the item's own. [fit] is what it always was -- how much
-     * of the 320x240 card this object may take -- and it is unchanged from the flat-facade
-     * version, because the old artwork's local height *was* `spriteUnitsTall`.
+     * The scale a dealt building is drawn at in the card. The pieces are authored in the family's own
+     * units and the wallpaper scales them by `variant.spriteUnitsTall / family.unitsTall`; the card has
+     * no nested scale, so the factor is folded into the item's own. [fit] is how much of the card this
+     * object may take.
      */
     private fun neighbourhoodScale(variant: SceneSpace.SceneVariant, fit: Float): Float {
         val family = NeighbourhoodTable.FAMILIES[variant] ?: return fit
@@ -1453,12 +1302,8 @@ object ThemePreviewScenes {
     }
 
     /**
-     * Read from [TreeSpriteLayout] rather than copied, which is the v3.7 Filone C fix.
-     *
-     * These were four hand-copied numbers, and the snow cap's pair had drifted: it was
-     * `(-38,-116)` against the wallpaper's `(-41,-118)`, so a winter preview drew its snow 3 units
-     * right and 2 down from where the wallpaper puts it. The renderer's numbers are unchanged; the
-     * preview now takes them from the same place instead of restating them.
+     * The leafy tree at [TreeSpriteLayout]'s origins, read rather than copied, so the card's crown and
+     * snow cap stand where the wallpaper's do.
      */
     private fun tree(leaf: Int, winter: Boolean, halloween: Boolean, lights: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(
@@ -1481,9 +1326,8 @@ object ThemePreviewScenes {
                 TreeSpriteLayout.FLAT_SNOWCAP_X, TreeSpriteLayout.FLAT_SNOWCAP_Y,
             )
         }
-        // *Lights on the trees* (v5.16): the wallpaper's lights at three of its six points of the crown
+        // *Lights on the trees*: the wallpaper's lights at three of its six points of the crown
         // ([SceneObjectRenderer.CHRISTMAS_LIGHT_X]), as sparkles in the lights' colours, as the card's fir hangs its baubles.
-        // Until the mid-round review of v5.16B the card's leafy tree had none, so the switch alone showed nothing on a card.
         if (lights) {
             for (i in TREE_CARD_LIGHTS) {
                 val x = SceneObjectRenderer.CHRISTMAS_LIGHT_X[i] * SceneObjectRenderer.TREE_LIGHTS_RADIUS_X
@@ -1505,22 +1349,20 @@ object ThemePreviewScenes {
     private enum class CardTree { TREE, FIR, PALM }
 
     /**
-     * The card's trees: two, whatever the density, and one where the woodland is a scattering -- a
-     * third has no place on the row that does not stand in front of a shop.
+     * The card's trees: two, whatever the density, and one where the woodland is a scattering; a third
+     * has no place on the row that does not stand in front of a shop.
      *
-     * **As before v5.10C2, except under palms in the trees' places with *Christmas firs* on.** The
-     * palms are the switch's (`palmsShown`), and *Christmas firs* is the switch that puts firs among the trees,
-     * and the only one: a sparse wood is not a reason for a fir (v5.8E, V3-48). So with the palms the
-     * card shows palms, and without them a fir first under the layer.
+     * The palms are the switch's (`palmsShown`), and *Christmas firs* is the one switch that puts firs
+     * among the trees (a sparse wood is no reason for a fir). So with the palms the card shows palms,
+     * and without them a fir first under the layer.
      *
      * Under both, on a layout that plants no palm of its own, the scene keeps two species: its firs,
-     * and a palm in every other tree's place (`palmSpeciesApplied`, the maintainer's *«gli abeti sono del
-     * tema e tali devono rimanere»*, 2026-10-03). Which of them a thinned wood keeps is the layout's
-     * deal -- Christmas at 20 % keeps two trees and both are firs -- so the card asks the scene, through
-     * the same two functions the renderer builds its list with, and shows a fir and a palm when it
-     * stands both, even in a scattering: one tree cannot be two species, and leaving either out is the
-     * card saying less than the scene. Beach and Desert are not this case: their palm slots are palms
-     * whatever the layer says, and with their palms on they stand no fir, as before.
+     * and a palm in every other tree's place (`palmSpeciesApplied`; the maintainer, 2026-10-03: *«gli
+     * abeti sono del tema e tali devono rimanere»*). Which of them a thinned wood keeps is the layout's
+     * deal (Christmas at 20 % keeps two trees, both firs), so the card asks the scene, through the two
+     * functions the renderer builds its list with, and shows a fir and a palm when it stands both, even
+     * in a scattering. Beach and Desert are not this case: their palm slots are palms whatever the layer
+     * says, and with their palms on they stand no fir.
      */
     private fun cardTrees(
         c: SceneCustomization,
@@ -1553,21 +1395,20 @@ object ThemePreviewScenes {
     }
 
     /**
-     * The fir the wallpaper draws (v5.14, `SceneObjectRenderer.drawFir`): the same three pieces at the same
-     * origins, all from [FirTable] -- so a redraw moves the card and the wallpaper together -- the fir under
+     * The fir the wallpaper draws (`SceneObjectRenderer.drawFir`): the same three pieces at the same
+     * origins, all from [FirTable], so a redraw moves the card and the wallpaper together; the fir under
      * the trees' night shade at the card's hour as the wallpaper's is ([shade]), the snow and the star not.
      *
-     * The baubles are not the wallpaper's ten lights, which would be under 2 px on a flat 320x240 card:
-     * `star_sparkle` blits, at 46 px of tree they read as baubles (the maintainer left them on 2026-09-28,
-     * inventory I-80), one over the hem of each of the upper three tiers ([FirTable.BAUBLE_X]). The sparkle's
-     * ink is centred about (30, 29) of its 60-unit canvas.
+     * The baubles are not the wallpaper's ten lights, which would be under 2 px on the card:
+     * `star_sparkle` blits, which at 46 px of tree read as baubles (the maintainer left them on,
+     * 2026-09-28), one over the hem of each of the upper three tiers ([FirTable.BAUBLE_X]). The
+     * sparkle's ink is centred about (30, 29) of its 60-unit canvas.
      */
     private fun fir(snow: Boolean, shade: Int): List<PreviewSprite> {
         val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, FirTable.FIR_X, FirTable.FIR_Y, shade = shade))
         if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
         parts += PreviewSprite(R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
-        // Always lit: a card fir exists only where the wallpaper's does, which is under the
-        // Christmas decorations (v5.8E -- the unlit sparse-wood fir was the one without them).
+        // Always lit: a card fir exists only where the wallpaper's does, under the Christmas decorations.
         for (i in FirTable.BAUBLE_X.indices) {
             parts += PreviewSprite(
                 R.drawable.star_sparkle, FirTable.BAUBLE_X[i] - SPARKLE_INK_X, FirTable.BAUBLE_Y[i] - SPARKLE_INK_Y,
@@ -1585,29 +1426,20 @@ object ThemePreviewScenes {
     private val BAUBLE_COLOURS = intArrayOf(0xFFF2C14E.toInt(), 0xFFE8483C.toInt(), 0xFF5BC0EB.toInt())
 
     /**
-     * The same two blits [SceneObjectRenderer.drawPalmTree] makes, at the same two origins.
+     * The same two blits [SceneObjectRenderer.drawPalmTree] makes, at the same two origins from
+     * [PalmSpriteLayout], which the renderer reads too, so a redraw moves both sides or neither. The
+     * three crowns share one canvas and one attachment, so the `when` chooses one rather than stacking.
      *
-     * v5.1 moved both and turned the frost from an overlay into a third crown, so the `when` here
-     * mirrors that one rather than stacking: all three crowns share one canvas and one declared
-     * attachment, and choosing between them is the whole of it. Both origins come from
-     * [PalmSpriteLayout], which the renderer reads too, so a redraw moves both sides or neither.
-     *
-     * **[shade] is the wallpaper's light on it**: [nightShadeAt] of the trees' first colour pair at
-     * the card's moment, the grey `drawPalmTree` multiplies both drawings by, and the tree beside
-     * it wears the same pair's colour ([colorAt]). Full daylight at noon, so a day card's palm is
-     * the untinted blit it always was. Until v5.9G neither the palm nor the leafy tree read the
-     * hour, and on a night card both kept their noon light (inventory I-38).
+     * **[shade] is the wallpaper's light on it**: [nightShadeAt] of the trees' first colour pair at the
+     * card's moment, the grey `drawPalmTree` multiplies both drawings by, while the tree beside it wears
+     * the same pair's colour ([colorAt]). Full daylight at noon, so a day card's palm is the untinted blit.
      *
      * **[lights], the Christmas lights the wallpaper strings on a palm** (`drawPalmTree` calls
-     * `drawChristmasLights` on the crown's centre, Halloween's dead crown included). Until v5.10C the
-     * card's palm had none, which was a card saying less than its scene only on a Beach or a Desert
-     * someone had lit; since then palms can stand on Christmas, where they are lit by default, and
-     * `ThemePreviewTruthTest` found the card's Christmas without a light. **One** of the fir's
-     * baubles ([fir]), not its three: the `star_sparkle` canvas is 60 units with its ink centred about
-     * (30, 29), as big as the whole 56x48 crown, and three of them hid the palm on the card
-     * (photographed on the BV6600, v5.10C). It sits on the crown's top edge, over the centre the
-     * wallpaper hangs its string on, mostly in the sky -- placed by eye, as the fir's were until v5.14 (they are
-     * [FirTable.BAUBLE_X] since, written by the fir's generator).
+     * `drawChristmasLights` on the crown's centre, Halloween's dead crown included), as palms can stand
+     * on Christmas, lit by default (`ThemePreviewTruthTest`). **One** of the fir's baubles ([fir]), not
+     * three: the `star_sparkle` canvas, 60 units with its ink centred about (30, 29), is as big as the
+     * whole crown, and three hide the palm on the card. It sits on the crown's top edge, over the centre
+     * the wallpaper hangs its string on, mostly in the sky, placed by eye.
      */
     private fun palmTree(dead: Boolean, frost: Boolean, shade: Int, lights: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(
@@ -1640,9 +1472,9 @@ object ThemePreviewScenes {
     )
 
     /**
-     * A scarecrow (v5.16), its drawing brought to a snowman's height in the snowman's units -- the card's one stands between
-     * the pumpkins at their scale, [SCARECROW_CARD_SCALE] --, its pumpkin's candle lit as the wallpaper's, by the card's
-     * night ([lit], `(1 - dayBlend) * 255`: at Sunset's 19:00 a little; until v5.16B's final review only on a night card).
+     * A scarecrow, its drawing brought to a snowman's height in the snowman's units (the card's one stands
+     * between the pumpkins at their scale, [SCARECROW_CARD_SCALE]), its pumpkin's candle lit as the
+     * wallpaper's, by the card's night ([lit], `(1 - dayBlend) * 255`: at Sunset's 19:00 a little).
      */
     private fun scarecrow(lit: Int): List<PreviewSprite> {
         val k = SceneSpace.SceneVariant.SNOWMAN.spriteUnitsTall / ScarecrowTable.UNITS_TALL
@@ -1656,9 +1488,7 @@ object ThemePreviewScenes {
 
     /**
      * The pumpkin as [SceneObjectRenderer.drawPumpkin] builds it: the tinted body, the carved face
-     * where `halloweenEnabled` is on ([carved]), the stem. Until v5.9G the card never drew the face,
-     * so Halloween's card showed smooth pumpkins under a carved moon while its wallpaper carves
-     * every one (repaired on the maintainer's answer of 2026-09-29).
+     * where `halloweenEnabled` is on ([carved]), the stem.
      */
     private fun pumpkin(c: Int, carved: Boolean) = buildList {
         add(PreviewSprite(R.drawable.pumpkin_body, -19f, -30f, c))
@@ -1685,14 +1515,9 @@ object ThemePreviewScenes {
     )
 
     /**
-     * A preview car, on one of the three v4.19 bodies.
-     *
-     * The gallery draws no wheels, so a car here stands on its **painted floor** rather than on
-     * its tyres, and the two offsets are derived from that rather than hand-copied: v4.18's
-     * thumbnails put that floor [PREVIEW_CAR_FLOOR_DROP] units below the item's ground line, and
-     * keeping the number keeps every thumbnail where it was while the bodies underneath it
-     * change. The glass then follows the body by the gap the renderer itself uses, so the two
-     * cannot drift apart the way this file's hand-copied pairs have before.
+     * A preview car, on one of the three bodies. The gallery draws no wheels, so a car stands on its
+     * **painted floor**, [PREVIEW_CAR_FLOOR_DROP] units below the item's ground line whatever the body,
+     * and the glass follows the body by the gap the renderer uses: neither offset is a hand copy.
      */
     private fun car(shell: CarShell, c: Int): List<PreviewSprite> {
         val oy = PREVIEW_CAR_FLOOR_DROP - (CAR_PAINTED_FLOOR_UNITS - shell.bodyYUnits)
@@ -1706,12 +1531,8 @@ object ThemePreviewScenes {
     }
 
     private fun sailboat() = listOf(
-        // v4.31: the same compensation the wallpaper's own blit carries -- see
-        // `PaperRenderer.drawSailboat`. v4.31 cropped three sprites -- these two and
-        // `dolphin_body` -- and the preview is a second call site for every one of them;
-        // `normalize --apply` reported "single call site" for all three because it could not
-        // resolve them, and compensating only the renderer would have left the gallery card's
-        // boats shifted.
+        // The wallpaper's own offsets (`PaperRenderer.drawSailboat`): the card is a second call site of
+        // these sprites, so a crop that moves one origin moves both.
         PreviewSprite(R.drawable.sailboat_sail, -27f, -50f),
         PreviewSprite(R.drawable.sailboat_hull, -40f, 8f),
     )
@@ -1733,10 +1554,8 @@ object ThemePreviewScenes {
     private val WINTER_GIRL = intArrayOf(R.drawable.person_girl_winter_walk0, R.drawable.person_girl_winter_walk1, R.drawable.person_girl_winter_walk2)
 
     /**
-     * The preview's own name for the scene's blend, kept because a hundred call sites read better
-     * with it. The arithmetic moved to [SceneColour] in v5.0: this file used to *define* it, which
-     * made it a second answer to "what is a colour between two colours" living beside the
-     * renderer's.
+     * The preview's own name for the scene's blend, kept because a hundred call sites read better with
+     * it; the arithmetic is [SceneColour]'s, the renderer's.
      */
     private fun blendRgb(from: Int, to: Int, ratio: Float): Int = SceneColour.blendArgb(from, to, ratio)
 }

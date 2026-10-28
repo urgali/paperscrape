@@ -1,15 +1,16 @@
-"""The Halloween decorations of the houses and the shops (v5.16): `halloween/build_halloween_deco.py` draws them and
-declares them, from one geometry.
+"""The Halloween decorations of the houses and the shops: `halloween/build_halloween_deco.py` draws them and declares
+them, from one geometry.
 
-The maintainer chose the set C, cobwebs and bats, the bats in light violet (2026-10-21). These hold that the four SVG
-sources, the four PNGs the pipeline renders of them and `HalloweenDecorationTable.kt` are the generator's output today;
-that no piece of any colour of the cobweb, the bat and the jack-o'-lantern -- by day, and at night with its light laid over
-it where the table blits it -- is under 2 px everywhere at the farthest house of the built-in streets on the BV6600 (read
-from the Kotlin sources: the houses' far band, the house's metre and its family's units, the smallest size roll), on the
-SVGs rendered without antialiasing; that the cobweb's threads are 2 px wide there (a thread across the diagonal holds no
-upright square, so the rule above sees only where they meet); that the jack-o'-lantern's paper between two cuts is 2 px or
-more, and its light lies inside its cuts and lights them whole; that the bat is the light violet only; and that each piece
-hangs from, or stands on, the point the table measures it from.
+The decorations are the set A1 (`DESIGN_NOTES.md` §12, decisions 83 and 85): no bat, one small cobweb a roof, a mask
+tinted as the walls choose, and a jack-o'-lantern about 1.2 m tall by the door. These hold that the three SVG sources, the three PNGs the pipeline renders of them and `HalloweenDecorationTable.kt` are the
+generator's output today; that no piece of any colour of the cobweb -- in both of its tints -- and the jack-o'-lantern -- by
+day, and at night with its light laid over it where the table blits it -- is under 2 px everywhere at the farthest house of
+the built-in streets on the BV6600 (read from the Kotlin sources: the houses' far band, the house's metre and its family's
+units, the smallest size roll), on the SVGs rendered without antialiasing; that the cobweb's threads are 2 px wide there (a
+thread across the diagonal holds no upright square, so the rule above sees only where they meet); that the cobweb is a
+white mask and its two tints are the renderer's; that the jack-o'-lantern's paper between two cuts is 2 px or more, and its
+light lies inside its cuts and lights them whole; and that each piece hangs from, or stands on, the point the table
+measures it from.
 
 Run from `tools/assets/`: python3 -m unittest discover -s tests
 """
@@ -31,7 +32,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(TOOL_ROOT / "halloween"))
 
 import build_halloween_deco as deco  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 PX = 3
 ENGINE = TOOL_ROOT.parent.parent / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine"
@@ -144,8 +145,8 @@ class HalloweenDecorationsTest(unittest.TestCase):
     def setUpClass(cls):
         cls.out, cls.table = deco.build()
         cls.kt = cls.out[deco.TABLE].decode()
-        cls.t = {n: table_value(cls.kt, n) for n in ("WEB_X", "WEB_Y", "BAT_X", "BAT_Y", "PUMPKIN_X", "PUMPKIN_Y", "PUMPKIN_LIGHT_X",
-                                                      "PUMPKIN_LIGHT_Y", "DECORATION_BAND_UNITS")}
+        cls.t = {n: table_value(cls.kt, n) for n in ("WEB_X", "WEB_Y", "PUMPKIN_X", "PUMPKIN_Y", "PUMPKIN_LIGHT_X", "PUMPKIN_LIGHT_Y",
+                                                      "DECORATION_BAND_UNITS")}
         cls.crisp = {n: crisp(cls.out[deco.SVG_DIR / f"{n}.svg"].decode()) for n in deco.NAMES}
         day = cls.crisp["deco_jack_o_lantern"]
         cls.light = Image.new("RGBA", day.size, (0, 0, 0, 0))
@@ -159,7 +160,7 @@ class HalloweenDecorationsTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what halloween/build_halloween_deco.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what halloween/build_halloween_deco.py writes: run it with --res")
 
     def test_the_farthest_house_is_the_generators(self):
         """The size the generator draws the bands for is the one the Kotlin sources give today: 0.812 px a piece unit."""
@@ -171,8 +172,9 @@ class HalloweenDecorationsTest(unittest.TestCase):
         at the farthest house somewhere: of `ceil(2 / pxPerUnit x 3)` px of the drawing. Pieces under 12 px are the corners
         where three papers meet."""
         k = math.ceil(2.0 / self.px_per_unit * PX)
-        images = {"cobweb": self.crisp["deco_cobweb"], "bat": self.crisp["deco_bat"], "pumpkin by day": self.crisp["deco_jack_o_lantern"],
-                  "pumpkin at night": self.night}
+        images = {"cobweb on a dark wall": deco.tinted(self.crisp["deco_cobweb"], deco.WEB_LIGHT),
+                  "cobweb on a light wall": deco.tinted(self.crisp["deco_cobweb"], deco.WEB_DARK),
+                  "pumpkin by day": self.crisp["deco_jack_o_lantern"], "pumpkin at night": self.night}
         for label, image in images.items():
             a = np.array(image).astype(np.int64)
             opaque = a[:, :, 3] == 255
@@ -187,11 +189,11 @@ class HalloweenDecorationsTest(unittest.TestCase):
                         self.assertTrue(any(ok[p] for p in pts), f"{len(pts)} px of #{int(key):06X} under 2 px everywhere")
 
     def test_the_cobwebs_threads_are_two_pixels_wide_at_the_farthest_house(self):
-        """The threads are bands of one width, three of them straight and two arcs; the one across the diagonal holds no
-        upright square of 2 px even when it is wider, so the rule above sees only where the threads meet: their width is
-        held here, and measured on the drawing -- rendered without antialiasing at eight times the 3x of the others, each
-        straight thread at 0.7 of its reach, and the outer arc at four of its points, across the band (along its normal):
-        every one 2 px wide at the farthest house, to within a pixel of the render."""
+        """The threads are bands of one width, three of them straight and a row of scallops in two runs; the one across the
+        diagonal holds no upright square of 2 px even when it is wider, so the rule above sees only where the threads meet:
+        their width is held here, and measured on the drawing -- rendered without antialiasing at eight times the 3x of the
+        others, each straight thread at half its reach (nearer its end the row of scallops joins it), and each run of scallops at its three inner points, across the band
+        (along its normal): every one 2 px wide at the farthest house, to within a pixel of the render."""
         self.assertGreaterEqual(deco.WEB_THREAD * self.px_per_unit, 2.0)
         k = 8
         svg = self.out[deco.SVG_DIR / "deco_cobweb.svg"].decode()
@@ -220,20 +222,16 @@ class HalloweenDecorationsTest(unittest.TestCase):
         reach = deco.WEB_REACH
         diagonal = math.cos(math.radians(45))
         widths = {
-            "along the eave": across((reach * 0.7, 0.0), (0.0, 1.0)),
-            "down the wall": across((0.0, reach * 0.7), (1.0, 0.0)),
-            "across the diagonal": across((reach * 0.7 * diagonal, reach * 0.7 * diagonal), (-diagonal, diagonal)),
+            "along the eave": across((reach * 0.5, 0.0), (0.0, 1.0)),
+            "down the wall": across((0.0, reach * 0.5), (1.0, 0.0)),
+            "across the diagonal": across((reach * 0.5 * diagonal, reach * 0.5 * diagonal), (-diagonal, diagonal)),
         }
-        rr = reach * 0.9
-        arc = []
-        for n in range(7):
-            a = math.radians(n * 15.0)
-            sag = 0.86 + 0.14 * abs(math.cos(math.radians(n * 15.0 * 4)))
-            arc.append((rr * sag * math.cos(a), rr * sag * math.sin(a)))
-        for n in (1, 2, 4, 5):
-            tx, ty = arc[n + 1][0] - arc[n - 1][0], arc[n + 1][1] - arc[n - 1][1]
-            length = math.hypot(tx, ty)
-            widths[f"the outer arc at {n * 15} degrees"] = across(arc[n], (-ty / length, tx / length))
+        for seg in range(2):
+            run = deco.scallop_points(seg)
+            for n in range(1, len(run) - 1):
+                tx, ty = run[n + 1][0] - run[n - 1][0], run[n + 1][1] - run[n - 1][1]
+                length = math.hypot(tx, ty)
+                widths[f"the scallops' run {seg} at its point {n}"] = across(run[n], (-ty / length, tx / length))
         need = 2.0 / self.px_per_unit - 1 / scale
         for where, units in widths.items():
             with self.subTest(where=where):
@@ -260,26 +258,34 @@ class HalloweenDecorationsTest(unittest.TestCase):
         self.assertEqual(0, int((lit & ~grow(cut, 1)).sum()), "the light falls outside the pumpkin's cuts")
         self.assertEqual(0, int(colour_mask(np.array(self.night), deco.CUT).sum()), "a cut is left dark at night")
 
-    def test_the_bat_is_the_light_violet_only(self):
-        """The bat is cut from one paper, its light violet `#8A5BB8` -- every fill of its source, every solid pixel of its
-        PNG --: the dark bat the round first showed does not read on the walls at night."""
-        self.assertEqual(deco.BAT, "#8A5BB8")
-        fills = set(re.findall(r'fill="(#[0-9A-Fa-f]{6})"', self.out[deco.SVG_DIR / "deco_bat.svg"].decode()))
-        self.assertEqual({"#8A5BB8"}, fills)
-        a = np.array(Image.open(io.BytesIO(self.out[deco.RES / "deco_bat.png"])).convert("RGBA")).astype(int)
+    def test_the_cobweb_is_a_white_mask_and_its_tints_are_the_renderers(self):
+        """The cobweb is a tintable mask: one paper, white -- every fill of its source, every solid pixel of
+        its PNG --, so the renderer's tint is its colour; and the two tints `HalloweenDecorations` gives it are the
+        generator's: `#E8E6EE` on a dark wall, and on a light one the dark violet `#56516A` multiplied over that colour
+        channel by channel (`DESIGN_NOTES.md` §12, decision 85)."""
+        self.assertEqual(deco.WEB, "#FFFFFF")
+        fills = set(re.findall(r'fill="(#[0-9A-Fa-f]{6})"', self.out[deco.SVG_DIR / "deco_cobweb.svg"].decode()))
+        self.assertEqual({"#FFFFFF"}, fills)
+        a = np.array(Image.open(io.BytesIO(self.out[deco.RES / "deco_cobweb.png"])).convert("RGBA")).astype(int)
         solid = a[:, :, 3] == 255
         self.assertGreater(int(solid.sum()), 100)
-        self.assertEqual(0, int(np.abs(a[solid][:, :3] - np.array([0x8A, 0x5B, 0xB8])).max()), "the bat carries a colour of another paper")
+        self.assertEqual(0, int(np.abs(a[solid][:, :3] - 255).max()), "the web's mask carries a colour")
+        kt = (ENGINE / "HalloweenDecorations.kt").read_text()
+
+        def kotlin(name):
+            return "#" + re.search(rf"const val {name} = 0xFF([0-9A-Fa-f]{{6}})\.toInt\(\)", kt).group(1).upper()
+        self.assertEqual(deco.WEB_LIGHT, kotlin("WEB_LIGHT"))
+        self.assertEqual(deco.WEB_DARK, kotlin("WEB_DARK"))
+        violet, web = (np.array([int(c[i:i + 2], 16) for i in (1, 3, 5)]) for c in ("#56516A", deco.WEB_LIGHT))
+        self.assertEqual(deco.WEB_DARK, "#%02X%02X%02X" % tuple(int(round(v)) for v in violet * web / 255.0))
 
     def test_each_piece_hangs_from_its_point(self):
-        """The cobweb's corner, the point the bat hangs by and the jack-o'-lantern's bottom's middle are where the table
-        measures each from: the web's paper at its corner, the bat's at its feet, and the pumpkin standing on its point --
-        its lowest row there, centred on it."""
+        """The cobweb's corner and the jack-o'-lantern's bottom's middle are where the table measures each from: the web's
+        paper at its corner, and the pumpkin standing on its point -- its lowest row there, centred on it."""
         def pixel(name, ox, oy, x, y):
             a = np.array(self.crisp[name])
             return a[int(math.floor((y - oy) * PX)), int(math.floor((x - ox) * PX))]
         self.assertEqual(255, int(pixel("deco_cobweb", self.t["WEB_X"], self.t["WEB_Y"], 0.1, 0.1)[3]), "the web is not in its corner")
-        self.assertEqual(255, int(pixel("deco_bat", self.t["BAT_X"], self.t["BAT_Y"], 0.0, 0.1)[3]), "the bat does not hang from its point")
         a = np.array(self.crisp["deco_jack_o_lantern"])
         rows = np.nonzero((a[:, :, 3] == 255).any(axis=1))[0]
         bottom = self.t["PUMPKIN_Y"] + (int(rows.max()) + 1) / PX
@@ -290,17 +296,17 @@ class HalloweenDecorationsTest(unittest.TestCase):
 
     def test_the_narrowest_band_is_the_drawings(self):
         """DECORATION_BAND_UNITS, which the gallery card sizes its copies on, is the band the pieces are drawn at -- the cobweb's
-        threads, the bat's paper, the jack-o'-lantern's cuts -- and the drawing's: the narrowest piece of the three, the
+        threads, the jack-o'-lantern's cuts -- and the drawing's: the narrowest piece of the two, the
         jack-o'-lantern by day and at night, holds a square within a pixel and a half of DECORATION_BAND_UNITS x 3, and the cobweb's
-        thread along the eave is that many pixels tall within a pixel and a half."""
+        thread along the eave, at half its reach, is that many pixels tall within a pixel and a half."""
         band = self.t["DECORATION_BAND_UNITS"]
         self.assertEqual(deco.MIN_BAND, band)
         self.assertEqual(deco.WEB_THREAD, band)
-        images = (self.crisp["deco_cobweb"], self.crisp["deco_bat"], self.crisp["deco_jack_o_lantern"], self.night)
+        images = (self.crisp["deco_cobweb"], self.crisp["deco_jack_o_lantern"], self.night)
         narrowest = min(narrowest_piece(image) for image in images)
         self.assertLessEqual(abs(narrowest - band * PX), 1.5, f"the narrowest piece holds {narrowest} px, the band is {band * PX:.1f}")
         web = colour_mask(np.array(self.crisp["deco_cobweb"]), deco.WEB)
-        x = int(round((deco.WEB_REACH * 0.7 - self.t["WEB_X"]) * PX))
+        x = int(round((deco.WEB_REACH * 0.5 - self.t["WEB_X"]) * PX))
         rows = np.nonzero(web[:, x])[0]
         run = int(np.argmax(np.diff(rows) > 1)) + 1 if (np.diff(rows) > 1).any() else len(rows)
         self.assertLessEqual(abs(run - band * PX), 1.5, f"the eave's thread is {run} px tall, the band is {band * PX:.1f}")

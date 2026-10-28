@@ -21,21 +21,18 @@ import com.paperscrape.livewallpaper.ui.SettingsActivity
  * ### What it is allowed to be
  *
  * A live wallpaper that interrupts its user is a live wallpaper that gets uninstalled, so it makes
- * no sound -- and since v5.15 it is seen (the maintainer's *«A – icona in alto, senza suono
- * (consigliata)»*, 2026-10-19):
+ * no sound, and it is seen,
+ * `DESIGN_NOTES.md` §12, decision 71:
  *
  * - **[NotificationManagerCompat.IMPORTANCE_DEFAULT] with the sound and the vibration taken off the
  *   channel** ([CHANNEL_ID]) — its icon in the status bar, the notification among the normal ones in
  *   the shade and on the lock screen; no sound, no vibration, no heads-up banner (that is
- *   [NotificationManagerCompat.IMPORTANCE_HIGH]'s). Until v5.15 the channel was
- *   [NotificationManagerCompat.IMPORTANCE_LOW]: on the BV6600 a silent notification at the bottom of
- *   the shade, and in the status bar the launcher's silhouette at 17 dp, which nobody could read. On
- *   API 26+ importance is a property of the *channel* and cannot be raised once the channel exists,
- *   so the louder one is a new channel and the old one is deleted ([ensureChannel]);
+ *   [NotificationManagerCompat.IMPORTANCE_HIGH]'s). On API 26+ importance is a property of the
+ *   *channel* and cannot be raised once the channel exists, so this is a channel of its own and the
+ *   quieter one of v5.14 and earlier ([OLD_CHANNEL_ID]) is deleted ([ensureChannel]);
  * - **its own small icon** ([R.drawable.ic_stat_update]): a house with an arrow cut out of it, drawn
  *   for 24 dp by `tools/assets/notification/build_glyph.py`, every gap 2 px or more where Android 10
- *   draws a status-bar icon (17 dp). It replaces the launcher's silhouette in the shade too, beside the
- *   app's name;
+ *   draws a status-bar icon (17 dp). It is the icon in the shade too, beside the app's name;
  * - **`setAutoCancel(true)`** — tapping it takes it away, so the shade does not accumulate;
  * - **one notification per version tag**, which is enforced twice over. The platform tag is the
  *   release tag, so two posts about `v5.7` replace each other rather than stack; and
@@ -60,19 +57,19 @@ import com.paperscrape.livewallpaper.ui.SettingsActivity
 object UpdateNotifier {
 
     /**
-     * The channel since v5.15: [NotificationManagerCompat.IMPORTANCE_DEFAULT], no sound, no vibration.
-     * Stable from here on: renaming it would orphan every user's notification setting for it.
+     * The channel: [NotificationManagerCompat.IMPORTANCE_DEFAULT], no sound, no vibration.
+     * Stable: renaming it would orphan every user's notification setting for it.
      */
     const val CHANNEL_ID = "update_new_release"
 
     /**
-     * The channel until v5.14, [NotificationManagerCompat.IMPORTANCE_LOW]. Deleted by [ensureChannel];
+     * The channel v5.14 and earlier created, [NotificationManagerCompat.IMPORTANCE_LOW]. Deleted by [ensureChannel];
      * a user who had turned it off finds [CHANNEL_ID] off as well. The phone's notification settings then
      * say "1 category deleted", which Android writes for every channel an app deletes.
      */
     const val OLD_CHANNEL_ID = "update_available"
 
-    /** The app's own orange on the notification's header: `PaperOrangeDark`, `DESIGN_NOTES.md` §7. */
+    /** The app's own orange on the notification's header: `PaperOrangeDark`, the brand palette's dark orange. */
     const val NOTIFICATION_COLOUR = 0xFFB5651D.toInt()
 
     /**
@@ -131,7 +128,7 @@ object UpdateNotifier {
 
     /**
      * The phone's side of [PhoneState], read now -- after [ensureChannel], so a user who had turned the
-     * channel of v5.14 off reads off before anything is posted (v5.15).
+     * channel of v5.14 off reads off before anything is posted.
      */
     fun phoneState(context: Context): PhoneState {
         ensureChannel(context)
@@ -146,7 +143,7 @@ object UpdateNotifier {
 
     /**
      * The phone's page for PaperScrape's notifications -- where a user who has switched them off, or
-     * on Android 13+ has refused them for good, can allow them (v5.10C, the tap on *Notify me about
+     * on Android 13+ has refused them for good, can allow them (the tap on *Notify me about
      * new versions* when the phone is what blocks it). `ACTION_APP_NOTIFICATION_SETTINGS` exists from
      * API 26, the app's `minSdk`.
      */
@@ -168,7 +165,7 @@ object UpdateNotifier {
      * Creates the channel if it is not there, and deletes the one of v5.14 -- safe to call as often as
      * one likes ([phoneState] and [post] both do).
      *
-     * **A choice the user made in the phone's settings is carried over** (v5.15, inventory I-923): the
+     * **A choice the user made in the phone's settings is carried over**: the
      * new channel is created off ([NotificationManagerCompat.IMPORTANCE_NONE]) where the old one had been
      * turned off, and at the lowest importance where it had been turned down to that; otherwise at the
      * default importance with no sound and no vibration ([channelImportance]). Once it exists the
@@ -201,7 +198,7 @@ object UpdateNotifier {
     }
 
     /**
-     * The new channel's importance from the old one's, or null where there was none (v5.15): off stays
+     * The new channel's importance from the old one's, or null where there was none: off stays
      * off, the lowest stays the lowest, and anything else -- the old channel as it shipped, or no old
      * channel -- is [NotificationManagerCompat.IMPORTANCE_DEFAULT]. Pure: `UpdateChannelTest`.
      */
@@ -218,9 +215,9 @@ object UpdateNotifier {
      * as notified, and recording a tag whose notification was dropped would silence that release
      * forever. `false` means nothing was posted — the permission is denied, the phone's settings
      * have PaperScrape's notifications or this channel switched off ([phoneState]), or
-     * the platform refused. All are the same outcome for the caller and none throws. Until v5.8B a
-     * switched-off app or channel returned `true`: the platform drops such a post silently, so the
-     * release was recorded as notified and never shown when the user switched them back on.
+     * the platform refused. All are the same outcome for the caller and none throws. A switched-off
+     * app or channel is `false` too: the platform drops such a post silently, and a `true` would
+     * record the release as notified and never show it when the user switches them back on.
      *
      * [currentVersionName] goes in the body rather than the title because the title has to read on
      * a lock screen in one glance, and "which version am I on" is the second question, not the first.
@@ -246,10 +243,9 @@ object UpdateNotifier {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            // A glyph drawn for the status bar (v5.15): the launcher's silhouette, which was the icon
-            // until then, is 0.71 px at its narrowest at 24 dp and about half a pixel at the bar's 17 dp
-            // (the registered exception of 2026-09-23, which leaned on the app's name written beside it
-            // in the shade -- the bar has no name).
+            // A glyph drawn for the status bar: the launcher's silhouette is 0.71 px at its narrowest
+            // at 24 dp and about half a pixel at the bar's 17 dp, and the bar writes no app name
+            // beside it.
             .setSmallIcon(R.drawable.ic_stat_update)
             .setColor(NOTIFICATION_COLOUR)
             .setContentTitle(context.getString(R.string.update_notification_title, tagName))

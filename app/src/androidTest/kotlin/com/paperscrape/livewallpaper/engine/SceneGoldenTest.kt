@@ -13,9 +13,8 @@ import org.junit.runner.RunWith
  * cloud cover, precipitation kind, storm strength, the lake and its traffic, and a spread of themes
  * -- rather than to be exhaustive. It is deliberately a suite that runs in seconds and that someone
  * will actually look at when one of them fails, which is a property of its size rather than of any
- * particular count: the number of Canvas goldens is the number of assertions in this class plus
- * `PeopleGoldenTest`'s, and is not restated here because a hand-maintained count goes stale in
- * exactly the way v4.21 found three of them had.
+ * particular count. How many Canvas goldens there are is a count of the `SceneGolden.assertMatches`
+ * calls under `src/androidTest`, not a number kept by hand here.
  *
  * See [SceneGolden] for how a frame is made reproducible and how to regenerate one honestly.
  */
@@ -26,9 +25,8 @@ class SceneGoldenTest {
 
     // Some scenes are defined in [SharedGoldenScenes] rather than here. Three of those --
     // `day`, `lakeBusy` and `thunderstorm` -- are rendered by [GlSceneGoldenTest] through the GL
-    // backend and compared against these same PNGs, which is why they must be defined once rather
+    // backend and compared against these same PNGs, which is why they are defined once rather
     // than copied; the traffic pair lives there for the same reason against `TrafficGoldenTest`.
-    // See that object.
     @Test
     fun day() = SceneGolden.assertMatches(SharedGoldenScenes.day())
 
@@ -37,7 +35,7 @@ class SceneGoldenTest {
         GoldenScene(name = "night", dayPhase = GoldenScene.night()),
     )
 
-    /** The blend between the two, which has had its own bugs (v2.12's continuity fix). */
+    /** The blend between the two, which has its own continuity to keep: no step between day and night. */
     @Test
     fun dusk() = SceneGolden.assertMatches(
         GoldenScene(name = "dusk", dayPhase = SunPositionCalculator.compute(hour24 = 19.5f)),
@@ -77,8 +75,8 @@ class SceneGoldenTest {
      * The storm, minus the bolt.
      *
      * What this pins is [StormAtmosphere]'s whole output -- the darkened sky, the darker cloud band
-     * and the faded sun -- against a bright midday theme, which is where v2.15's regression would
-     * have been visible. The flash itself is on a timer that only advances with `deltaSeconds`, and
+     * and the faded sun -- against a bright midday theme, where a storm that fails to darken shows
+     * most. The flash itself is on a timer that only advances with `deltaSeconds`, and
      * a golden drawn at `deltaSeconds = 0` never sees it: pinning it would pin a random number, not
      * a picture.
      */
@@ -88,25 +86,25 @@ class SceneGoldenTest {
     // -- Traffic ------------------------------------------------------------------------------
 
     /**
-     * **Two scenes with cars actually on the road** (v3.8 Filone 3).
+     * **Two scenes with cars actually on the road.**
      *
-     * Until v3.8 **not one golden contained a vehicle**, and none could: a car's `progress` starts
-     * at `-startDelaySeconds`, i.e. negative and off-screen, and only advances inside
-     * `SceneObjectRenderer.update(deltaSeconds)` — while every golden drew a single frame with
-     * `deltaSeconds = 0`. All seventeen frames had ~92% uniform tarmac. The v3.7 road measurement
-     * found it; [GoldenScene.warmUpFrames] is what closes it.
+     * A single frame drawn with `deltaSeconds = 0` holds no vehicle: a car's `progress` starts at
+     * `-startDelaySeconds`, negative and off-screen, and only advances inside
+     * `SceneObjectRenderer.update(deltaSeconds)`. [GoldenScene.warmUpFrames] runs the scene first, so
+     * the road carries traffic.
      *
-     * **Why 390 frames.** Measured, not guessed. The count was swept from 0 to 600 and the vehicle
-     * coverage of the road band read off each frame: 0 and 150 give no vehicles at all, and 390 —
-     * thirteen seconds at the render loop's own 30 fps — puts **four** of them in the band, none
-     * touching either edge of the frame. A clipped vehicle is a poor regression surface, because
-     * half of "it moved" is invisible off the side.
+     * **Why 390 frames.** Measured, not guessed: the vehicle coverage of the road band read off frame
+     * counts from 0 to 600. 0 and 150 give no vehicles at all, and 390 -- thirteen seconds at the
+     * render loop's own 30 fps -- puts **four** of them in the band, none touching either edge of the
+     * frame. A clipped vehicle is a poor regression surface, because half of "it moved" is invisible
+     * off the side.
      *
      * **Why these are deterministic.** Each warm-up frame advances the scene clock and the frame
-     * delta by exactly the same amount, and both are pure inputs. Neither scene is a storm, which
-     * matters: the lightning timer is the one thing in the renderer that draws from an unseeded
-     * `Random`, and `updateLightning` leaves it alone unless a storm is active. The star field is
-     * `Random(42)`. Nothing else that moves is random at all.
+     * delta by exactly the same amount, and both are pure inputs. Neither scene is a storm, and the
+     * theme sends no visitor across the sky: the lightning timer and the visitors -- the sleigh, the
+     * fireworks, the Horseman -- are what the renderer draws from an unseeded random source, and
+     * `updateLightning` leaves the timer alone unless a storm is active. The star field is
+     * `Random(42)`.
      */
     @Test
     fun trafficDay() = SceneGolden.assertMatches(SharedGoldenScenes.trafficDay())
@@ -127,11 +125,9 @@ class SceneGoldenTest {
     )
 
     /**
-     * A crowded lake, which is the state the v3.0 fix is about.
-     *
-     * Every candidate present in both categories means every lane is occupied, so this frame is
-     * where a lane-assignment change or a depth-ordering change shows up immediately -- the boats
-     * were sharing lanes and painting over each other by index before [LakeLanes] existed.
+     * A crowded lake: every candidate present in both categories means every lane is occupied, so
+     * this frame is where a lane-assignment change or a depth-ordering change shows up immediately --
+     * boats sharing a lane would paint over each other by index, which [LakeLanes] prevents.
      */
     @Test
     fun lakeBusy() = SceneGolden.assertMatches(SharedGoldenScenes.lakeBusy())
@@ -160,10 +156,10 @@ class SceneGoldenTest {
     /**
      * **A dolphin at the exact top of its leap, in front of a sailboat one lane further out.**
      *
-     * The frame the v3.1 lake fix exists for, and the one `lake-busy` could not catch: that scene
-     * is a single frame at `sceneSeconds = 120.0`, and no dolphin happens to be high enough in it
-     * to reach a sail. The numbers here are not a lucky draw either -- they were solved for, from
-     * the same candidate noise the renderer uses, and every one of them matters:
+     * The frame the lake's depth order exists for, and one `lake-busy` cannot show: that scene is a
+     * single frame at `sceneSeconds = 120.0`, and no dolphin happens to be high enough in it to
+     * reach a sail. The numbers here are not a lucky draw either -- they are solved for, from the
+     * same candidate noise the renderer uses, and every one of them matters:
      *
      * - `sceneSeconds = 200.0` puts dolphin candidate 0 at `sin = 1.000`, its apex exactly, with
      *   candidate 2 about half way up its own arc.
@@ -175,9 +171,10 @@ class SceneGoldenTest {
      *   lake settings. A shallower band packs every lane inside one sail and the frame stops
      *   testing depth at all.
      *
-     * Both dolphins are one lane *nearer* than the boat they cross, so v3.0 painted them last and
-     * they flew through the sail. Ordering on the rendered base (`LakeLanes.depthOf`) puts each of
-     * them behind the boat whose waterline it has climbed above, and this PNG is what says so.
+     * Both dolphins are one lane *nearer* than the boat they cross, so an order by lane alone paints
+     * them last and they fly through the sail. Ordering on the rendered base (`LakeLanes.depthOf`)
+     * puts each of them behind the boat whose waterline it has climbed above, and this PNG is what
+     * says so.
      */
     @Test
     fun lakeDolphinLeap() = SceneGolden.assertMatches(
@@ -197,13 +194,10 @@ class SceneGoldenTest {
                     ),
                 )
             },
-            // The two crossings, measured on their own. Each covers about 50 pixels of the sail
-            // it crosses, and the whole-frame budget **was 576** when this was written: reverting
-            // `LakeLanes.depthOf` to plain lane ordering moves 99 pixels in total -- 0.03% of the
-            // frame, invisible to that rule, and three times over the budget of each patch below.
-            // v4.31 took the whole-frame budget to zero, so the frame would now catch those 99
-            // pixels too; these stay because they say which 99, and because this golden is the one
-            // whose 576-pixel budget was measured 67% spent (`BACKLOG_v4_31.md` item 104).
+            // The two crossings, named. Each is a few dozen pixels of the sail it crosses, and an
+            // order by lane alone moves them and nothing else; the whole frame admits no differing
+            // pixel ([SceneGolden.MAX_DIFFERING_FRACTION]) and fails on them, and the rectangles say
+            // which pixels the depth order is about.
             focus = listOf(
                 GoldenFocus(4, 424, 40, 446, "dolphin 0 at its apex, inside sailboat 0's sail"),
                 GoldenFocus(300, 454, 336, 476, "dolphin 2 mid-climb, inside sailboat 2's sail"),
@@ -214,23 +208,13 @@ class SceneGoldenTest {
     // -- Themes -------------------------------------------------------------------------------
 
     /**
-     * The built city at night, which is the one theme frame this class still owns.
+     * The built city at night, the one theme frame this class owns.
      *
-     * **`theme-winter` and `theme-desert` used to stand here and were removed in v4.21.** Neither
-     * was a scene of its own: `theme-winter` described the same inputs as
-     * `PeopleGoldenTest.people-mixed` and `theme-desert` the same as
-     * `PeopleGoldenTest.people-commercial`, because both of those build their scene from the
-     * theme's defaults and the `customise` block they pass is a no-op at density 1. The four PNGs
-     * came out as two, byte-identical in pairs, and a second PNG of one scene has no way to fail
-     * that the first does not already have — see `GoldenUniquenessTest` for that derivation.
-     *
-     * Nothing stopped being asserted. Those two frames are still compared whole-frame against the
-     * same pixels, under the `people-*` names, and there they additionally carry a focus rectangle;
-     * the winter-dressing and desert-palette claims moved with them. What went is one of each pair
-     * of identical PNGs and the assertion that carried no information of its own.
-     *
-     * `theme-city` stays because it is genuinely a different frame: `night()` rather than `day()`,
-     * and no other golden renders the built city after dark.
+     * Winter and Desert by day are not here: `PeopleGoldenTest`'s `people-mixed` and
+     * `people-commercial` build their scenes from those themes' defaults, so a theme frame here
+     * would be the same inputs and the same PNG, and a second PNG of one scene has no way to fail
+     * that the first does not already have (`GoldenUniquenessTest`). `theme-city` is a different
+     * frame: `night()` rather than `day()`, and no other golden renders the built city after dark.
      */
     @Test
     fun themeCity() = SceneGolden.assertMatches(
@@ -240,8 +224,7 @@ class SceneGoldenTest {
     // -- Seasonal decoration --------------------------------------------------------------------
 
     /**
-     * **The carved moon, with realistic phases switched on** -- the one celestial sprite no
-     * committed frame drew until v4.23 (`BACKLOG_v4_23.md` item 41).
+     * **The carved moon, with realistic phases switched on**.
      *
      * ### Why both flags are on, and why one of them would be worthless
      *
@@ -252,9 +235,9 @@ class SceneGoldenTest {
      * on and phases *off* could not pin it: with nothing to ignore, the frame would come out
      * identical whether the guard stood or fell. **Both flags on is what gives this frame a way to
      * fail** -- if the phase path ever leaked through, the disc drawn here would become one of the
-     * four phase silhouettes, without the carved face and the light inside it (since v5.15 the carved moon wears the
-     * moon's own colour too), which is the whole 79-pixel disc moving. It is the same requirement `SettingsGateScenesTest` derives its
-     * gates from: a proof needs a frame that could fail.
+     * four phase silhouettes, without the carved face and the light inside it (the carved moon wears the moon's own colour
+     * too, decision 74), which is the whole 79-pixel disc moving. It is the same requirement `SettingsGateScenesTest`
+     * chooses its scenes by: a proof needs a frame that could fail.
      *
      * Both are written down here rather than inherited. `realisticPhases` already defaults to true
      * and the `halloween` theme already presets `halloweenEnabled`, but a scene is a description of
@@ -265,38 +248,29 @@ class SceneGoldenTest {
      *
      * It is the one theme that presets the flag, so this frame is a configuration a user actually
      * reaches by choosing a theme rather than a pair of switches assembled onto an unrelated
-     * scene. It also brings the horror sky and the pumpkins with it, which is what makes the frame
-     * carry information no other golden does -- `night` and `theme-city` are the only other deep-
-     * night frames and neither is this sky, this ground or this moon.
+     * scene. It also brings the horror sky and the pumpkins with it, so the frame carries the
+     * theme's own night, which no golden of another theme draws.
      *
-     * ### The clouds are off, and that is the whole of item 40 applied to the moon
+     * ### The clouds are off
      *
-     * **Measured, not assumed: the first capture of this scene did not contain the pumpkin at
-     * all.** With the theme's default cloud band the moon is behind it — `CloudBand` puts the band
-     * at `800 * (0.06 + (0.6 - 0.42) * 0.5) = 120`, which is the top of the disc, and the band is
-     * drawn after the celestial body — so the frame came out with a faint glow above the cloud
-     * line and nothing else. That is `BACKLOG_v4_23.md` item 40's finding happening again on the
-     * other body: eight of the existing goldens are byte-blind to the sky for exactly this reason.
-     * A golden that cannot see the sprite it is named after asserts nothing about it, so the
-     * clouds are turned off here. Nothing else in the scene is arranged around the moon.
+     * The cloud band is drawn after the celestial body, so a cloud in front of the disc hides the
+     * sprite this golden is named after, and a golden that cannot see that sprite asserts nothing
+     * about it. The clouds are turned off here; nothing else in the scene is arranged around the
+     * moon.
      *
      * ### The focus, derived
      *
-     * At [GoldenScene.night]'s hour 1, with sunrise 6 and sunset 20, `arcT = wrap24(1 - 20) / 10 =
-     * 0.5`, so `celestialX = 0.5` and `celestialY = sin(0.5*PI) = 1`: the moon is at the apex of
-     * its arc, centred. With [PaperRenderer.CELESTIAL_MARGIN_FRACTION] 0.12 and the default
-     * `sunCloudHeight` 0.42 that puts it at
-     * `cx = 0.12*360 + 0.5*(360 - 2*0.12*360) = 180`, `cy = 0.62*800 - 0.42*800 = 160`, with
-     * `radius = 360 * 0.055 * 2 = 39.6`. The sprite is blitted at `CELESTIAL_DISC_ORIGIN_UNITS`
-     * (-120) scaled by `radius / 120`, so it covers exactly the disc's own 79.2 px square; the
+     * The Halloween theme ships *Moon stays in place* on (decision 86), so at [GoldenScene.night]'s hour 1 the carved moon
+     * is the still moon ([StillMoon]): in the middle across, `cx = 0.5 * 360 = 180`, and its middle 1.1 of its radii under
+     * the cloud band's foot -- with the default `sunCloudHeight` 0.42, `cy = 800 * (0.06 + (0.6 - 0.42) * 0.5) + 0.16 * 800
+     * + 1.1 * 39.6 = 291.56` --, with `radius = 360 * 0.055 * 2 = 39.6`. The sprite is blitted at
+     * `CELESTIAL_DISC_ORIGIN_UNITS` (-120) scaled by `radius / 120`, so it covers exactly the disc's own 79.2 px square; the
      * rectangle below is that square rounded outward.
      *
-     * It carries the shared [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION], not a derived gate: this
-     * golden pins a sprite, not a settings gate, and no tolerance is moved for it. What it adds
-     * over the whole-frame rule is the face -- the eyes, nose and grin are cut *through* the paper and lit from inside by
-     * `moon_jack_o_lantern_light`, so they are a few hundred pixels of the candle's light, and the frame's own budget of 576
-     * would have forgiven the face closing up while the disc stayed put. (That budget is zero since
-     * v4.31; the focus stays because it names the part of the picture this golden exists for.)
+     * What it names is the face -- the eyes, nose and grin are cut *through* the paper and lit from inside by
+     * `moon_jack_o_lantern_light`, so they are a few hundred pixels of the candle's light, and the face closing up while the
+     * disc stayed put moves those pixels, which the whole frame, admitting none ([SceneGolden.MAX_DIFFERING_FRACTION]),
+     * fails on. The rectangle names the part of the picture this golden exists for.
      */
     @Test
     fun halloweenMoon() = SceneGolden.assertMatches(
@@ -312,21 +286,20 @@ class SceneGoldenTest {
                 )
             },
             focus = listOf(
-                GoldenFocus(140, 120, 220, 200, "the carved disc, phases on and overridden"),
+                GoldenFocus(140, 251, 220, 332, "the carved disc, phases on and overridden"),
             ),
         ),
     )
 
     /**
-     * **Halloween as it ships since v5.16, at night, laughing and under the blood rain** (the maintainer's choices of
-     * v5.16A and its table, 2026-10-21): the cobwebs, the bats and the jack-o'-lanterns on the houses and the shops (the
-     * scarecrows, at the theme's 50 %, stand none in this stretch of the street: [halloweenScarecrowsBesideTheSnowmen] holds
-     * them), the moon at the moment of a laugh -- the scene's clock at 66.5 s, half
-     * a second into the laugh of the 66th second ([LaughingMoon]) -- and the rain red and thick. The clouds off, as in
-     * [halloweenMoon], so the moon is in the frame; the rain from the theme's own weather turned on. The Headless Horseman is
-     * not in it: a flight's height and direction are drawn from an unseeded `Random`, as the sleigh's, so a frame with him
-     * would not be a function of its inputs; his drawing is held where it can be -- `GlAtlasOccupancyTest`,
-     * `GlDrawCallTest`, `FrameAllocationTest` and `tools/assets/tests/test_horseman.py`.
+     * **Halloween as it ships, at night, laughing and under the blood rain** (decisions 78, 81, 83 and 85): the cobwebs,
+     * one a roof, and the jack-o'-lanterns on the houses and the shops (the scarecrows, at the theme's 50 %, stand none in
+     * this stretch of the street: [halloweenScarecrowsBesideTheSnowmen] holds them), the moon at the moment of a laugh --
+     * the scene's clock at 66.5 s, half a second into the laugh that starts at 66 s ([LaughingMoon]) -- and the rain red
+     * and thick. The clouds off, as in [halloweenMoon], so the moon is in the frame; the rain from the theme's own weather
+     * turned on. The Headless Horseman is not in it: a flight's height and direction are drawn from an unseeded random
+     * source, as the sleigh's, so a frame with him would not be a function of its inputs; his drawing is held where it can
+     * be -- `GlAtlasOccupancyTest`, `GlDrawCallTest`, `FrameAllocationTest` and `tools/assets/tests/test_horseman.py`.
      */
     @Test
     fun halloweenAsItShipsAtNight() = SceneGolden.assertMatches(
@@ -345,10 +318,10 @@ class SceneGoldenTest {
     )
 
     /**
-     * **The scarecrows in the snowmen's places, and aside where a snowman stands too** (v5.16, the choice B of v5.16A's rows
-     * 3 and 4): Halloween at night, the snowmen and the scarecrows both at 100 %, so every place of the tile holds both --
-     * the scarecrow 1.27 m to the snowman's right, the pumpkin of the place at its feet. As it ships, at 50 % each, no
-     * scarecrow stands in the golden's stretch of the street, so this one is where their drawing, size and place are held.
+     * **The scarecrows in the snowmen's places, and aside where a snowman stands too** (decision 80): Halloween at night,
+     * the snowmen and the scarecrows both at 100 %, so every place of the tile holds both -- the scarecrow 1.27 m to the
+     * snowman's right, the pumpkin of the place at its feet. As it ships, at 50 % each, no scarecrow stands in the golden's
+     * stretch of the street, so this one is where their drawing, size and place are held.
      */
     @Test
     fun halloweenScarecrowsBesideTheSnowmen() = SceneGolden.assertMatches(
@@ -367,10 +340,11 @@ class SceneGoldenTest {
     )
 
     /**
-     * **And at noon, which since v5.16 is night on the Halloween theme** (the night sky by day, on as it ships: *«deve
-     * diventare il nuovo default del tema halloween»*, 2026-10-21): the whole scene at night, the carved moon at the top of
-     * the sun's path, the windows lit -- and the opening hours the clock's noon. The clouds off so the moon is in the frame;
-     * the moon still (120 s is between two laughs).
+     * **And at noon, which is night on the Halloween theme** (the night sky by day, on as it ships, decision 82: *«deve
+     * diventare il nuovo default del tema halloween»*, 2026-10-21): the whole scene at night, the carved moon standing still
+     * in the middle, low over the roofs, as the theme ships (*Moon stays in place*, decision 86), the windows lit, and the
+     * opening hours the clock's noon. The clouds off so the moon is in the frame; the moon not laughing (120 s is between
+     * two laughs).
      */
     @Test
     fun halloweenAtNoonIsNight() = SceneGolden.assertMatches(
@@ -385,22 +359,19 @@ class SceneGoldenTest {
     /**
      * **One bird, drawn the way the shipped build draws it, big enough to read which way it faces.**
      *
-     * `DESIGN_NOTES.md` §14 requires a sprite with a facing to be judged in both directions. In
-     * v4.26 that requirement was met by a capture-only patch that mirrored the odd candidates —
-     * a mirror the shipped build does not have — so what was approved was not what ships. §14 now
-     * says the acceptance sheet shows the directions **the shipped build reaches**, and a bird
+     * A sprite with a facing is judged in the directions **the shipped build reaches**, and a bird
      * reaches exactly one: `drawBirds` moves every candidate from left to right and applies no
      * horizontal mirror at all.
      *
-     * This is the cheap half of the fix: a frame with a bird in it, on clean sky, at the size it
-     * ships, with the focus rectangle on the animal itself. It cannot say whether the drawing is
-     * good — no test can — but it makes any change to the bird's shape or its facing fail a check
-     * and put the frame in front of somebody. It costs one committed PNG and one assertion.
+     * So this is a frame with a bird in it, on clean sky, at the size it ships, with the focus
+     * rectangle on the animal itself. It cannot say whether the drawing is good -- no test can --
+     * but it makes any change to the bird's shape or its facing fail a check and put the frame in
+     * front of somebody.
      *
      * **Why these numbers.** Solved from the same candidate noise the renderer uses rather than
-     * chosen: at `sceneSeconds = 0.3` on this theme's seed, bird 0 sits at x 258, y 290 — clear of
-     * the cloud band, clear of both edges — with its flap term positive, which is the pose the
-     * sprite is authored in rather than its vertical mirror. The clouds are switched off so the
+     * chosen: at `sceneSeconds = 0.3` on this theme's seed, bird 0 sits inside the focus rectangle --
+     * clear of the cloud band, clear of both edges -- with its flap term positive, which is the pose
+     * the sprite is authored in rather than its vertical mirror. The clouds are switched off so the
      * frame is about the bird and nothing else.
      */
     @Test
@@ -424,45 +395,29 @@ class SceneGoldenTest {
     /**
      * **A sea that moves, sorted against the boats on it.**
      *
-     * v4.28 added the first thing the lake draws that is neither a boat nor a dolphin, and the
-     * lesson of `rain-worst-sky` is that a feature with no committed frame is a feature the golden
-     * net cannot see change. This is that frame, taken at the moment of the fix rather than after
-     * it: Beach under a thunderstorm with the boats and the dolphins at full density, so the frame
-     * portrays **both** halves of the item — that a wave is drawn at all in bad weather, and that
-     * it sorts into the same far-to-near pass as everything else on the water.
+     * The waves are the one thing the lake draws that is neither a boat nor a dolphin, and a
+     * feature with no committed frame is a feature the golden net cannot see change. Beach under a
+     * thunderstorm with the boats and the dolphins at full density, so the frame portrays **both**
+     * halves of it: that a wave is drawn at all in bad weather, and that it sorts into the same
+     * far-to-near pass as everything else on the water.
      *
-     * **Why the warm-up.** A wave slot's membership may change only while it is off screen — the
-     * car rule — so a scene rendered cold has no waves in it by construction, whatever the weather
+     * **Why the warm-up.** A wave slot's membership may change only while it is off screen -- the
+     * car rule -- so a scene rendered cold has no waves in it by construction, whatever the weather
      * says. The scene is run for 80 seconds of its own clock before the frame is taken, which is
      * more than the 38-55 s a slot takes to cross, so every slot has had its chance to turn on and
      * to drift back into view. Both warm-up numbers are pure inputs, so the frame is reproducible.
      *
      * The focus rectangle is the water and nothing else: the sky above it carries the storm veil
-     * and the lightning, which are v4.26's business and have their own frames.
+     * and the lightning, which have their own frames. The whole frame, admitting no differing pixel,
+     * also holds the pavement in front, where Beach's adults carry umbrellas in the rain.
      *
-     * **This scene is a warmed-up thunderstorm, which is why it pins the lightning** (v5.0).
-     * Eighty seconds of simulated storm used to mean eighty seconds of an unseeded `Random`
-     * choosing when the sky flashes: one frame per strike carries the veil, the interval averages
-     * 32 frames, so this golden failed about **1 run in 32, by the whole frame — 285 858 pixels**,
-     * from v4.28 until it was closed. [GoldenScene.pinLightning] takes the strike timer out of
-     * *this render* and out of nothing else; the wallpaper's lightning is exactly what it was, and
-     * the frame is the one already committed, which never had a bolt in it. The rule is a check
-     * now — [GoldenScene.requireDeterministicLightning] — so the next scene that warms a storm up
-     * fails on its first run rather than on its thirty-second. `BACKLOG_v4_31.md` item 112 has the
-     * arithmetic, and v5.0 Phase 0's report has the 100 consecutive green runs.
-     */
-    /**
-     * **v5.4 work E moved this frame by 56 px, and the reason is not the water.**
-     *
-     * `beach` deals four adults; three carried under both of v5.4's share rules and the fourth
-     * carries now that there is no share. One canopy is 56 px at this viewport, the same figure
-     * `umbrella-rain` moved by. The focus rectangle is the water and the water did not move — this
-     * is the whole-frame comparison catching a pavement that the focus does not look at, which is
-     * the pair working as intended.
-     *
-     * It is also the frame that confirms work D's arithmetic from outside: C and D are
-     * byte-identical here (md5 `67c7311214511210a6098cd7e38e28c0`), so the 56 is attributable to
-     * this release alone.
+     * **This scene is a warmed-up thunderstorm, which is why it pins the lightning.** Eighty
+     * seconds of simulated storm are eighty seconds of an unseeded random source choosing when the
+     * sky flashes, and one frame per strike carries the veil over the whole frame, so an unpinned
+     * golden fails at random. [GoldenScene.pinLightning] takes the strike timer out of *this
+     * render* and out of nothing else; the wallpaper's lightning is untouched, and the committed
+     * frame has no bolt in it. [GoldenScene.requireDeterministicLightning] makes it a check, so a
+     * scene that warms a storm up without the pin fails on its first run.
      */
     @Test
     fun waveStorm() = SceneGolden.assertMatches(
@@ -500,9 +455,8 @@ class SceneGoldenTest {
     /**
      * **An umbrella in a hand, at the size it ships.**
      *
-     * The other half of the same lesson. An umbrella is a sprite swap plus two drawn shapes on a
-     * 37 px figure, which is exactly the scale at which `BACKLOG_v4_25.md` item 65 measured the
-     * golden net going green over a scene in which every person had been redrawn.
+     * An umbrella is a sprite swap plus two drawn shapes on a figure a few dozen pixels tall, and a
+     * feature with no committed frame is a feature the golden net cannot see change.
      *
      * **Why the warm-up, and it is the whole reason this frame needs one.** Who carries is state,
      * not a predicate: `PedestrianCarry.nextCarrying` may move only while no copy of the walker is
@@ -510,27 +464,13 @@ class SceneGoldenTest {
      * walker crosses its tile in about 38 s (`SceneSpace.PEDESTRIAN_SPEED_NEAR = 0.026`) and is out
      * of sight for roughly half of it, so 80 seconds of scene clock is comfortably more than one
      * crossing and the street has had time to pick umbrellas up. A frame that showed none would be
-     * pinning the rule failing, which is why the focus rectangle is on the pavement rather than on
-     * the whole frame.
+     * pinning the rule failing, which is why the focus rectangle is on the pavement.
      *
-     * **Re-authored twice in one release, and the second time undid the first.** Work D dealt a
-     * share of two adults in three over the street, and this frame lost an umbrella by **56 px**:
-     * three of three carrying became two of three. Work E removed the share on the maintainer's
-     * instruction — in the rain everyone who can hold one does — and the same 56 px came back.
-     *
-     * **The two 56s are the same pixels**, which is checkable and was checked: against the v5.4C
-     * file this frame differed by 955 px after D and differs by 899 after E, and 899 is exactly D's
-     * *other* cause, the two shops' declaration, on its own. So the umbrella went back up in the
-     * pixel it came down from and nothing else moved with it. `registri/40_attribuzione_golden.md`
-     * in the work E delivery has the three comparisons.
-     *
-     * Three of three carrying is now the rule rather than an accident of a threshold, and this
-     * frame is where the canopy is pinned as a picture.
-     *
-     * **It could never have caught the defect it is next to.** A golden is one scene; nobody
-     * carrying was a property of the *set* of themes. `PedestrianCarryPopulationTest` is that
-     * property and `PedestrianUmbrellaSceneTest` is the count on real pixels; this frame stays what
-     * it always was.
+     * In the rain everyone who can hold an umbrella carries one, so every adult on this pavement
+     * does, and this frame is where the canopy is pinned as a picture. A golden is one scene, and
+     * whether anyone carries across the *set* of themes is not something it can see:
+     * `PedestrianCarryPopulationTest` holds that property and `PedestrianUmbrellaSceneTest` counts it
+     * on real pixels.
      */
     @Test
     fun umbrellaRain() = SceneGolden.assertMatches(
@@ -550,22 +490,16 @@ class SceneGoldenTest {
     )
 
     /**
-     * **The sky the rain used to vanish into.**
+     * **The sky the rain could vanish into.**
      *
-     * v4.26 shipped a derived waterline for a case no committed golden portrayed — every lake
-     * golden stood on a theme where the shore was already obvious — and the frame that would have
-     * shown it failing had to be added afterwards. This is the same lesson applied at the moment of
-     * the fix rather than after it: `PrecipitationContrastTest` names the worst
-     * rain-against-sky case the twelve themes can paint, **Easter at 06:35 under live rain**, where
-     * the drop and the sky are 0.00 of Rec. 601 luma apart and differ in hue alone, and this frame
-     * draws exactly it. The test that names it asserts that it is still the worst case, so the two
-     * cannot drift apart silently.
+     * A derived colour with no committed frame of its worst case is one the golden net cannot see
+     * fail. `PrecipitationContrastTest` names the worst rain-against-sky case the twelve themes can
+     * paint, **Easter at 06:35 under live rain**, where the drop and the sky are 0.00 of Rec. 601
+     * luma apart and differ in hue alone, and this frame draws exactly it. The test that names it
+     * asserts that it is still the worst case, so the two cannot drift apart silently.
      *
-     * The focus is the open sky between the cloud band and the hills — the stretch the maintainer
-     * reported the drops as missing from, and the only part of the frame where this can be seen at
-     * all. The whole-frame tolerance could not see it: at 360x800 the rain covers a few hundred
-     * pixels against the 576 the frame was allowed to differ by until v4.31, when that became
-     * zero.
+     * The focus is the open sky between the cloud band and the hills, the only part of the frame
+     * where drops against that sky can be seen at all.
      */
     @Test
     fun rainWorstSky() = SceneGolden.assertMatches(
@@ -575,16 +509,10 @@ class SceneGoldenTest {
             themeId = "easter",
             weather = weather(cloud = 0.9f, type = PrecipitationType.RAIN, intensity = 0.6f, storm = false),
             focus = listOf(
-                // **A derived limit, because the shared one cannot see this** (v4.22 Phase 5).
-                // The default 2% is calibrated for a patch of a few hundred pixels; this one is
-                // 79 200, where 2% is 1 584 and the whole regression is 223. Measured on the
-                // device: the noise floor is **0.0000%** — the frame re-captured byte-identical —
-                // and the weakest regression that must fail, the correction removed entirely, is
-                // **0.2816%**. The limit is the midpoint. Without it the whole-frame check would
-                // be the only thing standing, and it caught that regression by 582 pixels against
-                // a budget of 576 -- six pixels of margin, which is what the v4.31 measurement of
-                // that budget was about.
-                GoldenFocus(0, 250, 360, 470, "the band of open sky the rain crosses", maxDifferingFraction = 0.0014),
+                // The weakest regression that must fail, the contrast correction removed entirely,
+                // moves a few hundred pixels of this band, and the whole frame admits none
+                // ([SceneGolden.MAX_DIFFERING_FRACTION]).
+                GoldenFocus(0, 250, 360, 470, "the band of open sky the rain crosses"),
             ),
         ),
     )

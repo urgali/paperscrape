@@ -8,18 +8,16 @@ import org.junit.Test
  *
  * ### Why this exists
  *
- * `BACKLOG_v4_30.md` item 98 recorded six Canvas goldens carrying device drift, `lake-dolphin-leap`
- * at 67 % of its budget, and attributed it to this:
+ * A Canvas golden with birds in it that drifts on a device invites this explanation:
  *
  * > A bird's wing-flap is a vertical mirror switched by `sin(seconds * 9 + phase * 6.28)`, and at
- * > that scene's `sceneSeconds = 200` the argument is about 1800 radians. The frame the golden was
- * > authored from caught the sine on one side of a zero crossing and this device catches it on the
- * > other.
+ * > `sceneSeconds = 200` the argument is about 1800 radians. The frame the golden was authored from
+ * > caught the sine on one side of a zero crossing and this device catches it on the other.
  *
- * **Measured in v4.31: that cannot happen, and did not.** The cause was a redrawn `bird_body.png`
- * that six goldens were never re-authored against -- proved by mutation, `BACKLOG_v4_31.md` item
- * 104. This test is the arithmetic half of that refutation, kept as a command rather than as a
- * sentence in a report, because `AI_PROJECT_RULES.md` 14.11 is about exactly that.
+ * **That cannot happen**, and this test is the arithmetic that rules it out: drift at a golden
+ * clock has another cause, such as a sprite redrawn without its goldens re-authored. It is kept as
+ * a command rather than as a sentence in a report, because a number written down goes stale and a
+ * command recomputes it.
  *
  * ### What it measures
  *

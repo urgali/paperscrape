@@ -22,8 +22,9 @@ fi
 echo "Generating a new release keystore at: $KEYSTORE_PATH"
 echo "Key alias: $KEY_ALIAS"
 echo
-echo "You'll be asked for a keystore password and a key password (they may be the same value)."
-echo "Store both in a password manager -- there is no recovery if you lose them."
+echo "You'll be asked for one password, twice. The keystore is PKCS12 (below), where keytool"
+echo "uses the keystore's password for the key as well: the store password IS the key password."
+echo "Store it in a password manager -- there is no recovery if you lose it."
 echo
 
 keytool -genkeypair \
@@ -35,6 +36,13 @@ keytool -genkeypair \
   -validity 10950 \
   -storetype PKCS12
 
+# The path the export line below names: an absolute argument as it is, a relative one from the
+# directory this ran in, for a shell that pastes the line there.
+case "$KEYSTORE_PATH" in
+  /*) STORE_FILE="$KEYSTORE_PATH" ;;
+  *) STORE_FILE="\$(pwd)/$KEYSTORE_PATH" ;;
+esac
+
 echo
 echo "Done. Next steps:"
 echo
@@ -42,18 +50,18 @@ echo "1. Back up $KEYSTORE_PATH somewhere safe (password manager vault, encrypte
 echo "   NOT in this git repository, not in any public location."
 echo
 echo "2. Build locally with this key:"
-echo "     export PAPERSCRAPE_RELEASE_STORE_FILE=\"\$(pwd)/$KEYSTORE_PATH\""
-echo "     export PAPERSCRAPE_RELEASE_STORE_PASSWORD='<your keystore password>'"
+echo "     export PAPERSCRAPE_RELEASE_STORE_FILE=\"$STORE_FILE\""
+echo "     export PAPERSCRAPE_RELEASE_STORE_PASSWORD='<your password>'"
 echo "     export PAPERSCRAPE_RELEASE_KEY_ALIAS='$KEY_ALIAS'"
-echo "     export PAPERSCRAPE_RELEASE_KEY_PASSWORD='<your key password>'"
+echo "     export PAPERSCRAPE_RELEASE_KEY_PASSWORD='<the same password>'"
 echo "     ./gradlew assembleRelease"
 echo
 echo "3. To let CI build signed releases, add these GitHub Secrets"
 echo "   (Settings -> Secrets and variables -> Actions -> New repository secret):"
 echo "     RELEASE_KEYSTORE_BASE64   = base64 -w0 $KEYSTORE_PATH   (or base64 -i on macOS)"
-echo "     RELEASE_STORE_PASSWORD    = <your keystore password>"
+echo "     RELEASE_STORE_PASSWORD    = <your password>"
 echo "     RELEASE_KEY_ALIAS         = $KEY_ALIAS"
-echo "     RELEASE_KEY_PASSWORD      = <your key password>"
+echo "     RELEASE_KEY_PASSWORD      = <the same password>"
 echo
 echo "   The release workflow job decodes RELEASE_KEYSTORE_BASE64 back into a keystore file"
 echo "   in a temp directory at build time only -- it is never written to the repository."

@@ -1,7 +1,6 @@
-"""The Christmas fir (v5.14): `fir/build_fir.py` draws it and declares it, from one geometry.
+"""The Christmas fir: `fir/build_fir.py` draws it and declares it, from one geometry.
 
-The maintainer chose the fir A on 2026-10-14 (*«A – a palchi (consigliato)»*). These hold that every file the
-generator writes -- the three SVG sources, the three PNGs the pipeline renders of them, `FirTable.kt` and the fir
+The fir is the fir A (`DESIGN_NOTES.md` §12, decision 66). These hold that every file the generator writes -- the three SVG sources, the three PNGs the pipeline renders of them, `FirTable.kt` and the fir
 of the Christmas launcher icon -- is its output today; that no colour of the fir, with its snow on or not, is a
 piece narrower than 2 px at the farthest place a tree stands on the BV6600; that the gallery card's baubles hang
 on the fir's paper; and that the icon's fir stays inside the adaptive icon's safe zone.
@@ -26,6 +25,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(TOOL_ROOT / "fir"))
 
 import build_fir  # noqa: E402
+from paperscrape_assets.raster import same_output  # noqa: E402
 
 
 def erode(m, r):
@@ -76,7 +76,7 @@ class FirTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what fir/build_fir.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what fir/build_fir.py writes: run it with --res")
 
     def composed(self, snow: bool):
         """The fir, its snow if [snow] and its star, in one canvas of the fir's frame plus a unit of margin."""

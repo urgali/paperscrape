@@ -5,29 +5,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * REN-05: every tint this app produces is opaque, which is what lets GL ignore the alpha byte.
+ * REN-05: every tint this app chooses is opaque, and a day/night blend of two of them loses at most one level of it -- which
+ * is what lets GL ignore the alpha byte.
  *
  * `GlSceneTarget` drops the tint colour's alpha and the comment beside it used to justify that by
  * claiming `PorterDuffColorFilter(tint, MULTIPLY)` takes opacity from the paint rather than from the
  * filter colour. It does not: MULTIPLY multiplies the filter's alpha in too, so a non-opaque tint
  * would draw differently on the two backends.
  *
- * The behaviour is still right, for a different reason — no tint is ever non-opaque. That was true
- * by accident and is now true by assertion, which is the whole point of this file: the GL shortcut
- * rests on a property of the colours, so the property is the thing to pin.
+ * Until the seal of v5.17 this file said no tint is ever non-opaque, and its glass test modelled the blend with an
+ * interpolation of its own that cannot lose the alpha; `SceneColour.blendArgb`, which the app blends with, cuts each channel
+ * to a level, the alpha too, and two opaque colours come out at 254 at about one ratio in 26: the Canvas backend draws such a
+ * tint one level of 255 dimmer than the GL one, at moments of the dusk and the dawn. Not seen, and left so by the
+ * maintainer's *«Lascia così (consigliata)»* (2026-10-25). What is pinned is that decision: the colours chosen once opaque,
+ * the blend's ends opaque, never more than that one level lost between them.
  */
 class TintOpacityTest {
 
     private fun alphaOf(colour: Int) = (colour ushr 24) and 0xFF
-
-    private fun lerpArgb(from: Int, to: Int, t: Float): Int {
-        fun channel(shift: Int): Int {
-            val a = (from shr shift) and 0xFF
-            val b = (to shr shift) and 0xFF
-            return (a + (b - a) * t).toInt().coerceIn(0, 255)
-        }
-        return (channel(24) shl 24) or (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
-    }
 
     @Test
     fun `every built-in theme's colours are opaque`() {
@@ -85,22 +80,24 @@ class TintOpacityTest {
     }
 
     @Test
-    fun `the window glass crossfade stays opaque at every point`() {
-        // The one tint that is computed per frame rather than chosen once.
-        for (step in 0..20) {
-            // The blend done here rather than through ColorUtils, which is Android and not
-            // available to a JVM test. What is being asserted is the property of the two ends: a
-            // linear interpolation between two opaque colours cannot be non-opaque, and the ends
-            // are what a future edit would change.
-            val blended = lerpArgb(
-                SceneObjectRenderer.WINDOW_GLASS_DAY,
-                SceneObjectRenderer.WINDOW_GLASS_NIGHT,
-                step / 20f,
-            )
-            assertTrue(
-                "the glass tint at ${step / 20f} is not opaque",
-                alphaOf(blended) == 0xFF,
-            )
+    fun `a day-night blend of two opaque colours is opaque at its ends and loses at most one level between them`() {
+        // The tints computed per frame: the window glass's crossfade, the app's own function, and the blend every wall, tree
+        // and car takes between its day and its night colour (`SceneColour.blendArgb`).
+        var lost = 0
+        val steps = 100_000
+        for (step in 0..steps) {
+            val t = step / steps.toFloat()
+            val glass = SceneObjectRenderer.windowGlassColor(t)
+            val blend = SceneColour.blendArgb(0xFF6B5F52.toInt(), 0xFFF3E6D0.toInt(), t)
+            for (colour in intArrayOf(glass, blend)) {
+                assertTrue("at $t the alpha is ${alphaOf(colour)}", alphaOf(colour) >= 0xFE)
+                if (alphaOf(colour) == 0xFE) lost++
+            }
         }
+        for (t in floatArrayOf(0f, 1f)) {
+            assertEquals("the glass at its end $t", 0xFF, alphaOf(SceneObjectRenderer.windowGlassColor(t)))
+            assertEquals("a blend at its end $t", 0xFF, alphaOf(SceneColour.blendArgb(0xFF6B5F52.toInt(), 0xFFF3E6D0.toInt(), t)))
+        }
+        println("TintOpacityTest: alpha 254 at $lost of ${2 * (steps + 1)} blends")
     }
 }

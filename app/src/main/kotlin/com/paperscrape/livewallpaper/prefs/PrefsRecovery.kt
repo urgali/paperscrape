@@ -3,19 +3,23 @@ package com.paperscrape.livewallpaper.prefs
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
 
 /**
  * What every one of this app's DataStores does when its file cannot be read.
  *
- * Until v3.1 the answer was "nothing", and the consequence was not a lost setting: the read
- * happens inside the wallpaper engine's own scope, so an unhandled `CorruptionException` killed
- * the process that draws the wallpaper, Android replaced PaperScrape with the static system
- * image, and the same crash repeated on every restart. The only escape was clearing app data --
- * which throws away *every* store, including the custom themes the corrupt one had nothing to do
- * with. That is the failure this file exists to make impossible.
+ * Without an answer the consequence is not a lost setting: the read happens inside the wallpaper
+ * engine's own scope, so an unhandled `CorruptionException` kills the process that draws the
+ * wallpaper, Android replaces PaperScrape with the static system image, and the same crash repeats
+ * on every restart. The only escape would be clearing app data -- which throws away *every* store,
+ * including the custom themes the corrupt one has nothing to do with. That is the failure this
+ * file exists to make impossible.
  *
  * ### Three different failures, three different answers
  *
@@ -34,14 +38,14 @@ import java.io.IOException
  *    turn a transient glitch into permanent data loss.
  * 3. **Anything else** -- an exception nobody predicted. It is rethrown. Swallowing an unknown
  *    error would leave the app running on defaults with no signal that anything is wrong, and the
- *    engine scope now survives it anyway (see `PaperWallpaperService.PaperEngine`).
+ *    engine scope survives it anyway (see `PaperWallpaperService.PaperEngine`).
  *
  * ### One store's failure is only that store's failure
  *
  * Each store owns its own file, and a handler installed on one store can only ever replace that
  * store's own file. A corrupt `paperscrape_custom_themes` therefore costs the user their custom
  * themes and nothing else; the wallpaper settings and the update snooze are not read, not
- * rewritten and not lost. This is the property the "clear app data" workaround could not offer,
+ * rewritten and not lost. This is the property clearing app data cannot offer,
  * and it is what the instrumented recovery tests assert.
  */
 internal object PrefsRecovery {
@@ -58,13 +62,46 @@ internal object PrefsRecovery {
         ReplaceFileCorruptionHandler { emptyPreferences() }
 
     /**
-     * Serves [emptyPreferences] for one emission when a read fails for an I/O reason, and rethrows
-     * anything else.
+     * Serves [emptyPreferences] when a read fails for an I/O reason, **then reads again** until a read
+     * succeeds, and rethrows anything else.
      *
      * Applied to the *flow*, not to the store, precisely because it must not be durable: this is
-     * the "the disk was busy" path, and the settings it is standing in for are still on disk.
+     * the "the disk was busy" path, and the settings it is standing in for are still on disk. The
+     * defaults stand in once for a run of failures; the reads after them wait [retryDelayMillis] for
+     * the first, twice that for the next, up to [MAX_RETRY_DELAY_MS], so a disk that stays unreadable
+     * costs a read a minute and no emission. A collector that takes only the first value (`first()`)
+     * gets the defaults and reads no more.
+     *
+     * A flow that ended with the defaults would leave every collector on them: the wallpaper drawing a
+     * fresh install's Sunset, and the saved themes gone from it, until its engine is made again.
      */
-    fun Flow<Preferences>.recoveringFromReadErrors(): Flow<Preferences> = catch { cause ->
-        if (cause is IOException) emit(emptyPreferences()) else throw cause
+    fun Flow<Preferences>.recoveringFromReadErrors(retryDelayMillis: Long = FIRST_RETRY_DELAY_MS): Flow<Preferences> {
+        val upstream = this
+        return flow {
+            // Per collection: failures since the last value read, which decides the defaults and the wait.
+            var failuresInARow = 0
+            emitAll(
+                upstream
+                    .onEach { failuresInARow = 0 }
+                    .retryWhen { cause, _ ->
+                        if (cause !is IOException) return@retryWhen false
+                        if (failuresInARow == 0) emit(emptyPreferences())
+                        delay(retryDelay(retryDelayMillis, failuresInARow++))
+                        true
+                    },
+            )
+        }
     }
+
+    /** [first] doubled [failuresBefore] times, at most [MAX_RETRY_DELAY_MS]. */
+    private fun retryDelay(first: Long, failuresBefore: Int): Long =
+        (first shl failuresBefore.coerceAtMost(MAX_DOUBLINGS)).coerceAtMost(MAX_RETRY_DELAY_MS)
+
+    /** How long after a failed read the next one is made. */
+    const val FIRST_RETRY_DELAY_MS = 1_000L
+
+    /** The longest wait between two reads that fail. */
+    const val MAX_RETRY_DELAY_MS = 60_000L
+
+    private const val MAX_DOUBLINGS = 6
 }

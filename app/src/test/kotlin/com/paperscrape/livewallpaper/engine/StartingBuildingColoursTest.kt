@@ -10,13 +10,13 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
- * **A theme that is not built in starts its towers and shops by the twelve's rule** (v5.11, inventory
- * I-419; the maintainer's *«Ripararlo prima di pubblicare»* of 2026-10-07): [withStartingBuildingColours].
- * Until then such a theme started from [SceneCustomization.DEFAULT]'s slate, which a random theme's hills
- * swallowed at night about one time in eight and Big City's hills swallowed by day (3.8).
+ * **A theme that is not built in starts its towers and shops by the twelve's rule**
+ * (`DESIGN_NOTES.md` §12, decision 53): [withStartingBuildingColours]. Without it such a theme would start from
+ * [SceneCustomization.DEFAULT]'s slate, which a random theme's hills swallow at night about one time in eight
+ * and Big City's hills swallow by day (3.8).
  *
- * Measured on the host over the whole space the random themes are drawn from (`AI_PROJECT_RULES.md`
- * 12.20), and over a copy of every built-in theme.
+ * Measured on the host over the whole space the random themes are drawn from,
+ * and over a copy of every built-in theme.
  */
 class StartingBuildingColoursTest {
 
@@ -96,7 +96,7 @@ class StartingBuildingColoursTest {
             val base = SceneCustomization.DEFAULT.copy(hillsColorDay = day, hillsColorNight = night)
             val c = base.withStartingBuildingColours(theme)
             assertTrue("hue $hue: the towers", BuildingGroundContrast.passes(c, SceneSpace.SceneVariant.TOWER))
-            // Since v5.13 a place among the houses is checked for both its groups: the shops' and the public buildings'.
+            // A place among the houses is checked for both its groups: the shops' and the public buildings'.
             for (v in shopVariants) assertTrue("hue $hue: $v", BuildingGroundContrast.passes(c, v))
             for (v in shopVariants) assertTrue("hue $hue: the public buildings at $v", BuildingGroundContrast.passes(c, StorefrontGroup.PUBLIC, v))
             worstTower = minOf(worstTower, BuildingGroundContrast.margin(c, SceneSpace.SceneVariant.TOWER, c.buildings.pair()))
@@ -127,7 +127,7 @@ class StartingBuildingColoursTest {
     }
 
     /**
-     * The case of the question, by colour: Big City's slate was 3.8 from its hills by day; a copy of Big
+     * Big City, by colour: [SceneCustomization.DEFAULT]'s slate is 3.8 from its hills by day; a copy of Big
      * City starts from its steel and sand, 20.6 or more (the mountains off, as Big City ships them).
      */
     @Test

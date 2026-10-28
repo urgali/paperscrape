@@ -1,10 +1,10 @@
 """Tests for the fidelity criterion.
 
 A comparison that returns `EDGE_EQUIVALENT` for everything would be worse than no
-comparison at all: it would put a verdict in `RELEASE_HISTORY.md` that asserts
+comparison at all: it would put a verdict in a report that asserts
 nothing. These tests exist to show the criterion fails when it should, which is
-the same standard `AI_PROJECT_RULES.md` section 12.11 applies to the Kotlin
-suite.
+the standard every test of the project meets: a new test is not trusted until
+it has been shown to fail.
 
 The cases that matter are the near misses. A reconstruction that is obviously
 wrong is easy to reject; the ones worth pinning are a shape displaced by a single
@@ -53,10 +53,8 @@ def source_pixels(source_file: str) -> np.ndarray:
     """The sprite as the pinned toolchain renders its committed SVG source.
 
     Takes the registry's own `source.file` rather than assuming `<name>.svg`. The two coincide for
-    every sprite today. They stopped coinciding in v4.25, when the six retired `head_car` bases
-    shipped as their heirs (`..._skin1` and friends) and the heir carried the source under the
-    retired base's name, until v4.30 removed the heirs (see the count below). Assuming the name is
-    a shortcut that breaks the day the two differ again.
+    every sprite today, but the registry is what says where a sprite's source is, and assuming the
+    name is a shortcut that breaks the day the two differ.
     """
     return raster.render_svg_file(SVG_DIR / source_file).pixels
 
@@ -124,21 +122,10 @@ class RecoveredGeometryTest(unittest.TestCase):
     in both directions: the recovered radius reproduces the sprite, and the
     neighbouring grid values do not.
 
-    **It was `house_large_trim` until v5.0**, which retired the five building
-    families' flat facades for the redrawn neighbourhood. The trim was a 450x18
-    rounded rectangle of the same shape, and the substitution is of the same kind:
-    a single full-canvas `<rect>` whose radius the source declares. One assertion
-    did not survive it, and deliberately -- see `test_the_shipped_trims_radius_is
-    _recovered_from_its_pixels`.
-
-    These cases named `house_shared_planter` and `road_line` at a 78x18 radius 6
-    and a 52x8 radius 3.9 until the V2 redesign. Both sprites were plain rounded
-    rectangles when the assertions were written; V2 replaced the planter with a
-    box carrying three foliage circles and re-authored `road_line` at 54x9, and
-    the assertions were never re-derived against the artwork that actually ships.
-    They are not a rasteriser matter: a white rectangle compared against a
-    coloured three-element drawing is a different picture, not a different
-    antialiasing decision.
+    The case has to stay on a sprite that ships as a single full-canvas `<rect>`
+    whose radius the source declares: a white rectangle compared against a drawing
+    of several elements is a different picture, not a different antialiasing
+    decision.
     """
 
     #: The lens's radius, in pixels, as its committed source declares it: `rx="1.5"`
@@ -152,24 +139,22 @@ class RecoveredGeometryTest(unittest.TestCase):
         fitted = fit.fit_rounded_rect(self.LENS, runtime_pixels(self.LENS))
         self.assertEqual((18, 12), (fitted.width, fitted.height))
         self.assertLess(abs(fitted.best_radius - self.LENS_RADIUS), 0.5)
-        # **The `snapped_radius` assertion the trim carried is not restated, and the reason is
-        # worth a line.** Snapping puts the recovered radius on the sprite grid, and the trim's
-        # `rx="3"` was three whole scene units, so its snap was its radius and asserting the two
-        # equal said something. This lens is `rx="1.5"` -- half a unit -- so its 4.5 px snaps to
-        # 6.0, and an assertion that they are equal would be asserting the snap is wrong. What the
-        # test is about is the recovery, which the line above pins to within half a pixel.
+        # **The snapped radius is not asserted equal to the declared one.** Snapping puts the
+        # recovered radius on the sprite grid, and this lens is `rx="1.5"` -- half a unit -- so its
+        # 4.5 px snaps to 6.0, and an assertion that they are equal would be asserting the snap is
+        # wrong. What the test is about is the recovery, which the line above pins to within half a
+        # pixel.
         self.assertEqual(6.0, fitted.snapped_radius)
 
     def test_fitted_radius_reproduces_the_shipped_trim(self):
         """Reproduced from the sprite's own source form, not from a 1:1 rounded rectangle.
 
-        `rounded_rect_svg` writes a document at one pixel per user unit; every committed V2
+        `rounded_rect_svg` writes a document at one pixel per user unit; every committed
         source is authored at `SPRITE_PIXELS_PER_UNIT` and scaled by its viewBox. The two
         describe the same rectangle and the rasteriser resolves their curves a hair
-        differently, which mattered not at all while the shipped PNGs came from a third
-        rasteriser and matters now that they are exact renders of their own sources. The
-        radius is still the one `fit` recovers; only the document form it is rendered in
-        changed.
+        differently, which matters because the shipped PNGs are exact renders of their own
+        sources. The radius is the one `fit` recovers; only the document form it is rendered
+        in is the source's.
         """
         result = fidelity.compare(
             self.LENS, runtime_pixels(self.LENS), source_pixels(f"{self.LENS}.svg")
@@ -190,12 +175,8 @@ class RecoveredGeometryTest(unittest.TestCase):
     def test_low_iou_alone_does_not_reject_a_recovered_shape(self):
         """A near-miss radius on a small sprite scores under the floor without being wrong.
 
-        This used to be shown on shipped sprites -- `bunny_innerear`, `pumpkin_stem`,
-        `penguin_feet` all sat around 0.99 against their own sources. It cannot be shown that
-        way any more: v2.5 re-rendered the library from its sources while baking the
-        readability rim in, so those sprites are now byte-exact against them and score 1.0.
-        That is a better state of the world and a worse demonstration, so the case is made on
-        a constructed pair instead.
+        The case is made on a constructed pair: every shipped sprite is byte-exact against its
+        own source and scores 1.0, so none of them can show it.
 
         A 60x12 pill at radius 6 against the same pill at 5.9 or 5.8 is the same shape recovered to
         within a tenth of a unit: no solid/empty conflict anywhere, every difference on the
@@ -214,27 +195,22 @@ class RecoveredGeometryTest(unittest.TestCase):
 class ShippedAgainstSourceTest(unittest.TestCase):
     """What the pinned toolchain does and does not reproduce, across the set.
 
-    The shipped PNGs were rendered by the V2 library's own rasteriser, and the
-    pinned one resolved partially covered pixels differently. That was defect D-7,
-    closed, and this class is the bound its closure rests on. Today
     `reports/fidelity.json` records every compared sprite as `PIXEL_IDENTICAL`, a
-    largest alpha difference of 0, so both bounds hold with room to spare and stay
-    as the guard.
+    largest alpha difference of 0, so the shape bounds hold with room to spare and
+    stay as the guard against a rasteriser that resolves partially covered pixels
+    differently.
 
-    The bound that matters is a *shape* bound, and it is criterion-independent:
-    no sprite has a pixel that is solid in one rendering and empty in the other,
-    and no single pixel's coverage moves by as much as half. Everything the two
-    rasterisers disagree about is therefore the resolution of a boundary pixel,
-    which is invisible once the sprite is blitted. A geometry difference -- a
-    displaced shape, a wrong radius, a re-authored drawing -- cannot satisfy
-    either condition, which is what makes them worth asserting.
+    Two of the bounds are *shape* bounds, and criterion-independent: no sprite has
+    a pixel that is solid in one rendering and empty in the other, and no single
+    pixel's coverage moves by as much as half. A geometry difference -- a displaced
+    shape, a wrong radius, a re-authored drawing -- cannot satisfy either. The third
+    holds the colour as well: every sprite is its source pixel for pixel.
     """
 
     #: Half of 255, rounded down: a disagreement this large would mean the two
     #: rasterisers do not agree about which side of a pixel's centre an edge falls
-    #: on, which is a geometry difference rather than a coverage one. When D-7 was
-    #: closed the worst case across the set was 121, on a single pixel of
-    #: `rainbow_arc`'s shallowest stroke edge; `reports/fidelity.json` now records 0.
+    #: on, which is a geometry difference rather than a coverage one.
+    #: `reports/fidelity.json` records 0 across the set.
     MAX_COVERAGE_DELTA = 127
 
     @classmethod
@@ -246,45 +222,12 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         ]
 
     def test_every_sprite_with_a_source_is_covered(self):
-        # v4.19: one car body and one glass became three of each, the two full-car-width lamp
-        # overlays became four small shared lenses, and four adult bases were retired. Net +2.
-        # v4.20 removed six more: the four sprites nothing has ever blitted (`house_window` and
-        # the three `road_*`) and the two boy vehicle bases, which are byte-for-byte their own
-        # `_skin2`. Both halves of item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md.
-        # v4.25: +6. The six retired `head_car` bases were the only people in the set with no
-        # source at all -- their heirs were recolours of a drawing that had been deleted. The
-        # v4.25 family is drawn from SVG for every one of them, so the heir now carries it.
-        # v4.28: +3. The umbrella's canopy and the wave's two masks are drawn from SVG; the
-        # bird's new artwork replaced bird_body.svg rather than adding a source, and the 36
-        # carrying frames are recolours of a base that is generated and not shipped.
-        # v4.30: -6, and every one of them is a seated bust. Those six shapes had no base of their
-        # own -- v4.19 and v4.20 retired them as duplicates -- so the SVG was carried by the tone
-        # copy the registry named as the heir. v4.30 removed the tone copies: a person is fixed art
-        # plus region masks now, and neither is a drawing with an SVG of its own. The eight window
-        # busts and the twenty-four walk frames still ship their bases and still carry theirs, which
-        # is why the loss is six and not the whole family.
-        # v5.0: -34, the whole of the five building families. The flat facades each had an SVG
-        # and the pieces that replace them cannot: a piece is drawn by
-        # `tools/assets/buildings/build_neighbourhood.py` and decomposed into a fixed layer and its
-        # weight masks, which is the same reason the people's layers have no source since v4.30.
-        # The registry says so in each entry's `source.reason` rather than leaving the field empty.
-        # v5.1: +1. The one flower clump became two -- `ground_flowers_bloom` and
-        # `ground_flowers_dry`, so an autumn or a winter scene stops drawing midsummer blooms --
-        # and both are SVG, so the pair adds a source rather than replacing one.
-        # v5.14: +3. The fir A's star is a piece of its own (`tree_fir_star`, so it stays bright under the
-        # fir's night shade), and the white disc of the bulbs, the snow and the stars and the wreath (`deco_bulb`,
-        # `deco_wreath`) are drawn from SVG and blitted from the atlas; the fir and its snow keep the sources they had,
-        # redrawn.
-        # v5.15: +4. Santa's sleigh is five drawings with an SVG each -- the sleigh with Santa and the presents, and the
-        # reindeer in four poses (`santa_reindeer_0`..`3`), written by `tools/assets/sleigh/build_sleigh.py` -- in place of
-        # the two it had (`santa_sleigh_scene`, `santa_sleigh_trot`); and the Halloween moon's light behind its face
-        # (`moon_jack_o_lantern_light`, `tools/assets/moon/build_jack_moon.py`) is a source of its own beside the moon's.
-        # v5.16: +18, the Halloween drawings, an SVG each: the Headless Horseman's ten pieces (`horseman_horse_0`..`3`,
-        # `horseman_legs_0`..`3`, `horseman_rider`, `horseman_cape`, `tools/assets/horseman/build_horseman.py`), the
-        # scarecrow and its light (`scarecrow/build_scarecrow.py`), the decorations' four (`deco_cobweb`, `deco_bat`,
-        # `deco_jack_o_lantern` and its light, `halloween/build_halloween_deco.py`) and the laughing moon and its light
-        # (`moon/build_jack_moon_laugh.py`).
-        self.assertEqual(129, len(self.results))
+        # Every registry entry with an SVG source. The sprites without one say why in their
+        # `source.reason`: a building piece is drawn by `tools/assets/buildings/build_neighbourhood.py`
+        # and decomposed into a fixed layer and its weight masks, a seated bust is fixed art plus
+        # region masks, and the carrying frames are recolours of a base that is generated and not
+        # shipped. A drawing added or removed with an SVG of its own moves this count.
+        self.assertEqual(130, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:
@@ -297,6 +240,25 @@ class ShippedAgainstSourceTest(unittest.TestCase):
             with self.subTest(name=result.name):
                 self.assertLessEqual(result.max_alpha_diff, self.MAX_COVERAGE_DELTA)
 
+    def test_every_shipped_sprite_is_its_source_pixel_for_pixel(self):
+        """The colour too, not only the shape: every channel of every pixel.
+
+        The two bounds above hold the shape and nothing else, so a fill changed in a source
+        SVG and never exported -- `taxi_checker.svg`'s `#2B2A33` made `#2B2A34` -- passes them,
+        and `validate` and every other test with them; only `compare`, outside the routine,
+        says DIVERGENT. Every sprite with a source is rendered pixel-identical to what ships,
+        so that is the bound. If the pinned rasteriser itself ever moves, the probe
+        (`RasteriserTest`) fails beside this and every figure is re-measured.
+        """
+        for result in self.results:
+            with self.subTest(name=result.name):
+                self.assertEqual(
+                    "PIXEL_IDENTICAL", result.verdict,
+                    f"{result.name}: {result.differing_pixels} pixels differ from its source, "
+                    f"colour by up to {result.max_rgb_diff_where_opaque} where both are opaque. "
+                    "Export the source again (its generator, or `render` and a copy) or put the source back.",
+                )
+
 
 class RasteriserTest(unittest.TestCase):
     def test_toolchain_matches_the_pinned_fingerprint(self):
@@ -307,13 +269,13 @@ class RasteriserTest(unittest.TestCase):
         )
 
     def test_the_fingerprint_is_the_pixels_and_not_the_compressed_file(self):
-        """The bug this pins, because it cost three releases of documentation.
+        """The bug this pins: a fingerprint of the compressed file instead of the pixels.
 
         Hashing ``png_bytes`` makes the fingerprint depend on the PNG encoder and on
         the zlib build under it -- and Pillow wheels do not all bundle the same one.
         A rasteriser fingerprint that moves when the *compressor* changes reports a
-        toolchain difference that is not there, which is exactly what happened: the
-        probe disagreed while ``compare`` found all 125 shipped sprites pixel-identical.
+        toolchain difference that is not there: the probe disagrees while ``compare``
+        finds every shipped sprite pixel-identical.
 
         So the probe's ``probe_sha256`` must be the pixel hash. The file hash is still
         reported, as ``probe_png_sha256``, so an encoder change stays visible.
@@ -332,23 +294,36 @@ class RasteriserTest(unittest.TestCase):
         """Re-compressing the identical pixels must not move the fingerprint.
 
         Reproduces the difference between machines locally: the IDAT stream is
-        decompressed and recompressed with CPython's own zlib, which is a different
-        implementation from the one the Pillow wheel bundles. The file bytes change;
-        the fingerprint must not.
+        decompressed and recompressed with CPython's zlib at level 1, another stream for
+        the same rows, as another machine's zlib writes one (`encode_png` may already have
+        used CPython's zlib at level 9, so that level would give the same stream back),
+        and the probe's PNG is written again around it. That file's bytes differ; the
+        fingerprint of what it decodes to is the probe's.
         """
         rendered = raster.render_svg(raster.PROBE_SVG)
-        idat = b""
+        chunks = []
         offset = 8
         data = rendered.png_bytes
         while offset < len(data):
-            length = struct.unpack(">I", data[offset : offset + 4])[0]
-            if data[offset + 4 : offset + 8] == b"IDAT":
-                idat += data[offset + 8 : offset + 8 + length]
+            length, kind = struct.unpack(">I4s", data[offset : offset + 8])
+            chunks.append((kind, data[offset + 8 : offset + 8 + length]))
             offset += 12 + length
-        recompressed = zlib.compress(zlib.decompress(idat), 9)
+        idat = b"".join(body for kind, body in chunks if kind == b"IDAT")
+        recompressed = zlib.compress(zlib.decompress(idat), 1)
         # If these were equal the test would prove nothing, so assert the premise too.
         self.assertNotEqual(idat, recompressed, "the two compressors agree here; pick another probe")
-        self.assertEqual(rendered.pixels_sha256, raster.probe()["probe_sha256"])
+        # The same chunks in the same order, the image data one IDAT of the other stream.
+        other_file = data[:8]
+        written = False
+        for kind, body in chunks:
+            if kind == b"IDAT":
+                if written:
+                    continue
+                body, written = recompressed, True
+            other_file += struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+        other = raster.Raster(png_bytes=other_file, pixels=raster.png_pixels(other_file))
+        self.assertNotEqual(rendered.sha256, other.sha256, "the premise: the two files differ")
+        self.assertEqual(raster.probe()["probe_sha256"], other.pixels_sha256)
 
     def test_rendering_is_repeatable_within_a_run(self):
         first = raster.render_svg(raster.PROBE_SVG)

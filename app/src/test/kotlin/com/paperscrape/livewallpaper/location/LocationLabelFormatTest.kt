@@ -8,7 +8,7 @@ import org.junit.Test
  * The shape of the place name shown beside a device fix.
  *
  * `LocationLabelResolver.format` is the pure half of the resolver -- the half that decides which of
- * an `Address`'s many fields become the two words on screen. Split out in v4.0 so that the choice is
+ * an `Address`'s many fields become the two words on screen. It stands apart so that the choice is
  * pinned by tests instead of only being visible on a device that happens to be standing somewhere
  * interesting: the interesting cases are all *absences*, and a device standing in a city centre
  * exercises none of them.
@@ -35,7 +35,7 @@ class LocationLabelFormatTest {
     }
 
     /**
-     * **The duplication the brief calls out cannot happen**, and this is why.
+     * **A place named twice in the label cannot happen**, and this is why.
      *
      * `"Milano, Milano, Italia"` would need two place fields in the label. Exactly one is ever
      * chosen, so the shape is structurally two parts -- even when `locality`, `subAdminArea` and
@@ -113,7 +113,7 @@ class LocationLabelFormatTest {
         assertNull(LocationLabelResolver.format(null, null, null, null))
     }
 
-    // -- the cases that produced something ugly ----------------------------------------------------
+    // -- the cases that would produce something ugly ----------------------------------------------
 
     /**
      * **City-states.** In Singapore, Monaco or the Vatican the place and the country are the same
@@ -186,9 +186,8 @@ class LocationLabelFormatTest {
     }
 
     /**
-     * **The reverse lookup is sent a coarse position** (v5.8C, SEC-05): two decimals, the rounding
-     * the weather requests use, not the saved fix at full precision -- about a metre with GPS --
-     * which is what the platform geocoder was given until then (v5.8B comment audit).
+     * **The reverse lookup is sent a coarse position**: two decimals, the rounding the weather
+     * requests use, never the saved fix at full precision (about a metre with GPS).
      */
     @Test
     fun `the place-name lookup rounds the position like the weather requests`() {

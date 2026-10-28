@@ -17,24 +17,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **The Palms switch on every theme** (v5.10C), the maintainer's decision of 2026-09-30: *«le palme
- * devono essere attivabili in qualsiasi tema: l'utente deve essere libero di avere anche natale con
- * palme»*. On a theme that plants no palm of its own, the switch puts palms where its trees stand;
- * it starts off there; Beach and Desert are what they were.
+ * **The Palms switch on every theme** (`DESIGN_NOTES.md` §12, decision 39). On a theme that plants
+ * no palm of its own, the switch puts palms where its trees stand; it starts off there; Beach and
+ * Desert read their own field.
  *
  * ### The trap, which is most of this file
  *
  * `SceneCustomization.palmsEnabled` is `true` by default on every theme, so every theme a user has
- * edited, saved or backed up holds `true` -- written by the app, not chosen, and inert until now. Had
- * that field become the switch on Autumn or Christmas, every such user would have found palms there
- * the day they updated. So those themes read a field no build before v5.10 wrote,
+ * edited, saved or backed up holds `true` -- written by the app, not chosen, and inert on a theme
+ * without palms of its own. Were that field the switch on Autumn or Christmas, every such user would
+ * find palms there the day they updated. So those themes read a field no build before v5.10 wrote,
  * `palmsInsteadOfTrees`, and absent means off. The three ways an old `true` reaches a running app are
  * tested here with what such a build wrote: **a saved theme** (the real store a v5.5 build wrote,
  * `themes/store-saved-by-v5.5.json`, whose theme stands on Autumn's broadleaf trees with
  * `palmsEnabled: true`), **a shared theme file** (the same entry as v5.5 exported it) and **a whole-app
- * backup** (one written today, with the new field taken out: the customization format of 5.9 is
- * today's less that one field -- `registri/` of the v5.10C round has the diff). The fourth, **the
- * preference store**, is `PalmsPreferenceStoreTest`, over the app's own reader.
+ * backup** (one written today, with that field taken out, as no build before v5.10 wrote it). The
+ * fourth, **the preference store**, is `PalmsPreferenceStoreTest`, over the app's own reader.
  */
 class PalmsOnEveryThemeTest {
 
@@ -74,7 +72,7 @@ class PalmsOnEveryThemeTest {
 
     @Test
     fun `on, every tree of the theme is a palm, in the same place, and nothing else moves`() {
-        // Without the Christmas layer, whose firs stay firs among the palms since v5.10C2: that half is
+        // Without the Christmas layer, whose firs stay firs among the palms: that half is
         // `FirsAmongThePalmsTest`. (Christmas ships with the layer on.)
         for (theme in palmless) {
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
@@ -116,8 +114,8 @@ class PalmsOnEveryThemeTest {
     @Test
     fun `a layout that deals palms and trees both keeps its trees, whatever the new field says`() {
         // A shuffled theme draws from a pool holding both (`RandomSceneGenerator.OBJECT_POOL`): it
-        // plants palms of its own, so it reads `palmsEnabled` as it did through v5.9, and its tree
-        // slots stay trees -- the scene of a user who shuffled one before v5.10 does not change.
+        // plants palms of its own, so it reads `palmsEnabled`, and its tree slots stay trees -- the
+        // scene of a user who shuffled one before v5.10 does not change.
         val tree = StaticSceneObject(SceneObjectType.TREE, depthFraction = 0.4f, tileFractionX = 0.2f)
         val palm = StaticSceneObject(SceneObjectType.PALM_TREE, depthFraction = 0.6f, tileFractionX = 0.7f)
         val mixed = SceneObjectLayout(staticObjects = listOf(tree, palm), cars = emptyList())

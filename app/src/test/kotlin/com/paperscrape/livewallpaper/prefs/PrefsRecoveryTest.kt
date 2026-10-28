@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -42,7 +43,8 @@ class PrefsRecoveryTest {
             throw IOException("storage briefly unavailable")
         }
 
-        val seen = runBlocking { failing.recoveringFromReadErrors().toList() }
+        // The first value only: the flow reads again after it (`SettingsReadAgainAfterAReadErrorTest`).
+        val seen = runBlocking { failing.recoveringFromReadErrors().take(1).toList() }
 
         assertEquals(listOf(emptyPreferences()), seen)
         assertNull(seen.single()[key])
@@ -57,7 +59,7 @@ class PrefsRecoveryTest {
 
         assertEquals(
             listOf(emptyPreferences()),
-            runBlocking { failing.recoveringFromReadErrors().toList() },
+            runBlocking { failing.recoveringFromReadErrors().take(1).toList() },
         )
     }
 
@@ -69,7 +71,7 @@ class PrefsRecoveryTest {
             throw IOException("gone mid-stream")
         }
 
-        val seen = runBlocking { failing.recoveringFromReadErrors().toList() }
+        val seen = runBlocking { failing.recoveringFromReadErrors().take(2).toList() }
 
         assertEquals(listOf(prefs, emptyPreferences()), seen)
     }

@@ -26,26 +26,20 @@ import androidx.core.graphics.set
  * the GPU samples it at roughly 1:1 instead of minifying it several times over. A sprite drawn at
  * two very different sizes in one scene therefore holds two entries, keyed by `(resId, level)`.
  *
- * That is fewer texels, not more, and by a wide margin — but **the two figures this paragraph used
- * to quote were both stale, and stale in the direction that made the atlas look roomier than it
- * was**: it said "18.5 MiB of texture at level 0, and 1.8 MiB once each sprite carries only the
- * levels its scenes actually draw", when level 0 had reached 31.745 MiB and the reduced figure,
- * measured on the device rather than modelled, is about four times the 1.8.
- *
- * They are not re-typed with fresh numbers here, because re-typing is exactly how they rotted
- * (`BACKLOG_v4_28.md` item 82, and item 63 before it). The measurements live where they can fail:
+ * That is fewer texels, not more, and by a wide margin. **The figures are not written here**,
+ * because a figure typed into a comment goes stale with the next drawing, and a stale one makes the
+ * atlas look roomier than it is. The measurements live where they can fail:
  * `SpriteDrawScaleTest.uploadedTexelBudget` for a host-side upper bound on what the set uploads
  * (every sprite at its largest drawn scale; it fails above its ceiling and prints the figure on
  * every run), and
- * `SpriteGeometryTest.decodedByteBudget` for what it decodes. The *ratio* the sentence exists to
- * make still holds and is what matters here.
+ * `SpriteGeometryTest.decodedByteBudget` for what it decodes. The *ratio* is what matters here.
  *
  * ## Why the size is recorded here, and *which* size
  *
  * Recording each sprite's pixel dimensions is what lets the renderer draw an already-uploaded sprite
- * **without touching [SpriteCache] at all**. Previously every blit went through a synchronised cache
- * lookup with an LRU touch, once per sprite per frame, purely to recover a width and a height the
- * GPU already knew. On a star field that was hundreds of monitor acquisitions per frame for
+ * **without touching [SpriteCache] at all**. Without it every blit would go through a synchronised
+ * cache lookup with an LRU touch, once per sprite per frame, purely to recover a width and a height
+ * the GPU already knows. On a star field that is hundreds of monitor acquisitions per frame for
  * information that never changes.
  *
  * The recorded size is the sprite's **authored** size, not the reduced texture's. The quad is built
@@ -59,12 +53,12 @@ import androidx.core.graphics.set
  * Parallel primitive arrays rather than a `Map<Int, …>`: a map boxes its key on every lookup, and
  * this is the per-blit path. The table holds one entry per shipped sprite per level a scene actually
  * draws it at, and [find] reaches an entry through [SpriteEntryIndex], an open-addressing hash over
- * the same `(resId, level)` keys, in primitive arrays too. Until v5.10B it scanned the table from the
- * start on every blit, and the table only grows, so the sprites registered last -- the people and
- * the cars -- paid the longest scans: 8.5 % of the render thread on the BV6600 with the blit itself
- * (v5.10A).
+ * the same `(resId, level)` keys, in primitive arrays too. A scan of the table from the start on
+ * every blit is not an option: the table only grows, so the sprites registered last -- the people
+ * and the cars -- would pay the longest scans, which with the blit itself came to 8.5 % of the
+ * render thread on the BV6600.
  *
- * Every method runs on the render thread; [register], [registerWhitePixel] and [clear] touch GL and
+ * Every method runs on the render thread; [register], [registerWhitePixel], [clear] and [clearStandalone] touch GL and
  * need the context current, while [find], the accessors and [invalidate] do not.
  */
 internal class GlTextureCache {
@@ -101,10 +95,10 @@ internal class GlTextureCache {
     /**
      * How many entries needed a texture of their own because the atlas would not take them.
      *
-     * **Zero is the property v4.29 bought and v4.30 must not spend.** A standalone texture is its
-     * own GL allocation and it ends the batch every time the draw order crosses it, which is the
-     * cost that made a person in five layers look expensive in the first place. Counted rather than
-     * assumed: `GlAtlasOccupancyTest` reads it off a real theme sweep on the device.
+     * **Zero is the property to keep.** A standalone texture is its own GL allocation and it ends
+     * the batch every time the draw order crosses it, which is the cost that would make a person in
+     * five layers expensive. Counted rather than assumed: `GlAtlasOccupancyTest` reads it off a real
+     * theme sweep on the device.
      */
     var standaloneCount = 0
         private set
@@ -186,7 +180,7 @@ internal class GlTextureCache {
             content[i * 4 + 2] = (cropX + reduced.width) / fw
             content[i * 4 + 3] = (cropY + reduced.height) / fh
             // Only [register] adds, and only for a pairing [find] did not have, so a key is indexed
-            // once and the index answers what the old scan did.
+            // once and the index answers what a scan of the table would.
             index.add(resId, level, i)
             count++
             return i
@@ -216,11 +210,11 @@ internal class GlTextureCache {
      * this takes away is restored before any sampler sees it.
      *
      * **The exception is [uploadStandalone]**, which has no atlas and no border and is bound
-     * `GL_CLAMP_TO_EDGE` with `GL_LINEAR`. Nothing has reached it since v4.29's packer -- the
+     * `GL_CLAMP_TO_EDGE` with `GL_LINEAR`. The atlas's packer leaves nothing for it -- the
      * twelve-theme census counts zero standalone entries at full density -- and the day something
-     * does, its edge is the clamped one. `ARCHITECTURE.md` §5 "The transparent margin is part of
+     * reaches it, its edge is the clamped one. `ARCHITECTURE.md` §5 "The transparent margin is part of
      * the drawing" has the general rule, the measurement behind it, and where each of the four
-     * draw paths stands; `BACKLOG_v4_31.md` item 106 is where it was measured.
+     * draw paths stands.
      */
     private fun cropToContent(reduced: Bitmap): Bitmap {
         val w = reduced.width
@@ -314,7 +308,7 @@ internal class GlTextureCache {
      * White is the identity for both the `MULTIPLY` tint and the flat-fill path, so sampling this
      * entry turns a solid colour into an ordinary textured quad. Registering it in the *atlas*
      * rather than as its own texture is the point: it puts flat geometry and sprites in the same
-     * texture, so a solid detail drawn between two sprites no longer ends the batch.
+     * texture, so a solid detail drawn between two sprites does not end the batch.
      *
      * [key] is a sentinel rather than a real drawable id — there is no white-pixel resource, and
      * inventing one would put a file in `res/` that only this line would ever read.
@@ -357,6 +351,41 @@ internal class GlTextureCache {
         atlas.clear()
         count = 0
         index.clear()
+    }
+
+    /**
+     * Deletes the textures of the entries the atlas would not take, and forgets those entries; the atlas and every entry
+     * packed into it stay, numbered again in their order. What a memory trim takes from an engine that is drawing
+     * (`GlSceneTarget.trimTextures`): the atlas page is what its next frame draws from. With no such entry -- the BV6600,
+     * whose twelve themes need none -- nothing changes and no GL call is made.
+     */
+    fun clearStandalone() {
+        val atlasHandle = atlas.textureHandle
+        var kept = 0
+        for (i in 0 until count) {
+            val handle = handles[i]
+            if (handle != atlasHandle) {
+                scratch[0] = handle
+                GLES20.glDeleteTextures(1, scratch, 0)
+                continue
+            }
+            if (kept != i) {
+                resIds[kept] = resIds[i]
+                levels[kept] = levels[i]
+                handles[kept] = handle
+                widths[kept] = widths[i]
+                heights[kept] = heights[i]
+                for (k in 0 until 4) {
+                    uvs[kept * 4 + k] = uvs[i * 4 + k]
+                    content[kept * 4 + k] = content[i * 4 + k]
+                }
+            }
+            kept++
+        }
+        if (kept == count) return
+        count = kept
+        index.clear()
+        for (i in 0 until count) index.add(resIds[i], levels[i], i)
     }
 
     /**

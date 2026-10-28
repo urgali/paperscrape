@@ -1,25 +1,21 @@
-"""`buildings/core.py`'s `budget`: the third generated report, and the one nothing read.
+"""`buildings/core.py`'s `budget`: the third generated report, and the one nothing else reads.
 
-`BACKLOG_v5_1.md` item 125 names three committed artefacts written by a tool -- `fidelity.md`,
-`runtime-inventory.md` and `buildings/budget.md` -- and says of all three that nothing tests them.
-v5.2 closed the fidelity third. v5.5C closes the other two, and the gap was demonstrated before it
-was closed rather than argued: with `budget` mutated to write a one-line report, `unittest
-discover -s tests` stayed green at 143 of 143 and `validate` exited 0, because no test and no
-command in the release checklist ever calls it. `budget` is reached only by
-`python3 -m buildings.build_neighbourhood --budget`, which is run by hand when the neighbourhood
-artwork is regenerated.
+Three committed artefacts are written by a tool -- `fidelity.md`, `runtime-inventory.md` and
+`buildings/budget.md` -- and nothing else reads the third: `budget` is reached only by
+`python3 -m buildings.build_neighbourhood --budget`, run by hand when the neighbourhood artwork is
+regenerated, so a `budget` mutated to write a one-line report passes every other test and `validate`.
 
 Two things are checked, and they are different in kind.
 
 **The arithmetic**, on synthetic PNGs in a temporary directory: the per-concept totals are the sum
-of the rows beneath them, the report passes no verdict of its own (v5.8B: `core.BUDGET` is gone),
+of the rows beneath them, the report passes no verdict of its own (there is no `core.BUDGET`),
 and `uploaded_bytes` measures the ink box grown by one texel and clamped to the
 canvas rather than the canvas itself -- which is the whole reason the two columns differ.
 
 **The agreement**, on the real tree: `report.budget_perimeter` re-derives `shipped_perimeter` from
 the inventory pass so that `validate` can check the committed budget for staleness without opening
 every PNG a second time. That is a duplicated selection rule, and a duplicated rule that is not
-checked is how item 125's reports went stale in the first place. The last case runs both and
+checked is how a committed report goes stale. The last case runs both and
 requires them to agree.
 
 Run from `tools/assets/`:
@@ -117,12 +113,11 @@ class BudgetReportTest(unittest.TestCase):
         self.assertIn("| bar_c_q1 | 60x30 |", md)
 
     def test_the_report_measures_and_passes_no_verdict_of_its_own(self):
-        """v5.8B, item 138: `core.BUDGET` is gone, and the report says where the ceiling is.
+        """There is no `core.BUDGET`, and the report says where the ceiling is.
 
-        What stood here were two tests of the verdict -- under the ceiling and over it, printed in
-        Italian -- for a ceiling nothing read and the shipped set had been over since v5.0.
-        A report that prints a failure every release reads past teaches people to read past
-        failures; this one prints the measure and names the gate that judges it.
+        A verdict of the report's own, against a ceiling nothing reads, would print a failure
+        every release reads past, and a report read past teaches people to read past failures;
+        this one prints the measure and names the gate that judges it.
         """
         rep, _, md = self._run({"house_big": (1200, 1200)})
         self.assertFalse(hasattr(core, "BUDGET"))
@@ -131,16 +126,14 @@ class BudgetReportTest(unittest.TestCase):
         self.assertIn(f"{rep['concepts']['mix']['decoded']} B decoded", md)
 
     def test_the_shipped_perimeter_counts_the_nine_families_and_not_the_concept_pngs(self):
-        # 46 until v5.6F added the school's four layers, and 50 until v5.8B, when the towers'
-        # 26 were added: the prefix list said `skyscraper` and the towers are `tower_*`, so the
-        # test's own name ("six families") was the one thing it did not check. The number is
-        # pinned rather than derived because the point is that the perimeter is read from the
-        # shipped drawable set and not from whatever the concept run happened to draw. 76 until
-        # v5.11, which added the tower's two other heights and its door bays (11) and the distant
-        # houses (12, `house_distant_*`: they share the houses' prefix and are counted with them). 99
-        # until v5.13, which added the shop's four layers, the fire station's eight (its tower is a canvas
-        # of its own) and the police station's four -- and not the police car's stripe and light bar,
-        # which a prefix of `police` counted for a while in that round: a prefix runs to an underscore.
+        # The number is pinned rather than derived because the point is that the perimeter is read
+        # from the shipped drawable set and not from whatever the concept run happened to draw. It
+        # holds every layer of the houses (the distant houses among them: `house_distant_*` shares
+        # the houses' prefix and is counted with them), the towers (`tower_*`, all three heights
+        # and the door bays: a `skyscraper` prefix would match no file and leave them out), the
+        # restaurant, the bar, the school, the shop and the two stations (the fire station's tower
+        # is a canvas of its own) -- and not the police car's stripe and light bar, which a prefix
+        # of `police` would count: a prefix runs to an underscore.
         rep, _, md = self._run({"house_a": (24, 24)})
         perimeter = rep["shipped_perimeter"]
         self.assertEqual(115, perimeter["files"])
@@ -156,12 +149,10 @@ class BudgetReportTest(unittest.TestCase):
         # The concept's own PNG is not in it: the perimeter is read from the shipped drawable set.
         self.assertNotEqual(perimeter["files"], rep["concepts"]["mix"]["files"])
 
-    def test_what_ships_is_what_the_generator_draws(self):
-        """The committed report, read: the shipped perimeter and the mix are the same bytes.
-
-        Only true since the perimeter counts all six families; with the towers missing, the two
-        figures in `budget.md` differed by 1 122 984 B and the report compared them as if they
-        were one thing over its budget.
+    def test_the_shipped_perimeter_and_the_mix_are_the_same_canvases(self):
+        """The committed report, read: the shipped perimeter and the mix count the same files and the
+        same decoded bytes, so the report compares one set of canvases with itself. That the drawings
+        on them are the same, pixel for pixel, is `test_neighbourhood.ShippedSetTest`'s to hold.
         """
         data = json.loads((BUILDINGS_DIR / "budget.json").read_text())
         mix = data["concepts"]["mix"]
@@ -186,7 +177,7 @@ class PerimeterAgreementTest(unittest.TestCase):
         self.assertEqual(generated, derived)
 
     def test_the_committed_budget_is_the_one_that_ships(self):
-        """The state the tree must be delivered in -- and `validate` now says so too."""
+        """The state the tree must be delivered in -- and `validate` says so too."""
         measurements = {m.name: m for m in inventory.measure_directory(RUNTIME_DIR)}
         self.assertEqual([], report._stale_budget(BUILDINGS_DIR, measurements))
 

@@ -9,26 +9,18 @@ import kotlin.math.sin
 /**
  * Horizontal ground snapshot, computed by [PaperRenderer] each frame and shared with this renderer
  * so static objects (house, tree, building) scroll in perfect sync with the ground they're
- * anchored to.
- *
- * It used to carry the hill layer's top and height as well, and [draw] turned those into an
- * object's Y. They are gone: the vertical half of the ground plane is [SceneSpace]'s, and passing
- * a second copy of it per frame made it possible for the two to disagree. What is left is the only
- * part that genuinely varies frame to frame -- where the scroll currently is.
+ * anchored to. Only the horizontal half: the vertical half of the ground plane is [SceneSpace]'s
+ * alone, so no second copy of it can disagree.
  */
 data class GroundGeometry(
-    // `var` since v5.10B: the renderer keeps one and rewrites it each frame (PaperRenderer.drawHillLayers).
+    // `var`: the renderer keeps one and rewrites it each frame (PaperRenderer.drawHillLayers).
     var shiftXWrapped: Float, // parallax shift, shared verbatim with the hills (see PaperRenderer.drawHillLayers)
     var tileWidth: Float,     // the objects' tiling period: twice the screen width, same as the hills'
     /**
-     * How many whole tiles the wrap has removed from the raw parallax shift:
-     * `round((shiftUnwrapped - shiftXWrapped) / tileWidth)`.
-     *
-     * rc2, for the falling leaves. A tile copy's loop index is relative to the *wrapped* shift,
-     * so the moment the wrap crosses a period boundary every visible copy's index steps by one --
-     * and anything keyed off that index (a tree copy's own leaves) would be re-dealt mid-scroll.
-     * `tileIndex - scrollTileBias` is constant for a physical copy for as long as it exists, so
-     * it is the copy half of [SceneObjectRenderer.leafSourceId].
+     * Whole tiles the wrap has removed from the raw parallax shift, `round((shiftUnwrapped -
+     * shiftXWrapped) / tileWidth)`. A copy's loop index steps by one each time the wrap crosses a
+     * period; [SceneObjectRenderer.copyOf] takes these tiles out, and the tile the object's own
+     * representative wraps by, so the number it gives stays with a physical copy for as long as it exists.
      */
     var scrollTileBias: Int = 0,
 )
@@ -38,14 +30,14 @@ private class StaticRuntime(val spec: StaticSceneObject) {
 
     /**
      * The depth this object is drawn at: its own, except a tower brought forward off the hill's crest
-     * (v5.11, [SceneSpace.towerDrawnDepth]). Where it stands and how large it is follow it; everything
+     * ([SceneSpace.towerDrawnDepth]). Where it stands and how large it is follow it; everything
      * that identifies the object -- its colour, its deal, its height, whether it stands at all -- reads
      * [spec]'s own depth. Set when the list is built, and again when *Hills variation* moves the crest.
      */
     var drawDepth = spec.depthFraction
 
     /**
-     * A building's roster (v5.12): who stands at its windows and, in a house, which are lit at night,
+     * A building's roster: who stands at its windows and, in a house, which are lit at night,
      * at each moment -- worked out once when the list is built, read every frame ([WindowRoster]).
      * Null for everything that is not a building with windows; a tower's people do not move from window
      * to window, so its roster is its first state for ever.
@@ -56,27 +48,27 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     var windowLayout: WindowWalk.Layout? = null
 
     /**
-     * Who of a building among the houses or of a tower is in at its hours, who is walking out or in, and since
-     * v5.14 how lit its glass is ([WindowWalk.Doorway], [WindowWalk.Doorway.glassAt]); null for a house, which keeps no hours.
+     * Who of a building among the houses or of a tower is in at its hours, who is walking out or in, and
+     * how lit its glass is ([WindowWalk.Doorway], [WindowWalk.Doorway.glassAt]); null for a house, which keeps no hours.
      */
     var doorway: WindowWalk.Doorway? = null
 
     /**
-     * For a place among the houses (v5.13), its rank across the tile ([StorefrontStreet.places]): which
+     * For a place among the houses, its rank across the tile ([StorefrontStreet.places]): which
      * building stands in it, copy by copy, is the street's ([StorefrontStreet]), and the place draws it.
      * -1 for everything else.
      */
     var place: Int = -1
 
     /**
-     * For the runtime of one of the six buildings among the houses (v5.13), which one: its [spec] is the
+     * For the runtime of one of the six buildings among the houses, which one: its [spec] is the
      * building's identity ([StorefrontStreet.identities]) and its roster, windows and doorway are the
      * building's, whichever place it stands in. Null for every object of the layout.
      */
     var storefront: Storefront? = null
 
     /**
-     * For a scarecrow (v5.16), whether the snowman of its place stands too: then it is drawn
+     * For a scarecrow, whether the snowman of its place stands too: then it is drawn
      * [SceneObjectRenderer.SCARECROW_ASIDE_METRES] to the side, so the two stand side by side. Set when the list is built.
      */
     var scarecrowAside = false
@@ -86,28 +78,20 @@ private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectio
     var progress = -spec.startDelaySeconds // negative = still waiting to start
 
     /**
-     * Whether this slot's car is on the road at all. The runtime itself outlives the setting:
-     * every inventory slot keeps a ticking runtime whatever the count, so the loop phases stay
-     * evenly spaced forever, and the count only decides which of them draw.
+     * Whether this slot's car is on the road. Every inventory slot keeps a ticking runtime whatever
+     * the count, so the loop phases stay evenly spaced; the count only decides which of them draw.
      */
     var active = true
 
     /**
-     * Where [active] is headed. The two differ only while a membership change waits for its car
-     * to leave the screen -- see `SceneObjectRenderer.update`'s sync and [CarSelection.offScreen]:
-     * a car that is visible finishes its pass, a car that is not appears from its loop entry, and
-     * nothing pops into or out of the middle of the road.
+     * Where [active] is headed: the two differ only while a membership change waits for its car to
+     * leave the screen ([CarSelection.offScreen]), so nothing pops in or out mid-road.
      */
     var targetActive = true
 
     /**
-     * Which of the three bodies this car wears, resolved **once** here.
-     *
-     * Holding it on the runtime rather than computing it in `drawCar` is the guarantee, not an
-     * optimisation: there is then no per-frame expression that could accidentally depend on
-     * scroll, on the frame counter, or on how many cars happen to be visible. Rebuilding the
-     * runtime list (which only a change of the Cars category's visibility does) recomputes it from
-     * the same immutable spec and therefore returns the same body.
+     * Which of the three bodies this car wears, resolved **once** from the immutable spec, so it can
+     * depend on nothing per frame and a rebuilt list gives each car the same body.
      */
     val shell: CarShell = CarShell.forCar(spec)
 }
@@ -117,12 +101,9 @@ class SceneObjectRenderer(
     customization: SceneCustomization = SceneCustomization.DEFAULT,
     private val context: Context,
     /**
-     * The theme this scene belongs to, seeding the people system and the car selection.
-     *
-     * Hashed exactly the way every other effect's seed is (`theme.id.hashCode()`, whose value the
-     * Java language specifies exactly), so a theme produces the same street on every device and
-     * every run. Defaulted so that the many tests constructing a renderer directly keep compiling;
-     * the two production call sites in [PaperRenderer] both pass the real id.
+     * The theme this scene belongs to, seeding the people system and the car selection through
+     * `theme.id.hashCode()`, whose value the Java language specifies, so a theme produces the same
+     * street on every device and every run. The default is for tests; [PaperRenderer] passes the id.
      */
     private val themeId: String = "",
 ) {
@@ -131,23 +112,19 @@ class SceneObjectRenderer(
     private val themeSeed = themeId.hashCode()
 
     /**
-     * The places among the houses (v5.13), in the order they stand across the tile -- five on a
-     * built-in street ([StorefrontStreet.places]). Read when the object list is built, to give each
-     * place its rank; declared above [staticRuntimes] because that list is built at construction.
+     * The places among the houses in their order across the tile ([StorefrontStreet.places]), each
+     * place's rank; declared above [staticRuntimes], which is built at construction.
      */
     private val places: List<StaticSceneObject> = StorefrontStreet.places(layout)
 
     /**
-     * The six buildings among the houses (v5.13), one runtime each, in [Storefront.ALL]'s order: its spec
-     * is the building's identity ([StorefrontStreet.identities]) and its roster, windows and doorway are
-     * the building's own -- worked out once, here, and kept for the life of this renderer, a rebuild of the
-     * object list included, so whoever walks out at the hours goes on walking. A place draws whichever of
-     * them the street deals it ([drawStaticObject]). Null on a layout with no place among the houses.
+     * The six buildings among the houses, one runtime each in [Storefront.ALL]'s order, its spec the
+     * building's identity ([StorefrontStreet.identities]); kept for the life of this renderer, list
+     * rebuilds included, so whoever walks out at the hours goes on walking. A place draws the one the
+     * street deals it ([drawStaticObject]). Null on a layout with no place among the houses.
      */
-    // The built-in street's own layout only: a saved version of a built-in theme keeps the layout it was saved
-    // with, where the places stand as they stood then -- their identity where the theme stores them, as
-    // before v5.13, a place the loader moved included (v5.13B2); a street saved since v5.13B2 is recognised
-    // by its places and keeps the built-in street's identities ([StorefrontStreet.builtInStreetOf]).
+    // The id is passed for a built-in street's own layout only: a saved theme keeps the identities it stores,
+    // unless its places are the built-in street's ([StorefrontStreet.builtInStreetOf]).
     private val storefronts: Array<StaticRuntime>? = StorefrontStreet.identities(
         layout, themeId.takeIf { CustomThemeRegistry.overrideLayoutFor(it) == null },
     )?.let { identities ->
@@ -166,36 +143,13 @@ class SceneObjectRenderer(
     private val streetDeckB = IntArray(StorefrontStreet.DECK)
 
     /**
-     * The active per-category configuration.
-     *
-     * Assigning a new value applies it **in place** and rebuilds only the runtime lists whose
-     * membership actually changed. This used to be a `val`, which meant the only way to apply any
-     * change at all was to construct a whole new [SceneObjectRenderer] -- so adjusting a colour,
-     * or a slider belonging to an entirely different part of the scene, discarded every car's
-     * in-flight position along the road and restarted it from its start delay.
-     *
-     * Five cases:
-     *  - **cosmetic** (any colour, seasonal palette flag, or a section drawn by `PaperRenderer`
-     *    such as clouds or the lake): nothing is rebuilt, every runtime keeps its state;
-     *  - **hills variation** (since v5.11): the crest moves, so the towers planted by it are given
-     *    their drawn depths again and the list re-sorted by them ([plantedAndSorted]); no runtime is
-     *    rebuilt and every one keeps its state;
-     *  - **static structure** (a category's visibility or density, or the palms switch, which
-     *    changes the species of a kept slot): the static runtime list is rebuilt, cars are
-     *    untouched and keep running;
-     *  - **car visibility**: the car list is rebuilt, which legitimately restarts cars because
-     *    the set of runtimes itself changed;
-     *  - **car density**: nothing is rebuilt at all. The count change is applied per car, off
-     *    screen, by [update]'s membership sync -- see [retargetCarRuntimes].
-     *
-     * Whichever of them it is, a change of the opening hours is also a cut for the doorways: the people
-     * walking out or in at the hours take their places at once ([advanceDoorways]).
-     *
-     * Rebuilding the static list is visually free: a [StaticRuntime] holds its `idleSeed`, its drawn
-     * depth and (a building) its roster and its windows, all derived deterministically from its spec,
-     * the theme's seed and the crest, so a rebuilt object resumes exactly where the old one was; and the
-     * one thing a building remembers, its doorway at the hours, is handed to the new list
-     * ([rebuildStaticRuntimes]).
+     * The active per-category configuration, applied **in place**, rebuilding only the runtime list
+     * whose membership changed: the static list for a category's visibility or density or the palms
+     * switch, the car list (restarting the cars) for the Cars visibility. *Hills variation* re-sorts
+     * ([plantedAndSorted]); car density is applied per car by [update]; anything else rebuilds
+     * nothing. A rebuilt static object resumes where it was: what it holds derives from its spec, the
+     * theme's seed and the crest, but its doorway, handed on ([rebuildStaticRuntimes]). New opening
+     * hours are a cut for the doorways ([advanceDoorways]).
      */
     var customization: SceneCustomization = customization
         set(value) {
@@ -210,11 +164,8 @@ class SceneObjectRenderer(
                 // the draw order they decide. Nothing else of the list changes.
                 staticRuntimes = plantedAndSorted(staticRuntimes)
             }
-            // Cars split the structural case in two. Visibility genuinely changes the set of
-            // runtimes and rebuilds as before. A density change -- day or night slider -- needs
-            // nothing at all here: since v4.22 [update] re-derives the count every frame from the
-            // sliders and the scene's own dayBlend, and applies it per car, off screen. A rebuild
-            // would reset every car to its start delay, which empties the road for a slider drag.
+            // Cars: only visibility rebuilds. Density is [update]'s, per car and off screen: a rebuild
+            // would reset every car to its start delay and empty the road for a slider drag.
             if (previous.cars.visible != value.cars.visible) rebuildCarRuntimes()
         }
 
@@ -226,36 +177,22 @@ class SceneObjectRenderer(
     private val layoutPlantsPalms: Boolean = layout.hasPalmSlots()
 
     /**
-     * Draw order is back-to-front by depth, so nearer objects overlap farther ones.
-     *
-     * Sorted in [buildStaticRuntimes], not in `draw()`. It used to be
-     * `staticRuntimes.sortedBy { it.spec.depthFraction }` inside the per-frame loop, which
-     * allocated a fresh list and re-sorted it on every single frame -- for a value that cannot
-     * change while the list is alive, since `depthFraction` is a `val` on an immutable spec.
-     * Since v5.11 the key is the depth each object is *drawn* at ([StaticRuntime.drawDepth]), which
-     * differs from it only for a tower on the hill's crest and changes only with *Hills variation*.
-     *
-     * The list is now rebuilt only when the set of rendered objects genuinely changes (a
-     * category's visibility or density, or the palms switch -- see [customization]), and the sort
-     * runs as part of that rebuild; a change of *Hills variation* re-sorts it without a rebuild. `sortedBy` is stable, so objects sharing a depth keep their original
-     * relative order and the draw order matches what the per-frame sort produced.
+     * Back-to-front by drawn depth ([StaticRuntime.drawDepth]), so nearer objects overlap farther
+     * ones; sorted when the list is built or the crest moves ([plantedAndSorted]), never per frame.
      */
     private var staticRuntimes: List<StaticRuntime> = buildStaticRuntimes()
     private var carRuntimes: List<CarRuntime> = buildCarRuntimes()
 
     private fun buildStaticRuntimes(): List<StaticRuntime> = layout.staticObjects
         .filter { spec -> customization.keepCandidate(spec, layout.densityScheme) }
-        // The palms switch is resolved here, when the list is built, and nowhere downstream: from
-        // this point on a slot the user has turned the palms off for *is* a tree -- and, on a theme
-        // that plants none, a tree slot the user has turned palms on for *is* a palm (v5.10C) -- to
-        // the drawing, the size, the occlusion box and the leaf recorder alike. Which is why flipping
-        // it has to rebuild this list -- `staticStructurallyEquals` compares both fields. See
-        // [SceneCustomization.palmSpeciesApplied].
+        // The palms switch is resolved here and nowhere downstream (`DESIGN_NOTES.md` decisions 37 and
+        // 39): from here on the slot *is* a tree or a palm, to the drawing, the size, the occlusion box
+        // and the leaf recorder alike, so flipping it rebuilds this list (`staticStructurallyEquals`).
         .map { spec ->
             StaticRuntime(customization.palmSpeciesApplied(spec, layoutPlantsPalms)).also { r ->
                 // A place among the houses keeps its rank across the tile: the street deals its building.
                 r.place = places.indexOfFirst { it === spec }
-                // A scarecrow in a place whose snowman stands too steps aside (v5.16): both are seen.
+                // A scarecrow in a place whose snowman stands too steps aside: both are seen.
                 r.scarecrowAside = customization.scarecrowStandsAside(spec, layout.densityScheme)
             }
         }
@@ -263,14 +200,11 @@ class SceneObjectRenderer(
         .also(::giveRosters)
 
     /**
-     * Every house and tower its [StaticRuntime.roster] and its [StaticRuntime.windowLayout], once, as the
-     * list is built, and every tower its [StaticRuntime.doorway]: state, not a per-frame computation
-     * (`AI_PROJECT_RULES.md` 5.2). The roster and the layout are a function of the building's spec and
-     * the theme's seed alone, so a list rebuilt for another reason gives each building the ones it had,
-     * and the picture does not move; a tower's people stay at their windows (`moves = false`). The
-     * doorway is the one thing that remembers -- who is walking out or in at the hours, and the glass's two seconds ([WindowWalk]) --
-     * and [rebuildStaticRuntimes] hands it on. A place among the houses has none of them: the six
-     * buildings that stand in the places have their own, in [storefronts].
+     * Every house and tower its roster and window layout, and every tower its doorway, once, as the
+     * list is built: state, not a per-frame computation, kept until its inputs change. Roster and layout
+     * are a function of the spec and the theme's seed, so a rebuilt list gives each building the same
+     * ones; the doorway remembers, and [rebuildStaticRuntimes] hands it on. A place among the houses
+     * has none: its buildings' are in [storefronts].
      */
     private fun giveRosters(runtimes: List<StaticRuntime>) {
         val deal = NeighbourhoodComposer.Deal()
@@ -304,10 +238,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * [runtimes] with every tower's drawn depth set from the crest ([SceneSpace.towerDrawnDepth]) and
-     * in draw order: back to front by the depth each is drawn at. `sortedBy` is stable, so objects at
-     * one depth keep the layout's order, as they always have; the towers the crest moves forward are
-     * the only objects whose place in the order can change.
+     * [runtimes] with every tower's drawn depth set from the crest ([SceneSpace.towerDrawnDepth]), back
+     * to front by it. `sortedBy` is stable, so objects at one depth keep the layout's order.
      */
     private fun plantedAndSorted(runtimes: List<StaticRuntime>): List<StaticRuntime> {
         val phase = SceneSpace.hillCrestPhase(themeId)
@@ -322,24 +254,16 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Sorted by lane, far first, for the same reason [staticRuntimes] is sorted by depth: draw
-     * order is depth order. The two lanes overlap vertically by design, so a near car has to
-     * paint over a far one -- and candidate index alternates lanes, which would otherwise put a
-     * far car on top of the near car it is passing.
-     *
-     * **One runtime per inventory slot, whatever the density.** Membership is the [CarRuntime]'s
-     * `active` flag, not the list itself: every slot ticks along its loop even while retired, so
-     * the even spacing laid out at generation survives any number of count changes -- a slot
-     * re-activated an hour later is exactly where its phase says it should be, not wherever a
-     * fresh start delay would drop it relative to the cars already driving.
+     * Sorted by lane, far first: draw order is depth order, the lanes overlap vertically, and the
+     * candidate index alternates lanes. **One runtime per inventory slot, whatever the density**:
+     * membership is [CarRuntime.active], and every slot ticks along its loop even while retired, so
+     * the generator's even spacing survives any number of count changes.
      */
     private fun buildCarRuntimes(): List<CarRuntime> {
         if (!customization.cars.visible) return emptyList()
-        // Ranked once here; per frame the count is compared against each runtime's stored rank
-        // (see [update]), so the dusk/dawn crossfade moves the membership without allocating or
-        // sorting anything. The initial actives are the daytime count -- every runtime starts off
-        // screen (progress <= -0.3), so the first update()'s sync corrects the membership to the
-        // hour's real count before anything can be drawn.
+        // Ranked once; per frame the count is compared with each stored rank ([update]), allocating
+        // nothing. Every runtime starts off screen, so the first update() sets the hour's membership
+        // before anything is drawn.
         val ranks = CarSelection.selectionRanks(layout.cars, themeSeed)
         val n = CarSelection.countFor(customization.cars.density, layout.cars.size)
         return layout.cars
@@ -364,29 +288,15 @@ class SceneObjectRenderer(
         }
     }
 
-    /**
-     * Rebuilding cars resets each car's `progress`, so this runs only when the *set* of runtimes
-     * changed -- the category's visibility, never a colour edit, an unrelated slider, or since
-     * v4.22 the density (see [retargetCarRuntimes]).
-     */
+    /** Resets every car's `progress`, so it runs only when the Cars category's visibility changes. */
     private fun rebuildCarRuntimes() {
         carRuntimes = buildCarRuntimes()
     }
 
 
     /**
-     * The lane pair the road is painted around, taken from the theme's **whole** car list.
-     *
-     * This is the fix for a defect reported from a device: moving the Cars density slider resized
-     * the road. `drawRoad` read its lane span from [carRuntimes], which is the list *after*
-     * density thinning, so the road's own geometry was a function of how many cars happened to
-     * survive -- at a low setting only one lane was left, its span collapsed to zero and the strip
-     * with it; at zero the road disappeared entirely.
-     *
-     * A density control decides how much traffic there is. It has no business deciding how wide
-     * the road is, and nothing else about the scene's geometry may be derived from a runtime list
-     * a slider filters. Computed once from the immutable [SceneObjectLayout], so it is also off
-     * the frame path.
+     * The lane pair the road is painted around, from the theme's **whole** car list, never from the
+     * density-thinned [carRuntimes]: density never touches geometry, so the road does not move with the amount.
      */
     private val roadLaneMinFraction: Float = layout.cars.minOfOrNull { it.laneYFraction } ?: 0f
     private val roadLaneMaxFraction: Float = layout.cars.maxOfOrNull { it.laneYFraction } ?: 0f
@@ -400,17 +310,10 @@ class SceneObjectRenderer(
     private val sprites = SpriteBlitter(context)
 
     /**
-     * This frame's hour of the scene, for the opening hours -- see [BusinessHours] and [draw]'s
-     * `hour24`. A building asks [SceneCustomization.opennessFor] at it: a tower with what it is drawn as,
-     * one of the six among the houses with what it is ([Storefront]) -- the towers, the shops and, since
-     * v5.13, the public buildings keep hours of their own (the two stations never close), by the rule
-     * their colours follow.
-     *
-     * A field set once per frame rather than a parameter threaded through every building call:
-     * the two systems it governs (the glass colour of non-house windows, and who is in at the hours,
-     * [advanceDoorways]) sit several frames deep in the draw tree, and the value is a per-frame constant
-     * like the paints are. With a group's switch off its openness is 1 whatever the hour, which is the
-     * default -- and 1 must render bitwise as before.
+     * This frame's scene hour, for the opening hours ([BusinessHours], [draw]'s `hour24`): a building
+     * asks [SceneCustomization.opennessFor] at it, a tower by what it is drawn as, one of the six among
+     * the houses by what it is ([Storefront]). A field set once a frame, like the paints, rather than a
+     * parameter threaded several calls deep. With a group's switch off the openness is 1.
      */
     private var frameHour = 12f
 
@@ -418,27 +321,36 @@ class SceneObjectRenderer(
     private var clockSeconds = PeopleColours.clockSeconds(12f)
 
     companion object {
+        /**
+         * How lit a vehicle's lamps are: 80% of the [vehicleLampRamp], so a lamp reads as a lamp, not a
+         * neon toy. Zero by day, and every call site is behind `if (alpha > 0)`.
+         */
+        internal fun litVehicleAlpha(nightGlow: Float): Int = (vehicleLampRamp(nightGlow) * 0.8f).toInt()
+
+        /**
+         * The curve the vehicles' lamps come up on ([litVehicleAlpha]): dark until nightGlow 0.35, full
+         * (255) at 0.80.
+         */
+        internal fun vehicleLampRamp(nightGlow: Float): Int =
+            (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
+
         /** [fallLeafColorFor]'s four colours, built once rather than per tree per frame. */
         private val FALL_LEAF_TREE_PALETTE = intArrayOf(
             0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
         )
         /** How big a fir's three presents are (where they stand is [FirTable.GIFT_X]): built once, not per fir per frame. */
-        private val FIR_GIFT_SCALES = floatArrayOf(0.36f, 0.30f, 0.26f)
+        internal val FIR_GIFT_SCALES = floatArrayOf(0.36f, 0.30f, 0.26f)
 
-        /** The fir's ground shadow, as a share of its width: the v4.21 fir's 26 units over its 80. */
+        /** The fir's ground shadow, as a share of its width: 26 units for every 80. */
         private const val FIR_SHADOW_SHARE = 26f / 80f
 
         /** The radius of a bulb on a string -- the sills' and the roofs' -- in units: [drawBulb]. */
         const val CHRISTMAS_LIGHT_BULB_RADIUS_UNITS = 1.5f
 
-        /** How far a Halloween bat swings on its thread, in degrees either way, and how fast (v5.16). */
-        const val BAT_SWING_DEGREES = 6f
-        const val BAT_SWING_RATE = 1.3f
-
         /**
-         * How far to the right of its snowman a scarecrow stands where both are kept (v5.16, the maintainer's choice of
-         * v5.16A, *«il resto, si a tutte»*, 2026-10-21: the places are the snowmen's, and where both stand both are seen): 1.27 m, the
-         * snowman's arm and the scarecrow's half way apart. In the scarecrow's own units, [SCARECROW_ASIDE_UNITS].
+         * How far to the right of its snowman a scarecrow stands where both are kept, so both are seen
+         * (`DESIGN_NOTES.md` decision 80): 1.27 m, the snowman's arm and the scarecrow's half way apart. In the
+         * scarecrow's own units, [SCARECROW_ASIDE_UNITS].
          */
         const val SCARECROW_ASIDE_METRES = 1.27f
         val SCARECROW_ASIDE_UNITS: Float = SCARECROW_ASIDE_METRES / (ScarecrowTable.METRES_TALL / ScarecrowTable.UNITS_TALL)
@@ -498,9 +410,7 @@ class SceneObjectRenderer(
 
 
         /**
-         * The penguin's belly, one of the two colours that never belonged to a sprite (see
-         * `penguinBellyColor`). Here rather than in the instance so the gallery card paints the
-         * same white: it carried a copy, `#F7FAFC`, until v5.9G.
+         * The penguin's belly (see `penguinBellyColor`), here so the gallery card paints the same white.
          */
         const val PENGUIN_BELLY_COLOR = 0xFFF3F7FB.toInt()
 
@@ -513,54 +423,43 @@ class SceneObjectRenderer(
             SceneColour.blendArgb(ROAD_COLOR_NIGHT, ROAD_COLOR_DAY, dayBlend.coerceIn(0f, 1f))
 
         /**
-         * Whether a scene draws its road: when the layout has lanes -- a theme with no cars in its
-         * layout has no road -- and the Cars category is switched on. Density is not consulted;
-         * see [drawRoad]. The gallery card asks this rather than drawing a road on every card.
+         * Whether a scene draws its road: its layout has lanes and the Cars category is on; density is
+         * not consulted ([drawRoad]). The gallery card asks this too.
          */
         fun drawsRoad(layout: SceneObjectLayout, customization: SceneCustomization): Boolean =
             layout.cars.isNotEmpty() && customization.cars.visible
 
         /**
-         * Whether any tree of the scene may stand as a fir: only with *Christmas firs* on (v5.16; the Christmas
-         * decorations' one switch until then -- which third of the trees then does is [standsAsFir]'s hash). The gallery card asks this
-         * before it draws a fir, and `ThemePreviewTruthTest` holds the card to it (v5.8E, V3-48:
-         * the card used to draw one for a sparse wood too, so Tundra's showed a fir its wallpaper
-         * never draws).
+         * Whether any tree may stand as a fir: *Christmas firs* on. The gallery card asks this before it
+         * draws one (`ThemePreviewTruthTest`), so it never shows a fir its wallpaper does not draw.
          */
         fun drawsFirs(customization: SceneCustomization): Boolean = customization.christmasFirsEnabled
 
         /**
-         * Whether this slot stands as a Christmas fir under [customization]: a tree slot, the
-         * *Christmas firs* on ([drawsFirs]), and one of the third of the trees its position picks
-         * ([isFirSeed]). The drawing asks the same two questions per frame, on the seed its runtime
-         * already holds ([standsAsFir] of a runtime); this form is for the one place that has to
-         * know before there is a runtime -- [SceneCustomization.palmSpeciesApplied], which since
-         * v5.10C2 leaves a fir a tree when the palms take the other trees' places (the maintainer,
-         * 2026-10-03: *«gli abeti sono del tema e tali devono rimanere»*). One seed, one hash, so the
-         * slot the species pass keeps a tree is exactly the slot the drawing makes a fir.
+         * Whether this slot stands as a Christmas fir: a tree slot, *Christmas firs* on ([drawsFirs]),
+         * and one of the third of the trees its seed picks ([isFirSeed]). The drawing asks the runtime's
+         * form per frame; this one is for [SceneCustomization.palmSpeciesApplied], which must know before
+         * there is a runtime and leaves a fir a tree among palms (`DESIGN_NOTES.md` decision 39). One
+         * seed, one hash, so the two always agree.
          */
         fun standsAsFir(spec: StaticSceneObject, customization: SceneCustomization): Boolean =
             spec.type == SceneObjectType.TREE && drawsFirs(customization) && isFirSeed(idleSeedOf(spec))
 
         /**
-         * The idle seed of a static object: its sway phase, and the number [isFirSeed] hashes. A pure
-         * function of the slot's position, so a rebuilt runtime list gets the same seeds back.
+         * The idle seed of a static object, its sway phase and fir hash: a function of its position, so
+         * a rebuilt list gets the same seeds.
          */
         internal fun idleSeedOf(spec: StaticSceneObject): Float = (spec.tileFractionX * 97f) % 6.28f
 
         /**
-         * Which of the four autumn tones a tree wears with the fall colours on ([fallLeafColorFor]): a pure
-         * function of its [idleSeedOf], so of its position -- which is why the plan keeps it for every tree it
-         * moves (v5.13B2, `SceneObjectCatalog.relocated`).
+         * Which of the four autumn tones a tree wears ([fallLeafColorFor]), from its position's seed:
+         * the plan keeps it for every tree it moves (`SceneObjectCatalog.relocated`).
          */
         internal fun fallToneOf(idleSeed: Float): Int = (kotlin.math.abs(idleSeed * 1000).toInt()) % FALL_LEAF_TREE_PALETTE.size
 
         /**
-         * **One tree in three, decided from the tree's own seed.** Not a count and not a position: a
-         * count would need state to distribute, and a position would put the firs on a line. Hashing
-         * the seed gives about a third, differently for each theme's layout, and gives the *same*
-         * third on every frame -- a wood that reshuffled itself as you watched would be worse than no
-         * firs at all.
+         * **One tree in three, from the tree's own seed**: a count would need state, a position would
+         * put the firs on a line, and a hash of the seed gives the *same* third on every frame.
          */
         internal fun isFirSeed(idleSeed: Float): Boolean {
             var h = (idleSeed * 100000f).toInt() * 0x9E3779B1.toInt()
@@ -569,46 +468,25 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The season index of the summer column.
-         *
-         * Named rather than written as `0` at the window bust, whose artwork has one season since
-         * v4.30: a bare zero there reads as "the first season" and really means "the only one".
+         * The season index of the summer column. Named rather than written as `0` at the window bust,
+         * whose artwork has one season: a bare zero there reads as "the first season" and means "the only one".
          */
         const val SUMMER_SEASON = 0
 
         /**
-         * How far apart two seats of one car are addressed.
-         *
-         * Bigger than the number of seats so that the driver of one car and the passenger of the
-         * next cannot land on the same address. [CandidateNoise] avalanches, so near addresses are
-         * as unrelated as far ones -- but two figures on the *same* address would be two figures
-         * wearing every colour the same, which is the thing [SeatedOccupants] deals to avoid.
+         * How far apart two cars' seats are addressed: more than the seats, so a driver and the next
+         * car's passenger never share an address, and with it every colour ([CandidateNoise]).
          */
         const val SEAT_ADDRESS_STRIDE = 8
         /**
-         * Which drawing a static object resolves to, and therefore which entry of the size table
-         * governs it.
-         *
-         * Two categories cover more than one drawing: a house is small or large, and the buildings
-         * category is a tower, a restaurant, a school or a bar. Both used to decide that inside
-         * their own `draw*` function, after [draw] had already computed a scale and a cull extent
-         * for "a house" -- so the two halves of one object were derived from different
-         * assumptions, and a per-drawing size could only be applied as a `canvas.scale` correction
-         * bolted on afterwards. Resolving the variant once, here, is what lets the scale come from
-         * the size table and lets those corrections be deleted.
-         *
-         * Pure and free of Android types, so the mapping is unit-testable.
+         * Which drawing a static object resolves to, so which entry of the size table governs it (a
+         * house is small or large; a building a tower, a restaurant, a school or a bar): one place, so an
+         * object's scale and cull extent come from the same entry. Pure, so the mapping is unit-testable.
          */
         fun variantFor(spec: StaticSceneObject): SceneSpace.SceneVariant = when (spec.type) {
-            // **v5.5: the family follows the dealt silhouette.** It used to be a hash of
-            // `tileFractionX` alone, and that hash clumps on one seed like every other coin in
-            // this engine did before v4.2: measured on the twelve shipped ids, `autumn` kept five
-            // houses at its default density and every one of them was large. The house catalogue
-            // is dealt as one set spanning both families ([SilhouetteDeal.HOUSES]), so the family
-            // is a consequence of the deal and cannot also be an input to it.
-            //
-            // The position hash remains for a spec nobody dealt -- a pre-v5.5 custom theme, a
-            // random-theme layout, the flat preview -- which is what keeps those unchanged.
+            // The family follows the dealt silhouette ([SilhouetteDeal.HOUSES] deals both families as
+            // one set; a position hash alone clumps). The hash remains for a spec with no dealt
+            // silhouette: an older custom theme, a random-theme layout, the flat preview.
             SceneObjectType.HOUSE ->
                 SilhouetteDeal.houseVariantOrNull(spec.silhouette)
                     ?: if (kotlin.math.abs((spec.tileFractionX * 7561f).toInt()) % 2 == 1) {
@@ -616,19 +494,12 @@ class SceneObjectRenderer(
                     } else {
                         SceneSpace.SceneVariant.HOUSE_SMALL
                     }
-            // A tower belongs on the skyline and a shop front among the houses, so the choice is
-            // made by depth rather than by a hash of the horizontal position — and from rc3 to v5.12
-            // the choice *among* shops was by depth too (see SceneSpace.RESTAURANT_MAX_DEPTH): the old
-            // position hash made a shop's identity a function of where its jitter landed it,
-            // which is how rc2 delivered two identical trattorias in one screen. Since v5.13 depth
-            // gives a place among the houses its row of the size table, and which of the six
-            // buildings stands there is the street's ([StorefrontStreet]).
-            //
-            // v5.6F: three thirds of the shop band instead of two halves. These four arms and the
-            // four in `SceneObject.singleShopPerVariant`, `SilhouetteDeal.catalogueFor` and
-            // `CustomThemeData.migrateDuplicateStorefronts` have to read the same thresholds --
-            // `SceneVariantResolutionTest` walks the band and checks these arms against
-            // `SilhouetteDeal.catalogueFor`; `PrePassSixThemeMigrationTest` covers the migration.
+            // By depth, never by a hash of the position (which would tie identity to the jitter): a
+            // tower on the skyline, a place among the houses in a third of the shop band, its row of the
+            // size table; which of the six stands there is the street's ([StorefrontStreet]). These
+            // arms read the same thresholds as `SceneObject.singleShopPerVariant`,
+            // `SilhouetteDeal.catalogueFor` and `CustomThemeData.migrateDuplicateStorefronts`
+            // (`SceneVariantResolutionTest`, `PrePassSixThemeMigrationTest`).
             SceneObjectType.SKYSCRAPER ->
                 if (spec.depthFraction < SceneSpace.BUILDING_TOWER_MAX_DEPTH) {
                     SceneSpace.SceneVariant.TOWER
@@ -654,24 +525,18 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The scale one static object is drawn at, in full.
-         *
-         * The single place the four stages of `SceneSpace`'s own doc comment are multiplied
-         * together for a static object. Pure, so the whole size pipeline is testable without a
-         * `Canvas`.
+         * The scale one static object is drawn at: the one place the four stages of `SceneSpace`'s doc
+         * comment are multiplied, pure, so the size pipeline is testable without a `Canvas`.
          */
         fun effectiveScaleFor(spec: StaticSceneObject, screenHeightPx: Float): Float =
             effectiveScaleFor(spec, spec.depthFraction, screenHeightPx)
 
         /**
-         * The same, for [spec] drawn at [drawDepth] -- a tower brought forward off the crest
-         * ([SceneSpace.towerDrawnDepth]) is as large as the projection makes it where it is drawn.
-         *
-         * **A place among the houses is never drawn smaller than [placeScaleFloor]** (v5.13): any of the
-         * six buildings may stand in it ([StorefrontStreet]), and what says what each is was drawn at 2.4
-         * units or more for the farthest place of the built-in streets, where the floor never binds
-         * (`StorefrontDetailTest`). A random theme puts its places at any depth and rolls their size wider
-         * (`RandomSceneGenerator`), and there one place in sixty came out smaller.
+         * The same at [drawDepth] (a tower off the crest is as large as it is drawn,
+         * [SceneSpace.towerDrawnDepth]). **A place among the houses is never smaller than
+         * [placeScaleFloor]**: its buildings' details are 2.4 units or more at the built-in streets'
+         * farthest place, where the floor never binds (`StorefrontDetailTest`); a random theme's places
+         * (`RandomSceneGenerator`) can stand farther and smaller.
          */
         fun effectiveScaleFor(spec: StaticSceneObject, drawDepth: Float, screenHeightPx: Float): Float {
             val variant = variantFor(spec)
@@ -684,11 +549,9 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The smallest scale a place among the houses is drawn at, 0 for anything else (v5.13): one piece
-         * unit of the building standing in it at least [PLACE_UNIT_SCREEN_SHARE] of the screen's height --
-         * on the BV6600's 1 440 px, 2.4 units (the generator's `civic.DETAIL`) are 2 px, the size under
-         * which a drawn detail stops reading. A piece unit is the place's variant units over its family's
-         * height ([drawNeighbourhoodBuilding]'s `scale`).
+         * The smallest scale a place among the houses is drawn at (0 for anything else): a piece unit at
+         * least [PLACE_UNIT_SCREEN_SHARE] of the screen's height, so the generator's 2.4-unit details
+         * (`civic.DETAIL`) are 2 px on the BV6600's 1 440, the size under which a detail stops reading.
          */
         internal fun placeScaleFloor(variant: SceneSpace.SceneVariant, screenHeightPx: Float): Float = when (variant) {
             SceneSpace.SceneVariant.RESTAURANT -> screenHeightPx * PLACE_UNIT_SCREEN_SHARE * RESTAURANT_PIECE_UNITS_A_UNIT
@@ -709,33 +572,20 @@ class SceneObjectRenderer(
         private fun piecesPerVariantUnit(variant: SceneSpace.SceneVariant): Float =
             NeighbourhoodTable.FAMILIES.getValue(variant).unitsTall / variant.spriteUnitsTall
 
-        // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
-        // is now [PedestrianPopulation.GROUP_COUNT] -- the same four slots, but each one yields a
-        // group rather than a single person -- and the threshold offset is
-        // [PedestrianPopulation.THRESHOLD_OFFSET], which documents why the old salt was wrong.
-        // The stale doc comment on the old count claimed people had no density setting; they have
-        // had one (`config.density` plus `peopleNightDensity`) since well before this release.
-
         /**
-         * Cool glass by day, warm light at night: the two ends every lit window in the scene
-         * crossfades between, on the scene's own `nightGlow` (an unlit one goes to
-         * [UNLIT_GLASS_NIGHT] instead, v5.12).
-         *
-         * Both values were already in the file -- the day one as the restaurant's inline literal,
-         * the night one both there and as the colour `skyscraper_wall_lit` and `house_window_lit`
-         * were drawn in. Naming them is what lets the tower join the convention instead of
-         * inventing a second pair beside it. See [windowGlassColor].
+         * Cool glass by day, warm light at night: every lit window's two ends, on `nightGlow`
+         * ([windowGlassColor]).
          */
         const val WINDOW_GLASS_DAY = 0xFFB9CBD9.toInt()
         const val WINDOW_GLASS_NIGHT = 0xFFFFE79A.toInt()
 
-        /** A door lamp's bulb lit, and its glow: the colour every lamp had at every hour until v5.11. */
+        /** A door lamp's bulb lit, and its glow. */
         const val LAMP_LIT = 0xFFFFD97A.toInt()
 
         /** A door lamp's bulb by day: paper, the warm grey of the buildings' cream trim. */
         const val LAMP_UNLIT = 0xFFCFC5AE.toInt()
 
-        /** How strongly the glow round a lit bulb is painted: its night alpha, as it always was. */
+        /** How strongly the glow round a lit bulb is painted: its night alpha. */
         const val LAMP_GLOW_ALPHA = 150f
 
         /** A door lamp's bulb at [lit] (0 by day, 1 at full night): paper to light, on the glass's ramp. */
@@ -745,26 +595,16 @@ class SceneObjectRenderer(
         fun lampGlowAlpha(lit: Float): Int = (LAMP_GLOW_ALPHA * lit.coerceIn(0f, 1f)).toInt()
 
         /**
-         * What a lit window is, as a colour: cool glass by day, warm light at night.
-         *
-         * One pair, because there is one answer. It was already the restaurant's, written inline;
-         * every lit window in the scene reads the same two constants rather than a second pair that
-         * could drift from it, and an unlit one ([unlitWindowGlassColor], v5.12) starts from the same
-         * day's glass.
-         *
-         * In the companion rather than on the instance since v5.0, because the gallery preview
-         * asks the same question and the answer must not be copied there -- see
-         * `ThemePreviewScenes.neighbourhood`.
+         * A lit window's colour, one pair for the whole scene; in the companion so the gallery card
+         * asks it rather than copy it (`ThemePreviewScenes.neighbourhood`).
          */
         fun windowGlassColor(nightGlow: Float): Int =
             SceneColour.blendArgb(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
 
         /**
-         * A window that stays dark at night, at full night: dark glass (v5.12). A house lights half its
-         * windows ([WindowRoster]) and the others go from the day's glass to this one on the same
-         * `nightGlow` the lit ones warm on; a distant house's unlit window too. Chosen in round A
-         * against the grey the photographs set beside it: it reads as a window with the light off,
-         * where the grey read as a lit window of cold light.
+         * A window dark at night, at full night (`DESIGN_NOTES.md` decision 55): a window with the light
+         * off, where a grey would read as cold light. A house's unlit windows ([WindowRoster]) and a
+         * distant house's go to it on the same `nightGlow`.
          */
         const val UNLIT_GLASS_NIGHT = 0xFF343B47.toInt()
 
@@ -773,15 +613,11 @@ class SceneObjectRenderer(
             SceneColour.blendArgb(WINDOW_GLASS_DAY, UNLIT_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
 
         /**
-         * A shop's, the school's or a tower's glass at [nightGlow], [openness] open (its group's opening
-         * hours, [SceneCustomization.opennessFor]): the lit window's colour while it is open, the dark
-         * glass of an unlit window while it is shut, and across the two seconds its doorway eases it at the
-         * opening and the closing minute ([WindowWalk.Doorway.glassAt]) the one going to the other -- so at night a closed business is dark like a house's unlit window, and by day both
-         * are the day's glass (v5.12, the maintainer's *«Scuri, come le case (consigliato)»* of
-         * 2026-10-09, asked with the photographs; until then a closed business kept the day's pale glass
-         * at night). Open -- every business with its group's switch off -- it is [windowGlassColor] to
-         * the bit, the colour it always was; and by day, when the two ends are the same colour, it is that
-         * colour to the bit too, not a blend of it with itself that a channel's rounding takes one step down.
+         * A business's glass at [nightGlow], [openness] open ([SceneCustomization.opennessFor]): lit
+         * while open, the dark glass of an unlit window while shut, blended across the doorway's two
+         * seconds ([WindowWalk.Doorway.glassAt]) -- dark at night when closed, the day's glass by day
+         * (`DESIGN_NOTES.md` decision 58). Fully open, and wherever the two ends are one colour, it
+         * returns that colour to the bit, never a blend of it with itself rounded a step down.
          */
         fun businessGlassColor(nightGlow: Float, openness: Float): Int {
             val lit = windowGlassColor(nightGlow)
@@ -800,13 +636,10 @@ class SceneObjectRenderer(
         fun buildingSeedOf(spec: StaticSceneObject): Int = (spec.tileFractionX * 100_003f).toInt()
 
         /**
-         * The pieces of [storefront] for its [identity] (v5.13), into [into]. The restaurant, the school
-         * and the bar, whose identity is the place they stood in, are dealt as they were -- the bar, the
-         * one of the six with two figures, takes the figure its place was dealt from the bars' catalogue
-         * ([SilhouetteDeal]); every other case has one figure, or an identity no catalogue dealt (a random
-         * theme), and is dealt from its position. Never from the catalogue of the place a building stands
-         * in: a place dealt for the bar's two figures holding a building of one is how the prototype of
-         * v5.13A fell (inventory I-611).
+         * The pieces of [storefront] for its [identity], into [into]: by the identity's own silhouette
+         * where it stood in its own row (the bar keeps the figure its place was dealt, [SilhouetteDeal]),
+         * from its position otherwise. Never from the catalogue of the place it stands in, which could
+         * deal the bar's two figures to a building of one.
          */
         internal fun dealStorefront(
             family: BuildingFamily,
@@ -830,101 +663,66 @@ class SceneObjectRenderer(
         /** Half a walk sprite's own width, in local units, for the wrap-tile cull. */
         const val PERSON_HALF_WIDTH_UNITS = 19.5f
 
-        // v4.25: the walk canvas came down from 41x85 to 39x84 units when the family was redrawn,
-        // because the generator now trims each shared canvas onto what the family drawn on it
-        // actually covers. Both constants moved by the trim's own +(1,1): a crop without its
-        // compensation moves the sprite, which is why they are in the same change as the artwork.
+        /**
+         * Half a walker's width for the cull while an umbrella is up: the 48-unit canopy hangs on the hand,
+         * 12 units ahead of an adult's centre ([drawUmbrella]), so it reaches 36. Cut at the sprite's 19.5, a
+         * canopy would pop in up to 7 px wide on the BV6600, and a change made only off screen could show.
+         */
+        const val PERSON_CARRYING_HALF_WIDTH_UNITS = 36f
+
+        /** Half the width the wrap-tile cull gives a walker: the walk sprite's, or the umbrella's reach while one is up. */
+        internal fun personCullHalfWidthUnits(carrying: Boolean): Float =
+            if (carrying) PERSON_CARRYING_HALF_WIDTH_UNITS else PERSON_HALF_WIDTH_UNITS
+
+        /**
+         * The hand's centre on the 39x84 sprite canvas, **per family** (`kindIndex`), from
+         * `tools/assets/concepts/people/carry/hands.json`: pose P1 holds the forearm still, so the hand is
+         * in one place on all three walk frames (the generator asserts it). The adults share (31.5, 24.5),
+         * 59.5 units above the feet, higher than a whole child, so the children hold on their own raised
+         * forearm, 34.9 units up; the girl's is a unit lower than the boy's, her hair standing 2.5 units
+         * above the head oval against his cap's 1.5 (`CHILD_SUMMER_RISE`).
+         */
+        internal val carryHandX = floatArrayOf(31.5f, 31.5f, 28.0f, 28.0f)
+        internal val carryHandY = floatArrayOf(24.5f, 24.5f, 49.09f, 50.09f)
+
+        /**
+         * How big the canopy is drawn for each family: a child under the full 48 units (on a figure 54
+         * tall) holds *its father's* umbrella, at 70 % its own. **1.0 is the absence of a scale**:
+         * [drawUmbrella] blits the adults' untouched, so an adults-only golden shows the adults unmoved.
+         */
+        internal val carryCanopyScale = floatArrayOf(1f, 1f, 0.7f, 0.7f)
+
         /**
          * Where a walking person's sprite origin goes, so its content bottom-centre lands on the
-         * pavement line it was placed at.
-         *
-         * All 135 walk sprites (24 drawings and the layers and masks cut from them) are 117x252 px
-         * -- 39x84 local units -- and every one of them has its content reaching the canvas's
-         * bottom edge, so one pair of numbers covers the set rather than a per-sprite table.
-         *
-         * (This has been stale twice. REN-07 found "twenty-four sprites, 129x252" -- the count
-         * predating the skin axis and the size predating a crop -- and v4.25 left "123x255 px,
-         * 41x85 local units" standing after the family was redrawn on a trimmed canvas.
-         * `SpriteMeasurementClaimTest` catches a stale size only in the shape
-         * `` `sprite_name` ... is NxM px ``, which is not the shape of this sentence: recompute
-         * with `file app/src/main/res/drawable-nodpi/person_man_summer_walk0.png` rather than
-         * trusting that a test is watching.)
+         * pavement line. Every walk sprite (drawings, layers, masks) is 117x252 px = 39x84 units with its
+         * content on the canvas's bottom edge, so one pair covers the set.
          */
         const val PERSON_ANCHOR_X_UNITS = -19.5f
         const val PERSON_ANCHOR_Y_UNITS = -84f
 
-        // ---- The people behind a windscreen (v4.6) ---------------------------------------
+        // ---- The people behind a windscreen ---------------------------------------------
         //
-        // ### The defect this block is the fix for
-        //
-        // A pedestrian's head was **31% of their own height** at v4.6 -- 25.00 of the 80.67 local
-        // units a walk sprite's content occupied, which at [SceneSpace.PERSON_METRES_TALL] was 0.547 m;
-        // the family redrawn in v4.25 draws it at 30%, [PERSON_HEAD_SPRITE_UNITS] of 80, 0.532 m.
-        // That is a paper-cutout proportion and it is the one the whole scene is drawn in.
-        //
-        // The busts behind glass were not drawn in it. They were sized to fit *inside* the window
-        // with their shoulders, which put a driver's head at 0.320 m -- 59% of the head of the
-        // pedestrian walking past, on a plane that is **nearer the viewer than the pavement**. In
-        // the reported picture the people in the cars read as children, and no amount of moving
-        // the pedestrians could fix it because the pedestrians were right.
-        //
-        // ### Why it could not be fixed by scaling the bust alone
-        //
-        // A car's glass was 16 local units, which at 1.45 m over 48 units is **0.483 m of world**
-        // -- smaller than the 0.547 m head it had to contain. Filling the old window completely
-        // reached 0.358 m, 65%, and there was nothing left to give.
-        //
-        // ### What v4.6 does
-        //
-        // The glass is drawn 19 units tall instead of the 16 the artwork is authored at, growing
-        // *downward into the door* to [CAR_SILL_Y_UNITS], which is exactly where the police
-        // stripe and the taxi chequer begin -- so no accessory is covered and none covers it. The
-        // roof line is untouched. Then one rule replaces three tuned numbers:
-        //
-        //   **a bust's content is exactly as tall as the glass it sits behind, standing on the
-        //   sill.**
-        //
-        // v4.6 wrote that as `CAR_HEAD_SCALE` and two siblings, each its glass height over its own
-        // sprite's content height, so none of them was a number anybody chose. A driver's head
-        // became 0.425 m, 78% of a pedestrian's -- a head seen through glass reading slightly
-        // smaller than the same head in the open. rc2 replaced all three with
-        // [CAR_OCCUPANT_SCALE] and [FIRE_TRUCK_OCCUPANT_SCALE], sized off the height table (see
-        // below). `VehiclePedestrianScaleTest` and `VehicleScalePixelTest` pin the ratio.
-        //
-        // **[SceneSpace.CAR_METRES_TALL] is deliberately unchanged.** The vehicle's own height was
-        // measured against the projection and is right; enlarging the car to make its occupants
-        // fit would have been fixing the wrong object, and 1.45 m over the lane spacing has no
-        // room to grow (see `PIXELS_PER_METRE_AT_REFERENCE`).
+        // A pedestrian's head is 30% of their height ([PERSON_HEAD_SPRITE_UNITS] of 80), the
+        // proportion the whole scene is drawn in, and the people in a vehicle are too: sized off the
+        // height table, not to fit the glass, where on a plane nearer than the pavement they would
+        // read as children (`VehiclePedestrianScaleTest`, `VehicleScalePixelTest`). The vehicle's
+        // height is right and has no room to grow (`PIXELS_PER_METRE_AT_REFERENCE`): the glass is
+        // sized for the people instead ([CAR_GLASS_TOP_Y_UNITS]).
 
         /** Half of `firetruck_body`'s 100-unit canvas: the widest vehicle the road carries. */
         const val FIRE_TRUCK_HALF_WIDTH_UNITS = 50f
 
         /**
-         * Where a vehicle's wheels touch the road, in the local space [drawCar] establishes.
-         *
-         * Every vehicle is drawn from a frame whose origin sits 37 units above the tarmac, because
-         * the artwork puts the wheel bottom at y=37 (centre 37 minus the radius: 25 for a car's
-         * 12-unit wheel, 26 for the fire engine's 11) rather than at y=0 the way every static
-         * object does. That shift is what lets the sprites keep their authored coordinates; the
-         * cost is that **y=0 is the beltline here, not the ground**, and anything that belongs on
-         * the road has to say so.
-         *
-         * It was not said once: `drawGroundShadow` draws its oval centred on the origin, so the
-         * shadow of every car, taxi, police car and fire engine was painted 37 units up, level
-         * with the bonnet. The oval is 80 units wide against a 97-unit body, so it should have
-         * been hidden -- but at that height the body is not there yet (the bonnet's top edge is at
-         * y=14 and the boot's at y=17), and the two ends of the oval came out over the bonnet and
-         * over the boot as a pair of brown smears. On every vehicle, in every lane, in every
-         * theme, since the artwork was redrawn.
+         * Where a vehicle's wheels touch the road, in [drawCar]'s local space: the artwork puts the
+         * wheel bottom at y=37 (25 + a car's 12-unit radius, 26 + the fire engine's 11), so the sprites
+         * keep their authored coordinates and **y=0 is the beltline, not the ground**: anything on the
+         * road, a ground shadow first, has to say so.
          */
         const val VEHICLE_GROUND_Y_UNITS = 37f
 
         /**
-         * **Every per-body number moved to [CarShell] in v4.19.** Blit origins, roof runs, wheel
-         * positions, glass spans, lamp seats and shadow lengths are properties of *which* car is
-         * being drawn now that there are three of them, and a constant here could only ever have
-         * described one. What stays in this file is what the three genuinely share: the cabin's
-         * vertical layout, the seats, the wheel treatment and the liveries.
+         * The per-body numbers (origins, roofs, wheels, glass, lamps, shadows) are [CarShell]'s; here
+         * is what the three bodies share: the cabin's vertical layout, the seats, the wheels, the liveries.
          */
 
         /** The fire engine's ground shadow; each car body carries its own, see [CarShell]. */
@@ -934,39 +732,19 @@ class SceneObjectRenderer(
 
         /**
          * The inner wheel of the rear pair. A twin rear axle is the one silhouette cue that says
-         * heavy vehicle and nothing else at scene scale, and it was chosen on the device against
-         * two chassis-arch concepts that broke the frame bar a truck visibly rides on.
-         *
-         * rc2 moved it from 28.5 to 13.5. At 28.5 the two rear centres were 8.5 units apart on
-         * 20-unit wheels: an overlap of 40% of the diameter, so the inner wheel read as a
-         * crescent of tyre with its hub eaten -- two wheels drawn, one visible. A real tandem
-         * stands at 1.15-1.3 diameters with daylight between the tyres; rc2's 13.5 put the centres
-         * 23.5 apart on 20-unit wheels. Today 9.325 against the rear wheel at 34 puts them 24.675
-         * apart on 22-unit wheels, 1.12 diameters with a 2.7-unit gap. The wheels are no longer
-         * drawn overlapping, and `TwinAxleSpacingTest` measures the spacing off the rendered PNG --
-         * the presence-only test this replaces is exactly how the overlap shipped.
+         * heavy vehicle and nothing else at scene scale. 9.325 against the rear wheel at 34 puts the
+         * centres 24.675 apart on 22-unit wheels, 1.12 diameters with a 2.7-unit gap: overlapping,
+         * the inner wheel would read as a crescent of tyre with its hub eaten. `TwinAxleSpacingTest`
+         * measures the spacing off the rendered PNG.
          */
         const val FIRE_TRUCK_INNER_WHEEL_X_UNITS = 9.325f
 
         /**
-         * The tyre, and the hub inside it.
-         *
-         * The appliance's wheel is bigger than the saloon's, which is the other half of what stops
-         * it reading as a large car; the ratio between hub and tyre is the same for both, because
-         * that is the treatment and not the size. Whatever the radius, the centre sits exactly one
-         * radius above [VEHICLE_GROUND_Y_UNITS], so a wheel of any size touches the same road.
-         *
-         * **v5.6F: bigger, and a filled hub instead of a ring.** The reference photograph's wheel
-         * is a whole disc of card glued on top of the body, 0.40-0.43 of the body's height, with
-         * no hubcap and no ring -- and at the size a car is drawn on this road a ring is a stroke
-         * under a pixel wide. 12 units of tyre against the slab's 53 is 0.45; the hub is 0.34 of
-         * the tyre, 8.2 units across, which survives the reduction at 7.2 px in the near lane.
-         *
-         * **There are no wheel arches any more**, so there is no `WHEEL_ARCH_AIR_UNITS` beside
-         * these. A disc lies in front of the paper with 46 % of itself below the shell's floor;
-         * nothing is cut away over it, and the air a v4.19 arch kept concentric is air that no
-         * longer exists. `VehicleAndShopFrontTest` measured that air on the shipped PNGs and now
-         * measures the absence of the cut instead.
+         * The tyre and its hub: a whole disc of card glued on the body, no arch cut over it
+         * (`VehicleAndShopFrontTest`), its centre one radius above [VEHICLE_GROUND_Y_UNITS] whatever
+         * the radius. The appliance's wheel is bigger than the saloon's, so it does not read as a large
+         * car; the hub is 0.34 of the tyre on both, a filled disc 7.2 px across in the near lane, where
+         * a ring would be a stroke under a pixel.
          */
         const val CAR_WHEEL_RADIUS_UNITS = 12f
         const val FIRE_TRUCK_WHEEL_RADIUS_UNITS = 11f
@@ -977,25 +755,16 @@ class SceneObjectRenderer(
         val WHEEL_HUB_COLOUR = 0xFFC9C3BA.toInt()
 
         /**
-         * The livery band on the doors, for the police car and the taxi.
-         *
-         * v4.19 narrowed it from 44 units to 40. A livery is worn by the compact (taxi) and the
-         * saloon (police), and the compact's wheels are closer together: measured on the v4.19
-         * artwork at the band's own row, the run of shell between its two arch cuts was 42 units,
-         * so 44 hung a unit over each hole with nothing behind it but road, and 40 cleared both
-         * bodies -- the saloon's run was 54 -- with a unit of margin at each end. The arches went
-         * with v5.6F; `VehicleAndShopFrontTest` now checks on the pixels that the band lies on
-         * the shell for its whole width rather than trusting this note.
+         * The livery band on the doors, for the police car (the saloon) and the taxi (the compact):
+         * 40 units, so it lies on the shell for its whole width on both, which `VehicleAndShopFrontTest`
+         * checks on the pixels.
          */
         const val CAR_LIVERY_WIDTH_UNITS = 40f
         const val CAR_LIVERY_X_UNITS = -CAR_LIVERY_WIDTH_UNITS / 2f
 
         /**
-         * `taxi_sign` is 42x18 px: 14 x 6 local units, centred on the roof of the body a taxi
-         * actually is -- [CarShell.COMPACT] -- and standing on it rather than through it.
-         *
-         * The two roof accessories are the reason the liveried types do not rotate their body
-         * ([CarShell.forCar]): a bar centred on one roof is off-centre on another.
+         * `taxi_sign` is 42x18 px: 14 x 6 local units, standing centred on the roof of [CarShell.COMPACT],
+         * the taxi's body. The roof accessories are why the liveried types keep one body ([CarShell.forCar]).
          */
         const val TAXI_SIGN_WIDTH_UNITS = 14f
         val TAXI_SIGN_X_UNITS =
@@ -1004,12 +773,8 @@ class SceneObjectRenderer(
         val TAXI_SIGN_Y_UNITS = -CarShell.COMPACT.unitsTall + VEHICLE_GROUND_Y_UNITS - TAXI_SIGN_HEIGHT_UNITS
 
         /**
-         * The lit parts of a vehicle, in the local units their unlit artwork already occupies.
-         *
-         * Each is the inside of a shape that is drawn whatever the hour: the two halves of the
-         * police bar and the taxi sign's box (the appliance's lamps are the shared lens sprites,
-         * see [drawVehicleLamps]). Painting inside them at night costs one rectangle each and
-         * nothing at all by day.
+         * The lit parts of a vehicle, inside shapes drawn at every hour (the police bar's halves, the
+         * taxi sign's box): one rectangle each at night, nothing by day.
          */
         val TAXI_SIGN_BOX_LEFT_X = TAXI_SIGN_X_UNITS + 1.4f
         val TAXI_SIGN_BOX_RIGHT_X = TAXI_SIGN_X_UNITS + 12.6f
@@ -1018,12 +783,8 @@ class SceneObjectRenderer(
 
         /**
          * The fire engine's lamp seats. It takes the *same two lenses* the cars do -- one amber
-         * sprite and one red sprite for the whole fleet -- which is both the memory lever that
-         * paid for three bodies and the reason a fire engine now reads as the same set.
-         *
-         * v4.18's appliance had a headlight painted by a rectangle in code and **no rear lamp at
-         * all**, so its direction was readable only from the cab; now it says which way it is
-         * going the way every car does.
+         * sprite and one red sprite for the whole fleet -- so it reads as one set with them, and its
+         * lamps say which way it is going the way every car's do.
          */
         const val FIRE_TRUCK_LAMP_FRONT_X_UNITS = -49f
         const val FIRE_TRUCK_LAMP_FRONT_Y_UNITS = 2f
@@ -1050,10 +811,8 @@ class SceneObjectRenderer(
         /**
          * The lit beacons, derived from the bar's own blit origin and from where
          * `police_lightbar.svg` paints its two domes (red 0..9.6, blue 10.4..20, both 0..4.5 in
-         * the bar's 20x6 local units) -- inset ~0.8 so the dark surround survives at night.
-         * They used to be absolute coordinates, tuned when the bar sat at a roof the rc5 pass
-         * then moved: the bar followed the roof by arithmetic, the lamps did not, and every
-         * night beacon since rc5 has glowed 7 units to the right of its own dome.
+         * the bar's 20x6 local units) -- inset ~0.8 so the dark surround survives at night. Derived,
+         * not absolute, so the lamps follow the bar wherever the roof puts it.
          */
         val POLICE_LAMP_TOP_Y_UNITS = POLICE_LIGHTBAR_Y_UNITS + 0.7f
         val POLICE_LAMP_BOTTOM_Y_UNITS = POLICE_LIGHTBAR_Y_UNITS + 3.8f
@@ -1063,73 +822,36 @@ class SceneObjectRenderer(
         val POLICE_LAMP_BLUE_RIGHT_X = POLICE_LIGHTBAR_X_UNITS + 19.2f
 
         /**
-         * The flat margin REN-06 replaced, kept as a floor so the current picture does not move.
-         *
-         * At the reference viewport the derived margin is smaller than this, so this is what is
-         * used and every vehicle enters and leaves exactly where it always has.
+         * The floor under [vehicleEdgeMarginPx]: at the reference viewport the derived margin is
+         * smaller than this, so this is the margin used there.
          */
         const val LEGACY_EDGE_MARGIN_PX = 120f
 
         /**
-         * The divisor `drawWindowOccupant` scales a bust by, which is **not** the sprite's width.
-         *
-         * REN-07. It was written as "the head sprite canvas is 60 units wide", and the canvas has
-         * never been 60 since: 180 px when the line was written, 159 after the SCL-01 crop, and
-         * **147 px -- 49 units -- on the family v4.25 ships**. So the bust is drawn narrower than
-         * the nominal 85% of the pane, which is what has shipped since v4.2 and what the artwork
-         * was judged against. Kept, and named for what it actually is.
-         *
-         * **Do not re-derive a share of the pane from the canvas width.** A canvas trimmed onto
-         * its own content draws the same picture at the same size -- only the anchor moves with it
-         * -- so the share that means anything is the *head's*, [OCCUPANT_HEAD_PANE_SHARE], which is
-         * 51.9% of the pane and does not move when the canvas is cropped. `OneOccupantRuleTest`
-         * reads the 0.85 and this divisor back out of `drawWindowOccupant`'s source and pins that
-         * share; `SpriteMeasurementClaimTest` pins the canvas width against the shipped PNG.
+         * The divisor `drawWindowOccupant` scales a bust by: a tuned value, **not** the canvas width
+         * (49 units), so the bust is a little narrower than the nominal 85% of the pane, as the artwork
+         * was judged. Never re-derive it from the canvas, which a crop changes without changing the
+         * picture: the share that means anything is the head's, [OCCUPANT_HEAD_PANE_SHARE]
+         * (`OneOccupantRuleTest`, `SpriteMeasurementClaimTest`).
          */
         const val WINDOW_OCCUPANT_DIVISOR_UNITS = 60f
 
         /**
          * The window busts' CONTENT_BOTTOM_CENTRE anchor, in their own 49x57-unit canvas: the
-         * midpoint of the eight heads' declared x, and the canvas bottom. Buildings only since
-         * rc2; the vehicles' profile family carries its own anchor below.
+         * midpoint of the eight heads' declared x, and the canvas bottom. Buildings only; the
+         * vehicles' seated family carries its own anchor below. A crop of the canvas moves it, or it
+         * moves the sprite.
          */
-        // v4.25: 26.8 until the window canvas was trimmed onto what the family covers -- 53 units
-        // wide down to 49, three of them off the left, which is exactly what this moved by. The y
-        // is the canvas bottom and the canvas did not lose a row.
         const val WINDOW_HEAD_ANCHOR_X_UNITS = 23.8f
         const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
 
         /**
-         * **The cabin's vertical layout, identical on all three bodies.**
-         *
-         * The horizontal plan is what distinguishes a compact from an estate; the vertical does
-         * not have to, and making it shared buys something specific: one seated-occupant scale,
-         * one pair of seat positions, and therefore an occupant who is exactly the same size
-         * whichever car they are riding in. Per-body glazing heights would have given three
-         * occupant scales and three sets of criteria to re-derive.
-         *
-         * 25 units, top -12 to sill 13, is what the height table asks for rather than what the
-         * roof allowed. A table-sized bust is at most 42 canvas units at [CAR_OCCUPANT_SCALE]
-         * ~0.525, about 22.1 units of drawn content, so a 25-unit pane leaves about **12% of air**
-         * above the crown -- inside the 10-25% band v4.18 established, where v4.18's own 23-unit
-         * pane would leave 4% and need the occupant shrunk to fit. The bodies were drawn around
-         * this number, which is the whole difference from v4.18: there the pane was bent to fit
-         * the shell.
-         *
-         * **v5.6F: the pane and the sprite are no longer the same rectangle.**
-         *
-         * «Cut-out» puts the glass *behind* the body paper and cuts the panes out of it, so the
-         * glass sheet is grown half a unit past every edge of the hole -- otherwise a seam opens
-         * between two papers that are supposed to be layered -- and its canvas carries another
-         * half unit. The pane therefore runs -12..13 inside a sprite blitted at -13 and 27 units
-         * tall, and the three numbers below are what used to be one.
-         *
-         * **The pane is still 25 units, and that is the whole point of choosing these values.**
-         * The sill both seats stand on and the head-fit criteria are measured from
-         * [CAR_GLASS_TOP_Y_UNITS] and [CAR_GLASS_HEIGHT_UNITS] (the occupant scale does not read
-         * the pane at all); keeping it at 25 is what lets a redraw of the whole fleet leave those
-         * criteria where they were. What moved is where the bay sits on the body: four units down,
-         * because the slab's roof came up from -19/-20 to -16 and its floor from 27/31 to 26.
+         * **The cabin's vertical layout, identical on all three bodies**, so an occupant is one size in
+         * every car. The pane is 25 units, -12 to the sill at 13, the bodies drawn around it: a
+         * table-sized bust (about 22.1 units drawn at [CAR_OCCUPANT_SCALE]) leaves about **12% of air**,
+         * inside the 10-25% band; the seats and the head-fit criteria are measured from it. The glass
+         * sprite is larger than the pane: «Cut-out» lays the glass *behind* the body paper, grown half a
+         * unit past the hole (or a seam opens) plus half a unit of canvas, blitted at -13, 27 tall.
          */
         const val CAR_GLASS_SPRITE_Y_UNITS = -13f
         const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 27f
@@ -1141,94 +863,58 @@ class SceneObjectRenderer(
 
         /**
          * The head part of a window bust, in its own local units: hair crown down to the neck.
-         * Still what the house, shop and tower occupants are proportioned by; the vehicles no
-         * longer share it (see below).
+         * What the house, shop and tower occupants are proportioned by; the vehicles' people are
+         * sized off the height table instead (see below).
          */
         const val WINDOW_HEAD_HEAD_UNITS = 110f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
         /**
-         * The share of a building's pane a head takes: what `drawWindowOccupant` has drawn house,
-         * shop and tower occupants at since v4.2, read back out of the expression that produces
-         * it (`0.85 * 36.667 / 60` of the pane = 51.9%). rc2 note: this is now a rule about
-         * *buildings only*. The vehicles used to inherit it and their people came out 22% smaller
-         * than a child pedestrian at the same depth; they are sized off the height table now.
+         * The share of a building's pane a head takes, read back out of the expression
+         * `drawWindowOccupant` draws house, shop and tower occupants with (`0.85 * 36.667 / 60` of
+         * the pane = 51.9%). Buildings only: the vehicles' people are sized off the height table.
          */
         const val OCCUPANT_HEAD_PANE_SHARE =
             0.85f * WINDOW_HEAD_HEAD_UNITS / WINDOW_OCCUPANT_DIVISOR_UNITS
 
         // ---- The occupants, sized off the height table -------------------------------------
         //
-        // rc2 retires the pane-share rule and its multiplier. Every other human in the scene is
-        // sized by the height table -- PERSON_METRES_TALL times the projection at their ground
-        // line -- and the occupants were the one exception, sized as a share of whatever glass
-        // happened to be behind them. Measured on the rc1 frames, that made a driver's head 22%
-        // smaller than a *child* pedestrian's once depth was normalised out, and no multiplier on
-        // the wrong parameter could close a gap the parameterisation itself created.
+        // Every human in the scene is sized by the height table -- PERSON_METRES_TALL times the
+        // projection at their ground line -- the people in the vehicles included: sized as a share
+        // of the glass behind them, a driver's head would come out smaller than a child pedestrian's.
 
         /**
-         * A pedestrian's head, measured off the shipped walking artwork: `person_man_summer_walk0`
-         * carries its hair crown at row 5 and its jaw at row 77 of a 252-row canvas, 73 px = 24.3
-         * of the figure's 80 units. `OccupantHeadFitTest` re-measures the PNG so this cannot drift
-         * from the artwork silently.
-         *
-         * **v4.25: 23.7 on the artwork this replaced, and the measurement rule had to change with
-         * it.** The old rule took the jaw as the end of the face's first contiguous run of skin
-         * rows, which worked while the neck was drawn in something other than skin. B "Relief"
-         * draws the neck in skin, so that run now ends below the collar and read 29.7 -- a head
-         * half again too tall, on a constant every head in the scene derives from. The rule is now
-         * the width: the head is the wide part of the skin and the neck a strip a third of it.
+         * A pedestrian's head, measured off `person_man_summer_walk0`: crown at row 5, jaw at row 77 of
+         * 252, 73 px = 24.3 of the figure's 80 units (`OccupantHeadFitTest` re-measures it). The jaw is
+         * found by width, where the skin narrows into the neck: the neck is drawn in skin, so the first
+         * run of skin rows would end below the collar.
          */
         const val PERSON_HEAD_SPRITE_UNITS = 24.3f
 
-        /** That head in scene metres: the one size every head in the scene now derives from. */
+        /** That head in scene metres: the one size every head in the scene derives from. */
         const val OCCUPANT_HEAD_METRES =
             SceneSpace.PERSON_METRES_TALL * PERSON_HEAD_SPRITE_UNITS / SceneSpace.PERSON_SPRITE_UNITS_TALL
 
         /**
-         * How much of the standing head a seated occupant is drawn at: 97%, and the reason is the
-         * roof. On the v4.25 shells, at 100% the tallest winter hat needed a 24.8-unit pane and
-         * the 50-unit shell topped out at 23 (beltline 12 against arch tops at 15; glass top -11
-         * against the roof at -13), leaving 7.5% of air against the 10% floor. 0.97 was the
-         * largest factor that kept every seasonal bust inside the 10-25% air band of the pane that
-         * silhouette could actually carry, and it sits well inside the +/-10% band the
-         * occupant-vs-pedestrian criterion allows.
+         * How much of the standing head a seated occupant is drawn at: 97%, for the roof. At 100%
+         * the tallest winter hat needs a 24.8-unit pane, short of the 10% of air the 10-25% band asks
+         * of the 25-unit one; 0.97 keeps every seasonal bust inside the band, and well inside the
+         * +/-10% the occupant-vs-pedestrian criterion allows.
          */
         const val OCCUPANT_SEATED_FIT = 0.97f
 
         /**
-         * The head's share of the seated bust artwork: the adult members of `person_*_head_car`
-         * carry their head -- the crown of the content down to where the skin narrows into the
-         * neck -- as **32.33 to 33.00** of the shared 38x42-unit canvas, the children as
-         * **28.67 to 29.00**, which is 0.890 of the adults and the 0.9 the size table has always
-         * declared. The scales below divide by the adult head, so an adult's head lands exactly
-         * on the table and a child's comes out 10% shorter, which is what a child is.
-         *
-         * **The measuring rule is the one thing here that is a decision.** This read 35 until
-         * v4.25, taken with the jaw at the end of the face's first run of skin rows; B "Relief"
-         * draws the neck in skin, so that rule ran past the collar, the busts read three units
-         * taller than they are, and the occupants shipped **17% too small** on the device --
-         * because this constant and the pedestrian constant it is compared against were being
-         * measured by two different rules. One rule now, both poses, every measuring site;
-         * `OccupantHeadFitTest` re-measures it on the shipped PNGs so it cannot drift silently.
-         *
-         * The artwork is three-quarter with a seatbelt on the chest, its torso baseline placed so
-         * a bust anchored on the sill fits its whole content into the pane the shell can carry:
-         * there is no clip in [SceneCanvas], so "zero occupant pixels outside the glass" has to
-         * hold by authored geometry, exactly as it did for the profile family that preceded it.
+         * The head on the seated bust artwork: the adults of `person_*_head_car` carry it as **32.33 to
+         * 33.00** of the shared 38x42-unit canvas, the children as 28.67 to 29.00, the size table's 0.9;
+         * the scales divide by the adult head, so a child comes out 10% shorter. Measured by the
+         * pedestrians' rule ([PERSON_HEAD_SPRITE_UNITS]), the two being compared (`OccupantHeadFitTest`).
+         * There is no clip in [SceneCanvas]: a bust anchored on the sill fits the pane by its authored
+         * geometry alone.
          */
         const val HEAD_CAR_HEAD_UNITS = 32.5f
 
-        /** The seated family's CONTENT_BOTTOM_CENTRE anchor, in the family's shared
-         * 38x42-unit canvas: x between the eyes (a seat centres the face, not the content box --
-         * the woman's side-swept hair would pull a content-centred seat sideways; every member
-         * is authored with its eye line centred here, which is what lets one origin serve all
-         * eight), y the shared canvas bottom -- the co-registration rule every person family
-         * anchors by (SpriteGeometryTest) -- which the torso baseline's ink sits a third of a
-         * unit above.
-         *
-         * v4.25: 23 and 44 until the car canvas was trimmed onto what the family covers, 47x44
-         * units down to 38x42. The anchor is still the eye line and the canvas bottom; both moved
-         * with the trim, and a crop without its compensation moves the sprite. */
+        /** The seated family's CONTENT_BOTTOM_CENTRE anchor on its shared 38x42-unit canvas: x between
+         * the eyes, where all eight are authored (a content-centred seat would follow the woman's
+         * side-swept hair), y the canvas bottom, as every person family (SpriteGeometryTest). */
         const val HEAD_CAR_ANCHOR_X_UNITS = 19f
         const val HEAD_CAR_ANCHOR_Y_UNITS = 42f
 
@@ -1249,65 +935,16 @@ class SceneObjectRenderer(
          * The two seats, **shared by all three bodies**: driver at -7.75, passenger at 13.75, a
          * pitch of **21.5** units about a cabin centre of 3.
          *
-         * ### v4.25: 23 until the people were redrawn, and re-derived rather than clipped
+         * Two 17-unit heads sit 4.5 units apart: wider, an outer head loses its pillar light on the
+         * saloons; narrower, two heads read as one mass (worst on the winter girl's bunches). Both seats
+         * move together, so the pair keeps its centre between the panes.
          *
-         * The v4.25 family is drawn three-quarter, and its seated head is **17 units** of car
-         * across. Two of them at the old 23-unit pitch take 40 units of a saloon pane that
-         * measures about 44, which leaves 4 units to split between the two pillar lights where
-         * `everyOccupantClearsItsPillarsByFifteenPercentOfItsHead` asks for 5.1 -- short by 1.1,
-         * on every saloon, at every seat offset. Moving the pair only chooses which pillar the
-         * shortfall lands on: measured, the plain saloon and the police saloon cross at 12-13%
-         * of a head and never both reach 15%.
-         *
-         * **The pitch is what gives it back, and it gives it back to a value the app has already
-         * shipped.** v4.24's seated heads were 18.6 units of car wide at a 23-unit pitch, so they
-         * sat **4.4 units** apart; at 21.5 with a 17-unit head they sit **4.5** apart. Nothing is
-         * being squeezed that was not already this close for releases -- the head keeps the
-         * proportion the artwork was approved at, the cabins keep their shape, and the pair keeps
-         * its own centre between the two panes, because both seats move by the same amount.
-         *
-         * ### Why the pitch was 23 and not 20
-         *
-         * v4.19 seats children as well as adults, and the widest head in the set is the winter
-         * girl's -- 22 units across the bunches against an adult's 18. At the 20-unit pitch the
-         * concept pass used, that pair left **0.33 units** of clear glass between the two heads:
-         * two people reading as one mass, which is the defect the gap criterion exists to catch.
-         * At 23 it is 3.34 units on the same pair.
-         *
-         * The pitch could not simply grow, because a wider pair meets the pillars: at 24 units
-         * the crown of an outer head crossed the raked A-pillar on the compact and the saloon
-         * (25 and 50 stray pixels, measured). **The bodies were redrawn rather than the pitch
-         * clipped** -- the three glasshouses were stood up by 3 units at the top corners and the
-         * roofs lengthened to match, which is what §4 of the concept brief meant by "the answer
-         * is the cabin". A sweep of pitch x cabin width is in the pass report; 23 is the value
-         * where the pillar light and the head gap are both comfortably clear with zero occupant
-         * pixels outside the glass, on every body, for every family, in both seasons.
-         *
-         * ### What is measured, on the shipped artwork, over 12 combinations
-         *
-         * Three bodies x {two adults, adult+boy, adult+girl} x {summer, winter}, on the rendered
-         * pixels, in the crown-to-chin band and against the **occupied** pane only:
-         *  * occupant pixels outside the glass: **0**, everywhere;
-         *  * pillar light of the head's own width at or above the **15%** floor
-         *    `everyOccupantClearsItsPillarsByFifteenPercentOfItsHead` enforces (the legibility
-         *    argument below gives 12%);
-         *  * clear glass between the heads **15.2-38.6%** of head width (same 12% floor);
-         *  * glass filled by occupant on the head rows **50.8-66.3%** (floor 50%);
-         *  * driver forward of the cabin centre on all three.
-         *
-         * **The floors are derived from legibility, not inherited.** v4.18's 15%-then-13% pillar
-         * light was measured against the *pane*, so it moved every time the glass did -- item 6
-         * of `BACKLOG_v4_19.md` asked for it against the head instead, and this is that. The
-         * number: a car in the far lane draws at about 1.44 px per local unit on the reference
-         * device, and a band of glass narrower than ~3 px reads as an antialiasing seam rather
-         * than as daylight, so the floor is 3/1.44 = 2.1 units, which is 11.6% of an adult head
-         * and is stated as **12%**. The same argument gives the same floor to the head gap.
-         *
-         * **Below the chin the busts still meet, and that is wanted**: two people one behind the
-         * other occlude at the shoulders, and that contact is the depth cue that separates the
-         * seats. The gap is measured crown-to-chin for exactly that reason -- and the neck row,
-         * which v4.18 measured fill on and could never satisfy (item 2 of the backlog), is not
-         * part of any band here.
+         * Checked on the rendered artwork for every body, pairing and season, crown-to-chin: no occupant
+         * pixel outside the glass, pillar light at least **15%** of the head
+         * (`everyOccupantClearsItsPillarsByFifteenPercentOfItsHead`), a head gap above 12%, the glass
+         * over half filled. The floors are of the head, from legibility: in the far lane (~1.44 px a
+         * unit) glass under ~3 px reads as a seam, 2.1 units, 12% of a head. Below the chin the busts
+         * meet: the shoulders' overlap is the depth cue between the seats.
          */
         const val CAR_HEAD_X_UNITS = -7.75f
         const val CAR_HEAD_Y_UNITS = CAR_SILL_Y_UNITS
@@ -1315,27 +952,15 @@ class SceneObjectRenderer(
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
 
         /**
-         * **The seat back is not drawn any more, and the pane is why.**
-         *
-         * Until v5.5 a car's glass was one hole and the light between the two heads was empty, so
-         * a 2.6-unit bar of upholstery was painted into it to say there was a seat there.
-         * «Cut-out» cuts *two* holes with a 3.5-unit pillar of body paper between them, exactly
-         * where that bar stood -- x 0.5 to 4, against the bar's 1.7 to 4.3 -- so the mark is drawn
-         * out of the artwork instead of out of code, and the shoulders close over its lower half
-         * the way they always did.
-         *
-         * Recorded here rather than removed silently, because the bar was four constants, a colour
-         * and two primitives, and because the light on either side of it is still measured.
+         * No seat back is drawn: «Cut-out» cuts a car's glass as *two* holes with a 3.5-unit pillar of
+         * body paper between them (x 0.5 to 4), where a seat back would stand, so the mark between the
+         * seats is the artwork's and the shoulders close over its lower half.
          */
 
         /**
-         * The fire engine's cab glass, painted into `firetruck_body`: 19 units from -13 to the
-         * sill at 6, following the redrawn windscreen instead of sitting on top of it.
-         *
-         * v4.19 stood the appliance's windscreen up and lengthened its cab. The v4.18 cab was
-         * short enough that a table-sized head could not keep daylight to the A-pillar at any
-         * seat position -- the head simply crossed the rake -- which is why the cab grew rather
-         * than the driver shrinking. At 19 units a bust of at most 15.6 units leaves about 18% of
+         * The fire engine's cab glass, painted into `firetruck_body`: 19 units from -13 to the sill
+         * at 6, following the upright windscreen. The cab is long enough for a table-sized head to keep
+         * daylight to the A-pillar, and at 19 units a bust of at most 15.6 units leaves about 18% of
          * air, inside the same 10-25% band the cars use.
          */
         const val FIRE_TRUCK_GLASS_HEIGHT_UNITS = 19f
@@ -1344,32 +969,9 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_HEAD_Y_UNITS = FIRE_TRUCK_SILL_Y_UNITS
 
         /**
-         * The v4.19 appliance, redrawn in the language of the three cars.
-         *
-         * §3 of the pass brief called it out from the concept captures: it stood next to the new
-         * cars with hard corners and small wheels poking out from under a flat floor -- the
-         * castor look the cars had just lost -- so two generations of drawing were side by side
-         * on the largest, loudest vehicle in the scene. The redraw takes the same vocabulary:
-         * arches concentric with the tyre at a unit of air, the same corner radii and the same
-         * darker lower band, both lamp lenses shared with the cars, and a cab-over nose with an
-         * upright windscreen that has room for a table-sized head. (The arches went with v5.6F;
-         * the rest of that vocabulary is what «Cut-out» re-cut it in.)
-         *
-         * The canvas now reaches the ladder, so the body's own origin is the sprite's top-left
-         * and [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is still 68 -- the vehicle did not change
-         * size, only drawing. The cab roof stays eight units below the body roof, which is the one
-         * line that says truck rather than scaled-up car.
-         *
-         * **v5.6F redraws it in «Cut-out»'s language, on a 100x53 canvas at (-50,-25).**
-         * The proposal round authored it at 104x60 on (-51,-26) and `paperscrape-assets normalize
-         * --apply` took the four transparent units off the right and the seven off the bottom and
-         * the one off each of the other two sides, which is 30 240 B of decoded memory and moved
-         * the origin by exactly the trim: **no drawn pixel changed coordinates**, measured on the
-         * ink before and after (x -49.33..49, y -24.67..27.33 both times).**
-         * Red paper with the cab window cut out of it and the glass sheet behind, the cream band
-         * and the three locker doors as cards with their own shadow paper, and three whole discs
-         * in front. The ladder, the two beacons and the cab sill do not move; the two lamp seats
-         * do, because the nose and the tail did.
+         * The fire engine in the cars' «Cut-out» language, its cab roof eight units below the body roof
+         * (the line that says truck, not a large car), its windscreen upright with room for a table-sized
+         * head. The canvas, trimmed to the ink, is blitted at its top-left (-50,-25).
          */
         const val FIRE_TRUCK_BODY_X_UNITS = -50f
         const val FIRE_TRUCK_BODY_Y_UNITS = -25f
@@ -1377,7 +979,7 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_LADDER_X_UNITS = -2f
         const val FIRE_TRUCK_LADDER_Y_UNITS = -31f
 
-        /** The two beacons on the cab roof, in the redrawn cab's own coordinates. */
+        /** The two beacons on the cab roof, in the cab's own coordinates. */
         const val FIRE_TRUCK_BEACON_TOP_Y_UNITS = -19.4f
         const val FIRE_TRUCK_BEACON_RED_LEFT_X = -24f
         const val FIRE_TRUCK_BEACON_RED_RIGHT_X = -16f
@@ -1388,7 +990,7 @@ class SceneObjectRenderer(
         const val CHRISTMAS_LIGHT_RADIUS_UNITS = 2.6f
 
         /**
-         * Where a tree's lights sit, in a unit disc ([drawChristmasLights]); internal since v5.16 so the gallery card's
+         * Where a tree's lights sit, in a unit disc ([drawChristmasLights]); internal so the gallery card's
          * leafy tree hangs its own at the same points (`ThemePreviewScenes`, *Lights on the trees*).
          */
         internal val CHRISTMAS_LIGHT_X = floatArrayOf(-0.80f, -0.34f, 0.06f, 0.40f, 0.78f, -0.06f)
@@ -1400,41 +1002,29 @@ class SceneObjectRenderer(
         const val TREE_LIGHTS_RADIUS_Y = 24f
 
         /**
-         * Conservative upper bound on how far, in local units, any static scene object extends
-         * horizontally either side of its own origin, before its category scale and the depth
-         * scale are applied.
-         *
-         * Derived by measuring: the widest drawn object is the large house, its mansard roof
-         * reaching about 77 units (47.3 piece units at the family's 145/88.976 scale), so 96
-         * leaves roughly 25% of headroom, and a missed detail or a slightly wider future sprite
-         * still cannot cause premature clipping at a screen edge.
-         *
-         * Raise this if an object is ever drawn wider than 96 units either side of its origin.
-         * Getting it too large only costs a few needless draws at the edges; too small would
-         * clip visible objects, so err high.
+         * Upper bound on how far any static object reaches either side of its origin, in local units
+         * before scaling, for the cull: the widest, the large house's mansard roof, reaches about 77, so
+         * 96 leaves a quarter of headroom. Too large costs a few draws at the edges, too small clips: raise
+         * it if anything is drawn wider.
          */
         const val MAX_OBJECT_HALF_WIDTH_UNITS = 96f
 
         /**
-         * How many canopies a frame can offer the falling leaves.
-         *
-         * A fixed ceiling because the arrays are refilled every frame and must not grow: a
-         * densely-treed theme across a wide screen with wrap tiles can present more crowns than
-         * there are leaves, and the leaves only need somewhere plausible to come from.
+         * How many canopies a frame can offer the falling leaves: a fixed ceiling, since the arrays are
+         * refilled every frame and must not grow, and the leaves need only somewhere to come from.
          */
         const val MAX_LEAF_SOURCES = 24
 
         /**
-         * Screen pixels of crown half-width per shed leaf. 7 calibrated against v4.17's fixed
-         * pool of 26 on the delivered two-crown Autumn frame: two near crowns at ~85 px of
-         * half-width shed 12 each, which is the pool's own 13-per-crown on that frame.
+         * Screen pixels of crown half-width per shed leaf: a near crown of ~85 px half-width sheds
+         * 12, inside the 3 to 13 a crown of `DESIGN_NOTES.md` decision 10.
          */
         const val LEAF_SOURCE_PX_PER_LEAF = 7f
 
         /** The presents under a fir, in the tree lights' own palette. */
         val GIFT_COLOURS = intArrayOf(0xFFE8564F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt())
 
-        /** How many flower clumps the ground carries, and where they may stand. */
+        /** How many flower clumps the ground carries on each screen of the street, and where they may stand. */
         const val FLOWER_CLUMP_COUNT = 22
         const val FLOWER_DEPTH_MIN = 0.06f
         const val FLOWER_DEPTH_MAX = 0.92f
@@ -1442,23 +1032,9 @@ class SceneObjectRenderer(
         const val FLOWER_SPRITE_UNITS_TALL = 12f
 
         /**
-         * Which of the two clumps the ground carries: in bloom, or gone over to seed heads.
-         *
-         * **The seasonal palette decides, and nothing new was added to decide it.** The scene
-         * already says which season it is wearing -- [SceneCustomization.fallColorsEnabled] and
-         * [SceneCustomization.winterColorsEnabled], the pair the `Seasonal palette` choice is
-         * made of -- and a meadow in flower under autumn leaves was the same mismatch the fall
-         * palette itself was added to fix for the trees. `flowersEnabled` keeps its one job: it
-         * says whether there are flowers at all, not which ones.
-         *
-         * **Winter takes the dry clump too**, on purpose. Dry stems, seed heads and thistles
-         * standing out of the snow are a real thing to look at, and the alternative was either a
-         * third drawing or a winter meadow in midsummer bloom. That is also why neither sprite is
-         * named for a season: `ground_flowers_autumn` would have been a lie every time it snowed.
-         *
-         * **One function, two call sites.** [drawGroundFlowers] and `ThemePreviewScene` both read
-         * it, so the gallery card cannot show the clump the scene does not draw -- a preview that
-         * disagrees with the scene is the one thing that file must not do.
+         * Which clump the ground carries: in bloom, or gone to seed under the autumn or the winter
+         * palette, which decides; `flowersEnabled` says only whether (`DESIGN_NOTES.md` decision 35).
+         * Read by [drawGroundFlowers] and `ThemePreviewScene`, so the card cannot show another clump.
          */
         fun groundFlowerSprite(customization: SceneCustomization): Int =
             if (customization.fallColorsEnabled || customization.winterColorsEnabled) {
@@ -1468,12 +1044,8 @@ class SceneObjectRenderer(
             }
 
         /**
-         * The most drifts or heaps the ground carries at 100%, and how big one is.
-         *
-         * Fewer than [FLOWER_CLUMP_COUNT] because a drift is a chunkier object than a clump of
-         * flowers and the same count reads as a covered floor rather than as scattered snow. The
-         * slider multiplies this and truncates ([pileCount]), so 0% draws nothing at all -- not
-         * one pile -- and the scene a user has never touched is exactly the scene v4.16 drew.
+         * The most drifts or heaps a screen of the street carries at 100%, and how big one is: fewer
+         * than [FLOWER_CLUMP_COUNT], a drift being chunkier, or the floor reads as covered.
          */
         const val PILE_MAX_COUNT = 18
         const val PILE_METRES_TALL = 0.42f
@@ -1486,75 +1058,57 @@ class SceneObjectRenderer(
         /**
          * How many piles a slider position draws. Truncating rather than rounding keeps any
          * density under 1/18 at zero piles, where rounding would draw one lonely drift from 2.8%;
-         * at **0% both draw nothing at all**, which is why a scene nobody has touched costs exactly
-         * what it cost before the feature existed.
+         * at **0% nothing is drawn**, so a scene with the piles at 0% pays nothing for them.
          */
         fun pileCount(density: Float): Int = (density.coerceIn(0f, 1f) * PILE_MAX_COUNT).toInt()
 
         /**
-         * Whether an object whose origin sits at [x] can contribute any pixel to a viewport
-         * [screenWidth] wide, given its scaled half-width [halfWidth].
-         *
-         * Replaces a hardcoded `x < -200f || x > 3000f` test. That constant was unrelated to the
-         * actual viewport: on a 1080px phone it kept drawing objects almost 2000px past the
-         * right edge every frame, and on a display wider than 3000px it would have culled
-         * objects that were genuinely visible.
-         *
-         * Pure and free of Android types so the entry/exit behaviour at both edges can be unit
-         * tested directly.
+         * The identity of one tile copy of one tree, for its leaves ([leafSourceId]): the runtime index
+         * and [copy], the physical copy [copyOf] numbers, which keeps its number across the wrap. Without the
+         * copy two visible copies would shed the same leaves; with a number that moves while the copy is on
+         * screen, its leaves would be dealt again there, mid-fall.
+         * A `Long`; it can be negative (the copy to the left of the start is -1).
+         */
+        internal fun leafCopyId(runtimeIndex: Int, copy: Int): Long = runtimeIndex.toLong() * LEAF_COPY_STRIDE + copy
+
+        /** How far apart two trees' identities lie ([leafCopyId]): room for a million copies of each. */
+        const val LEAF_COPY_STRIDE = 1_000_003L
+
+        /**
+         * How many things a scatter of [perScreen] a screen puts on a tile [tileWidth] wide: as many on
+         * every screen of it (the street's tile is two), [perScreen] before the surface is sized. Thing `i`
+         * stands in the `i`-th slice of a screen ([scatterSlice]).
+         */
+        internal fun scatterCountOnTile(perScreen: Int, tileWidth: Float, screenWidth: Float): Int =
+            if (tileWidth > 0f && screenWidth > 0f) perScreen * Math.round(tileWidth / screenWidth) else perScreen
+
+        /** The width of the slice each thing of a scatter laid [perScreen] to a screen stands in, jittered inside it. */
+        internal fun scatterSlice(screenWidth: Float, perScreen: Int): Float = screenWidth / perScreen
+
+        /**
+         * Whether an object at [x], [halfWidth] either side, can touch a viewport [screenWidth] wide:
+         * the real viewport, at any size. Pure, so both edges are unit tested.
          */
         fun isHorizontallyVisible(x: Float, halfWidth: Float, screenWidth: Float): Boolean =
             x + halfWidth >= 0f && x - halfWidth <= screenWidth
 
         /**
-         * The tile index to start scanning from when looking for the copies of an object that are
-         * actually on screen.
-         *
-         * An object anchored at [x] also exists at every `x + k * tileWidth` for integer `k` — the
-         * scene tiles horizontally, so the wrap seam never shows a gap. Only the copies that
-         * intersect the viewport need drawing. This returns a `k` that is guaranteed to be **at or
-         * before** the first such copy, so a caller stepping forward by one tile at a time and
-         * stopping once the left edge passes the right of the screen visits every visible copy and
-         * nothing beyond them.
-         *
-         * `floor`, not `ceil`, is deliberate and is the whole safety property here. The exact first
-         * visible index is `ceil((-halfWidth - x) / tileWidth)`; taking the floor instead can only
-         * ever start one tile *early*, never one tile *late*. Starting early costs one rejected
-         * iteration, which is free; starting late would drop a copy that should have been drawn,
-         * which is a visible pop at a screen edge. Float rounding at an exact tile boundary can
-         * move this quotient either way, so the direction of the error is chosen rather than
-         * assumed.
-         *
-         * This replaces a hardcoded `-1..1` copy loop. Three copies happen to be enough for the
-         * current tile width (`2 x screenWidth`) and object extents, but only by a margin of about
-         * 0.4 of a tile: the count was never derived from the geometry, so a wider object or a
-         * different tiling period would have started silently dropping copies at the seam. Deriving
-         * the range makes that impossible by construction, the same way
-         * [isHorizontallyVisible] replaced a hardcoded pixel constant.
-         *
-         * Pure and free of Android types so the enumeration can be unit tested directly against the
-         * loop it replaces. [tileWidth] must be positive; callers guard the degenerate case.
+         * The first tile index `k` worth scanning for the on-screen copies of an object at [x], which
+         * also stands at every `x + k * tileWidth`: **at or before** the first visible copy, for any
+         * object extent and tiling period. `floor`, not the exact `ceil`, because float rounding at a
+         * tile boundary can move the quotient either way: one tile early costs a rejected iteration,
+         * one tile late would drop a copy, a pop at the edge. Pure, so tested directly; [tileWidth]
+         * must be positive.
          */
         fun firstVisibleTileOffset(x: Float, halfWidth: Float, tileWidth: Float): Int =
             kotlin.math.floor((-halfWidth - x) / tileWidth).toInt()
 
         /**
-         * One past the last tile index worth considering: the first copy whose *left* edge has
-         * passed the right of the screen. Together with [firstVisibleTileOffset] this gives the
-         * half-open range `first until limit` that [draw] walks.
-         *
-         * The range is deliberately expressed as two pure functions rather than as a loop
-         * condition inside [draw]. [draw] needs a `Canvas`, so anything written as a condition
-         * there can only be tested by reimplementing it in the test — which tests the copy, not
-         * the code. Both bounds being ordinary functions means the enumeration itself is what the
-         * tests exercise.
-         *
-         * A copy exactly touching the right edge is inside the range, matching
-         * [isHorizontallyVisible]'s own inclusive `<=`. The two must agree: if this excluded a
-         * copy the predicate calls visible, that copy would be dropped and pop at the edge.
-         *
-         * The range is an upper bound on what to *consider*, not a claim about visibility --
-         * [isHorizontallyVisible] still decides each copy. [tileWidth] must be positive.
+         * One past the last tile index worth considering, the first copy whose *left* edge has passed
+         * the right of the screen: with [firstVisibleTileOffset], the range [draw] walks, as pure
+         * functions the tests exercise rather than a loop condition behind a `Canvas`. A copy touching
+         * the right edge is inside, as in [isHorizontallyVisible]'s inclusive `<=`, which still decides
+         * each copy. [tileWidth] must be positive.
          */
         fun tileOffsetLimit(x: Float, halfWidth: Float, tileWidth: Float, screenWidth: Float): Int =
             kotlin.math.floor((screenWidth + halfWidth - x) / tileWidth).toInt() + 1
@@ -1567,13 +1121,10 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The physical copy of the tile that [anchorXOf]'s representative of an object at [tileFractionX]
-         * belongs to (v5.13): the copy drawn at `x + tileIndex * tileWidth` is copy
-         * `representativeCopy + tileIndex`. The same two expressions as [anchorXOf]'s, so the two cannot
-         * disagree about the wrap; and the scroll's whole tiles ([GroundGeometry.scrollTileBias]) taken back
-         * out, so a copy keeps its number while the wrap moves on -- the number [StorefrontStreet] deals a
-         * place's building by, and the number the falling leaves key on ([leafCopyId]) once the wrap is
-         * counted.
+         * The physical copy [anchorXOf]'s representative belongs to (the copy at `x + tileIndex *
+         * tileWidth` is `representativeCopy + tileIndex`), by [anchorXOf]'s own expressions, with the
+         * scroll's whole tiles ([GroundGeometry.scrollTileBias]) taken out: a copy keeps its number while
+         * the wrap moves on. [StorefrontStreet] deals a place's building by it.
          */
         internal fun representativeCopy(tileFractionX: Float, geom: GroundGeometry): Int {
             val wrapped = geom.shiftXWrapped + tileFractionX * geom.tileWidth < -geom.tileWidth * 0.5f
@@ -1581,7 +1132,7 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The physical copy drawn at `anchorXOf(tileFractionX, geom) + tileIndex * tileWidth` (v5.13): what the
+         * The physical copy drawn at `anchorXOf(tileFractionX, geom) + tileIndex * tileWidth`: what the
          * draw loop hands [drawStaticObject] for every copy it draws, and what `StorefrontStreetTest` scrolls
          * the twelve streets with -- one expression for both, so a copy that comes in from the right is
          * numbered as the one it becomes when the wrap moves on.
@@ -1591,19 +1142,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The accent colours that are still applied as a runtime tint.
-     *
-     * There used to be a dozen of these. They existed because the shipped artwork for a beak, an
-     * inner ear, a ribbon or a planter was a white mask, so the only place its colour could live
-     * was a constant multiplied over it at the call site. The V2 asset set draws those accents in
-     * their own paper colours, which makes the constant a *second* colour compounded over
-     * finished art rather than the art's only colour -- the failure mode `SpriteTintClassTest`
-     * now guards in both directions. Every accent whose sprite became fixed art was deleted here
-     * and its call site moved to an untinted blit in the same change.
-     *
-     * What is left is the two colours that never belonged to a sprite at all: the parasol's pole
-     * and the penguin's belly. The pole is a `drawRect`, and the belly's sprite is still a
-     * greyscale mask in V2, so both are tints in the sense the word is meant to carry.
+     * The two accent colours tinted at run time, belonging to no sprite: the parasol's pole (a
+     * `drawRect`) and the penguin's belly (a mask). Every other accent is its sprite's own colour, and a
+     * tint over finished art would compound a second one (`SpriteTintClassTest`).
      */
     private val parasolPoleColor = 0xFFEFE0CE.toInt()
     private val penguinBellyColor = PENGUIN_BELLY_COLOR
@@ -1613,14 +1154,10 @@ class SceneObjectRenderer(
     private val roadLineColor = 0xFFF3E6D0.toInt()
 
     /**
-     * Advances the traffic and keeps its membership in step with the hour.
-     *
-     * [dayBlend] is the scene's own blend, passed in rather than re-derived, because the count in
-     * force is now a function of it: the day and night densities crossfade exactly the way the
-     * pedestrians' do (`CarSelection.densityAt`), so at dusk the target count slides down on its
-     * own and the road empties car by car -- each one finishing the pass it is on, because the
-     * sync below only ever flips a car that is off the visible span. Nothing here allocates: the
-     * count is arithmetic and each runtime compares it against its stored selection rank.
+     * Advances the traffic and keeps its membership in step with the hour: the day and night
+     * densities crossfade on the scene's own [dayBlend] (`CarSelection.densityAt`), so at dusk the
+     * road empties car by car, each finishing its pass, since only a car off the visible span is
+     * flipped. Nothing allocated: each runtime compares the count with its stored rank.
      */
     fun update(deltaSeconds: Float, dayBlend: Float = 1f) {
         val targetCount = CarSelection.countFor(
@@ -1633,11 +1170,9 @@ class SceneObjectRenderer(
             // would re-enter at an arbitrary phase against the cars that kept driving, and the
             // even spacing the generator laid out would be gone the first time a count went up.
             c.progress += deltaSeconds * c.spec.speedFraction
-            // Wrap by subtracting the span, never by assigning a fixed value. Snapping every car
-            // back to exactly -0.3 discarded the head start it had over the car behind it, so a
-            // lane's cars re-synchronised on their first lap and thereafter travelled as a pack --
-            // the congestion reported from the device. Subtracting keeps the phase, so a queue
-            // laid out evenly at generation time stays evenly spaced indefinitely.
+            // Wrap by subtracting the span, never by assigning a fixed value: subtracting keeps the
+            // head start a car has over the one behind it, so a queue laid out evenly at generation
+            // stays evenly spaced indefinitely instead of closing into a pack on its first lap.
             if (c.progress > 1.3f) c.progress -= SceneObjectCatalog.CAR_LOOP_SPAN
             // Membership sync: a count change -- a slider, or the dusk crossfade above -- takes
             // effect per car, and only while that car is off the visible span: an addition
@@ -1651,20 +1186,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * How far off each edge a vehicle starts and finishes, in canvas pixels.
-     *
-     * **REN-06: this was a flat `120f`, and 120 px is not a distance the scene owns.** A vehicle's
-     * width scales with the viewport, the margin did not, and at a tall enough screen the two cross:
-     * the fire engine's scaled half-width passes 120 px at about 2770 px of screen height, so on a
-     * taller screen the far end of a vehicle would still be on screen when its copy was declared
-     * gone, and it would pop at the edge. The tallest flagships are near 3200 px: a bound
-     * expressed in the wrong unit is one resolution away from being wrong.
-     *
-     * Derived from the widest vehicle at the nearest lane, which is the largest a vehicle is ever
-     * drawn, plus a tenth for its shadow and the outline stroke. The old 120 stays as a floor so
-     * nothing about the current picture moves: at the reference viewport (2400 px) the derived
-     * value is about 114 px, so 120 is what is used, exactly as before; the derived value takes
-     * over from about 2520 px of screen height.
+     * How far off each edge a vehicle starts and finishes, in canvas pixels: the widest vehicle at
+     * the nearest lane plus a tenth for its shadow and stroke, so it scales with the viewport (a
+     * fixed margin would pop a vehicle at the edge of a tall screen). [LEGACY_EDGE_MARGIN_PX] is the
+     * floor; the derived value, about 114 px at 2400, takes over from about 2520 px of height.
      */
     private fun vehicleEdgeMarginPx(screenHeight: Float): Float {
         val widest = FIRE_TRUCK_HALF_WIDTH_UNITS * SceneSpace.FIRE_TRUCK_BASE_SCALE
@@ -1675,15 +1200,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A soft translucent ground-shadow ellipse beneath an object's base, drawn in the object's
-     * own local coordinate space (so it always sits exactly at that object's own y=0 regardless
-     * of the caller's scale/translate) -- the same "doesn't look like it's floating" technique
-     * [drawParasol]'s shadow oval already used individually, pulled out into one shared helper
-     * and now applied consistently to every other ground-anchored object that didn't have one
-     * yet (buildings, cars, trees, and the smaller seasonal decorations). Part of the aesthetic
-     * pass aa asked for across every editable/moving element except clouds: a visible ground
-     * shadow was the single most consistent thing missing across roughly half of them, and it's
-     * cheap (one extra oval fill, no new Path work).
+     * A soft translucent ground-shadow ellipse beneath an object's base, drawn in the object's own
+     * local coordinate space, so it sits exactly at that object's y=0 whatever the caller's scale or
+     * translate: one helper for every ground-anchored object, so none reads as floating
+     * (`DESIGN_NOTES.md` decision 6). One oval fill.
      */
     private fun drawGroundShadow(canvas: SceneCanvas, halfWidth: Float, halfHeight: Float = 5f) {
         fillPaint.color = 0x2E000000
@@ -1691,19 +1211,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Blits a cached sprite bitmap tinted to [tintColor], positioned so that the bitmap's own
-     * local origin (pixel 0,0) lands at world-space [originXUnits]/[originYUnits] -- i.e. the
-     * same "local unit coordinates" every vector-drawn shape in this file already used, so a
-     * caller migrating a shape from `canvas.drawShape(...)` to this just needs the same bounding
-     * box numbers it already had, not a new coordinate system to reason about.
-     *
-     * Every sprite this class draws is authored in the [SpriteScale.SCENE_UNITS] convention, so
-     * this binds that convention once, here, rather than repeating it at each call site. A
-     * sprite authored at literal on-screen pixel size must **not** go through this: call
-     * [SpriteBlitter.drawTinted] with [SpriteScale.CANVAS_PIXELS] directly, or it renders
-     * [SpriteBlitter.SPRITE_PIXELS_PER_UNIT] times too small.
-     *
-     * See [SpriteBlitter] for the tint mode and the colour-fidelity trade-off it carries.
+     * Blits a sprite tinted to [tintColor], its pixel (0,0) at [originXUnits]/[originYUnits] in local
+     * units. Binds [SpriteScale.SCENE_UNITS], every sprite of this class's convention, in one place; a
+     * sprite authored at screen-pixel size goes to [SpriteBlitter.drawTinted] with
+     * [SpriteScale.CANVAS_PIXELS], or it renders [SpriteBlitter.SPRITE_PIXELS_PER_UNIT] times too small.
      */
     private fun drawTintedSprite(canvas: SceneCanvas, resId: Int, originXUnits: Float, originYUnits: Float, tintColor: Int) {
         sprites.drawTinted(canvas, resId, originXUnits, originYUnits, SpriteScale.SCENE_UNITS, tintColor)
@@ -1718,32 +1229,18 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Same as [drawSprite], with [shade] neutral grey standing for how much light is on it.
-     *
-     * **Fixed art does not go dark at night, and until v5.1 nothing in the scene made it.** Every
-     * object that dims at dusk dims because a *tint* is interpolated between the user's day and
-     * night colours and multiplied over a mask; a sprite that carries its own colours has no tint
-     * to interpolate, so it keeps daylight values under a midnight sky. Measured on the palms:
-     * a frond read (107,168,79) at 13:00 and (107,168,79) at 23:00 while the wall of the house
-     * beside it fell to 0.40 of its own daytime value.
-     *
-     * This is the mechanism for saying so, and it is deliberately **not** a tint: see
-     * [SpriteBlitter.draw]'s `shade`. The callers are [drawPalmTree] and, since v5.14, [drawFir] (its green; its
-     * snow, star and lights are not shaded); the rest of the fixed-art
-     * library still stands lit at midnight and that is recorded as a defect rather than fixed in
-     * passing, because every one of those sprites needs its own judgement about what its night
-     * looks like (`BACKLOG_v5_1.md`).
+     * Same as [drawSprite], under [shade], a neutral grey for how lit it is: fixed art has no tint to
+     * interpolate at dusk, and a shade is **not** a tint ([SpriteBlitter.draw],
+     * `DESIGN_NOTES.md` decision 36). Used by [drawPalmTree] and [drawFir]'s green; the rest of the fixed art is drawn
+     * as authored at every hour, by the same decision.
      */
     private fun drawShadedSprite(canvas: SceneCanvas, resId: Int, originXUnits: Float, originYUnits: Float, shade: Int) {
         sprites.draw(canvas, resId, originXUnits, originYUnits, SpriteScale.SCENE_UNITS, shade = shade)
     }
 
     /**
-     * Same as [drawSprite], faded to [alpha].
-     *
-     * Used for the lit halves of the vehicle lamps ([drawVehicleLamps]): `car_lamp_front_lit` and
-     * `car_lamp_rear_lit` are laid over their daytime lenses, and the day-to-night crossfade is
-     * the alpha. Both are fixed art, so the fade cannot be expressed as a tint.
+     * Same as [drawSprite], faded to [alpha]: the lit lamps laid over their day lenses
+     * ([drawVehicleLamps]), fixed art, so the crossfade is an alpha, not a tint.
      */
     private fun drawSpriteFaded(canvas: SceneCanvas, resId: Int, originXUnits: Float, originYUnits: Float, alpha: Int) {
         if (alpha <= 0) return
@@ -1757,16 +1254,10 @@ class SceneObjectRenderer(
      * shape has no such region -- and [colours] is the matching row of colours, read only where the
      * slot is non-zero.
      *
-     * **The masks are added, not laid over**, and that is the whole reason this can be done at all:
-     * two source-over layers split the pixel's coverage and `a + b(1-a)` is not linear, so once
-     * [SpriteDetailLevel] halves each one separately they stop recomposing and a halo appears at
-     * every edge -- measured at up to 63 levels of coverage out of 255. See
-     * [SceneCanvas.drawSprite].
-     *
-     * The cost is **six vertices per mask, in the same batch**. [GlSceneTarget] ends a batch only
-     * when the texture changes, every sprite has been in one atlas since v4.29, and the additive
-     * contribution travels in the sign of the vertex alpha rather than in a blend state -- so a
-     * figure in five layers is still one `glDrawArrays` and not five.
+     * **The masks are added, not laid over**: source-over (`a + b(1-a)`) is not linear, so layers
+     * [SpriteDetailLevel] halves separately would stop recomposing and halo at every edge (up to 63
+     * levels of 255; [SceneCanvas.drawSprite]). Each mask is one quad in the same batch -- one atlas,
+     * the additive flag carried in the vertex alpha's sign -- so a five-layer figure is one draw call.
      */
     private fun drawPersonLayers(
         canvas: SceneCanvas,
@@ -1784,11 +1275,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * [drawPersonLayers], only the part inside the box [clipLeft]..[clipRight] x [clipTop]..[clipBottom]
-     * (in the same units as [x] and [y]): a person walking out of a window, or into it, cut to its pane
-     * (v5.12, [WindowWalk]). **Every layer is cut by the same box**, the fixed art and each region's
-     * mask alike: the masks are summed over the fixed layer, and a mask left whole beside a cut fixed
-     * layer would add its colour over the wall -- a halo of the person's shirt where the person is not.
+     * [drawPersonLayers] inside the clip box, in [x]'s units: a person walking out of a window or into
+     * it, cut to its pane ([WindowWalk]). **Every layer by the same box**: a mask left whole beside a
+     * cut fixed layer would add the shirt's colour over the wall.
      */
     private fun drawPersonLayersClipped(
         canvas: SceneCanvas,
@@ -1816,26 +1305,16 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Scratch for one figure's colours, reused between figures.
-     *
-     * Indexed by [PeopleLayerTable]'s own slot numbers so that the array lines up with the slots
-     * rather than having to be mapped onto them; slot 0 is the fixed art and is never read. A field
-     * because this is the per-figure path and `AI_PROJECT_RULES.md` 5.1 wants it allocation-free.
-     *
-     * **One figure at a time**: [coloursFor] overwrites it, so its result has to be drawn before the
-     * next figure asks. Every caller does, and each one is a single expression away from its blit.
+     * Scratch for one figure's colours, by [PeopleLayerTable]'s slot numbers (slot 0, the fixed art,
+     * unread): a field, so the per-figure path, run every frame, allocates nothing. **One
+     * figure at a time**: [coloursFor] overwrites it, so each result is drawn before the next asks.
      */
     private val personColours = IntArray(PeopleLayerTable.SLOTS)
 
     /**
-     * Fills [personColours] for one figure and hands it back.
-     *
-     * [skinIndex] arrives already chosen rather than being dealt here, because the three systems
-     * that draw people each already have a tone for their figure and those choices are tested:
-     * the street deals one per crossing, [WindowOccupants] deals one per pane, and
-     * [SeatedOccupants] deals two per car -- the last of which is a *deal* and not a hash for a
-     * reason v4.20 paid for (`driverSeed % 2` made every driver a woman). Re-deriving it here
-     * would quietly replace all three.
+     * Fills [personColours] for one figure and hands it back. [skinIndex] comes already chosen by the
+     * system that draws the figure (the street per crossing, [WindowOccupants] per pane,
+     * [SeatedOccupants] per seat), each tested: re-deriving it here would replace all three.
      */
     private fun coloursFor(
         address: Int,
@@ -1856,72 +1335,35 @@ class SceneObjectRenderer(
     }
 
     /**
-     * An object's horizontal anchor in the tile the shared [GroundGeometry] currently places it
-     * in. `shiftXWrapped`/`tileWidth` are computed per-frame in `PaperRenderer.drawHillLayers`
-     * from the same values the hills themselves scroll by, so objects can never desync from the
-     * ground they stand on. This maps `tileFractionX` linearly across one tile period, so every
-     * object at every position is reachable and nothing overlaps another object that happens to
-     * sit a whole tile-period away.
-     *
-     * The result is one representative copy, not *the* position: the object also exists at every
-     * whole tile either side of it, and [draw] uses [firstVisibleTileOffset] to find which of
-     * those copies are on screen. Y is not computed here -- it comes from the shared
-     * [SceneSpace.groundYFraction], evaluated on the object's own continuous
-     * [StaticSceneObject.depthFraction].
-     *
-     * Returns a bare `Float`. It used to return `Pair<Float, Float>` whose second element was the
-     * `groundY` the caller had just passed in, which boxed two `Float`s and allocated a `Pair` for
-     * every static object of every frame -- three allocations per object per frame on a path
-     * `AI_PROJECT_RULES.md` 5.1 requires to be allocation-free.
+     * An object's horizontal anchor: `tileFractionX` across one tile of the shared [GroundGeometry],
+     * which scrolls by the hills' own values (`PaperRenderer.drawHillLayers`), so objects never
+     * desync from their ground. One representative copy: [draw] finds the visible ones
+     * ([firstVisibleTileOffset]). Y is [SceneSpace.groundYFraction]'s. A bare `Float`, so nothing is
+     * boxed on this per-frame path: a boxed value is an allocation.
      */
     private fun anchorX(spec: StaticSceneObject, geom: GroundGeometry): Float = anchorXOf(spec.tileFractionX, geom)
 
     /**
-     * Where this frame's canopies are, in screen pixels, for anything that needs to come *off* a
-     * tree rather than out of the sky.
-     *
-     * **Filled here because here is the only place that knows.** A tree's screen position is its
-     * depth fraction, its ground line, its effective scale and its wrap-tile offset combined, and
-     * all four are resolved inside [draw]. `PaperRenderer` draws the falling leaves and had none
-     * of them, so it spawned every leaf at one fixed height across the whole width -- which is
-     * what read on a device as leaves appearing out of mid-air, most of them nowhere near a tree.
-     *
-     * Three parallel arrays and a count rather than a list of points: this is refilled every
-     * frame, and a list of objects would allocate every frame.
+     * Where this frame's canopies are, in screen pixels, for the falling leaves `PaperRenderer` draws:
+     * filled here, the only place that knows a tree's depth, ground line, scale and copy. Parallel
+     * arrays and a count, refilled every frame without allocating.
      */
     val leafSourceX = FloatArray(MAX_LEAF_SOURCES)
     val leafSourceY = FloatArray(MAX_LEAF_SOURCES)
     val leafSourceHalfWidth = FloatArray(MAX_LEAF_SOURCES)
 
     /**
-     * The ground line of the tree each crown belongs to, which is where its leaves land.
-     *
-     * `PaperRenderer` used to end every fall at one global `screenHeight * 0.88`, below **both**
-     * traffic lanes (0.834 and 0.862), so a leaf shed by a tree standing high on the hill drifted
-     * down across the whole hillside, over the far lane and over the near one, and settled on the
-     * road in front of the traffic. Reported as leaves carrying on past the tree as far as the
-     * cars. A leaf lands at the foot of its own tree, and this is that foot -- already known here,
-     * simply not recorded until now.
+     * The ground line of each crown's tree, where its leaves land: at the foot of their own tree,
+     * never on one line for the whole screen that would carry a hillside tree's leaves onto the road.
      */
     val leafSourceGroundY = FloatArray(MAX_LEAF_SOURCES)
 
     /**
-     * The stable identity of the tree each recorded crown belongs to: its index in
-     * [staticRuntimes] (fixed until a structural setting rebuilds that list), combined with the
-     * copy's wrap-adjusted tile into [leafCopyId].
-     *
-     * The identity is what makes a falling leaf *belong* to its tree rather than to a slot in
-     * this frame's array. The arrays above are refilled every frame with only the crowns that
-     * are currently on screen, so their indices shuffle whenever a home-screen swipe scrolls a
-     * tree across a screen edge -- and `PaperRenderer` used to hand candidate `i` to source
-     * `i % count`, which reassigned **every** leaf to a different tree each time that happened.
-     * Measured on a OnePlus 6T from a 30 fps screen recording: leaves teleported mid-fall in the
-     * exact frames the visible set changed, and only in those. The maintainer reported it as the
-     * scene "rebuilding" on swipe. With the identity recorded, `PaperRenderer` derives each
-     * tree's leaves from this number instead of from the slot, so a tree keeps its own leaves
-     * while it is on screen no matter what the rest of the scene does.
+     * Each crown's tree, as [leafCopyId] of its index in [staticRuntimes] and its copy: a falling leaf
+     * belongs to its tree, not to a slot of these arrays, whose indices shuffle as trees cross the
+     * screen's edges. A `Long`: a theme's 2 149th object is past `Int.MAX_VALUE`, its leaves far sooner.
      */
-    val leafSourceId = IntArray(MAX_LEAF_SOURCES)
+    val leafSourceId = LongArray(MAX_LEAF_SOURCES)
 
     /** How many leaves each recorded crown sheds: its drawn half-width over [LEAF_SOURCE_PX_PER_LEAF]. */
     val leafSourceLeafCount = IntArray(MAX_LEAF_SOURCES)
@@ -1929,45 +1371,40 @@ class SceneObjectRenderer(
         private set
 
     /**
-     * The stable identity of one tile copy of one tree: the runtime index for the tree half, and
-     * `tileIndex - scrollTileBias` for the copy half, which is constant for a physical copy for
-     * as long as it stays on screen -- including across the parallax wrap, where the raw
-     * tileIndex of every copy steps by one and the bias steps with it. Without the copy half,
-     * two simultaneously visible copies of one tree would shed five identical leaves; without
-     * the bias, every leaf in the scene would be re-dealt each time the scroll crossed a period.
+     * Records the crown of a tree drawn at [x] for the falling leaves, if it has one: a leafy tree's or a palm's, not a
+     * fir's ([standsAsFir]) and not a crown *Halloween* has stripped to bare limbs or dead fronds ([shedsLeaves]).
      */
-    private fun leafCopyId(runtimeIndex: Int, tileIndex: Int, geom: GroundGeometry): Int =
-        runtimeIndex * 1_000_003 + (tileIndex - geom.scrollTileBias)
+    private fun recordLeafSource(r: StaticRuntime, id: Long, x: Float, groundY: Float, scale: Float) {
+        if (shedsLeaves(r)) recordLeafSource(variantFor(r.spec), id, x, groundY, scale)
+    }
 
-    private fun recordLeafSource(variant: SceneSpace.SceneVariant, id: Int, x: Float, groundY: Float, scale: Float) {
+    /**
+     * Whether this tree is drawn with a crown of leaves to shed: not a fir ([drawFir]), and not under
+     * *Halloween*, when the leafy tree is bare limbs and the palm dead fronds.
+     */
+    private fun shedsLeaves(r: StaticRuntime): Boolean = when (variantFor(r.spec)) {
+        SceneSpace.SceneVariant.TREE -> !customization.halloweenEnabled && !standsAsFir(r)
+        SceneSpace.SceneVariant.PALM_TREE -> !customization.halloweenEnabled
+        else -> false
+    }
+
+    private fun recordLeafSource(variant: SceneSpace.SceneVariant, id: Long, x: Float, groundY: Float, scale: Float) {
         if (leafSourceCount >= MAX_LEAF_SOURCES) return
-        // The crown as each is actually blitted: the leafy canopy hangs at -38 with its own
-        // content centred another 47 above that and 66 units tall; the palm's crown at -82 with
-        // its content centre 24 below its origin, 48 units tall and offset seven to the right of
-        // the trunk. Derived from the two call sites and the two sprites rather than guessed, so a
+        // The crown as each is actually blitted, derived from the call sites and the sprites, so a
         // change to either moves the leaves with it.
         val centreUnits: Float
         val halfHeightUnits: Float
         val halfWidthUnits: Float
-        // How far the crown's own centre sits from the trunk. Zero for everything whose foliage is
-        // over its own stem, which was every variant until v5.1's palm leaned.
+        // How far the crown's centre sits from the trunk: the palm's leans.
         val centreXUnits: Float
         when (variant) {
-            // v4.21, re-derived for the "Broad Oak" and not carried over: the crown is
-            // `tree_canopy`'s 101x66 u of content blitted at (-50,-80) inside the -38 lift, so in
-            // object space it is x -50..51, y -118..-52. Centre -85, half-height 33, half-width 51
-            // (the wider of the two sides, so the band covers the whole crown). The band is 24%
-            // wider than v4.20's 41 and its bottom edge sits 8 units lower -- both consequences of
-            // the artwork, which is why these are stated as the content box rather than tuned.
+            // `tree_canopy`'s 101x66 u of content, blitted at (-50,-80) inside the -38 lift: x -50..51,
+            // y -118..-52, so centre -85, half-height 33, half-width 51 (the wider side).
             SceneSpace.SceneVariant.TREE -> {
                 centreUnits = -85f; halfHeightUnits = 33f; halfWidthUnits = 51f; centreXUnits = 0f
             }
-            // v5.1, re-derived for the "Coconut" palm and not carried over: the crown is a 56x48-unit
-            // canvas (its drawing plus a transparent guard), blitted at (-21,-82), so in object
-            // space the canvas is x -21..35, y -82..-34. Centre (7,-58), half-height 24,
-            // half-width 28. Both the width and the offset are consequences of the artwork -- a
-            // crown whose blades fall below their own convergence, hung off a trunk that leans --
-            // which is why they are stated as the blit and its canvas rather than tuned.
+            // A 56x48-unit canvas (drawing and transparent guard) blitted at (-21,-82): x -21..35,
+            // y -82..-34, so centre (7,-58), half-height 24, half-width 28 ([PalmSpriteLayout]).
             SceneSpace.SceneVariant.PALM_TREE -> {
                 centreUnits = PalmSpriteLayout.CROWN_CENTRE_Y
                 halfHeightUnits = PalmSpriteLayout.CROWN_HALF_HEIGHT
@@ -1977,76 +1414,59 @@ class SceneObjectRenderer(
             else -> return
         }
         leafSourceX[leafSourceCount] = x + centreXUnits * scale
-        // rc2: a leaf detaches at the crown's *bottom edge*, not its centre. Spawned at the
-        // centre, the first 40% of every fall happened inside the canopy, where the leaf was
-        // either invisible or read as a dark blot lying on the foliage -- two of those were
-        // pointed at on the delivered night frame. The margin is four units plus the leaf
-        // oval's own eight-pixel extent (leaves are drawn unscaled): the four covers the canopy
-        // canvas's own outline slack past the measured content, the eight the rotated oval, so
-        // even the first frame of a fall touches no pixel of the crown's bounding box --
-        // FallingLeafContinuityTest drives a whole cycle through the recorder to hold it there.
+        // A leaf detaches below the crown's *bottom edge*, never inside the canopy (a dark blot on the
+        // foliage): four units for the canvas's outline slack, eight pixels for the unscaled rotated
+        // oval, so no first frame touches the crown's box (FallingLeafContinuityTest).
         leafSourceY[leafSourceCount] = groundY + (centreUnits + halfHeightUnits + 4f) * scale + 8f
         leafSourceHalfWidth[leafSourceCount] = halfWidthUnits * scale
         leafSourceGroundY[leafSourceCount] = groundY
         leafSourceId[leafSourceCount] = id
-        // How many leaves this crown sheds: proportional to its drawn size, so a near crown sheds
-        // a canopy's worth and a distant one a few, and the total tracks how much tree is
-        // actually on screen instead of collapsing when the viewport holds few crowns (the fixed
-        // per-tree count did exactly that on the delivered two-crown frame). Constant per tree
-        // while it is on screen -- scale is depth, not viewport -- so nothing pops during a swipe.
+        // Leaves proportional to the crown's drawn size, so the total tracks how much tree is on
+        // screen; constant while it is there (scale is depth, not scroll), so nothing pops in a swipe.
         leafSourceLeafCount[leafSourceCount] =
             (halfWidthUnits * scale / LEAF_SOURCE_PX_PER_LEAF).toInt().coerceIn(3, 13)
         leafSourceCount++
     }
 
     /**
-     * Wildflowers on the open ground, drawn before anything that stands on it -- in bloom under a
-     * plain palette, gone over to seed heads under an autumn or a winter one ([groundFlowerSprite]).
-     *
-     * **Placed on the same ground line and the same perspective as everything else**, so a clump
-     * near the road is larger than one at the back and both sit where their stems meet the earth.
-     * The positions come from a fixed integer hash of the clump index rather than from a stored
-     * list, so nothing is allocated per frame and the scatter is identical every frame -- flowers
-     * that shimmered from frame to frame would be worse than none.
-     *
-     * The scatter is stratified across the width and free in depth: each clump gets its own slice
-     * of the width and jitters inside it, and how far back it stands is its own hash. A purely
-     * uniform draw clusters and leaves bald patches, which is what makes a scatter read as random
-     * rather than as ground cover.
+     * Wildflowers on the open ground, drawn before anything that stands on it ([groundFlowerSprite]),
+     * on the ground line and perspective of everything else. Placed by a fixed hash of the clump index:
+     * nothing allocated, the same scatter every frame. Stratified across the width (a slice each,
+     * jittered inside it; a uniform draw clusters into bald patches), free in depth. **Across the
+     * whole tile, [FLOWER_CLUMP_COUNT] a screen** ([scatterCountOnTile]): the street is two screens
+     * wide, and one screen's scatter would leave the meadow bare half of the scroll.
      */
     private fun drawGroundFlowers(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
         if (!customization.flowersEnabled) return
-        // In bloom or gone over. Decided once, from [groundFlowerSprite], so the scene and the
-        // gallery card cannot disagree; see there for why the seasonal palette is what decides.
+        // From [groundFlowerSprite], as the gallery card, so the two cannot disagree.
         val dry = groundFlowerSprite(customization) == R.drawable.ground_flowers_dry
         val sceneScale = SceneSpace.sceneScale(screenHeight)
-        for (i in 0 until FLOWER_CLUMP_COUNT) {
+        val clumps = scatterCountOnTile(FLOWER_CLUMP_COUNT, geom.tileWidth, screenWidth)
+        for (i in 0 until clumps) {
             val h = (i * 2654435761L.toInt()) xor (i shl 7)
             val jitterX = ((h ushr 3) and 0xFF) / 255f
             val jitterDepth = ((h ushr 13) and 0xFF) / 255f
-            // **Stratified across the width, free in depth.** The first version banded depth by
-            // the clump index as well, which correlated depth with x and laid every clump on one
-            // straight diagonal -- caught in the preview, not in a test. Only the horizontal
-            // slice is stratified now; how far back a clump stands is its own hash.
+            // **Stratified across the width, free in depth**: banding depth by the clump index too
+            // would correlate depth with x and lay every clump on one straight diagonal.
             val depth = FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth
             val groundY = screenHeight * SceneSpace.groundYFraction(depth)
             val scale = SceneSpace.scaleForHeight(FLOWER_METRES_TALL, FLOWER_SPRITE_UNITS_TALL) *
                 SceneSpace.depthScale(depth) * sceneScale
-            val slice = screenWidth / FLOWER_CLUMP_COUNT
+            val slice = scatterSlice(screenWidth, FLOWER_CLUMP_COUNT)
             val baseX = (i + jitterX) * slice
             val tile = if (geom.tileWidth > 0f) geom.tileWidth else screenWidth
             var x = (baseX + geom.shiftXWrapped) % tile
+            // Walked from the copy a tile to the left whenever that copy can still reach the screen: a thing laid in the
+            // tile's last slice straddles the left edge through it.
+            if (x > -slice) x -= tile
             while (x < screenWidth + slice) {
                 if (x > -slice) {
                     canvas.save()
                     canvas.translate(x, groundY)
                     canvas.scale(scale, scale)
-                    // **Two literal blits rather than one of a chosen resource**, and the
-                    // duplicated origin is the point. `tools/assets` resolves a call site by
-                    // reading the `R.drawable.<name>` literal out of it, so a blit of a variable
-                    // takes the sprite out of the scale, tint and origin checks entirely -- the
-                    // pair's shared (-18, -12) is exactly the claim worth keeping machine-checked,
-                    // because it is what lets the two be swapped at all.
+                    // **Two literal blits**, not one of a chosen resource: `tools/assets` checks a
+                    // call site's scale, tint and origin by its `R.drawable.<name>` literal, and the
+                    // pair's shared (-18, -12) is what lets the two be swapped.
                     if (dry) {
                         drawSprite(canvas, R.drawable.ground_flowers_dry, -18f, -12f)
                     } else {
@@ -2060,20 +1480,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Drifts of snow and heaps of leaves on the open ground, drawn with the flowers and for the
-     * same reasons.
-     *
-     * **The scatter is [drawGroundFlowers]'s, salted differently.** Same stratified hash -- a slice
-     * of the width each, depth free within the ground band -- so a heap sits on its own ground line
-     * at its own perspective, the set is identical every frame, and nothing is allocated per frame.
-     * The salt is what stops a drift and a clump of flowers being the same object twice.
-     *
-     * **The count is the slider, truncated.** `0%` draws nothing: the loop does not run, so a scene
-     * that has never been touched costs exactly what it cost before this existed. `100%` is
-     * [PILE_MAX_COUNT], which is where the ground still reads as ground with things lying on it.
-     *
-     * Each is gated on its own season rather than on a switch of its own -- snow on a summer lawn
-     * and leaf heaps under a snow-capped tree are both wrong, and the seasons already say which.
+     * Drifts of snow and heaps of leaves: [drawGroundFlowers]'s scatter, salted so a drift and a
+     * clump never coincide. The count is the slider truncated ([pileCount]): 0% runs no loop, 100% is
+     * [PILE_MAX_COUNT]. Each is gated on its own season, not a switch of its own: snow on a summer
+     * lawn and leaves under a snow-capped tree are both wrong.
      */
     private fun drawGroundPiles(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
         if (customization.winterColorsEnabled) {
@@ -2096,7 +1506,9 @@ class SceneObjectRenderer(
         val count = pileCount(density)
         if (count <= 0) return
         val sceneScale = SceneSpace.sceneScale(screenHeight)
-        for (i in 0 until count) {
+        // [count] a screen, across the whole tile, as the flowers ([drawGroundFlowers]).
+        val piles = scatterCountOnTile(count, geom.tileWidth, screenWidth)
+        for (i in 0 until piles) {
             val h = ((i + salt) * 2654435761L.toInt()) xor ((i + salt) shl 7)
             val jitterX = ((h ushr 3) and 0xFF) / 255f
             val jitterDepth = ((h ushr 13) and 0xFF) / 255f
@@ -2104,12 +1516,14 @@ class SceneObjectRenderer(
             val groundY = screenHeight * SceneSpace.groundYFraction(depth)
             val scale = SceneSpace.scaleForHeight(PILE_METRES_TALL, PILE_SPRITE_UNITS_TALL) *
                 SceneSpace.depthScale(depth) * sceneScale
-            // Sliced across the full width whatever the count is, so lowering the slider thins the
-            // scatter out evenly instead of emptying one end of the scene.
-            val slice = screenWidth / count
+            // A slice of a screen each whatever the count, so the slider thins every screen evenly.
+            val slice = scatterSlice(screenWidth, count)
             val baseX = (i + jitterX) * slice
             val tile = if (geom.tileWidth > 0f) geom.tileWidth else screenWidth
             var x = (baseX + geom.shiftXWrapped) % tile
+            // Walked from the copy a tile to the left whenever that copy can still reach the screen: a thing laid in the
+            // tile's last slice straddles the left edge through it.
+            if (x > -slice) x -= tile
             while (x < screenWidth + slice) {
                 if (x > -slice) {
                     canvas.save()
@@ -2127,120 +1541,74 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Draws the ground flowers and piles, then every static object, then the road, then the
-     * people, then the cars.
+     * Draws the ground flowers and piles, every static object, the road, the people and the cars
+     * (the pavement is behind the carriageway: see the call to [drawPeople]). Every copy of an object
+     * that lands on screen is drawn, or the wrap seam shows a gap: scale and cull extent once per
+     * object, the copies from [firstVisibleTileOffset] to [tileOffsetLimit], each decided by
+     * [isHorizontallyVisible].
      *
-     * The last two are in that order because the pavement is behind the carriageway; see the call
-     * to [drawPeople] below.
-     *
-     * The scene tiles horizontally, so each object exists at every whole `tileWidth` either side
-     * of its anchor and the copies that land on screen must all be drawn or the wrap seam shows a
-     * gap. This used to walk a fixed `x`, `x - tileWidth`, `x + tileWidth` and let each copy cull
-     * itself, which meant the scale and extent the cull decides on -- properties of the *object*,
-     * not of the copy -- were recomputed three times per object per frame, and two of the three
-     * calls did nothing but that work and return.
-     *
-     * Now the per-object values are computed once and the range of copies is derived from the
-     * geometry: [firstVisibleTileOffset] gives a starting tile at or before the first visible one,
-     * and the loop walks forward until the copy's left edge clears the right of the screen. That
-     * visits only copies that can be seen, and unlike the fixed three it stays correct for any
-     * tile width and any object extent rather than happening to have enough margin.
-     *
-     * [isHorizontallyVisible] still decides every copy, so the set of objects painted is exactly
-     * the set that passed the same predicate before.
-     *
-     * [hour24] is the scene's effective clock hour -- `DayPhase.hour24`, the value that moved the
-     * sun this frame, never a clock read of this class's own. It exists for the opening hours:
-     * kept as [frameHour], at which the drawing below asks how open each tower and each building among
-     * the houses is ([SceneCustomization.opennessFor]). Defaulted to noon so the many tests that draw a
-     * frame directly keep compiling. It also drives the people's colour clock ([clockSeconds]); with the
-     * default customization (the three groups' hours off) only the openness stops depending on it, being
-     * constantly 1.
+     * [hour24] is `DayPhase.hour24`, the hour that moved the sun this frame, never a clock of this
+     * class's own: the opening hours' [frameHour] and the people's colour clock ([clockSeconds]).
+     * Noon by default, for the tests that draw a frame directly.
      */
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float, hour24: Float = 12f) {
-        // v4.30: the people's colours are dealt per crossing off this same clock, for the reason
-        // [PeopleColours] gives -- `elapsedSeconds` restarts with the process and would deal the
-        // same opening hand every time. Kept for the frame rather than threaded down to
-        // [drawPeople], exactly as [frameHour] is.
+        // The people's colours are dealt per crossing off this clock, not `elapsedSeconds`, which
+        // restarts with the process and would deal the same hand every time ([PeopleColours]).
         clockSeconds = PeopleColours.clockSeconds(hour24)
         frameHour = hour24
         advanceDoorways(elapsedSeconds)
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
         drawGroundPiles(canvas, geom, screenWidth, screenHeight)
-        // staticRuntimes is already depth-sorted at construction -- see its declaration. The
-        // index is each object's stable identity for the frame-independent state that hangs off
-        // it (a tree's falling leaves); an indexed loop rather than withIndex() so the hot path
-        // allocates no iterator.
+        // Already depth-sorted. The index is each object's identity for its leaves; an indexed loop,
+        // so the hot path allocates no iterator.
         for (runtimeIndex in staticRuntimes.indices) {
             val r = staticRuntimes[runtimeIndex]
             val groundY = screenHeight * SceneSpace.groundYFraction(r.drawDepth)
-            // Both are properties of the object, so they are computed once here rather than once
-            // per tile copy: drawStaticObject is handed the scale it must draw at. At the depth it is
-            // drawn at, which is its own but for a tower off the crest (v5.11).
+            // Properties of the object, once here rather than per copy, at its drawn depth.
             val effectiveScale = effectiveScaleFor(r.spec, r.drawDepth, screenHeight)
             val halfWidth = MAX_OBJECT_HALF_WIDTH_UNITS * effectiveScale
             val x = anchorX(r.spec, geom)
-            // Which physical copy of the tile each copy drawn is ([copyOf], v5.13): a place among the houses
-            // draws, in each copy, the building the street deals that copy ([StorefrontStreet]); a copy's
-            // number is the same for as long as it exists.
+            // Each copy drawn is numbered ([copyOf]): a place draws the building the street deals that copy, and a
+            // tree sheds that copy's leaves.
 
             if (geom.tileWidth <= 0f) {
-                // No tiling period, so there are no copies to step through -- draw the object once
-                // if it is visible. Reached when the surface has not been sized yet, where
-                // screenWidth and therefore tileWidth are still 0; in the running scene
-                // PaperRenderer fills GroundGeometry from drawHillLayers immediately before
-                // calling this. The enumeration below divides by tileWidth, so this is a
-                // correctness guard, not an optimisation.
+                // No tiling period before the surface is sized (tileWidth 0): draw the object once
+                // if visible. A correctness guard: the enumeration below divides by tileWidth.
                 if (isHorizontallyVisible(x, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, x, groundY, effectiveScale, dayBlend, elapsedSeconds, copyOf(r.spec.tileFractionX, geom, 0))
-                    recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, 0, geom), x, groundY, effectiveScale)
+                    recordLeafSource(r, leafCopyId(runtimeIndex, copyOf(r.spec.tileFractionX, geom, 0)), x, groundY, effectiveScale)
                 }
                 continue
             }
 
             // Each copy's x is recomputed from its tile index rather than accumulated by adding
-            // tileWidth. Accumulating would drift by a few ULP away from the `x - tileWidth` /
-            // `x + tileWidth` the fixed loop produced, which is far below a pixel but would make
-            // "identical output" an argument about tolerances instead of a bit-for-bit fact.
+            // tileWidth, which would drift by a few ULP a step.
             val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
             val tileLimit = tileOffsetLimit(x, halfWidth, geom.tileWidth, screenWidth)
             for (tileIndex in firstTile until tileLimit) {
                 val copyX = x + tileIndex * geom.tileWidth
                 if (isHorizontallyVisible(copyX, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, copyX, groundY, effectiveScale, dayBlend, elapsedSeconds, copyOf(r.spec.tileFractionX, geom, tileIndex))
-                    recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, tileIndex, geom), x = copyX, groundY = groundY, scale = effectiveScale)
+                    recordLeafSource(r, leafCopyId(runtimeIndex, copyOf(r.spec.tileFractionX, geom, tileIndex)), x = copyX, groundY = groundY, scale = effectiveScale)
                 }
             }
         }
 
         drawRoad(canvas, dayBlend, screenWidth, screenHeight, geom.shiftXWrapped, geom.tileWidth)
 
-        // **People before traffic, because every pedestrian is farther away than every car.**
-        //
-        // The pavement rows are 0.795 and 0.807 and a group member's own jitter can move one down
-        // by at most [PedestrianPopulation.MEMBER_ROW_SPREAD]; the lanes are 0.834 and 0.862, and
-        // a persisted layout cannot bring a car anywhere else because `SceneObjectCatalog` snaps
-        // every stored `laneYFraction` onto one of those two (see `PersistedThemeGeometryTest`).
-        // So the deepest pedestrian the generator can produce still stands behind the nearest edge
-        // of the road, and there is no arrangement in which a walking figure is in front of a
-        // vehicle. `PeopleTrafficDepthTest` asserts exactly that, so the day one of those
-        // constants moves the test fails instead of the picture.
-        //
-        // Until v4.6 this call came last. Nothing but the two orders differ: the deepest figure
-        // stands below a far-lane car's roof line -- 0.0119 of screen height, 28.5 px on a 2400 px
-        // screen, as `PeopleTrafficDepthTest` measures it today (0.0100 and 24 px when the order
-        // was fixed, before the cars grew), more against a police light bar -- and painted its
-        // shoes across the roof whenever the two happened to coincide in x. `drawPeople` draws
-        // walking pedestrians and nothing else (window occupants belong to their building, drivers
-        // and passengers to their car), so moving it changes that one relationship and no other.
+        // **People before traffic: every pedestrian is farther away than every car.** The pavement
+        // rows (0.795, 0.807, plus at most [PedestrianPopulation.MEMBER_ROW_SPREAD]) stand behind the
+        // lanes (0.834, 0.862, where `SceneObjectCatalog` snaps every stored lane,
+        // `PersistedThemeGeometryTest`), so no walker is in front of a vehicle (`PeopleTrafficDepthTest`).
+        // Drawn after the cars, the deepest figure, below a far-lane roof line, would paint its shoes
+        // across the roof. `drawPeople` draws the walkers only, so this order decides nothing else.
         drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
 
         for (carIndex in carRuntimes.indices) {
             val c = carRuntimes[carIndex]
             if (!c.active) continue
-            // The same span CarSelection.offScreen reads: a car outside it is not drawn, which
-            // is precisely why that is the only place its membership may change.
+            // The span CarSelection.offScreen reads: outside it a car is not drawn, so may change.
             if (c.progress < CarSelection.ON_SCREEN_MIN_PROGRESS ||
                 c.progress > CarSelection.ON_SCREEN_MAX_PROGRESS
             ) {
@@ -2251,14 +1619,11 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Every building that keeps hours, its doorway moved on to this frame ([WindowWalk.Doorway]): who
-     * walks out or in as its group's hours open and close it, and how lit its glass is. Every one of them,
-     * seen or not, once a frame, so a building scrolled into view is where its clock says and not where it
-     * was last seen. A few comparisons a building; nothing allocated.
+     * Every building that keeps hours, its doorway moved on to this frame ([WindowWalk.Doorway]),
+     * seen or not, so a building scrolled into view is where its clock says. Nothing allocated.
      */
     private fun advanceDoorways(elapsed: SceneTime) {
-        // A cut, not a change: the hour jumped since the last frame, or the opening hours were changed.
-        // The doorways then take their numbers at once ([WindowWalk.Doorway.advance]).
+        // A cut (the hour jumped, or the opening hours changed): the doorways settle at once.
         val settle = doorwaysSettle || WindowWalk.hourJumped(doorwayHour, frameHour)
         doorwaysSettle = false
         doorwayHour = frameHour
@@ -2275,8 +1640,7 @@ class SceneObjectRenderer(
                 settle = settle,
             )
         }
-        // The six buildings among the houses (v5.13), every one of them whether a place shows it or not:
-        // a copy that comes in with one has its people where the building's clock and hours say.
+        // The six buildings among the houses too, whether a place shows them or not.
         val buildings = storefronts ?: return
         for (index in buildings.indices) {
             val r = buildings[index]
@@ -2302,56 +1666,11 @@ class SceneObjectRenderer(
     private val personKinds = arrayOf("man", "woman", "boy", "girl")
 
     /**
-     * **There were two more tables here -- `personWalkDrawables` and `personWindowHeadDrawables` --
-     * and deleting them is `BACKLOG_v4_25.md` item 58 closed.**
-     *
-     * Neither was read by any draw path. `personWalkDrawables` had not been read since the tone
-     * tables took over, and `personWindowHeadDrawables` had not been read since v4.2; both survived
-     * `SpriteReachabilityTest`'s "a table nobody reads" rule for the reason item 58 names, which is
-     * that the rule counts occurrences of the name and **a mention inside a KDoc block counts**.
-     * Each was mentioned exactly once, in the doc comment of the table that replaced it.
-     *
-     * v4.30 deleted the tone tables, which took those two mentions with them, and the rule fired at
-     * once on both. The consequence is followed through rather than patched around: the walkers'
-     * bases are still drawn -- `ThemePreviewScene` names them itself, for the gallery -- and the
-     * eight window bases are now named by nothing, so they are declared `usage: orphan` in
-     * `tools/assets/sources/sprites.json` with the measurement that keeps them, which is what that
-     * test asks of an unreachable sprite instead of a table that hides it from lint.
-     */
-
-    /**
      * The season column the outdoor artwork reads: winter clothing where the theme asks for it.
-     *
-     * **There used to be an `Exposure` enum here with an `INDOORS` case, and its removal is the
-     * closure of `BACKLOG_v4_25.md` item 57.** Indoors the answer was `0` whatever the theme did --
-     * *the hat belongs to the street, not to the room behind the pane* -- so the winter column of
-     * the window table listed twelve recolours no draw path could select, and the enum was what
-     * made that look like a choice. The window busts now have one season and no column to choose
-     * between, so the question is not asked of them at all; the street and the cars, which really
-     * do have two seasons, ask it here.
+     * Only the street and the cars ask: the window busts have one season, because the hat belongs to
+     * the street, not to the room behind the pane.
      */
     private fun outdoorSeasonIndex(): Int = if (customization.winterColorsEnabled) 1 else 0
-
-    /**
-     * **There were five tables here, one per pose, each with a skin-tone axis, and they are gone.**
-     *
-     * They listed 168 PNGs: every walking, carrying, seated and window figure redrawn once per
-     * skin tone, plus a second seated outfit redrawn the same way again. A person is now drawn as
-     * fixed art plus one weight mask per colourable region and the colour arrives at the blit, so
-     * the axis that used to be artwork is a number -- and the three axes v4.30 adds beside it
-     * (hair, shirt, trousers) cost nothing, where shipping them as variants would have multiplied
-     * the whole people set by twenty-seven.
-     *
-     * What replaces them is [PeopleLayerTable], generated from the artwork by the same script that
-     * writes it, and [PeopleColours], which says what each region is wearing.
-     *
-     * The **second seated outfit** went with them and is worth its own sentence, because it was
-     * twelve of the 168: `person_*_head_car_alt_*` was the seated bust with the other adult
-     * family's garment paint swapped in, which under this scheme is not a different drawing at all
-     * -- it is the top region wearing a different colour. The seated outfit is now an entry of
-     * [PeopleColours.OUTFITS] instead of a second set of files, dealt per seat since v5.8C
-     * ([SeatedOccupants.driverOutfit], [SeatedOccupants.passengerOutfit]).
-     */
 
     /** The crowd [populationAt] last built, the groups it holds and the street it was built for. */
     private var crowd: List<Pedestrian> = emptyList()
@@ -2359,10 +1678,8 @@ class SceneObjectRenderer(
     private var crowdSeed = 0
 
     /**
-     * The street's crowd at [density]: [PedestrianPopulation.build]'s answer, built again only when the
-     * groups on the street change ([PedestrianPopulation.presentMask]) or the street does. Until v5.10B
-     * it was built every frame -- a dozen objects, their list and a sort that boxed its keys -- for a
-     * result that is the same frame after frame.
+     * The street's crowd at [density] ([PedestrianPopulation.build]), built again only when the groups
+     * on the street ([PedestrianPopulation.presentMask]) or the street change, since building allocates.
      */
     private fun populationAt(seed: Int, density: Float): List<Pedestrian> {
         val groups = PedestrianPopulation.presentMask(density)
@@ -2380,21 +1697,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The pedestrians, walking along the ground rather than across the screen.
-     *
-     * Their position used to be a fraction of *screen* width, so a swipe between home screens
-     * scrolled the village past them while they stayed almost still -- the only thing in the scene
-     * outside the parallax, and since v76.7 put them among the buildings it was the most visible
-     * place to be outside it.
-     *
-     * A pedestrian now has a position on the tiling ground exactly like a house: its walk advances
-     * that position, and [GroundGeometry] then scrolls it with everything else standing on the same
-     * ground. The two motions compose instead of competing, which is also what makes the walk read
-     * as walking -- a figure that slides against a static background is a figure on a treadmill.
-     *
-     * Tiled the same way static objects are, for the same reason: the ground repeats every
-     * `tileWidth`, so a pedestrian near the seam exists on both sides of it and both copies have to
-     * be drawn or one of them pops.
+     * The pedestrians, walking along the ground: the walk advances a position on the tiling ground,
+     * and [GroundGeometry] scrolls it with everything standing there, so a swipe moves the people with
+     * the village and the walk is not a treadmill. Tiled as static objects are, or a walker at the seam
+     * pops.
      */
     private fun drawPeople(
         canvas: SceneCanvas,
@@ -2409,28 +1715,16 @@ class SceneObjectRenderer(
         if (!config.visible) return
         val seasonIdx = outdoorSeasonIndex()
         val sceneScale = SceneSpace.sceneScale(screenHeight)
-        // Density thins the candidate pool through a stable per-group threshold
-        // ([CandidateThreshold]) rather than by rounding a count -- so lowering it removes a
-        // particular pedestrian and leaves the rest exactly where they were, instead of
-        // reshuffling everybody.
-        // v4.1: the offset is the people system's own constant. See
-        // [PedestrianPopulation.THRESHOLD_OFFSET] for why `offsetFor(PEDESTRIAN_THRESHOLD_SALT)`
-        // was wrong -- it returned 683.5, and its fractional part was MOUNTAINS_BACK's offset.
-        // Day and night have their own populations, crossfaded by the scene's own dayBlend --
-        // the same value the colours blend with, so the street empties over the length of dusk
-        // instead of four people vanishing between two frames. Because the threshold below is
-        // stable per pedestrian, a falling density removes particular people and leaves the rest
-        // exactly where they were.
+        // Density thins the pool by a stable per-group threshold ([CandidateThreshold]), so lowering it
+        // removes particular people and leaves the rest where they were; day and night crossfade on the
+        // scene's dayBlend, so the street empties over the dusk.
         val density = PeopleDensity.at(
             dayDensity = config.density,
             nightDensity = customization.peopleNightDensity,
             dayBlend = dayBlend,
         )
-        // The population arrives already sorted far-to-near, so drawing it in order puts the
-        // nearest figure on top. v4.0 walked candidate indices instead, and because the pavement
-        // row alternated with that index the far figure was drawn *after* the near one and covered
-        // it -- the reported overlap defect. Depth now comes from the figure's own baseline; see
-        // [PedestrianPopulation].
+        // The population arrives sorted far-to-near by each figure's own baseline
+        // ([PedestrianPopulation]), so drawing it in order puts the nearest figure on top.
         val population = populationAt(themeId.hashCode(), density)
         // Which addresses are on the street at this density: [PeopleColours.keepingSpread] keeps the
         // tones spread over the walkers actually present, not over the whole pool.
@@ -2441,12 +1735,8 @@ class SceneObjectRenderer(
         }
         for (i in population.indices) {
             val person = population[i]
-            // Both the row's y and the speed at it come from [SceneSpace]: a pedestrian on the
-            // near row is nearer than one on the far row, so it is drawn larger and crosses the
-            // screen faster, by the same ratio the two ground lines imply. People used to sit at a
-            // hardcoded 0.83 of screen height at a fixed scale with a hand-rolled speed ladder --
-            // outside the projection entirely, which is the failure class `DESIGN_NOTES.md` 6
-            // records against them.
+            // Row and speed from [SceneSpace]: the near row larger and faster, by the ratio of the two
+            // ground lines -- inside the projection, like everything on the ground.
             val rowYFraction = person.rowYFraction
             val nearer = rowYFraction > (SceneSpace.PAVEMENT_NEAR_Y_FRACTION + SceneSpace.PAVEMENT_FAR_Y_FRACTION) / 2f
             val speed = if (nearer) SceneSpace.PEDESTRIAN_SPEED_NEAR else SceneSpace.PEDESTRIAN_SPEED_FAR
@@ -2454,9 +1744,7 @@ class SceneObjectRenderer(
             val dir = person.direction
             val s = SceneSpace.PERSON_BASE_SCALE * SceneSpace.perspectiveScaleAt(rowYFraction) * sceneScale
 
-            // The walk, as a position on the ground rather than on the screen. `cycle` returns
-            // 0..1 over one loop, which is a whole tile of walking; the start offset spreads them
-            // out so they are not a column.
+            // The walk on the ground: `cycle` is 0..1 over a tile of walking, the start offset spreads them.
             val walk = elapsedSeconds.cycle(speed, person.phase)
             var tileFraction = (person.startFraction + dir * walk) % 1f
             if (tileFraction < 0f) tileFraction += 1f
@@ -2464,64 +1752,43 @@ class SceneObjectRenderer(
             var x = geom.shiftXWrapped + tileFraction * geom.tileWidth
             if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
 
-            // **v4.2: the walk frame is staggered by the figure's own address, not by where it
-            // happens to sit in the sorted list.** v4.1 passed the list position, and the list is
-            // sorted by depth -- so inserting one pedestrian shifted the position of every
-            // pedestrian sorted behind it and stepped all of their legs to a different frame. That
-            // made moving the People slider by one notch re-animate the survivors, which is the
-            // stability contract `CandidateThreshold` exists to keep and which
-            // `PedestrianPopulationTest` could not see, being a test about the population rather
-            // than about the frame. The address is `groupIndex * MAX_GROUP_SIZE + memberIndex`,
-            // the same one the population itself is addressed by, so it is fixed for a figure
-            // whatever else is on the street.
+            // The walk frame is staggered by the figure's own address, not its place in the depth-sorted
+            // list, which one walker more or less would shift, re-animating the others.
             val walkStagger = person.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + person.memberIndex
             val frame = elapsedSeconds.frameIndex(3.2f, walkStagger.toFloat(), 4)
-            // **v4.28: the umbrella.** Which sprite this walker uses is decided from the state it
-            // is *already* in, never from the weather predicate directly, so nothing can change
-            // inside a frame; the state itself moves at the bottom of the loop and only when no
-            // copy of the figure was drawn. See [PedestrianCarry].
-            //
-            // **v5.4: in the rain, every walker who can hold one is holding one** -- no share and
-            // no deal, on the maintainer's instruction. `canHold` is the artwork's own limit and
-            // the only thing that keeps anybody bare-headed.
-            //
-            // **v5.4H drew the children, so it now holds for everybody.** `PeopleLayerTable.CARRY`
-            // has four families, `canHold` reads that array's own length, and not a line here
-            // changed to let the children through -- which is exactly what v5.4E left the predicate
-            // shaped like. The line below is still the index that would be out of bounds if it
-            // lied.
+            // The umbrella: the sprite follows the state the walker is *already* in, which moves at the
+            // bottom of the loop only when no copy was drawn ([PedestrianCarry]). In the rain everyone who
+            // can hold one does; `canHold` reads `PeopleLayerTable.CARRY`'s length.
             val carrying = umbrellaCarrying[walkStagger] && PedestrianCarry.canHold(person.kindIndex)
             val slots = if (carrying) {
                 PeopleLayerTable.CARRY[person.kindIndex][seasonIdx][frame]
             } else {
                 PeopleLayerTable.WALK[person.kindIndex][seasonIdx][frame]
             }
-            // **v4.30: the colours are the ones this walker was dealt for the crossing it is on**,
-            // and the crossing it is on is held between frames exactly the way the umbrella is.
-            // The first sight of a figure deals immediately -- otherwise a wallpaper that has just
-            // started would draw everybody in crossing zero's colours until each of them happened
-            // to leave the screen once.
+            // The colours dealt for the crossing the walker is on, held between frames as the umbrella
+            // is; the first sight deals at once, or a fresh start would draw everybody in crossing zero's.
             val wantedCrossing =
                 PeopleColours.crossingOf(clockSeconds, speed, person.phase, person.startFraction, dir)
             if (personCrossing[walkStagger] == PeopleColours.UNDEALT) {
                 personCrossing[walkStagger] = wantedCrossing
-                // First sight: the walker's arrival tone, a function of nobody else. Dealing it
-                // through keepingSpread would make a figure's tone depend on who else is on the
-                // street -- raising the People density would recolour people already standing
-                // there, which `PeopleOcclusionTest` forbids (v5.8C found that on the device).
-                // Every later deal, off screen, goes through [dealTone].
+                // First sight: a tone of nobody else's, or raising the density would recolour people
+                // already there (`PeopleOcclusionTest`). Later deals, off screen, are [dealTone]'s.
                 personTone[walkStagger] = PeopleColours.firstSightTone(person)
             }
             val crossing = personCrossing[walkStagger]
             val colours = coloursFor(
                 walkStagger, crossing, person.kindIndex, seasonIdx,
                 PeopleColours.outfit(themeId.hashCode(), walkStagger, crossing),
-                // The tone the population dealt, rotated by the crossing -- the defect the
-                // maintainer reported was that it never moved -- and held with the crossing, so it
-                // changes only off screen. See [dealTone] for why it is held rather than recomputed.
+                // The tone, rotated by the crossing and held with it ([dealTone]).
                 personTone[walkStagger],
             )
-            val halfWidth = PERSON_HALF_WIDTH_UNITS * s
+            // Cut wide while an umbrella is up or wanted, so `onScreen`, which gates every change made out
+            // of sight, covers the canopy: an umbrella never opens where it would show.
+            val wantsUmbrella = PedestrianCarry.wantsUmbrella(
+                raining = rainingNow,
+                canHold = PedestrianCarry.canHold(person.kindIndex),
+            )
+            val halfWidth = personCullHalfWidthUnits(carrying || wantsUmbrella) * s
 
             val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
             val tileLimit = tileOffsetLimit(x, halfWidth, geom.tileWidth, screenWidth)
@@ -2533,27 +1800,19 @@ class SceneObjectRenderer(
                 canvas.save()
                 canvas.translate(copyX, y)
                 canvas.scale(dir * s, s)
-                // Anchored on the sprite's own content box rather than on its canvas. Every walk
-                // sprite is 39x84 local units with its content reaching the bottom edge, so the
-                // feet land on the ground line at -84 and the figure is centred at -19.5.
+                // Feet on the ground line, figure centred ([PERSON_ANCHOR_X_UNITS]).
                 drawPersonLayers(canvas, slots, PERSON_ANCHOR_X_UNITS, PERSON_ANCHOR_Y_UNITS, colours)
                 if (carrying) drawUmbrella(canvas, walkStagger, crossing, person.kindIndex)
                 canvas.restore()
             }
             umbrellaCarrying[walkStagger] = PedestrianCarry.nextCarrying(
                 current = carrying,
-                wanted = PedestrianCarry.wantsUmbrella(
-                    raining = rainingNow,
-                    canHold = PedestrianCarry.canHold(person.kindIndex),
-                ),
+                wanted = wantsUmbrella,
                 onScreen = onScreen,
             )
-            // The colours move under the same gate and for the same reason, and `onScreen` comes
-            // from the cull that just ran rather than from a second copy of the geometry -- so the
-            // instant this permits a change is an instant at which no copy of this figure was
-            // drawn. The crossing counter alone does not give that: a wrap of `tileFraction` hands
-            // the figure from one tile copy to the next without moving it, and whether that is
-            // visible depends on the scroll. `PedestrianTileWrapTest` measures how often it is.
+            // The colours change under the same gate, `onScreen` from the cull that just ran: the
+            // crossing counter alone is not enough, since a wrap of `tileFraction` hands the figure to
+            // the next copy where the scroll may show it (`PedestrianTileWrapTest`).
             if (!onScreen && personCrossing[walkStagger] != wantedCrossing) {
                 personCrossing[walkStagger] = wantedCrossing
                 personTone[walkStagger] = dealTone(person, walkStagger, wantedCrossing, presentMask)
@@ -2564,15 +1823,9 @@ class SceneObjectRenderer(
     /**
      * The tone [person] takes on [crossing]: its stratified base rotated by the crossing
      * ([PeopleColours.toneIndex]), kept from emptying its stratum of a tone
-     * ([PeopleColours.keepingSpread]).
-     *
-     * **Held in [personTone], not recomputed per frame**, because it depends on what the rest of
-     * the stratum is wearing at the moment it is dealt: until v5.8C the tone was the rotation
-     * alone, a pure function of (walker, crossing), and since every walker crosses on its own clock
-     * the stratified spread `PedestrianPopulation` deals was lost on the street -- a group or a
-     * whole street could come out in one tone (v5.8B comment audit). Used for every deal after the
-     * first: a figure is first seen in [PeopleColours.firstSightTone], so its tone never depends on
-     * who else is present (see the first-sight branch in the walker loop).
+     * ([PeopleColours.keepingSpread]). **Held in [personTone]**, because it depends on what the rest
+     * of the stratum wears when it is dealt: the rotation alone loses the spread, every walker
+     * crossing on its own clock. Every deal after the first ([PeopleColours.firstSightTone]).
      */
     private fun dealTone(person: Pedestrian, address: Int, crossing: Int, presentMask: Int): Int =
         PeopleColours.keepingSpread(
@@ -2580,31 +1833,20 @@ class SceneObjectRenderer(
             address, personTone, presentMask,
         )
 
-    // ---- The umbrella in the hand (v4.28) ------------------------------------------------------
+    // ---- The umbrella in the hand --------------------------------------------------------------
     /** Set once per frame by [PaperRenderer]: exactly the predicate `drawPrecipitation` rains on. */
     var rainingNow = false
 
     /**
-     * Which walkers have one up, addressed the way the population addresses everything else.
-     *
-     * A field rather than a per-frame set because this *is* the state the off-screen rule protects:
-     * it has to survive between frames for "only change out of sight" to mean anything.
-     *
-     * **This is now the only umbrella state there is.** Until v5.4 a second array beside it held
-     * the street's deal -- which of the adults the share had picked -- and had to be refilled from
-     * the whole population every rainy frame. With everybody carrying there is nothing to pick, so
-     * the deal, its two scratch arrays and the pass over the population that filled them are all
-     * gone; a rainy frame is now cheaper than it was, not dearer.
+     * Which walkers have one up, by the population's address: the state the off-screen rule protects,
+     * so it survives between frames.
      */
     private val umbrellaCarrying =
         BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
 
     /**
-     * Which crossing each walker's colours were dealt for (v4.30).
-     *
-     * The same shape as [umbrellaCarrying] and for the same reason: this is the state the
-     * off-screen rule protects, so it has to survive between frames. [PeopleColours.UNDEALT] means
-     * the figure has not been drawn yet and takes the current crossing on sight.
+     * Which crossing each walker's colours were dealt for, held as [umbrellaCarrying] is;
+     * [PeopleColours.UNDEALT] until the figure is first drawn.
      */
     private val personCrossing =
         IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
@@ -2620,71 +1862,22 @@ class SceneObjectRenderer(
     private val umbrellaHandlePaint = Paint().apply { color = 0xFF5B4A3E.toInt(); style = Paint.Style.FILL }
 
     /**
-     * The hand's centre on the 39x84 sprite canvas, **per family**, from
-     * `tools/assets/concepts/people/carry/hands.json`.
-     *
-     * One point per family, not one per frame: pose P1 holds the forearm still while the far arm
-     * swings, so the hand is in the same place on all three walk frames -- the generator asserts
-     * that on every run.
-     *
-     * **It was one point for everybody until v5.4H, and that is what kept the children out.** The
-     * two adults do share a grip: same canvas, same shoulder, same arm. A child does not, and not
-     * by a little -- (31.5, 24.5) is **59.5 units above the feet**, higher than a whole child,
-     * whose head-top measures 54.0. Hanging the shipped grip on a child put the canopy in the air
-     * above it with the handle across its face, which is the photograph in `V5_4E_REPORT.md`
-     * §1.1. The children's own grip is 34.9 units up, on their own raised forearm.
-     *
-     * The boy and the girl do not share one either, and the reason is in the drawing rather than in
-     * the code: `CHILD_SUMMER_RISE` stands her hair 2.5 units above the head oval against his cap's
-     * 1.5, so that both land on the same target box -- which puts her head oval, her chin, her
-     * shoulder and therefore her hand **one unit lower on the canvas**.
-     *
-     * Indexed by `kindIndex`, the same index `PeopleLayerTable` and `PedestrianCarry.canHold` use.
-     */
-    private val carryHandX = floatArrayOf(31.5f, 31.5f, 28.0f, 28.0f)
-    private val carryHandY = floatArrayOf(24.5f, 24.5f, 49.09f, 50.09f)
-
-    /**
-     * Where the top of the handle sits on the same canvas, per family, from the same file.
-     *
-     * The rule the whole set obeys is *0.7 units above the family's own summer ink*: the adults'
-     * ink reaches 1.667 and their shipped crown is 1.0, and the children's reaches 30.0 and 30.333.
-     * The adults' 1.0 is **frozen** -- it is the artwork the v4.28 photographs were approved on --
-     * and the generator checks the rule against it rather than recomputing it (`build_carry_sprites
-     * .SHIPPED_ADULT_CROWN`).
+     * Where the top of the handle sits on the walk canvas, per family (as [carryHandX]): 0.7 units
+     * above the family's summer ink (the children's reaches 30.0 and 30.333). The adults' 1.0 is the
+     * approved artwork, **frozen** (`build_carry_sprites.SHIPPED_ADULT_CROWN`).
      */
     private val carryCrownY = floatArrayOf(1f, 1f, 29.3f, 29.63f)
 
     /**
-     * How big the canopy is drawn for each family: **the maintainer's variante 1b**.
-     *
-     * A child holding the shipped canopy at full size is a child holding *its father's* umbrella --
-     * 48 units of canopy over a figure 54 units tall. At 70 % it is 33.6 over the same figure and
-     * reads as an umbrella that belongs to it. That is the whole of 1b, and it is a number here
-     * rather than a drawing: one canopy still ships, and the five colours are still the only thing
-     * between the rule and a row of identical umbrellas.
-     *
-     * **1.0 is not a scale, it is the absence of one.** [drawUmbrella] takes the untouched blit for
-     * the adults rather than a `scale(1f, 1f)` around it, so nothing an adult draws goes through
-     * arithmetic it did not go through before this pass -- which is what lets an adults-only golden
-     * be evidence that the adults did not move.
-     */
-    private val carryCanopyScale = floatArrayOf(1f, 1f, 0.7f, 0.7f)
-
-    /**
-     * Drawn inside the walker's own transform -- feet at the origin, up is negative y, +x the
-     * direction of travel -- so it mirrors with the figure and needs no variant per direction.
-     *
-     * The handle is a rectangle from the hand to a point 0.7 units above the family's own head
-     * ([carryCrownY]); only the canopy is artwork. That is the parasol pole's recipe, and it is
-     * why the same pose can carry a bag or a case later without a single new sprite.
+     * Drawn inside the walker's own transform (feet at the origin, +x the way it walks), so it mirrors
+     * with the figure. The handle is a rectangle from the hand to [carryCrownY]; only the canopy is
+     * artwork, as with the parasol's pole.
      */
     private fun drawUmbrella(canvas: SceneCanvas, addr: Int, crossing: Int, kindIndex: Int) {
         val hx = carryHandX[kindIndex] + PERSON_ANCHOR_X_UNITS
         val hy = carryHandY[kindIndex] + PERSON_ANCHOR_Y_UNITS
-        // v4.30: dealt per crossing like the four colours of the person holding it. It was the one
-        // thing on the street that never re-shuffled once the four regions started to, and it
-        // costs nothing to include -- the crossing is already in hand.
+        // Dealt per crossing like the four colours of the person holding it; the crossing is
+        // already in hand.
         val colour = PedestrianCarry.canopyColour(
             CandidateNoise.value(
                 PeopleColours.crossingSeed(themeId.hashCode(), crossing),
@@ -2698,10 +1891,8 @@ class SceneObjectRenderer(
         if (k == 1f) {
             drawTintedSprite(canvas, R.drawable.umbrella_canopy, hx - 24f, crownY - 22f, colour)
         } else {
-            // The canopy is authored at the blitter's 3x, so "70 %" is not a resample of the PNG:
-            // it is one more factor in the transform the blit already divides by, and the bitmap
-            // still reaches the screen through a single filtered downscale rather than two. The
-            // origin is divided back out because it is given in the scaled space.
+            // One more factor in the blit's transform, not a resample: still a single filtered
+            // downscale. The origin is divided back out, being given in the scaled space.
             canvas.save()
             canvas.scale(k, k)
             drawTintedSprite(
@@ -2713,42 +1904,19 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A simple two-lane road band spanning the full screen width at the cars' lane height.
-     * Like the cars themselves, it's independent of home-screen parallax (it belongs to the
-     * "road" the cars drive on, not to any particular hill layer): its *position* never moves.
-     * Its surface pattern does advance, though, and it does so on the same shared
-     * `scrollSpeed` every other scrolling element uses -- not an independent rate. This
-     * used to advance the dashed line by its own fixed `elapsedSeconds`-driven speed, unrelated to
-     * [scrollSpeed]/swipe scroll entirely -- a made-up independent rate, which was the reported
-     * bug (dashes racing at a fixed pace no matter how fast or slow -- or whether at all -- the
-     * rest of the scene was actually scrolling). [shiftXWrapped]/[tileWidth] are the *exact* same
-     * values the nearest object row already scrolls by (they're identical across every row now
-     * that there's a single hill layer -- see `PaperRenderer.drawHillLayers`'s own doc comment),
-     * so the dashes are guaranteed to read as flowing at the same rate as everything else around
-     * them, including responding immediately to swipes and the scroll-speed setting, with zero new
-     * state to keep in sync.
+     * The two-lane road band, full width at the lanes' height, fixed against the parallax; its dashes
+     * advance by [shiftXWrapped], the shift the nearest row scrolls by, so they flow with everything.
      */
     private fun drawRoad(canvas: SceneCanvas, dayBlend: Float, screenWidth: Float, screenHeight: Float, shiftXWrapped: Float, tileWidth: Float) {
-        // Drawn whenever the theme has a road and the Cars category is switched on. Density is
-        // deliberately not consulted: the road is terrain, and terrain does not change shape or
-        // disappear because a slider moved. This used to return early on an empty [carRuntimes],
-        // which conflated "this theme has no road" with "the density slider is at zero".
+        // Density is not consulted: the road is terrain, and a slider does not move terrain.
         if (!drawsRoad(layout, customization)) return
 
-        // From the layout's own lane span, computed once at construction -- never from
-        // [carRuntimes], which density filters. See [roadLaneMinFraction].
+        // The layout's lane span ([roadLaneMinFraction]), never the density-filtered [carRuntimes].
         val minLaneY = roadLaneMinFraction * screenHeight
         val maxLaneY = roadLaneMaxFraction * screenHeight
-        // **The strip is symmetric about the centre line, and its edges come from the lanes.**
-        // Each lane owns half of it, plus a shoulder stated as a fraction of the lane spacing --
-        // so a road built from a custom theme's own saved lane pair stays in proportion instead
-        // of gaining a verge sized for a different road. For the canonical lanes this is exactly
-        // [SceneSpace.roadTopYFraction]/[SceneSpace.roadBottomYFraction].
-        //
-        // The old margins were 55 local units above and 12 below, chosen to keep a cabin inside
-        // the painted strip. That is not what a road edge is for: a far-lane car's roof is
-        // *supposed* to rise above the far edge. Group 4 removed the reason the margin existed by
-        // making the vehicles the right size in the first place.
+        // Edges from the lanes plus a shoulder in lane spacings, so a saved lane pair keeps its road in
+        // proportion ([SceneSpace.roadTopYFraction] for the canonical lanes). A far-lane roof rises
+        // above the far edge: the strip is the road, not a box for the cars.
         val margin = screenHeight * SceneSpace.roadEdgeMarginFraction(roadLaneMinFraction, roadLaneMaxFraction)
         val top = minLaneY - margin
         val bottom = maxLaneY + margin
@@ -2763,16 +1931,8 @@ class SceneObjectRenderer(
         canvas.drawLine(0f, top, screenWidth, top, strokePaint)
         canvas.drawLine(0f, bottom, screenWidth, bottom, strokePaint)
 
-        // Dashed center line separating the two lanes -- offset by the same wrapped shift the
-        // nearest object row scrolls by, so it reads as flowing "forward" together with
-        // everything else under the cars, not painted static or drifting at its own made-up pace.
-        //
-        // Halfway between the two lanes' own ground lines, which is now also the midpoint of the
-        // painted strip -- the two agree because the edges are derived from the lanes. A near car
-        // painting over part of it is correct: it is standing between the viewer and the road
-        // behind it.
-        // Halfway between the layout's own two lanes, so the marking stays put at every density
-        // exactly as the strip around it does.
+        // The dashed centre line, halfway between the layout's lanes, offset by the nearest row's
+        // shift. A near car painting over it is right: it stands between the viewer and the road.
         val midY = (minLaneY + maxLaneY) / 2f
         strokePaint.color = roadLineColor
         strokePaint.strokeWidth = SceneSpace.ROAD_CENTRE_LINE_STROKE_PX * sceneScale
@@ -2791,15 +1951,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Paints one tile copy of an object at [x]/[y], at the [effectiveScale] its depth and spec
-     * call for.
-     *
-     * Culling is **not** done here. [draw] owns it, because the extent the decision needs is a
-     * property of the object rather than of the copy, and deriving it per copy meant computing it
-     * three times per object per frame to throw two away. Callers must therefore have established
-     * that this copy is visible ([isHorizontallyVisible]) and must pass the same
-     * [effectiveScale] the extent was derived from, or the object would be culled against one
-     * size and drawn at another.
+     * Paints one tile copy of an object at [x]/[y], at [effectiveScale]. No culling here: [draw] culls
+     * with the extent of this same scale, or an object would be culled at one size and drawn at another.
      */
     private fun drawStaticObject(
         canvas: SceneCanvas,
@@ -2815,9 +1968,8 @@ class SceneObjectRenderer(
         canvas.translate(x, y)
         canvas.scale(effectiveScale, effectiveScale)
 
-        // A place among the houses (v5.13) draws the building the street deals this copy of it, at the
-        // place's own size: which of the six, [StorefrontStreet]; the building's runtime -- identity,
-        // roster, windows, doorway -- is its own, in [storefronts].
+        // A place draws, at its own size, the building the street deals this copy ([StorefrontStreet]),
+        // with that building's own runtime ([storefronts]).
         val buildings = storefronts
         if (r.place >= 0 && buildings != null) {
             val storefront = StorefrontStreet.storefrontAt(
@@ -2837,9 +1989,8 @@ class SceneObjectRenderer(
                 }
             SceneSpace.SceneVariant.HOUSE_LARGE ->
                 drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.HOUSE_LARGE)
-            // Never dispatched: a fir is a state a TREE candidate takes on while the Christmas
-            // layer is on, not a placeable type of its own -- see [standsAsFir]. It exists in the
-            // variant table only so the fir's height is governed by the same metre as the tree's.
+            // Never dispatched: a fir is a state of a TREE ([standsAsFir]), in the variant table only
+            // for its height.
             SceneSpace.SceneVariant.FIR -> Unit
             SceneSpace.SceneVariant.TOWER ->
                 drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.TOWER)
@@ -2864,18 +2015,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A string of Christmas lights hung under a window.
-     *
-     * **Under the window, not near the building.** The existing `drawChristmasLights` scatters
-     * bulbs around a canopy's ellipse, which is the right shape for a tree and the wrong one for a
-     * facade: on a wall it produced a cloud of dots beside the glass. This draws a slack cord
-     * between two points on the window's own sill and hangs the bulbs off it, so the string is
-     * where a real one is and moves with the window rather than with the building.
-     *
-     * Four bulbs and a two-segment cord per window (the bulbs where [ChristmasDecorations.forEachStringBulb] hangs them, which
-     * the gallery card uses too, without the cord), the colours the tree lights' own array so a house and its tree agree. The
-     * bulbs are discs 3 units across ([drawBulb], v5.14), a quad of the atlas each on the GL path where a drawn fan is 24
-     * vertices or more. The window is not touched -- this is drawn after it and adds nothing to its box.
+     * A string of Christmas lights under a window: a slack two-segment cord between two points of the
+     * sill and four bulbs hung off it ([ChristmasDecorations.forEachStringBulb], the gallery card's too),
+     * in the tree lights' colours, so a house and its tree agree. Bulbs are discs ([drawBulb]).
      */
     private fun drawWindowLights(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, x: Float, sillY: Float, width: Float) {
         val left = x
@@ -2886,26 +2028,20 @@ class SceneObjectRenderer(
         canvas.drawLine(left, sillY, (left + right) / 2f, sillY + sag, strokePaint)
         canvas.drawLine((left + right) / 2f, sillY + sag, right, sillY, strokePaint)
         ChristmasDecorations.forEachStringBulb(x, sillY, width) { bulb, bx, by ->
-            val phase = r.idleSeed * 3.1f + bulb * 1.7f
-            val blink = 0.55f + 0.45f * elapsed.sinAt(1.6f, phase)
+            val blink = sillBlink.at(r, r.idleSeed, elapsed, bulb)
             drawBulb(canvas, bx, by, CHRISTMAS_LIGHT_BULB_RADIUS_UNITS, christmasLightColors[bulb % christmasLightColors.size], (255 * blink).toInt().coerceIn(70, 255))
         }
     }
 
+    private val sillBlink = SillBlink()
+
     /**
-     * The Christmas decorations of a building (v5.14, the set the maintainer chose on 2026-10-14, *«C ma con
-     * aggiunta di ghirlanda»*, with the wreath): bulbs along the roofline of its top piece, every 6 units
-     * ([BuildingPiece.roofX], the generator's measure of what the piece draws, chimneys and poles left out),
-     * blinking as the sill strings do; the wreath on its front door ([BuildingDoor]); and on a tower a star on its
-     * top ([BuildingPiece.topX]). The sill strings of before are drawn beside them by the caller.
-     *
-     * **Every part 2 px or more where the building stands farthest on the BV6600.** A unit of the pieces is
-     * 2.306 px x the perspective x the size jitter there: 0.81 px at the farthest house (0.28 deep), 0.89 at the
-     * farthest place among the houses (0.356) and 0.55 at the farthest tower (0) -- so a tower's are half as large
-     * again ([decorationScale]): a bulb 3 units across is 2.4, 2.7 and 2.5 px; the wreath's ring 3 units wide and its
-     * bow 2.8. Lit whether the building is open or shut: decorations are not the shop's lights. Bulbs are discs
-     * ([drawBulb]), the wreath a blit of `deco_wreath`; the star is a shape. Where each hangs is
-     * [ChristmasDecorations]' sequence, which the gallery card lays out too (v5.14C2). Nothing allocated.
+     * The Christmas decorations of a building (`DESIGN_NOTES.md` decision 67), where
+     * [ChristmasDecorations] hangs them, as on the gallery card: bulbs along the top piece's roofline
+     * every 6 units ([BuildingPiece.roofX]), the wreath on the front door, a star on a tower's top. Lit
+     * open or shut. **Every part 2 px or more where the building stands farthest on the BV6600**: a
+     * piece unit is 0.81 px at the farthest house, 0.89 at the farthest place and 0.55 at the farthest
+     * tower, whose decorations are half as large again ([decorationScale]).
      */
     private fun drawDecorations(
         canvas: SceneCanvas,
@@ -2924,32 +2060,29 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The Halloween decorations of a house or a shop (v5.16, [HalloweenDecorations]): a cobweb at each end of the roof --
-     * the right one mirrored --, a bat every three points of the roofline swinging a little on its thread, and a
-     * jack-o'-lantern by the front door, its candle lit as the night comes ([night] 0..1, the light's alpha). All three
-     * fixed art (`tools/assets/halloween/build_halloween_deco.py`, [HalloweenDecorationTable]), every band 2 px or more on
-     * the BV6600 where a house or a shop stands farthest; drawn on the building's own piece units, as the Christmas ones.
-     * Nothing allocated.
+     * The Halloween decorations of a house or a shop ([HalloweenDecorations], `DESIGN_NOTES.md` decisions
+     * 83 and 85), in the building's piece units: a cobweb in the roof corner its drawing chooses (the right
+     * one mirrored), a mask tinted by [HalloweenDecorations.webTintAt] from the walls' day and night
+     * colours at [dayBlend]; and a jack-o'-lantern by the front door, fixed art, its candle's alpha
+     * [night]. Every band 2 px or more where they stand farthest on the BV6600 ([HalloweenDecorationTable]).
      */
     private fun drawHalloweenDecorations(
         canvas: SceneCanvas,
-        r: StaticRuntime,
-        elapsed: SceneTime,
         deal: NeighbourhoodComposer.Deal,
         night: Float,
+        dayWall: Int,
+        nightWall: Int,
+        dayBlend: Float,
     ) {
+        val web = HalloweenDecorations.webTintAt(dayWall, nightWall, dayBlend)
         HalloweenDecorations.forEachCobweb(deal) { x, y, mirror ->
             canvas.save()
             canvas.translate(x, y)
             if (mirror < 0f) canvas.scale(-1f, 1f)
-            drawSprite(canvas, HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.WEB_X, HalloweenDecorationTable.WEB_Y)
-            canvas.restore()
-        }
-        HalloweenDecorations.forEachBat(deal) { i, x, y ->
-            canvas.save()
-            canvas.translate(x, y)
-            canvas.rotate(elapsed.sinAt(BAT_SWING_RATE, r.idleSeed * 3f + i) * BAT_SWING_DEGREES)
-            drawSprite(canvas, HalloweenDecorationTable.BAT_RES, HalloweenDecorationTable.BAT_X, HalloweenDecorationTable.BAT_Y)
+            sprites.drawTinted(
+                canvas, HalloweenDecorationTable.WEB_RES, HalloweenDecorationTable.WEB_X, HalloweenDecorationTable.WEB_Y,
+                SpriteScale.SCENE_UNITS, web,
+            )
             canvas.restore()
         }
         val lit = (night * 255f).toInt().coerceIn(0, 255)
@@ -2965,13 +2098,19 @@ class SceneObjectRenderer(
         }
     }
 
+    /**
+     * The wall colour of [spec] at [dayBlend]: one of the six among the houses in its group's colours,
+     * any other in the pair of what it is drawn as.
+     */
+    private fun wallAt(spec: StaticSceneObject, variant: SceneSpace.SceneVariant, storefront: Storefront?, dayBlend: Float): Int =
+        if (storefront != null) customization.storefrontWall(spec, storefront, dayBlend) else customization.wallColourFor(spec, variant, dayBlend)
+
     /** How much larger a decoration, a blind's rail and a shutter's slats are drawn on a building of [kind]: see [drawDecorations]. */
     private fun decorationScale(kind: WindowBuildingKind): Float = ChristmasDecorations.scaleFor(kind)
 
     /**
-     * The wreath on a front door, centred at ([cx], [cy]): a ring of greenery and a red bow under it, [k] times its size
-     * -- one blit of `deco_wreath`, 6 vertices, where the ring and the bow drawn as shapes were 36: twenty-two doors on a
-     * screen of Christmas at night took the frame past the batch's 12 288 (`GlDrawCallTest`, v5.14).
+     * The wreath on a front door at ([cx], [cy]), [k] times its size: one blit of `deco_wreath`, 6
+     * vertices, where shapes would be 36 and a street of doors would overflow the batch (`GlDrawCallTest`).
      */
     private fun drawWreath(canvas: SceneCanvas, cx: Float, cy: Float, k: Float) {
         canvas.save()
@@ -2982,9 +2121,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A five-pointed star centred at ([cx], [cy]), the fir's gold: its middle pentagon, then the five points,
-     * each a triangle -- a star is not star-shaped from any one of its vertices, and the GL path fans a shape
-     * from its first. Counted loops, nothing allocated.
+     * A five-pointed star at ([cx], [cy]) in the fir's gold: a pentagon, then five triangles, since the GL
+     * path fans a shape from its first vertex and a star is not convex from any of them.
      */
     private fun drawStar(canvas: SceneCanvas, cx: Float, cy: Float, outer: Float, inner: Float) {
         for (i in 0 until 10) {
@@ -3013,19 +2151,11 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A shut building (v5.14, the maintainer's *«B ma con saracinesca su porta»* of 2026-10-14 and, on the
-     * photographs, *«va centrata bene sulla porta»* of 2026-10-15): a blind down in every window a person may stand
-     * at -- a cream card from the top of the glass, its rail at the bottom -- and the shutter down over the front
-     * door. [shut] is how far the closing has gone, 0 .. 1, on the glass's two seconds ([WindowWalk.Doorway.glassAt]):
-     * the blinds come down to 70 % of the glass and the shutter rolls down from its box. By day and by night, the
-     * night's colours blended in on [night] as every colour of the scene. A tower carries blinds only where its
-     * windows have busts, the hall's; its small windows higher up are left as they are.
-     *
-     * **The shutter covers the door, exactly**: it is the door's own card -- the outline the scissors cut it to
-     * ([BuildingDoor.outlineX]) -- cut at how far it has come down, over a shadow paper offset as the door's is,
-     * so with the shutter down nothing of the door or of its shadow shows and nothing of the shutter stands outside
-     * them; its box is the top of that card, and its slats are bands of it. A tower's glass door is an opening in
-     * its frame, with no shadow of its own: its shutter fills the opening. Nothing allocated.
+     * A shut building (`DESIGN_NOTES.md` decision 69), [shut] 0..1 on the glass's two seconds
+     * ([WindowWalk.Doorway.glassAt]): a blind coming down to 70 % of every window a person may stand at (a
+     * tower's hall only), and the shutter rolling down over the front door, by day and by night. **The
+     * shutter is the door's own card** ([BuildingDoor.outlineX]) over the door's offset shadow, so nothing
+     * of the door shows and nothing of the shutter stands outside it; a tower's glass door has no shadow.
      */
     private fun drawShut(canvas: SceneCanvas, deal: NeighbourhoodComposer.Deal, kind: WindowBuildingKind, shut: Float, night: Float) {
         if (shut <= 0f) return
@@ -3083,33 +2213,11 @@ class SceneObjectRenderer(
     private val scratchY = FloatArray(32)
 
     /**
-     * A building of the neighbourhood: the pieces [NeighbourhoodTable] deals for this instance,
-     * stacked, tinted from the category's own colour, with the behaviours hung on the coordinates
-     * the pieces declare.
-     *
-     * **One function for six families.** Until v5.0 the small house, the large house, the tower,
-     * the restaurant and the bar each had a function of their own, and each was one flat facade:
-     * a wall, a roof, a trim, a door, and a window sticker at literal coordinates. Five functions
-     * meant five places to remember that snow is a layer and not a tint, that a shop's glass
-     * follows `BusinessHours` and a house's never does, and that a bust stands at a window --
-     * and the tower is the one that forgot the last of those often enough to earn its own test.
-     * Here those rules are stated once and the artwork is data.
-     *
-     * **What the deal costs and what it buys.** The stack is the silhouette the generator dealt
-     * this slot ([SilhouetteDeal]; the position hash for an undealt one), so two neighbours carry
-     * two silhouettes; that is the whole point of the redraw, and it is also the reason a tower is
-     * more blits than it was. Counted from the table and confirmed by the phone in v5.0: a tower was
-     * **33** blits against the shipped facade's **6** (three tiers, nine stamped window rows, three
-     * bays and a crown); since v5.11's three heights it is 35 to 49 (39 to 55 with the winter's snow),
-     * a large house 9 to 14, a small house 5 to 9, each shop 3 -- and since v5.12 a house at night
-     * adds a flat card for each lit pane. A count is not a
-     * cost, so it was **measured as frame cost on the `perf` build** before this shipped -- see
-     * the v5.0 report for the milliseconds, which is the number that decides whether a blit count
-     * matters.
-     *
-     * The order inside a piece is the order the artwork needs and not the order the list happens
-     * to be in: bodies, then the stamps that sit on them, then snow. That is decided in the
-     * generator (`Piece.ordered`), which is why this loop can be flat.
+     * A building of the neighbourhood: the pieces [NeighbourhoodTable] deals for this instance (the
+     * silhouette the street dealt, [SilhouetteDeal]), stacked, tinted from the category's colour, with
+     * the behaviours hung on the coordinates the pieces declare. One function for every family, so its
+     * rules are stated once: snow is a layer, a business's glass keeps hours and a house's never does,
+     * a bust stands at a window. Parts come in the order the generator gives them (`Piece.ordered`).
      */
     private fun drawNeighbourhoodBuilding(
         canvas: SceneCanvas,
@@ -3119,34 +2227,19 @@ class SceneObjectRenderer(
         variant: SceneSpace.SceneVariant,
         storefront: Storefront? = null,
     ) {
-        // The size table's row for this place, and what is drawn in it: the variant's own family, or --
-        // a place among the houses (v5.13) -- the building the street deals it, [r] that building's
-        // runtime (its spec its identity).
+        // The place's row of the size table, and what stands in it: its own family, or the building
+        // the street deals a place among the houses ([r] that building's runtime).
         val placeFamily = NeighbourhoodTable.FAMILIES[variant] ?: return
         val family = storefront?.family ?: placeFamily
         val spec = r.spec
-        // Every wall surface of this building descends from this one value (the glass masks take the
-        // window colours instead, [windowGlassColor] and [unlitWindowGlassColor]): one of the two colours
-        // the user can edit for what the building is -- the houses', the towers' (Buildings) or, for one
-        // of the six among the houses, its group's: the shops' (v5.11) or the public buildings' (v5.13,
-        // [storefrontColours]). The pieces carry the rest as weights in their own wall mask -- a roof is
-        // the wall towards the ink, a cornice is the wall towards white -- so nothing here invents a
-        // colour. See [NeighbourhoodTable].
-        val wallColor = if (storefront != null) {
-            customization.storefrontWall(spec, storefront, dayBlend)
-        } else {
-            customization.wallColourFor(spec, variant, dayBlend)
-        }
+        // Every wall surface descends from this one user colour; the pieces carry roofs and cornices as
+        // weights in their wall mask, so nothing here invents a colour ([NeighbourhoodTable]).
+        val wallColor = wallAt(spec, variant, storefront, dayBlend)
         val night = (1f - dayBlend).coerceIn(0f, 1f)
-        // A house lights half its windows at night, every one somebody stands at among them
-        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is how lit its glass
-        // is by its group's hours -- the towers', the shops' or the public buildings', by what it is -- eased
-        // over two seconds at the opening and the closing minute on the building's doorway
-        // ([WindowWalk.Doorway.glassAt], v5.14); and at 1 -- the default, the group's switch off -- this is
-        // arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours]. Shut, a
-        // business's glass is the dark glass of an unlit window at night ([businessGlassColor], v5.12), its
-        // lamp is dark -- `glassNight` is what the lamp lights on -- and its blinds and shutter are down
-        // ([drawShut]).
+        // A house lights half its windows at night ([WindowRoster]); a business lights them while open:
+        // `businessOpenness` is its group's hours, eased over the doorway's two seconds
+        // ([WindowWalk.Doorway.glassAt]), 1 with the switch off. Shut, its glass is dark at night
+        // ([businessGlassColor]), its lamp, lit on `glassNight`, is dark, its blinds down ([drawShut]).
         val doorway = r.doorway
         val businessOpenness = if (doorway != null) {
             doorway.glassAt(elapsed.seconds)
@@ -3157,18 +2250,13 @@ class SceneObjectRenderer(
         }
         val glassNight = if (family.kind == WindowBuildingKind.HOUSE) night else night * businessOpenness
         val glassColor = if (family.kind == WindowBuildingKind.HOUSE) windowGlassColor(glassNight) else businessGlassColor(night, businessOpenness)
-        // The pieces are drawn in the height the family declares; the variant states what that
-        // height is on screen, so an unusual authored size is absorbed here rather than corrected
-        // per asset (AI_PROJECT_RULES 7.3). **The place's family, not the building's** (v5.13): every
-        // piece of the neighbourhood is drawn at one metre a unit (`core.M_PER_UNIT`), so the scale that
-        // makes the place's own building its size makes any of the six its own size there too -- a fire
-        // station in the restaurant's place is the fire station's height, at the restaurant's depth.
+        // The variant says how tall the family's declared height is on screen: the size table, never a per-asset constant.
+        // **The place's family, not the building's**: every piece is one metre a unit (`core.M_PER_UNIT`),
+        // so any of the six stands at its own height in any place.
         val scale = variant.spriteUnitsTall / placeFamily.unitsTall
         val deal = neighbourhoodDeal
         if (storefront != null) dealStorefront(family, storefront, spec, deal) else NeighbourhoodComposer.deal(family, spec, deal)
-        // Who is at the windows now, standing or walking, and in a house which are lit ([WindowRoster],
-        // [WindowWalk], v5.12): worked out once for the building's frame, from the roster and the
-        // windows measured when the list was built and the doorway its hours keep.
+        // Who is at the windows now, and in a house which are lit, once for the building's frame.
         val roster = r.roster
         val layout = r.windowLayout
         if (roster != null && layout != null) {
@@ -3176,8 +2264,7 @@ class SceneObjectRenderer(
         } else {
             windowFigures.count = 0
         }
-        // A house at night lights half its windows: its glass is dark glass and the lit panes are laid
-        // over it. By day both are the day's glass, so the house is drawn as it always was.
+        // A house at night: dark glass, the lit panes laid over it.
         val houseLights = roster != null && layout != null && family.kind == WindowBuildingKind.HOUSE && glassNight > 0f
         val unlitGlass = if (houseLights) unlitWindowGlassColor(glassNight) else glassColor
 
@@ -3185,13 +2272,8 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.scale(scale, scale)
         val winter = customization.winterColorsEnabled
-        // **Indexed, not iterated, all the way down.** A `for (x in list)` over a `List` allocates
-        // an iterator, and this loop runs for every part of every piece of every building on every
-        // frame -- 42 to 58 parts on a tower alone (its three heights and a crown, since v5.11), 39 to
-        // 55 of them sprites. That is garbage a 30 Hz loop does
-        // not have to make, and the `Canvas` path, which is the one already closest to its budget,
-        // is where it would be felt first. The same goes for the `withIndex()` the occupant branch
-        // used to use.
+        // Indexed, not iterated: a `List` iterator would allocate for every part of every building
+        // on every frame.
         for (index in 0 until deal.size) {
             val placed = deal[index]
             val piece = placed.piece
@@ -3207,13 +2289,11 @@ class SceneObjectRenderer(
                         if (houseLights) drawLitPanes(canvas, roster, layout, placed, unlitGlass, glassColor)
                     }
                     PartRole.FIXED -> drawSprite(canvas, part.res, part.x, footY + part.y)
-                    // A layer *on* the roof, cut to that roof's own outline, never the roof tinted
-                    // white: tinting would repaint the building rather than cover it, and
-                    // `winterColorsEnabled` is already a palette override, so the two would be
-                    // indistinguishable. That shortcut was rejected when this was defect D-8.
+                    // A layer *on* the roof, cut to its outline, never the roof tinted white, which
+                    // the winter palette's own override would be indistinguishable from.
                     PartRole.SNOW -> if (winter) drawSprite(canvas, part.res, part.x, footY + part.y)
-                    // The lamp lights with the glass beside it (v5.11, inventory I-405 and I-409): on
-                    // the same `glassNight`, so a shop's or a tower's stays dark while it is closed.
+                    // The lamp lights with the glass beside it (`DESIGN_NOTES.md` decision 50): on the
+                    // same `glassNight`, so a shop's or a tower's stays dark while it is closed.
                     PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, lit = glassNight)
                     PartRole.OCCUPANTS -> if (roster != null && layout != null) {
                         val windows = piece.windows
@@ -3228,28 +2308,23 @@ class SceneObjectRenderer(
                 }
             }
         }
-        // Shut (v5.14): the blinds down and the shutter over the front door, coming down with the glass's two
-        // seconds -- by day as by night; a house is never shut.
+        // Shut: blinds and shutter come down with the glass ([drawShut]); a house is never shut.
         if (family.kind != WindowBuildingKind.HOUSE && businessOpenness < 1f) {
             drawShut(canvas, deal, family.kind, 1f - businessOpenness, night)
         }
-        // The Christmas decorations (v5.14; *Lights on the buildings* since v5.16), lit whether the building is open or
-        // shut: a string of bulbs along the roofline of its top piece, the wreath on its front door, a star on a tower's
-        // top ([drawDecorations]); and the strings under the sills, below.
+        // The Christmas decorations (*Lights on the buildings*), open or shut ([drawDecorations]).
         if (customization.christmasBuildingLightsEnabled) drawDecorations(canvas, r, elapsed, deal, family.kind)
-        // Christmas strings hang from the sills the pieces declare, spread over the whole
-        // building rather than over one piece, so a tall house does not light its ground floor
-        // and nothing else; three in four of a building with more than four, the same ones for good
-        // ([ChristmasDecorations.forEachSillString], the gallery card's sequence too).
+        // Sill strings over the whole building, not one piece, so a tall house is not lit on its
+        // ground floor alone ([ChristmasDecorations.forEachSillString], the gallery card's too).
         if (customization.christmasBuildingLightsEnabled) {
             ChristmasDecorations.forEachSillString(deal, r.idleSeed) { x, sillY, width ->
                 drawWindowLights(canvas, r, elapsed, x, sillY, width)
             }
         }
-        // The Halloween decorations (v5.16), on a house and the three shops, lit whether the shop is open or shut:
-        // never with the Christmas ones above, which the settings keep apart (`DecorationExclusion`).
+        // The Halloween decorations, on a house and the three shops, open or shut; never with the
+        // Christmas ones (`DecorationExclusion`). The cobweb takes the walls' day and night colours.
         if (customization.halloweenDecorationsEnabled && HalloweenDecorations.decorates(family.kind, storefront)) {
-            drawHalloweenDecorations(canvas, r, elapsed, deal, night)
+            drawHalloweenDecorations(canvas, deal, night, wallAt(spec, variant, storefront, 1f), wallAt(spec, variant, storefront, 0f), dayBlend)
         }
         val smokes = ChimneySmoke.smokes(customization)
         for (index in 0 until deal.size) {
@@ -3267,13 +2342,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The lit windows of one piece of a house at night, laid over its dark glass (v5.12): each pane
-     * its roster lights, in the building's numbering ([NeighbourhoodComposer.Placed.firstPane]), as a
-     * flat card the size of the pane less [LIT_PANE_INSET], in the lit glass's colour -- or, across a
-     * change, faded between the dark glass and the lit, each fade when it has to start
-     * ([WindowWalk.litAmount]: a window somebody walks out of goes dark once they are out of it), on the
-     * roster's clock [windowFigures] was filled at for this building -- read once for the building, not
-     * once a pane. A rect a lit pane, in the frame's one fill paint; nothing allocated.
+     * The lit windows of one piece of a house at night: each pane its roster lights
+     * ([NeighbourhoodComposer.Placed.firstPane]) as a card the pane's size less [LIT_PANE_INSET], faded
+     * across a change ([WindowWalk.litAmount]: a window goes dark once its person is out of it). A rect
+     * a lit pane; nothing allocated.
      */
     private fun drawLitPanes(
         canvas: SceneCanvas,
@@ -3300,46 +2372,13 @@ class SceneObjectRenderer(
         }
     }
 
-    /** Reused across buildings and frames: see [NeighbourhoodComposer.Deal] for why it is owned
-     *  here rather than returned fresh. */
+    /** Reused across buildings and frames ([NeighbourhoodComposer.Deal]). */
     private val neighbourhoodDeal = NeighbourhoodComposer.Deal()
 
     /**
-     * How lit a vehicle's lamps are, on the [vehicleLampRamp].
-     *
-     * Vehicles were the one thing in the scene that did not change between noon and midnight: the
-     * houses lit their windows, the shops lit their frontages, and the traffic stayed exactly as
-     * bright as it had been at midday, police beacon included. This takes the ramp's curve -- dark
-     * until nightGlow 0.35, full at 0.80 -- and 80% of it so that a lamp reads as a lamp rather than
-     * as a light source: at a hundred and forty pixels a car is two small warm marks, and anything
-     * stronger is a neon toy.
-     *
-     * Zero for the whole first third of the evening, which is what makes this free by day: every
-     * call site is behind `if (alpha > 0)`, so at noon the vehicles cost exactly what they cost
-     * before.
-     */
-    private fun litVehicleAlpha(nightGlow: Float): Int = (vehicleLampRamp(nightGlow) * 0.8f).toInt()
-
-    /**
-     * The curve the vehicles' lamps come up on: dark until nightGlow 0.35, full (255) at 0.80.
-     *
-     * It was called `litWindowAlpha` until v5.12 (inventory I-515), after the lit-window overlays it
-     * once faded in; no window has read it since the windows became glass masks on
-     * [windowGlassColor]'s crossfade, and the lamps of [litVehicleAlpha] -- headlights, the police
-     * car's beacons, the taxi's sign -- are what it lights.
-     */
-    private fun vehicleLampRamp(nightGlow: Float): Int =
-        (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
-
-    /**
-     * The lamp beside a door: a dot of paper by day that lights with the windows (v5.11, inventory
-     * I-405; the maintainer's «sì» of 2026-10-06).
-     *
-     * [lit] is the building's own `glassNight` -- the number its glass crossfades on: the night for a
-     * house, the night times the opening hours for a shop and a tower (I-409) -- so a shop's or a
-     * tower's lamp is never lit while its glass is dark for the night. The bulb goes from its paper, [LAMP_UNLIT], to [LAMP_LIT] on it, and the
-     * glow round it appears only as it lights. Fully lit it is the lamp it always was at night; until
-     * v5.11 it was that lamp at noon too, glow and all.
+     * The lamp beside a door, paper by day, lit with the windows (`DESIGN_NOTES.md` decision 50): [lit]
+     * is the building's `glassNight`, so a closed business's lamp is dark with its glass. The bulb goes
+     * from [LAMP_UNLIT] to [LAMP_LIT], its glow appearing as it lights.
      */
     private fun drawPorchLight(canvas: SceneCanvas, x: Float, y: Float, lit: Float) {
         val glow = lampGlowAlpha(lit)
@@ -3353,13 +2392,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Everybody seen at one window this frame ([windowFigures], worked out once for the building): whoever
-     * stands still at it, drawn as they always were, and then whoever walks out of it, into it or past it,
-     * cut to the pane ([WindowWalk]) -- in front of anybody standing there. A house's walker is seen
-     * only at the two windows of their move, a business's through every window of the floor they cross.
-     * The count of people per building is the roster's ([WindowRoster]); the hours thin it by walking
-     * people out ([WindowWalk.Doorway]), never by fading them: a half-transparent person is a rendering
-     * artefact (the lesson the birds' dusk recorded).
+     * Everybody seen at one window this frame ([windowFigures]): whoever stands at it, then whoever
+     * walks out of it, into it or past it, cut to the pane, in front ([WindowWalk]). The hours thin the
+     * people by walking them out ([WindowWalk.Doorway]), never by fading: a half-transparent person
+     * reads as a rendering artefact.
      */
     private fun drawWindowPeople(
         canvas: SceneCanvas,
@@ -3387,8 +2423,7 @@ class SceneObjectRenderer(
             val x = figures.x[f]
             val facing = figures.facing[f]
             if (WindowWalk.bustRight(x, facing, refWidth) <= paneLeft || WindowWalk.bustLeft(x, facing, refWidth) >= paneRight) continue
-            // Cut at the pane's sides only: a walker never leaves the pane upward or downward, so the
-            // box reaches a unit past its top and its bottom and cuts nothing there.
+            // Cut at the pane's sides only: a walker never leaves it upward or downward.
             drawWindowOccupant(
                 canvas, r, roster.origin(figures.person[f]), kind, x, layout.bottom(ref), refWidth, facing,
                 clipped = true, clipLeft = paneLeft, clipTop = winY - 1f, clipRight = paneRight, clipBottom = winY + winH + 1f,
@@ -3400,12 +2435,9 @@ class SceneObjectRenderer(
     private val windowFigures = WindowWalk.Figures()
 
     /**
-     * Draws one person at a window: the person of the roster whose first window was [origin] -- whose
-     * address deals their look, so they are the same person at every window they go to -- standing on a
-     * sill at [cx], [cy], sized by a pane [winW] wide, facing [facing] (+1 as the artwork is drawn, -1
-     * mirrored, which is how somebody walking toward -x is drawn). [clipped]: only the part inside the
-     * box [clipLeft]..[clipRight] x [clipTop]..[clipBottom], in the building's units -- a walker cut to
-     * the pane they are seen through.
+     * One person at a window: the roster's person whose first window was [origin] (their look, at every
+     * window), on a sill at [cx], [cy], sized by a pane [winW] wide, [facing] +1 as drawn or -1 mirrored.
+     * [clipped]: only the part inside the clip box, in the building's units -- a walker cut to its pane.
      */
     private fun drawWindowOccupant(
         canvas: SceneCanvas,
@@ -3422,53 +2454,29 @@ class SceneObjectRenderer(
         clipRight: Float = 0f,
         clipBottom: Float = 0f,
     ) {
-        // The building's own stable identity. `tileFractionX` is its position along the ground
-        // tile, which is fixed for the life of the scene, so an occupant does not move house
-        // between frames.
+        // The building's identity, fixed for the life of the scene: nobody moves house.
         val buildingSeed = buildingSeedOf(r.spec)
         val seed = themeId.hashCode()
-        // Indoors there is no season to read any more, and its absence is `BACKLOG_v4_25.md` item
-        // 57 closed: `seasonIndexFor(INDOORS)` was always 0 -- the hat belongs to the street, not to
-        // the room behind the pane -- so the winter column of this table named twelve recolours
-        // nothing could ever select. [PeopleLayerTable.WINDOW] has one column.
-        // Read as two integers rather than as a [WindowOccupant]: one object per lit window per frame
-        // was 15 % of what the frame allocated once `setAlpha` stopped (v5.10A).
+        // Indoors there is no season: [PeopleLayerTable.WINDOW] has one column. Two integers, not a
+        // [WindowOccupant], so no object is made per lit window per frame.
         val occupantKind = WindowOccupants.occupantKindIndexAt(seed, buildingSeed, origin, kind)
         val occupantSkin = WindowOccupants.occupantSkinIndexAt(seed, buildingSeed, origin)
         val slots = PeopleLayerTable.WINDOW[occupantKind]
-        // **A figure at a window does not cross anything**, so its colours are dealt from its own
-        // address and stay put -- the address of the window it first stood at, wherever it walks to
-        // (v5.12). That is what it did before v4.30 too; what changed is that the deal is now over
-        // the same palettes the street uses instead of over three shipped PNGs.
+        // A figure at a window crosses nothing: its colours come from its first window's address.
         val address = WindowOccupants.address(buildingSeed, origin)
-        // On channels of their own: 41 and 42 are the pane's presence rank and its occupant's age
-        // at this same address, and reading them again made the outfit follow the age and the head
-        // colour follow which pane is lit (v5.8C; see [PeopleColours.CH_WINDOW_HEAD]).
+        // On channels of their own: 41 and 42, the pane's presence rank and its occupant's age at this
+        // address, would tie the outfit to the age and the hair to the lit pane ([PeopleColours.CH_WINDOW_HEAD]).
         val colours = coloursFor(
             address, 0, occupantKind, SUMMER_SEASON,
             PeopleColours.outfit(seed, address, 0, PeopleColours.CH_WINDOW_OUTFIT), occupantSkin,
             PeopleColours.CH_WINDOW_HEAD,
         )
-        // Placed from the sprite's declared anchor, not by centring its canvas -- the same
-        // correction v76.1 made to the car driver, applied here for the same reason. The window
-        // heads are 49x57 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
-        // the bust's shoulders a third of a pane below the sill. The bust now stands on the
-        // window's own lower edge.
-        //
-        // **The divisor below is 60 and no canvas has ever been 60 units.** It said 60x54 before
-        // REN-07, the canvas was 159x171 px then and is 147x171 -- 49x57 units -- now. Dividing by
-        // a number wider than the canvas draws the occupant a little smaller than the nominal 85%
-        // of its pane, which is what has shipped since v4.2 and what the artwork was tuned against
-        // by eye, so the number is the record of a decision even though the reasoning first
-        // written beside it was wrong. `SpriteMeasurementClaimTest` pins the canvas width against
-        // the shipped PNG and asserts the divisor is not it; `OneOccupantRuleTest` reads the 0.85
-        // and the divisor back out of this function's own source and pins the head's share of the
-        // pane, and `WindowWalkTest` holds [WindowWalk.bustScale] to the same expression. None can
-        // drift without failing.
+        // From the declared CONTENT_BOTTOM_CENTRE anchor of the 49x57 units canvas, so the bust stands
+        // on the sill. `OneOccupantRuleTest` reads the 0.85 and the divisor back out of this source and
+        // `WindowWalkTest` holds [WindowWalk.bustScale] to the same expression.
         canvas.save()
         canvas.translate(cx, cy)
-        // Not the canvas width -- see the note above. This is the tuned divisor, and 60 is what it
-        // has always been; the canvas is 49 units.
+        // The tuned divisor, not the canvas width: [WINDOW_OCCUPANT_DIVISOR_UNITS].
         val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS
         canvas.scale(facing * s, s)
         if (!clipped) {
@@ -3487,10 +2495,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The smoke over a house's chimney: [ChimneySmoke.PUFFS] puffs rising from the cap and fading,
-     * each chimney on its own beat, light grey by day and a middle grey at night (see [ChimneySmoke],
-     * which holds the numbers). A circle a puff, in the frame's one fill paint; nothing allocated.
-     * [x], [topY]: the middle of the cap.
+     * The smoke over a house's chimney, from the cap's middle ([x], [topY]): [ChimneySmoke]'s puffs, a
+     * circle each, each chimney on its own beat. Nothing allocated.
      */
     private fun drawChimneySmoke(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float, x: Float, topY: Float) {
         fillPaint.color = ChimneySmoke.colour(dayBlend)
@@ -3506,25 +2512,18 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Whether this tree stands as a Christmas fir: *Christmas firs* on, and one tree in three by
-     * its own seed ([isFirSeed]). Called only from [drawTree], so the slot is a tree; the companion's
-     * [standsAsFir] of a spec is the same rule, asked before the runtime exists.
+     * Whether this tree stands as a Christmas fir: the companion's [standsAsFir] rule, on the runtime's
+     * seed (called only from [drawTree], so the slot is a tree).
      */
     private fun standsAsFir(r: StaticRuntime): Boolean = drawsFirs(customization) && isFirSeed(r.idleSeed)
 
     /**
-     * A fir in the leafy tree's place (v5.14, the fir A the maintainer chose on 2026-10-14, *«A – a palchi
-     * (consigliato)»*): four tiers with their hems cut in a zigzag, snow while the winter palette is on, the
-     * star on the top, ten lights on the hems' teeth and three presents at its foot -- every number from
-     * [FirTable], which `tools/assets/fir/build_fir.py` writes with the drawing. Each piece is trimmed to its
-     * content and blits at an origin of its own: `tree_fir` is 210x360 px = 70x120 u, `tree_fir_snow` is
-     * 192x291 px = 64x97 u and `tree_fir_star` is 48x45 px = 16x15 u, in the fir's 72 by 126 units.
-     *
-     * **At night the green goes dark as the trees around it do**: the fir is drawn under the trees'
-     * night shade ([SceneCustomization.nightShadeFor]), decision 36's mechanism, which until v5.14 only the
-     * palms took; the snow, the star and the lights are not shaded -- the star is a piece of its own
-     * (`tree_fir_star`) for that, and the lights are lights. The lights are discs ([drawBulb]): a quad of the
-     * atlas each on the GL path, where a drawn fan is 24 vertices or more.
+     * A fir in the leafy tree's place (`DESIGN_NOTES.md` decision 66): four zigzag tiers, snow with the
+     * winter palette, a star, ten lights and three presents, every number from [FirTable] (written with
+     * the drawing by `tools/assets/fir/build_fir.py`). Each piece is trimmed and blits at its own origin:
+     * `tree_fir` is 210x360 px = 70x120 u, `tree_fir_snow` is 192x291 px = 64x97 u and `tree_fir_star` is
+     * 48x45 px = 16x15 u. Only the green takes the trees' night shade ([SceneCustomization.nightShadeFor],
+     * decision 36); snow, star and lights do not. The lights are discs ([drawBulb]).
      */
     private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         drawGroundShadow(canvas, FirTable.WIDTH * FIR_SHADOW_SHARE)
@@ -3533,8 +2532,7 @@ class SceneObjectRenderer(
             drawSprite(canvas, R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
         }
         drawSprite(canvas, R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
-        // The lights blink as a leafy tree's do ([drawChristmasLights]): off in the low part of each one's cycle,
-        // at the tree lights' radius.
+        // Blinking as a leafy tree's lights do ([drawChristmasLights]).
         val xs = FirTable.LIGHT_X
         val ys = FirTable.LIGHT_Y
         for (i in xs.indices) {
@@ -3543,8 +2541,7 @@ class SceneObjectRenderer(
             if (blink < 0.35f) continue // off phase of the blink cycle
             drawBulb(canvas, xs[i], ys[i], CHRISTMAS_LIGHT_RADIUS_UNITS, christmasLightColors[i % christmasLightColors.size], 255)
         }
-        // Three presents at the foot, sized against the fir rather than against the scene: the
-        // gift sprite is 30 units on its own canvas and a fir is 126, so a third of it reads.
+        // Three presents sized against the fir (126 units) rather than the scene (the gift is 30).
         val gifts = FirTable.GIFT_X
         val sizes = FIR_GIFT_SCALES
         for (i in gifts.indices) {
@@ -3558,20 +2555,17 @@ class SceneObjectRenderer(
     }
 
     /**
-     * One Christmas bulb centred on ([cx], [cy]), [radius] in units, in [colour] at [alpha]: a disc
-     * ([SpriteBlitter.drawDisc]) -- a quad of the atlas on the GPU, the circle itself on a Canvas, so the
-     * lights are the circles they were until v5.14 at the cost of a sprite.
+     * One Christmas bulb at ([cx], [cy]): a disc ([SpriteBlitter.drawDisc]), one quad of the atlas on
+     * the GPU where a drawn fan is 24 vertices or more, a circle on a Canvas.
      */
     private fun drawBulb(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) {
         sprites.drawDisc(canvas, cx, cy, radius, colour, alpha)
     }
 
     /**
-     * Fall Colors / Winter-Christmas Colors override the normal per-tree leaf color/decoration --
-     * see [SceneCustomization.fallColorsEnabled]'s own doc comment for why these live as a
-     * palette override here rather than their own placeable category. Mutually exclusive by
-     * construction (WallpaperPrefs clears one when the other is set), so at most one branch below
-     * ever applies; neither active is the normal, unmodified tree.
+     * A leafy tree, or a fir in its place. Fall Colors and Winter Colors are palette overrides
+     * ([SceneCustomization.fallColorsEnabled]), mutually exclusive (WallpaperPrefs clears one when the
+     * other is set).
      */
     private fun drawTree(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float = 1f) {
         if (standsAsFir(r)) {
@@ -3580,11 +2574,9 @@ class SceneObjectRenderer(
         }
         val sway = elapsed.sinAt(1.1f, r.idleSeed) * 4f
         drawGroundShadow(canvas, 26f)
-        // The trunk was a flat `drawRect` from (-5,-38) to (5,0) with one hardcoded brown. V2
-        // supplies it as art with bark banding and a darker side: `tree_trunk` is 32x62 units,
-        // blitted at the layout's trunk origin (-16,-62) so its foot is on the ground, and the
-        // canopy's content bottom lands at -52, ten units below the stem's top, so the crown
-        // overlaps it.
+        // `tree_trunk` is 32x62 units, blitted at the layout's trunk origin (-16,-62) so its foot
+        // is on the ground; the canopy's content bottom lands at -52, ten units below the stem's
+        // top, so the crown overlaps it.
         drawSprite(canvas, R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y)
         val leafColor = when {
             customization.fallColorsEnabled -> fallLeafColorFor(r)
@@ -3593,16 +2585,8 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.translate(0f, -38f)
         canvas.rotate(sway)
-        // **Halloween strips the crown.** The bare limbs blit at the canopy's own origin on the
-        // canopy's own canvas, so they meet the trunk exactly where the leaves did and sway on the
-        // same transform -- the tree is the same tree with a different crown, not a second object
-        // placed where the first one was.
-        //
-        // Everything that decorates a canopy is skipped with it, and each for its own reason
-        // rather than as one blanket condition: a snow cap is cut to the leaf silhouette and would
-        // hang in mid-air over bare branches, and fairy lights are placed on the crown's ellipse,
-        // which no longer has anything in it. Neither the winter flag nor the Christmas flag is
-        // read or changed here; they simply have nothing to draw on a tree with no foliage.
+        // **Halloween strips the crown**: bare limbs on the canopy's own canvas and origin, so they meet
+        // the trunk and sway as the leaves do, and nothing that decorates a canopy (snow cap, lights).
         if (customization.halloweenEnabled) {
             drawSprite(
                 canvas, R.drawable.tree_dead_branches,
@@ -3611,96 +2595,50 @@ class SceneObjectRenderer(
             canvas.restore()
             return
         }
-        // canopy: local bbox (-50,-80)-(51,-14) in the lifted space, refreshed in the aesthetic
-        // pass to a 5-lobe silhouette (was a single blob) with its attachment point at local y=0
-        // so it sits flush on the trunk regardless of sway.
+        // canopy: local bbox (-50,-80)-(51,-14) in the lifted space, attached at local y=0 so it
+        // sits flush on the trunk whatever the sway.
         drawTintedSprite(
             canvas, R.drawable.tree_canopy,
             TreeSpriteLayout.CANOPY_X, TreeSpriteLayout.CANOPY_Y, leafColor,
         )
         if (customization.winterColorsEnabled) {
-            // The cap is cut to this canopy's own outline, and in v4.21 that stopped being a
-            // statement about care and became one about construction: the cap's source clips its
-            // three snow bands against a copy of `tree_canopy`'s own circles, so its silhouette
-            // *is* the crown's wherever the snow covers full width. Measured on the shipped
-            // pixels: zero cap pixels fall outside the crown, and the first 94 of its 114 rows
-            // have the crown's own first and last opaque column. Below that the scalloped lower
-            // edge bites in, which is the drawing.
-            //
-            // v76.1 had to redraw this cap because it had been cut for a different crown and left
-            // a green rim above the snow; the clip is what stops that recurring. Same origin as
-            // the crown, per [TreeSpriteLayout] -- if the canopy art changes, both are re-derived
-            // in the same pass or neither is.
+            // The cap's source clips its snow against `tree_canopy`'s own circles, so no green rim
+            // shows above it; same origin ([TreeSpriteLayout]): a canopy redraw re-derives both.
             drawSprite(
                 canvas, R.drawable.tree_canopy_snowcap,
                 TreeSpriteLayout.SNOWCAP_X, TreeSpriteLayout.SNOWCAP_Y,
             )
         }
-        // Inside the canopy's own transform, and scattered across the canopy's own measured
-        // content: `tree_canopy` is 303x198 px with content filling it, which is
-        // (-50,-80)..(51,-14) in this lifted space, so its centre is (0.5,-47) and its half
-        // extents are 50.5 x 33. The radii below are inset from those for the cushion's scalloped
-        // rim, which pulls the silhouette in all along its edge, and for the light's own radius.
-        // A Christmas decoration, not a winter one. These hung off `winterColorsEnabled`, which
-        // made a plain snowy January impossible: every winter tree came with fairy lights. Since v5.16 their own
-        // switch, *Lights on the trees*.
+        // Across the canopy's measured content: `tree_canopy` is 303x198 px with content filling it,
+        // centre (0.5,-47), half extents 50.5 x 33, the radii inset for the scalloped rim. A Christmas
+        // decoration with its own switch, *Lights on the trees*, not a winter one.
         if (customization.christmasTreeLightsEnabled) {
             drawChristmasLights(canvas, r, elapsed, centerY = TREE_LIGHTS_CENTRE_Y, radiusX = TREE_LIGHTS_RADIUS_X, radiusY = TREE_LIGHTS_RADIUS_Y)
         }
         canvas.restore()
     }
 
-    /** Deterministic per-tree autumn tone (orange/red/gold/rust) -- stable across frames since
-     * it's derived purely from [r.idleSeed] (itself stable per candidate slot), not re-rolled
-     * every draw. Independent of [dayBlend] on purpose: unlike the normal leaf color, which
-     * blends toward a dedicated night variant, autumn leaves stay a flat warm tone day and night,
-     * matching how the falling-leaf particles in [PaperRenderer.drawFallingLeaves] work too. */
+    /** The tree's autumn tone, from its seed ([fallToneOf]): flat day and night on purpose, as the
+     * falling leaves ([PaperRenderer.drawFallingLeaves]). */
     private fun fallLeafColorFor(r: StaticRuntime): Int = FALL_LEAF_TREE_PALETTE[fallToneOf(r.idleSeed)]
 
     /**
-     * The light colours, and the unscaled local positions of the six lights, hoisted out of
-     * [drawChristmasLights].
-     *
-     * They were built inside it -- an `intArrayOf`, an `arrayOf(x to y, ...)` and a `.map` over
-     * it -- so every call allocated an int array, an array of six boxed `Pair<Float, Float>`, a
-     * second array for the mapped result and a `List` wrapper, and boxed fourteen floats on the
-     * way. The function runs once per tree and once per palm, for every wrap-tile copy of each,
-     * on every frame *Lights on the trees* is on. Nothing in it depends on the object being drawn,
-     * so it is constant data that was being rebuilt in the render loop.
-     *
-     * Kept as two parallel `FloatArray`s rather than an array of points, because an array of
-     * points is what the boxing came from.
+     * The light colours and, below, the six lights' positions: built once, not per tree per frame,
+     * as parallel `FloatArray`s, so nothing is boxed.
      */
     private val christmasLightColors = CHRISTMAS_LIGHT_COLOURS
 
     /**
-     * Where the lights sit, as offsets in a **unit disc** rather than in local units.
-     *
-     * They used to be absolute offsets around a hand-picked centre, and that is why they hung out
-     * of the bottom of the foliage: the tree's cloud reached y=-2 against a canopy whose content
-     * stopped at -6, so the lowest lights were below the leaves and out over the trunk, and the
-     * highest reached barely half way up a crown twice as tall as the cloud. Neither number was
-     * derived from the artwork they were meant to be scattered across.
-     *
-     * Every offset here is within 0.81 of the centre, so a caller that passes its own foliage's
-     * measured half-width and half-height gets lights inside it by construction, whatever shape
-     * that foliage is next redrawn to.
+     * Where the lights sit in a **unit disc** (all within 0.81): scaled by a crown's measured half
+     * extents, they fall inside it by construction.
      */
     private val christmasLightX = CHRISTMAS_LIGHT_X
     private val christmasLightY = CHRISTMAS_LIGHT_Y
 
     /**
-     * Scatters blinking lights across an ellipse of foliage centred on ([centerY]) in whatever
-     * space the caller is currently drawing in.
-     *
-     * Called from **inside** each plant's own sway transform, so the lights lean with the branches
-     * instead of staying rigid while the leaves move around them -- which also removes any need to
-     * leave slack at the edges for the sway to swing into.
-     *
-     * [centerX] defaults to the trunk, because for a leafy tree the crown is over its own stem.
-     * It is an argument because for a palm it is not: v5.1's crown hangs to the right of a trunk
-     * that leans, so its content's centre is seven units off the pivot and a string placed on the
-     * pivot would have hung half its bulbs beside the tree.
+     * Scatters blinking lights across an ellipse of foliage, inside the plant's own sway transform so
+     * they lean with the branches. [centerX] is the trunk for a leafy tree; a palm's leaning crown is
+     * seven units off it.
      */
     private fun drawChristmasLights(
         canvas: SceneCanvas,
@@ -3711,17 +2649,14 @@ class SceneObjectRenderer(
         radiusY: Float,
         centerX: Float = 0f,
     ) {
-        // The lights are discs ([drawBulb]): a quad of the atlas each on the GPU, where a drawn fan was 24 vertices,
-        // at the radius they always had.
+        // The lights are discs ([drawBulb]).
         canvas.save()
         canvas.translate(centerX, centerY)
         for (i in christmasLightX.indices) {
             val phase = ((r.idleSeed + i * 0.37f) * 10f) % 6.283f
             val blink = (elapsed.sinAt(2.4f, phase) * 0.5f + 0.5f)
             if (blink < 0.35f) continue // off phase of the blink cycle
-            // Scaled here rather than in a pre-built list: the multiplication is the same one,
-            // per light, in the same order, and this way it happens only for the lights that are
-            // actually drawn this frame.
+            // Scaled here, only for the lights drawn this frame.
             val lx = christmasLightX[i] * radiusX
             val ly = christmasLightY[i] * radiusY
             drawBulb(canvas, lx, ly, CHRISTMAS_LIGHT_RADIUS_UNITS, christmasLightColors[i % christmasLightColors.size], 255)
@@ -3730,12 +2665,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Sprite-blit conversion (aesthetic-pass batch 4): the 3-circle body is now one bitmap blit
-     * (`snowman_body`, local bbox (-19,-74)-(19,0)) tinted to the user's color, replacing 3
-     * `drawCircle` + 3 stroked-outline calls every frame. Carrot nose and scarf are fixed-color
-     * accent sprites (never user-tintable, matching how the restaurant's awning stayed a fixed
-     * accent when its wall/window/door went sprite-based). Twig arms stay vector -- 2 stroked
-     * lines are already cheap and their exact angle doesn't warrant a sprite.
+     * The snowman: `snowman_body` (local bbox (-19,-74)-(19,0)) tinted to the user's colour, nose and
+     * scarf fixed-colour accents, twig arms two stroked lines.
      */
     private fun drawSnowman(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val wobble = elapsed.sinAt(1.4f, r.idleSeed) * 2f
@@ -3743,26 +2674,15 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.rotate(wobble)
         val snow = customization.colorFor(r.spec, dayBlend)
-        // -74, not -75: the body's content bottom is the bottom of its 74-unit canvas, so the
-        // old origin left the whole snowman standing one unit clear of the ground it casts a
-        // shadow on (defect D-9). The face and scarf move by the same unit, because what is
-        // being corrected is where the *drawing* sits, not how its pieces register against each
-        // other.
+        // -74: the content bottom is the canvas bottom, on the ground.
         drawTintedSprite(canvas, R.drawable.snowman_body, -19f, -74f, snow)
-        // The three accessories are placed against the V2 body's own landmarks, measured off it:
-        // hat brim to y=-63, head sphere -61..-39 centred on -50, neck (its narrowest row) at
-        // -38, and the lower sphere widest at -20. The shipped origins were tuned for a body
-        // built from three plain circles, so the carrot sat level with the hat brim and the scarf
-        // lay across the middle of the face.
+        // Against the body's measured landmarks: hat brim -63, head -61..-39, neck -38.
         drawSprite(canvas, R.drawable.snowman_nose, 4f, -51f)
         drawSprite(canvas, R.drawable.snowman_scarf, -12f, -40f)
         strokePaint.style = Paint.Style.STROKE
         strokePaint.strokeWidth = 3f
         strokePaint.color = 0xFF7A4B2E.toInt()
-        // Twig arms come out of the **torso**, not the head. y=-44 is inside the head sphere,
-        // which spans -61..-39 on the V2 body, so the arms appeared to be stuck through his face.
-        // The lower sphere is widest around -20 and reaches +/-15.7 at -30, which is where they
-        // start from now.
+        // Twig arms from the torso, where the lower sphere reaches +/-15.7 at -30, not the head.
         canvas.drawLine(-14f, -30f, -32f, -40f, strokePaint)
         canvas.drawLine(14f, -30f, 30f, -36f, strokePaint)
         strokePaint.strokeWidth = 2.5f
@@ -3770,10 +2690,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * A scarecrow on its pole (v5.16, the drawing B of v5.16A, `tools/assets/scarecrow/build_scarecrow.py`): fixed art, so
-     * not darkened at night (the maintainer's rule of 2026-09-15 for fixed art), and swaying as the snowman does, about the
-     * foot of its pole. The candle in its pumpkin lights as the night comes: the light's alpha is how much night it is. In
-     * the place of a snowman that stands too it is drawn [SCARECROW_ASIDE_METRES] to the right ([StaticRuntime.scarecrowAside]).
+     * A scarecrow on its pole (`DESIGN_NOTES.md` decision 80, `tools/assets/scarecrow/build_scarecrow.py`):
+     * fixed art, drawn as authored at every hour (decision 36), swaying as the snowman does, its candle's
+     * alpha the night; [SCARECROW_ASIDE_METRES] to the right where the snowman stands too.
      */
     private fun drawScarecrow(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         if (r.scarecrowAside) canvas.translate(SCARECROW_ASIDE_UNITS, 0f)
@@ -3787,11 +2706,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Sprite-blit conversion (aesthetic-pass batch 4): box is a tinted sprite (`gift_box`, local
-     * bbox (-20,-30)-(20,0)); ribbon+bow is a separate sprite kept as its own layer (rather than
-     * baked into the box art) so the ribbon stays independent of the user's chosen gift-box
-     * colour, exactly as before. The ribbon carries its own gold in the V2 artwork, so it is
-     * blitted untinted where it used to be a white mask multiplied by a constant.
+     * The box tinted to the user's colour (`gift_box`, local bbox (-20,-30)-(20,0)), the ribbon in its
+     * own gold, untinted.
      */
     private fun drawGift(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
         val color = customization.colorFor(r.spec, dayBlend)
@@ -3801,87 +2717,26 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Fixed after aa reported Fall Colors/Winter Colors having no effect on the Beach theme's
-     * trees. Root cause: Beach uses `treeType = PALM_TREE` (see `SceneObjectCatalog.
-     * uniformCandidates`'s own `treeType` parameter), routed to this function -- but the
-     * fallColorsEnabled/winterColorsEnabled branches only ever existed in [drawTree] (the
-     * non-palm variant), so a palm tree never even checked either flag. Added the same two
-     * branches here, adapted to a palm's shape: fall tints the fronds with the same autumn
-     * palette [fallLeafColorFor] uses for regular trees; winter frosts the crown and adds the same
-     * string of blinking Christmas lights [drawChristmasLights] gives a regular tree.
-     *
-     * **The fall branch is gone as of the V2 asset set, deliberately.** The crown is drawn in its
-     * own green rather than as a mask, so there is no tint left for an autumn palette to occupy;
-     * multiplying finished art by an orange would compound two colours, not recolour one. The
-     * winter treatment survives because it was never a tint either -- v5.1 made it a whole frosted
-     * crown drawn *instead of* the green one, where it used to be white tips laid over it. A palm
-     * therefore no longer responds to Fall Colors, which is a consequence of the redesign and not
-     * a defect to patch at this call site.
-     *
-     * **What it does respond to, as of v5.1, is the hour.** See the `light` this function opens
-     * with: fixed art carries no tint to interpolate, so a shade is supplied for it.
-     */
-    /**
-     * Sprite-blit pilot conversion (see `SpriteCache`'s own doc comment). The old version bent
-     * the trunk's own curve control points and rotated each of the 5 fronds independently every
-     * frame -- a static bitmap can't bend, so this simplifies the sway to one rigid rotation of
-     * the *whole tree* (trunk + frond cluster together) pivoted at the base, rather than trying
-     * to reproduce independent per-frond motion. Visually a very close match (the old per-frond
-     * rotation was already just each frond's fixed angle plus one shared `sway` term, i.e.
-     * already almost a rigid rotation in practice) at a fraction of the per-frame cost: 2 bitmap
-     * blits plus one shared `canvas.rotate`, replacing what used to be a trunk path rebuild plus
-     * 5 separate frond path rebuilds + 5 independent rotate/restore pairs every frame.
+     * A palm: trunk and crown, fixed art, swaying as one rigid body about its base. Its green is the
+     * drawing's, so Fall Colors does not reach it (an orange over finished art would compound two
+     * colours); winter and *Halloween* have whole crowns of their own.
      */
     private fun drawPalmTree(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float = 1f) {
         val sway = elapsed.sinAt(0.9f, r.idleSeed) * 6f
         drawGroundShadow(canvas, 22f)
-        // **The light on it, which until v5.1 there was none of.** Every sprite of this tree is
-        // fixed art, so nothing here interpolated between the user's day and night colours the way
-        // a tinted mask does, and the palms stood at full midday green under a midnight sky. See
-        // [nightShadeFor] for where the grey comes from and [drawShadedSprite] for why it is a
-        // shade rather than a tint.
+        // How lit it is: a shade, not a tint ([drawShadedSprite]).
         val light = customization.nightShadeFor(r.spec, dayBlend)
 
         canvas.save()
         canvas.rotate(sway) // whole tree leans as one rigid body, pivoted at its base (0,0)
-        // trunk: 63x174 px -- 21x58 local units -- with the foot's centre at x=8 units, so the
-        // origin that stands it on the ground with its foot on the pivot is (-8,-58).
-        //
-        // **The foot, not the content's centre, and the two are different now.** The v5.1 trunk
-        // leans 7 units to the right, so its drawn content spans x 0.67..20 units while the foot
-        // sits at 8: `CONTENT_BOTTOM_CENTRE` would derive 10.33 and stand the palm more than two
-        // units beside its own ground shadow, pivoting the sway off its base. The registry
-        // declares the foot instead, and this origin is that declaration negated.
+        // trunk: 63x174 px -- 21x58 local units -- stood on its **foot** at x=8, origin (-8,-58):
+        // the trunk leans, and `CONTENT_BOTTOM_CENTRE` (10.33) would stand it beside its own shadow.
         drawShadedSprite(canvas, R.drawable.palmtree_trunk, PalmSpriteLayout.TRUNK_X, PalmSpriteLayout.TRUNK_Y, light)
-        // The crown's attachment point is declared, not measured off the artwork: the 56x48-unit
-        // canvas carries a DECLARED_ATTACHMENT at (84,78) px -- (28,26) in local units -- which is
-        // where the seven blades converge. The trunk's bark reaches the top of its own canvas at
-        // -58, and the attachment is placed two units below that at -56 so the crown overlaps the
-        // trunk rather than balancing on it. Origin is therefore attachment - (28,26), taken from
-        // the attachment's own world position (7,-56) because the trunk leans: (-21,-82).
-        //
-        // The crown is fixed art and does not follow the tree colour or Fall Colors -- see this
-        // class's own note on the retired accent constants, and `DESIGN_NOTES.md`.
-        //
-        // **Halloween reaches the palms too.** The leafy trees lost their canopy from the first
-        // release of the flag and the palms did not, so a Halloween beach kept a row of healthy
-        // green fans over its bare-branch neighbours. Desaturating the live crown was the cheaper
-        // option and the wrong one: a grey palm is a palm in bad light, not a dead one. The
-        // collapsed, folded-back blades are what carry it.
-        //
-        // **And the frost is a third crown now, not a layer over the first.** Until v5.1 the
-        // winter palette blitted five white caps on top of the live crown, which is not how snow
-        // reaches anything else in this library -- a roof gets a whole drawing with the snow in
-        // it. All three crowns are drawn on one canvas at one attachment, so this is a choice of
-        // which one to blit and not a stack, and the pixel-for-pixel coverage condition the
-        // overlay needed went with it.
-        //
-        // Three literal blits rather than a `when` picking a resource into a local, which reads
-        // better and is the difference between a call site `paperscrape-assets validate` can check
-        // the scale, the tint class and the origin of and one it can only record as an unreadable
-        // runtime lookup. The registry's call-site check is the only thing comparing a declared
-        // anchor against the origin a blit actually uses, and three of the four palm sprites would
-        // have dropped out of it.
+        // The 56x48-unit crown canvas declares its attachment at (28,26) units, where the blades
+        // converge, placed at (7,-56), two units into the leaning trunk's top: origin (-21,-82). Three
+        // crowns share canvas and attachment, one blitted: live, frosted (snow as a whole drawing, as
+        // on a roof) or *Halloween*'s dead blades (a grey crown would read as bad light). Three literal
+        // blits, so `paperscrape-assets validate` checks each one's scale, tint class and origin.
         val crownX = PalmSpriteLayout.CROWN_X
         val crownY = PalmSpriteLayout.CROWN_Y
         when {
@@ -3893,12 +2748,8 @@ class SceneObjectRenderer(
                 drawShadedSprite(canvas, R.drawable.palmtree_fronds, crownX, crownY, light)
         }
         if (customization.christmasTreeLightsEnabled) {
-            // Same derivation as the leafy tree's, from the crown's own content: the 56x48-unit
-            // canvas blitted at (-21,-82) spans (-21,-82)..(35,-34), so its centre is (7,-58) and
-            // its half extents are 28 x 24. **The centre is no longer over the trunk**, which is
-            // what the x argument exists for: the crown hangs to the right of a leaning trunk and
-            // a string of lights centred on 0 would have hung half of itself in clear air. Inset
-            // from the half extents because a crown of blades is mostly gaps.
+            // From the 56x48-unit crown: centre (7,-58), half extents 28 x 24, inset because a crown
+            // of blades is mostly gaps.
             drawChristmasLights(
                 canvas, r, elapsed,
                 centerX = PalmSpriteLayout.CROWN_CENTRE_X, centerY = PalmSpriteLayout.CROWN_CENTRE_Y,
@@ -3909,21 +2760,8 @@ class SceneObjectRenderer(
     }
 
     private fun drawParasol(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        // Ground shadow at the pole's base -- the same "doesn't look like it's floating" fix every
-        // ground-anchored object gets from [drawGroundShadow].
-        // v53 widened/darkened this shadow after a first "floating" report, but aa reported the
-        // exact same thing again in v59. Re-verified the anchoring math itself numerically again
-        // (groundY still sits safely within the hill's guaranteed-solid zone -- unrelated to this
-        // fix) and found the actual cause was never the shadow at all: the canopy below used to
-        // sway with a *vertical* bob (`canvas.translate(0f, -50f + sin(...)*1.5f)`) while the pole
-        // was drawn separately and stayed rigid, always ending exactly at y=-50. That let the
-        // canopy's attachment point drift up and down relative to the fixed pole tip every frame
-        // -- a periodic gap/overlap between pole and canopy that reads exactly as "hovering",
-        // regardless of how solid the ground shadow is. A real planted parasol's canopy doesn't
-        // bob vertically at its mount point; at most it sways side to side in the wind. Replaced
-        // the vertical translate with a small rotation pivoted at the pole tip (0, -50) instead --
-        // the canopy now visibly stays attached to the pole at every point in the sway, and still
-        // reads as alive/breezy rather than static.
+        // The canopy sways by a rotation about the pole tip (0, -50), never a vertical bob, which
+        // would open a gap at the mount and read as hovering.
         fillPaint.color = 0x55000000
         canvas.drawOval(-22f, -4f, 22f, 4f, fillPaint)
         fillPaint.color = parasolPoleColor
@@ -3935,17 +2773,14 @@ class SceneObjectRenderer(
         val sweep = 36
         for (i in 0 until 5) {
             fillPaint.color = customization.parasolStripeColor(i, dayBlend)
-            // One filled sector per stripe. It was a Path built from moveTo + arcTo + close, which
-            // is the same shape said in terms neither backend can share: a sector is a primitive
-            // both can generate directly, an arc segment inside a Path is not.
+            // A sector per stripe: a primitive both backends draw directly.
             canvas.drawWedge(0f, 0f, 34f, 180f + i * sweep, sweep.toFloat(), fillPaint)
         }
         canvas.restore()
     }
 
-    /** Body and belly are tintable masks; the beak and the feet carry their own orange in the V2
-     * artwork and are blitted untinted, where they used to be white masks multiplied by a
-     * constant. Waddle rotation stays a `canvas.rotate` around the whole group, same as before. */
+    /** Body and belly are tintable masks; the beak and the feet carry their own orange and are
+     * blitted untinted. The waddle is one `canvas.rotate` around the whole group. */
     private fun drawPenguin(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val waddle = elapsed.sinAt(4f, r.idleSeed) * 4f
         drawGroundShadow(canvas, 16f)
@@ -3954,7 +2789,7 @@ class SceneObjectRenderer(
         val body = customization.colorFor(r.spec, dayBlend)
         drawTintedSprite(canvas, R.drawable.penguin_body, -14f, -45f, body)
         drawTintedSprite(canvas, R.drawable.penguin_belly, -9f, -38f, penguinBellyColor)
-        // -45 is the very top of the V2 body, above the eyes; the face sits around -37.
+        // -45 is the very top of the body, above the eyes; the face sits around -37.
         drawSprite(canvas, R.drawable.penguin_beak, -6f, -37f)
         drawSprite(canvas, R.drawable.penguin_feet, -10f, 0f)
         canvas.restore()
@@ -3970,40 +2805,33 @@ class SceneObjectRenderer(
     }
 
     /** Body, head and both ears are one tintable sprite (`bunny_body`, drawn already-assembled so
-     * the ears can't drift from the head the way independently-positioned sprites risked); the
-     * inner ear and the tail are fixed art blitted on top. Ear wiggle now rotates the whole bunny slightly rather than each ear
-     * independently, since the ears are baked into the same bitmap as the body -- a small
-     * trade-off for guaranteed attachment, same rationale as the palm tree's rigid-sway
-     * conversion documented above. */
+     * the ears cannot drift from the head); the inner ear and the tail are fixed art blitted on
+     * top. The ear wiggle rotates the whole bunny slightly, since the ears are in the body's bitmap. */
     private fun drawBunny(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val earWiggle = elapsed.sinAt(3f, r.idleSeed) * 2.5f
         val body = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 18f)
         canvas.save()
         canvas.rotate(earWiggle * 0.4f)
-        // -61, not -62: same one-unit lift as the snowman (defect D-9). The ears and tail move
-        // with it. The horizontal origin is deliberately not the content centre -- see the ear
-        // note below -- and is left alone.
+        // -61 stands the body's content bottom on the ground, as the snowman's -74 does. The
+        // horizontal origin is deliberately not the content centre -- see the ear note below.
         drawTintedSprite(canvas, R.drawable.bunny_body, -14f, -61f, body)
-        // The V2 ears occupy x -9.3..15.3, so their centre is at 3 and the two-ear inner patch --
-        // 14.7 units of content -- centres on it from here. At 6 it covered the right ear and
-        // hung the left patch in mid-air beside the head.
+        // The ears occupy x -9.3..15.3, so their centre is at 3 and the two-ear inner patch --
+        // 14.7 units of content -- centres on it from here.
         drawSprite(canvas, R.drawable.bunny_innerear, -4f, -57f)
         drawSprite(canvas, R.drawable.bunny_tail, -21f, -10f)
         canvas.restore()
     }
 
-    /** Sprite-blit conversion (aesthetic-pass batch 4): the 3-lobe body is one tinted sprite
-     * (`pumpkin_body`); stem+leaf stay a fixed-color accent sprite on top. */
+    /** The 3-lobe body is one tinted sprite (`pumpkin_body`); the stem and leaf are a fixed-colour
+     * accent sprite on top. */
     private fun drawPumpkin(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
         val base = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 16f)
         drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -30f, base)
-        // **The same switch that strips the tree crowns carves the pumpkins.** `halloweenEnabled`
-        // already exists, is already per-theme, already persists and is already in the backups, so
-        // a lantern needs no new setting -- only a face. It is drawn on the body's own canvas at
-        // the body's own origin, so it registers with the fruit rather than being positioned
-        // against it, and it is fixed art: a carved hole is not a colour a theme gets to pick.
+        // **The switch that strips the tree crowns carves the pumpkins.** The face is drawn on the
+        // body's own canvas at the body's own origin, so it registers with the fruit, and it is
+        // fixed art: a carved hole is not a colour a theme gets to pick.
         if (customization.halloweenEnabled) {
             drawSprite(canvas, R.drawable.pumpkin_face, -19f, -30f)
         }
@@ -4011,34 +2839,15 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The fire truck's own body, in the same local space [drawCar] establishes for every vehicle:
-     * ground contact at y=37, wheel centres at (-34, 26), (9.325, 26) and (34, 26).
-     *
-     * It exists because the fire truck used to be `car_body` tinted red with a ladder blitted
-     * over it, which gave it the same low-sedan outline as the taxi and the police car -- the
-     * one thing a fire engine must not have. `firetruck_body` is **300x159 px = 100x53 units**: a
-     * flat roof at y=-24 with the cab's own at -16, a cab window cut out of the paper, a body
-     * divided by a cream band over three locker doors, and a dark chassis bar along the floor.
-     *
-     * **Those two lines were both wrong before v5.6F, and they are the reason this paragraph
-     * names numbers at all.** They read "wheel centres at (+/-38, 28)" against constants of 34
-     * and a radius that put the centre at 26.5, and "`firetruck_body` is 300x162" against a PNG
-     * that had been 297x174 since v4.19. A comment that describes artwork has to be re-read when
-     * the artwork is redrawn, and neither of these was; the v5.6B proposal round found them by
-     * measuring.
-     *
-     * The ladder is drawn **first**, so the body's roof line paints over its lower rail and the
-     * ladder reads as carried on the roof rather than hovering above it. Its own origin was the
-     * other half of the defect: at `-60f, -32f` it sat clear of the sedan roof entirely, which is
-     * what made it look detached. The two warning lights stand on the cab roof, ahead of the
-     * ladder.
+     * The fire truck in [drawCar]'s local space: ground at y=37, wheel centres (-34, 26), (9.325, 26),
+     * (34, 26). `firetruck_body` is **300x159 px = 100x53 units**, its own outline, not a sedan's.
+     * The ladder is drawn **first**, so the roof line paints over its lower rail and it rides on the
+     * roof; the two warning lights stand on the cab roof, ahead of it.
      */
     private fun drawFireTruck(canvas: SceneCanvas, nightGlow: Float) {
         drawSprite(canvas, R.drawable.firetruck_ladder, FIRE_TRUCK_LADDER_X_UNITS, FIRE_TRUCK_LADDER_Y_UNITS)
         drawSprite(canvas, R.drawable.firetruck_body, FIRE_TRUCK_BODY_X_UNITS, FIRE_TRUCK_BODY_Y_UNITS)
-        // The beacons brighten toward night rather than gaining a layer: a colour that is already
-        // being painted costs nothing to change, and two lamps that stay the same shade at midnight
-        // as at noon are what made the traffic read as switched off.
+        // The beacons brighten toward night: a colour already painted costs nothing to change.
         fillPaint.color = ColorUtils.blendARGB(0xFFD6362E.toInt(), BEACON_RED_LIT, nightGlow)
         canvas.drawRect(
             FIRE_TRUCK_BEACON_RED_LEFT_X, FIRE_TRUCK_BEACON_TOP_Y_UNITS,
@@ -4058,12 +2867,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The amber-forward, red-aft pair that makes a vehicle's direction readable from the vehicle
-     * alone, drawn from the four sprites the whole fleet shares.
-     *
-     * The day pair is drawn first and always: a shell's own baked lens multiplies with the body
-     * colour and comes out whatever the paint is, so a fixed-art overlay is what keeps amber
-     * amber on a red car. The lit pair fades in over it after dark.
+     * The amber-forward, red-aft lamps that say which way a vehicle goes, from the fleet's four
+     * sprites: the day pair always, fixed art, so amber stays amber on a red car (a lens baked into
+     * the tinted shell would take the paint); the lit pair fades in over it after dark.
      */
     private fun drawVehicleLamps(
         canvas: SceneCanvas, nightGlow: Float,
@@ -4079,29 +2885,11 @@ class SceneObjectRenderer(
     }
 
     /**
-     * One seated bust, anchored on the sill at [x] and scaled by the vehicle's own occupant
-     * scale. A named method rather than a lambda: the draw path allocates nothing, and two seats
-     * would otherwise be two copies of the same five lines.
-     *
-     * ### The occupant faces the vehicle's front, and that costs one sign
-     *
-     * **The bust is mirrored on the x axis, always.** The whole vehicle -- body, glass, livery,
-     * lamps and both busts -- is already drawn inside `drawCar`'s own `scale(dir, 1)`, so a
-     * seated occupant *does* turn with the direction of travel and the driver is always at the
-     * leading seat. What was wrong is the sense: the seated artwork is drawn three-quarter with
-     * the hair mass toward -x, which puts the face toward +x, and +x in this vehicle's local
-     * frame is its **rear** (the art faces left, the driver sits at the negative
-     * [CAR_HEAD_X_UNITS]). So every occupant in every car was riding turned around, in
-     * both directions equally -- measured on the rendered frame with the amber and red lamps as
-     * the reference, which is what the lamps are there for.
-     *
-     * It was invisible until v4.25 because the family this replaced was drawn **frontal and
-     * symmetric**: a head with no side has no wrong side. The concept's own three-quarter styling
-     * is what gave it one.
-     *
-     * Mirroring about the seat rather than about the sprite's own centre is deliberate and it is
-     * free: the blit origin is the anchor, so a negative x scale reflects the drawing about the
-     * anchor and the eye axis stays exactly where the seat put it.
+     * One seated bust on the sill at [x], at the vehicle's occupant scale (a method, not a lambda: the
+     * draw path allocates nothing). **Always mirrored**: the seated artwork faces +x, and +x in the
+     * vehicle's frame is its **rear** (the vehicle art faces left, the driver at the negative
+     * [CAR_HEAD_X_UNITS]); `drawCar`'s `scale(dir, 1)` then turns the whole vehicle with its direction.
+     * Mirrored about the anchor, so the eye axis stays where the seat put it.
      */
     private fun drawSeatedOccupant(
         canvas: SceneCanvas,
@@ -4119,17 +2907,9 @@ class SceneObjectRenderer(
     }
 
     /**
-     * The four colours one seat wears.
-     *
-     * **A seated figure crosses nothing**, so there is no crossing number to deal from: its
-     * colours are a pure function of the car's own candidate identity and the seat, which is
-     * exactly the stability [SeatedOccupants] exists to give -- who is in a car does not change
-     * while the car is on the road, and neither should what they are wearing.
-     *
-     * The **outfit** is the exception and comes in from [SeatedOccupants.driverOutfit] and
-     * [SeatedOccupants.passengerOutfit]: an index into [PeopleColours.OUTFITS], dealt per seat so
-     * the two occupants of a car never wear the same colours and all five outfits reach the road.
-     * (Until v5.8C both seats took one index out of two, so both wore the same colours.)
+     * The four colours one seat wears: a seated figure crosses nothing, so they are a function of
+     * the car's candidate identity and the seat, stable on the road. The [outfit] is dealt per seat
+     * ([SeatedOccupants.driverOutfit]), so two occupants never match and all five outfits ride.
      */
     private fun carColours(
         spec: CarObject,
@@ -4149,13 +2929,9 @@ class SceneObjectRenderer(
 
 
     /**
-     * Sprite-blit conversion (aesthetic-pass batch 3): body/window are now bitmap blits instead
-     * of a `Path`+2 `drawRect` calls every frame, and the single generic car now comes in 4
-     * vehicle types (see [CarType]) -- [CarType.PLAIN] keeps the exact same user-tintable
-     * behavior as before (`customization.colorFor`), the police car and the taxi use fixed
-     * real-world colors plus their own accessory sprites (light bar and stripe; chequer band and
-     * roof sign) blitted on top, and the fire truck has its own body ([drawFireTruck]). Wheels
-     * stay vector: two filled discs each ([drawWheel]), at each body's own wheelbase.
+     * A vehicle ([CarType]): its [CarShell]'s body and glass, the plain car in the user's colour, the
+     * police car and the taxi in fixed colours with their accessories, or the fire truck's own body
+     * ([drawFireTruck]); wheels are discs ([drawWheel]) at each body's wheelbase.
      */
     private fun drawCar(canvas: SceneCanvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
         val margin = vehicleEdgeMarginPx(screenHeight)
@@ -4163,29 +2939,16 @@ class SceneObjectRenderer(
         val rawX = c.progress * travel - margin
         val x = if (c.spec.reverse) screenWidth - rawX else rawX
         val y = c.spec.laneYFraction * screenHeight
-        // **The V2 vehicle artwork faces left**, so the unflipped blit is the one that belongs to
-        // a car driving leftward -- the opposite of what the shipped set was authored for. The
-        // sign was not touched when the artwork was replaced, which is why every car on the road
-        // drove backwards. Read it off the art rather than from this comment if it changes again:
-        // the `car_body_*` shells' long bonnet is at their left end and the `car_window_*` raked
-        // edge is on the same side, and a windscreen rakes toward the front.
+        // **The vehicle artwork faces left** (the shells' long bonnet and the glass's raked edge are
+        // at their left end), so the unflipped blit drives leftward.
         val dir = if (c.spec.reverse) 1f else -1f
 
-        // Which of the three bodies this car is. Resolved once, when the runtime was built, from
-        // the spec's own immutable fields -- never here, and never from a list index. See
-        // [CarShell.forCar].
+        // Resolved once with the runtime ([CarShell.forCar]), never here.
         val shell = c.shell
         val isFireTruck = c.spec.type == CarType.FIRE_TRUCK
 
-        // A vehicle is on the ground plane like everything else, so its size comes from the same
-        // projection: its own lane's [SceneSpace.perspectiveScaleAt], not a flat global factor.
-        // Cars used to be drawn at one fixed scale whatever lane they were in, which is what let
-        // a car end up taller than a pedestrian and made the two lanes read as one row at two
-        // heights rather than as two depths.
-        //
-        // All three car bodies share one base scale, because they share one metre-per-unit
-        // ([SceneSpace.CAR_UNIT_METRES]) -- that is what keeps a unit the same pixel across the
-        // family even though the three are different heights.
+        // Sized by the projection at its own lane, as everything on the ground; the three car bodies
+        // share one base scale, being one metre-per-unit ([SceneSpace.CAR_UNIT_METRES]).
         val vehicleScale = (
             if (isFireTruck) SceneSpace.FIRE_TRUCK_BASE_SCALE else SceneSpace.CAR_BASE_SCALE
             ) * SceneSpace.perspectiveScaleAt(c.spec.laneYFraction) * SceneSpace.sceneScale(screenHeight)
@@ -4195,20 +2958,13 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(dir * vehicleScale, vehicleScale)
-        // Aesthetic-pass batch 5 fix: the redrawn car's own coordinates put the wheel-bottom at
-        // local y=37 (wheel centre 37 minus the radius: 25 for a car's 12-unit wheel), not y=0
-        // like the old body did -- every other part of this file (drawRoad's own margin,
-        // drawGroundShadow) assumes y=0 is an object's ground contact point, so the car was
-        // drawing well below where the road/shadow expected it, which is what let it visually
-        // spill outside the road. Shifting the whole car up by that same 37 units here re-aligns
-        // it without having to renumber every coordinate below.
+        // The wheel-bottom is at local y=37 ([VEHICLE_GROUND_Y_UNITS]): lifted here, not renumbered.
         canvas.translate(0f, -VEHICLE_GROUND_Y_UNITS)
 
         // On the road, not on the bonnet. See [VEHICLE_GROUND_Y_UNITS].
         canvas.save()
         canvas.translate(0f, VEHICLE_GROUND_Y_UNITS)
-        // Each body's own footprint: an estate is 32 units longer than a compact and used to
-        // cast the same shadow as it.
+        // Each body's own footprint: an estate is 32 units longer than a compact.
         drawGroundShadow(
             canvas,
             if (isFireTruck) FIRE_TRUCK_SHADOW_HALF_LENGTH_UNITS else shell.shadowHalfLengthUnits,
@@ -4216,9 +2972,6 @@ class SceneObjectRenderer(
         )
         canvas.restore()
 
-        // The fire truck has its own body. Every other type shares the low-sedan silhouette and
-        // differs only by colour and an accessory sprite; the fire truck did too, which is why it
-        // read as a red car with a ladder floating above it rather than as a fire engine.
         if (isFireTruck) {
             drawFireTruck(canvas, nightGlow)
         } else {
@@ -4227,17 +2980,13 @@ class SceneObjectRenderer(
                 CarType.TAXI -> 0xFFFFC61A.toInt()
                 else -> customization.colorFor(c.spec, dayBlend)
             }
-            // One of the three v4.19 bodies, with its glass. Both come from [shell], so a car
-            // cannot end up wearing one body's shell and another's glazing.
+            // Body and glass from the same [shell].
             drawTintedSprite(canvas, shell.bodyRes, shell.bodyXUnits, shell.bodyYUnits, bodyColor)
             drawSprite(canvas, shell.glassRes, shell.glassSpriteXUnits, CAR_GLASS_SPRITE_Y_UNITS)
 
             when (c.spec.type) {
                 CarType.POLICE -> {
-                    // The livery stripe was blitted at (-70,27): 20 units clear of the body's own
-                    // left edge and below its floor, so it drew as a loose bar lying on the road
-                    // under the car rather than as a stripe along its side -- and left the white
-                    // car itself completely unmarked. It runs along the doors now.
+                    // The livery stripe runs along the doors, standing on the sill.
                     drawSprite(canvas, R.drawable.police_stripe, CAR_LIVERY_X_UNITS, CAR_SILL_Y_UNITS)
                     drawSprite(
                         canvas, R.drawable.police_lightbar,
@@ -4245,13 +2994,16 @@ class SceneObjectRenderer(
                     )
                     val lit = litVehicleAlpha(nightGlow)
                     if (lit > 0) {
-                        fillPaint.setAlphaWithoutAllocating(lit)
+                        // Colour, then alpha: the alpha lives in the colour, and set before it would be lost,
+                        // the beacons coming on whole instead of with the other lamps ([litVehicleAlpha]).
                         fillPaint.color = BEACON_RED_LIT
+                        fillPaint.setAlphaWithoutAllocating(lit)
                         canvas.drawRect(
                             POLICE_LAMP_RED_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
                             POLICE_LAMP_RED_RIGHT_X, POLICE_LAMP_BOTTOM_Y_UNITS, fillPaint,
                         )
                         fillPaint.color = BEACON_BLUE_LIT
+                        fillPaint.setAlphaWithoutAllocating(lit)
                         canvas.drawRect(
                             POLICE_LAMP_BLUE_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
                             POLICE_LAMP_BLUE_RIGHT_X, POLICE_LAMP_BOTTOM_Y_UNITS, fillPaint,
@@ -4259,18 +3011,14 @@ class SceneObjectRenderer(
                         fillPaint.setAlphaWithoutAllocating(255)
                     }
                 }
-                // Same defect as the police stripe, one unit less obvious: the chequer straddled
-                // the body's floor and the wheels instead of banding the doors.
+                // The chequer bands the doors, as the police stripe does.
                 CarType.TAXI -> {
                     drawSprite(canvas, R.drawable.taxi_checker, CAR_LIVERY_X_UNITS, CAR_SILL_Y_UNITS)
-                    // The roof sign is what tells a yellow car from a yellow car. It stands on the
-                    // compact's roof, centred on it the way the police light bar is centred on the
-                    // saloon's.
+                    // The roof sign, centred on the compact's roof as the light bar on the saloon's.
                     drawSprite(canvas, R.drawable.taxi_sign, TAXI_SIGN_X_UNITS, TAXI_SIGN_Y_UNITS)
                     val lit = litVehicleAlpha(nightGlow)
                     if (lit > 0) {
-                        // The "for hire" light, which is the one part of a taxi that is meant to be
-                        // seen from down the street after dark.
+                        // The "for hire" light.
                         fillPaint.color = TAXI_SIGN_LIT
                         fillPaint.setAlphaWithoutAllocating(lit)
                         canvas.drawRect(
@@ -4282,9 +3030,7 @@ class SceneObjectRenderer(
                 }
                 else -> {}
             }
-            // The lamps at both ends, at this body's own seats. v4.18 had one full-car-width
-            // overlay per state, almost entirely transparent and valid for one shell only; the
-            // fleet now shares four small lenses and each body says where they land.
+            // The fleet's lamps, at this body's own seats.
             drawVehicleLamps(
                 canvas, nightGlow,
                 shell.lampFrontXUnits, shell.lampFrontYUnits,
@@ -4292,41 +3038,12 @@ class SceneObjectRenderer(
             )
         }
 
-        // The occupants: three-quarter busts in the pedestrians' own style, sized off the height
-        // table, seated in the glasshouse.
-        //
-        // rc2 rebuilt the sizing (the height table, [CAR_OCCUPANT_SCALE]) and rc4 rebuilt the
-        // face: the maintainer chose one human language for the whole scene, so a person in a
-        // car is drawn in the pavement's own style, seatbelt on the chest -- three-quarter since
-        // v4.25 -- from [PeopleLayerTable.CAR] and coloured at the blit like every other figure.
-        //
-        // **v4.19: children ride.** The driver is always an adult; the passenger is any of the
-        // four families, boy and girl included. v4.18 could not seat a child -- a child's bust
-        // is wider across the shoulders and scarf than an adult's (19.5 and 21.6 units against
-        // 18.4), which dropped the pillar light to 11-15% on the one cabin that shell could
-        // hold, and item 4 of `BACKLOG_v4_19.md` recorded it as a decision rather than a defect.
-        // The three v4.19 cabins were drawn around the widest of them instead, and the seat
-        // pitch was chosen on the winter girl rather than on the adults: see [CAR_HEAD_X_UNITS]
-        // for the twelve measured combinations. So the 16 child busts, 1.136 MiB that had never
-        // been decoded in any release, are content now.
-        //
-        // **The passenger is drawn before the driver**, because if the two ever overlap the person
-        // in front is the one who occludes. On the artwork v4.25 ships they do not: measured over
-        // every seatable pair and every row of the sprites, the closest the two occupants' ink
-        // comes is **2.06 units of car** -- and it was 1.27 on v4.24's family at the old 23-unit
-        // pitch, so this has never been an overlap that a reorder would have exposed. The order is
-        // kept because the margin is one or two units and the next family need not inherit it.
-        //
-        // Drawn AFTER the livery deliberately: the stripe and the chequer band the doors below
-        // the sill, the busts stand on the sill inside the glass, and `VehicleDrawOrderTest`
-        // asserts the sequence so a reorder cannot quietly put paint over a person again.
-        //
-        // **Who is in the car is dealt, not hashed** -- see [SeatedOccupants], which also records
-        // what the hash was doing. The short version: it read `driverSeed % 2` off a seed with ten
-        // possible values that were all odd, so the driver was a woman in every car the app has
-        // ever drawn, and no boy has ever been a passenger. Everything about stability is
-        // unchanged: this is still a pure function of the candidate's own immutable lane and queue
-        // slot, resolved here rather than anywhere per-frame.
+        // The occupants ([PeopleLayerTable.CAR]), sized off the height table ([CAR_OCCUPANT_SCALE]) and
+        // coloured at the blit like every figure. The driver is an adult, the passenger any family:
+        // the cabins and the pitch are measured on the widest bust, the winter girl's ([CAR_HEAD_X_UNITS]).
+        // The passenger is drawn first, so the one in front would occlude (their ink keeps 2.06 units
+        // apart today). After the livery, so no paint covers a person (`VehicleDrawOrderTest`). Who
+        // rides is dealt, not hashed, from the candidate's immutable slot ([SeatedOccupants]).
         val driverKindIdx = SeatedOccupants.driverKind(c.spec)
         val outfitIdx = SeatedOccupants.driverOutfit(c.spec)
         val seasonIdx = outdoorSeasonIndex()
@@ -4339,16 +3056,8 @@ class SceneObjectRenderer(
             )
         } else {
             if (c.spec.type.seatsTwo) {
-                // **The passenger is never the driver's own family**, which is a rule rather than
-                // a roll of the seed: two occupants of one family are the same hair, the same
-                // clothing and the same silhouette, so the car would read as one person drawn
-                // twice. v4.18 could only alternate the two adults; with children seated the
-                // choice is over the other three families, and [SeatedOccupants] deals it so all
-                // four actually occur -- under the old hash only two of them ever did.
-                //
-                // The passenger has an outfit of its own ([SeatedOccupants.passengerOutfit]),
-                // never the driver's: two occupants in one set of colours read as one person drawn
-                // twice, which is the same look the family rule above avoids.
+                // **Never the driver's family, never the driver's outfit**: either would read as one
+                // person drawn twice ([SeatedOccupants]).
                 drawSeatedOccupant(
                     canvas, CAR_PASSENGER_X_UNITS + shell.seatOffsetXUnits, CAR_PASSENGER_Y_UNITS,
                     occupantScale,
@@ -4360,9 +3069,7 @@ class SceneObjectRenderer(
                     ),
                 )
             }
-            // **The pair moves together, by this body's own offset.** Shifting one seat would
-            // change the seat pitch, which is the one thing about the pair that is shared: see
-            // [CarShell.seatOffsetXUnits] for why a shift is needed at all and how it is derived.
+            // The pair moves together, by this body's offset ([CarShell.seatOffsetXUnits]): the pitch is shared.
             drawSeatedOccupant(
                 canvas, CAR_HEAD_X_UNITS + shell.seatOffsetXUnits, CAR_HEAD_Y_UNITS, occupantScale,
                 PeopleLayerTable.CAR[driverKindIdx][seasonIdx],
@@ -4370,12 +3077,8 @@ class SceneObjectRenderer(
             )
         }
 
-        // Wheels: a disc of ink with a smaller disc of light card on it, drawn **after** the
-        // body and its occupants, because in «Cut-out» the wheel is a whole circle glued on top
-        // of the paper rather than a tyre showing through an arch. The treatment is shared by
-        // every vehicle in the fleet; where the wheels stand is not, because each body carries its
-        // own wheelbase. The estate's are asymmetric (-42 and +40), which is what a long load bay
-        // behind a short rear overhang looks like.
+        // Wheels **after** the body and the occupants: in «Cut-out» a wheel is a whole disc glued on
+        // the paper. Each body has its own wheelbase (the estate's -42 and +40, a long load bay).
         val wheelFrontX = if (isFireTruck) -FIRE_TRUCK_WHEEL_X_UNITS else shell.wheelFrontXUnits
         val wheelRearX = if (isFireTruck) FIRE_TRUCK_WHEEL_X_UNITS else shell.wheelRearXUnits
         val wheelRadius = if (isFireTruck) FIRE_TRUCK_WHEEL_RADIUS_UNITS else CAR_WHEEL_RADIUS_UNITS
@@ -4392,12 +3095,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * One wheel: a disc of ink with a smaller disc of light card centred on it.
-     *
-     * Two fills and no stroke since v5.6F. The hub was a 3-unit ring, and a ring is the one shape
-     * this scale cannot carry -- at 0.88 px per unit in the near lane its stroke resolved to a
-     * single grey pixel on each side of a dark disc and read as noise. A filled hub at 0.34 of the
-     * tyre is 7.2 px across there, which is the size the two lamp lenses are.
+     * One wheel: a disc of ink and a smaller disc of light card, two fills and no stroke (a ring at
+     * 0.88 px a unit would be a grey pixel each side, noise).
      */
     private fun drawWheel(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, hubRadius: Float) {
         fillPaint.color = WHEEL_TYRE_COLOUR

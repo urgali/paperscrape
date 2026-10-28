@@ -3,17 +3,17 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Where a `(resId, level)` pair sits in [GlTextureCache]'s table, found without scanning it.
  *
- * The render thread asks for an uploaded sprite once per blit -- about 400 times a frame -- and until
- * v5.10B the answer came from a linear scan of the whole table, which only ever grows (one entry per
- * sprite per detail level a scene has drawn it at, 250-400 for a theme) and keeps the people and the
- * cars, registered last, at its far end: `drawSprite` and the scan were 8.5 % of the render thread
- * (`simpleperf`, v5.10A). This is an open-addressing hash over the same keys, kept at most half full,
+ * The render thread asks for an uploaded sprite once per blit -- about 400 times a frame -- and a
+ * linear scan of the whole table, which only ever grows (one entry per sprite per detail level a
+ * scene has drawn it at, 250-400 for a theme) and keeps the people and the cars, registered last, at
+ * its far end, is too slow for that: `drawSprite` and such a scan measured 8.5 % of the render thread
+ * (`simpleperf`). This is an open-addressing hash over the same keys, kept at most half full,
  * with primitive arrays only: nothing is boxed and nothing is allocated on a lookup, which is why it is
- * not a `Map` (`AI_PROJECT_RULES.md` 5.11).
+ * not a `Map`: a boxed key is an allocation on every lookup.
  *
- * **It answers exactly what the scan answered.** A pair is added once, when it is uploaded, and
+ * **It answers exactly what a linear scan answers.** A pair is added once, when it is uploaded, and
  * [GlTextureCache] never adds a pair it already holds, so there is one entry per key and the index it
- * gives is the one the scan would have stopped at. `SpriteEntryIndexTest` checks it against a linear
+ * gives is the one a scan would stop at. `SpriteEntryIndexTest` checks it against a linear
  * search over random tables, growth and clears included.
  *
  * Pure Kotlin, no Android type, so it runs on the JVM. Not thread-safe: it belongs to one render

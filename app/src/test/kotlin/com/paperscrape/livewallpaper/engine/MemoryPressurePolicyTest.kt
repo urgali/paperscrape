@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -144,8 +145,8 @@ class MemoryPressurePolicyTest {
 
     @Test
     fun `mirrored constants match the platform values`() {
-        // Checked against the API 36 android.jar rather than recalled. If a future platform
-        // renumbers these, the mapping above silently becomes wrong.
+        // The values of `ComponentCallbacks2`, mirrored so the policy runs off the device. If a
+        // platform renumbers these, the mapping above silently becomes wrong.
         assertEquals(5, MemoryPressurePolicy.TRIM_MEMORY_RUNNING_MODERATE)
         assertEquals(10, MemoryPressurePolicy.TRIM_MEMORY_RUNNING_LOW)
         assertEquals(15, MemoryPressurePolicy.TRIM_MEMORY_RUNNING_CRITICAL)
@@ -153,6 +154,92 @@ class MemoryPressurePolicyTest {
         assertEquals(40, MemoryPressurePolicy.TRIM_MEMORY_BACKGROUND)
         assertEquals(60, MemoryPressurePolicy.TRIM_MEMORY_MODERATE)
         assertEquals(80, MemoryPressurePolicy.TRIM_MEMORY_COMPLETE)
+    }
+
+    /**
+     * **Critical memory with the wallpaper on screen: the GPU is asked, and the engine that is drawing keeps its atlas.**
+     *
+     * The atlas is the page the next frame draws from: dropped, it comes straight back -- the white pixel packed into it
+     * re-creates the whole page -- and every sprite of the frame is decoded and uploaded again, so no memory is given
+     * back and the next frame stalls. The drawing engine gives back the textures outside the atlas; a hidden one still
+     * gives back everything, the page included.
+     */
+    @Test
+    fun `a trim keeps the atlas of the engine that is drawing and takes everything from a hidden one`() {
+        val critical = MemoryPressurePolicy.actionFor(MemoryPressurePolicy.TRIM_MEMORY_RUNNING_CRITICAL, anyEngineVisible = true)
+        assertTrue("critical memory with the wallpaper on screen asks the GPU", MemoryPressurePolicy.dropsGpuTextures(critical))
+        assertEquals(GpuTrim.STANDALONE_TEXTURES, MemoryPressurePolicy.gpuTrimFor(engineDrawing = true))
+        assertEquals(GpuTrim.EVERYTHING, MemoryPressurePolicy.gpuTrimFor(engineDrawing = false))
+    }
+
+    /**
+     * **The render thread asks for the drawing engine's trim on the one path that draws, and for a hidden engine's on the
+     * two that do not**: in `GlRenderThread`'s loop, the window gone and the wallpaper hidden trim everything, and the trim
+     * after a prepared frame, before it is drawn, keeps the atlas; [GpuTrim.STANDALONE_TEXTURES] empties the standalone
+     * textures alone (`GlSceneTarget.trimTextures`) and [GpuTrim.EVERYTHING] the whole cache. Read off the two sources, whole
+     * lines with the comments taken off: with the drawing path's `true` turned to `false` the next frame stalls on a page
+     * packed again from nothing, which only the phone sees.
+     */
+    @Test
+    fun `the render thread keeps the atlas only on the path that draws`() {
+        val thread = codeLines(source("engine/GlRenderThread.kt"))
+        assertEquals(
+            "the three trims of the render loop, in order",
+            listOf(
+                "applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = false))",
+                "applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = false))",
+                "applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = true))",
+            ),
+            thread.filter { it.startsWith("applyTrim(") },
+        )
+        val drawing = thread.indexOf("applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = true))")
+        val prepared = thread.indexOfFirst { it.startsWith("if (!prepareFrame(currentHolder, ") }
+        val drawn = thread.indexOfFirst { it.startsWith("if (drawFrame(") }
+        assertTrue("the drawing engine's trim comes after the frame is prepared", prepared in 0 until drawing)
+        assertTrue("and before it is drawn", drawing < drawn)
+        assertTrue(thread.contains("GpuTrim.STANDALONE_TEXTURES -> target.trimTextures()"))
+        assertTrue(thread.contains("GpuTrim.EVERYTHING -> target.trimTexturesWhileHidden()"))
+
+        val target = codeLines(source("engine/GlSceneTarget.kt"))
+        val trim = block(target, "fun trimTextures() {")
+        assertTrue("the drawing engine's trim empties the standalone textures", trim.contains("textures.clearStandalone()"))
+        assertFalse("and leaves the atlas", trim.contains("textures.clear()"))
+        assertTrue(block(target, "fun trimTexturesWhileHidden() {").contains("textures.clear()"))
+    }
+
+    /** [lines] from the one that is [header] to the brace that closes it. */
+    private fun block(lines: List<String>, header: String): List<String> {
+        val start = lines.indexOf(header)
+        assertTrue("$header is gone", start >= 0)
+        var depth = 0
+        for (i in start until lines.size) {
+            depth += braces(lines[i])
+            if (depth <= 0) return lines.subList(start, i + 1)
+        }
+        return lines.subList(start, lines.size)
+    }
+
+    /** Braces opened less braces closed on [line]. */
+    private fun braces(line: String): Int = line.split("{").size - line.split("}").size
+
+    /** [text]'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
+
+    private fun source(path: String): String {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/$path"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "$prefix$suffix")
+                if (f.isFile) return f.readText()
+            }
+            dir = dir.parentFile
+        }
+        error("source not found: $suffix")
     }
 }
 
@@ -365,7 +452,7 @@ class SpriteCacheIndexTest {
         index.put(30, 100)
         index.find(10) // most-recently-used order is now 10, 30, 20
         index.remove(30)
-        // 20 was the least recently used of what remains, so it must be evicted next.
+        // 20 is the least recently used of what remains, so it must be evicted next.
         val evicted = index.evictLeastRecentlyUsed()
         assertTrue(evicted >= 0)
         assertEquals(1, index.size)

@@ -56,9 +56,8 @@ enum class AutoColorMode(val storageId: String) {
  *
  * ### Why CIELAB, and why the constants are not fitted to the artwork
  *
- * v4.12 worked in HSL and set its factors by fitting the 41 day/night pairs the built-in themes
- * author by hand. **That was the wrong thing to fit**, and re-measuring it is what produced this
- * rewrite. Stratified by how light the daytime colour is, those pairs do not describe one rule:
+ * The 41 day/night pairs the built-in themes author by hand are **the wrong thing to fit** factors
+ * to. Stratified by how light the daytime colour is, those pairs do not describe one rule:
  *
  * | daytime colour | authored night / day, as a ratio of `L*` |
  * |---|---|
@@ -69,13 +68,13 @@ enum class AutoColorMode(val storageId: String) {
  *
  * A single multiplier cannot be right for all four, because they are not one behaviour: they are
  * per-object artistic decisions about what a thing looks like at night. Fitting the median across
- * them produced a compromise that satisfied nothing, and in particular left white at `#A2A2A2` —
- * a mid grey, which is what "the night colours are still too light" was reporting.
+ * them gives a compromise that satisfies nothing, and in particular leaves white at `#A2A2A2` —
+ * a mid grey, a night colour still too light.
  *
  * So the rule is stated from the requirement instead, and the requirement is a short list: a night
  * colour must read as night, must stay recognisably the colour the user picked, must not collapse
- * to grey or to black, and white must go clearly darker *and* cooler. That is a design brief; the
- * lightness factor was then anchored on the one class of authored pairs that shares a single
+ * to grey or to black, and white must go clearly darker *and* cooler. That is a design requirement; the
+ * lightness factor is anchored on the one class of authored pairs that shares a single
  * intent -- the built-in themes' night hills -- rather than on a fit across all of them (see
  * [NIGHT_LIGHTNESS_FACTOR]).
  *
@@ -85,8 +84,8 @@ enum class AutoColorMode(val storageId: String) {
  *
  * ### Gamut mapping, not clipping
  *
- * Darkening a saturated colour usually pushes it outside sRGB. Clipping the channels there is what
- * turned a deep red into `#8C001A` — green pinned at zero and the hue dragged towards magenta.
+ * Darkening a saturated colour usually pushes it outside sRGB. Clipping the channels there would
+ * turn a deep red into `#8C001A` — green pinned at zero and the hue dragged towards magenta.
  * [toSrgb] instead reduces chroma until the colour fits, which keeps the hue and costs only
  * saturation, exactly the trade the eye forgives. It is why "the colour stays recognisable" holds
  * at the saturated end.

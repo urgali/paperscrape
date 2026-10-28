@@ -11,7 +11,9 @@ import com.paperscrape.livewallpaper.engine.customThemeDataFromJsonString
 import com.paperscrape.livewallpaper.engine.customThemeDataOrNull
 import com.paperscrape.livewallpaper.engine.toJsonString
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 /** Shared with the instrumented recovery test, which corrupts a scratch file named after it. */
 internal const val CUSTOM_THEME_STORE_NAME = "paperscrape_custom_themes"
@@ -49,18 +51,32 @@ open class CustomThemeStore(private val context: Context) {
         }
 
     /**
+     * The saved themes as stored, read once, or `null` when the store cannot be read just now (an `IOException`):
+     * [dataFlow] answers such a read with no themes at all, which a backup would keep as the user's. Open, as the class
+     * is, so a test can make the read fail.
+     */
+    open suspend fun readOnce(): CustomThemeData? {
+        val prefs = try {
+            context.customThemeDataStore.data.first()
+        } catch (_: IOException) {
+            return null
+        }
+        return customThemeDataFromJsonString(prefs[Keys.DATA_JSON])
+    }
+
+    /**
      * Applies [transform] to the stored data — **unless the stored data cannot be read**.
      *
-     * ### BCK-05: the read-modify-write that ate the themes
+     * ### A read-modify-write must not eat the themes
      *
      * [customThemeDataFromJsonString] answers `EMPTY` for a blob it cannot parse, which is right for
-     * *reading*: a corrupt store shows no custom themes rather than crashing the wallpaper. It was
-     * badly wrong here. This is a read-modify-write, so the next preference the user touched read
-     * `EMPTY`, applied the change to it, and wrote the result back over bytes that were still on
+     * *reading*: a corrupt store shows no custom themes rather than crashing the wallpaper. It would
+     * be badly wrong here. This is a read-modify-write, so the next preference the user touched would
+     * read `EMPTY`, apply the change to it, and write the result back over bytes that are still on
      * disk — turning "the app cannot read your themes" into "your themes are gone", with no step in
      * between and nothing to recover from.
      *
-     * The distinction the fix needs is one the reader deliberately does not make: **absent** and
+     * The distinction this needs is one the reader deliberately does not make: **absent** and
      * **unreadable** are different. Absent is the normal empty store and must be transformed as
      * usual. Unreadable means the only copy of the user's themes is the blob already there, and the
      * one thing that must not happen to it is being replaced by a document derived from `EMPTY`.
@@ -69,12 +85,10 @@ open class CustomThemeStore(private val context: Context) {
      * the tap they just made, and the UI already shows them an empty theme list. It buys them a
      * file that still contains their themes.
      *
-     * **Since v5.9A (item 18) "unreadable" means a document that is not JSON at all.** Until then
-     * one saved theme the reader could not parse made the whole document read as unreadable, so
-     * every other saved theme vanished from the Themes screen and every edit landed here and was
-     * dropped. Now [customThemeDataOrNull] reads entry by entry, the theme that fails is carried in
-     * [CustomThemeData.unreadable], and [toJsonString] writes it back byte for byte beside the
-     * edit -- so the edit is applied and nothing is lost.
+     * **"Unreadable" means a document that is not JSON at all.** [customThemeDataOrNull] reads
+     * entry by entry, the theme that fails is carried in [CustomThemeData.unreadable], and
+     * [toJsonString] writes it back byte for byte beside the edit -- so the edit is applied and
+     * nothing is lost.
      */
     private suspend fun update(transform: (CustomThemeData) -> CustomThemeData) {
         context.customThemeDataStore.edit { prefs ->
@@ -115,8 +129,8 @@ open class CustomThemeStore(private val context: Context) {
     }
 
     /**
-     * Renames a standalone saved theme -- **both copies of its name** (v5.9B, I-01). The screens show
-     * `theme.displayName`; this used to write `name` alone, so the rename reached the file and no
+     * Renames a standalone saved theme -- **both copies of its name**. The screens show
+     * `theme.displayName`; writing `name` alone would take the rename to the file and to no
      * screen. See [CustomThemeEntry.name].
      */
     suspend fun renameCustomTheme(id: String, newName: String) = update { data ->
@@ -138,7 +152,7 @@ open class CustomThemeStore(private val context: Context) {
      * [replaceAllJson], which this delegates to.) The whole blob is one DataStore value, so this is
      * a single atomic replacement by construction.
      *
-     * **`open`** (v4.6), **like [replaceAllJson]**: [BackupRepository]'s rollback path is only
+     * **`open`, like [replaceAllJson]**: [BackupRepository]'s rollback path is only
      * reachable when one of the two stores fails, and there is no honest way to make a real
      * DataStore fail on demand. The instrumented test overrides [replaceAllJson], which both this
      * and the import reach, to throw. The class is `open` for the same reason and for nothing else
@@ -155,7 +169,7 @@ open class CustomThemeStore(private val context: Context) {
      * the bytes staged in the preference store, not a second serialisation of a parsed copy. That is
      * what makes completing an interrupted import idempotent: re-applying the pending document is
      * bit-for-bit the same write, whether it happens now or on the next start. See
-     * `WallpaperPrefs.Keys.PENDING_IMPORT_THEMES` (BCK-06).
+     * `WallpaperPrefs.Keys.PENDING_IMPORT_THEMES`.
      */
     open suspend fun replaceAllJson(json: String) {
         context.customThemeDataStore.edit { prefs ->

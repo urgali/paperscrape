@@ -7,17 +7,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * **"Rename" changes the name the user sees** (v5.9B, inventory row I-01).
+ * **"Rename" changes the name the user sees.**
  *
- * A saved theme carries its name twice: `CustomThemeEntry.name`, which "Rename" wrote, and
+ * A saved theme carries its name twice: `CustomThemeEntry.name`, which "Rename" writes, and
  * `theme.displayName`, which every screen reads -- the gallery card through the entry's theme, the
  * preview at the top of the settings, the Theme row, Seasons and World & scene through
- * [ThemeCatalog.byId]. From v1.0 to v5.9A the rename reached the first and none of the second, so
- * the file said "Night walk 2" and every screen went on saying "Night walk" (measured on the BV6600
- * by v5.9A, `consegna_v5_9a/foto/10`, `15`).
- *
- * Written with nothing v5.9A did not already have, so the same class runs on that tree: there the
- * four tests about a renamed theme are red and the two guards are green.
+ * [ThemeCatalog.byId]. A rename made by a build up to v5.9A wrote the first and not the second, so
+ * a store saved by one says "Night walk 2" in the entry and "Night walk" in its theme: it is read
+ * with the entry's name in both, or every screen would go on saying the old name.
  */
 class SavedThemeNameTest {
 
@@ -72,9 +69,9 @@ class SavedThemeNameTest {
     }
 
     /**
-     * The guard: a theme nobody renamed is read and written exactly as before, byte for byte.
-     * Standalone themes only -- a saved built-in with no cars is repaired on read (v5.x's car
-     * repair), which is a different reason for the bytes to move.
+     * The guard: a theme nobody renamed is read and written back unchanged, byte for byte.
+     * Standalone themes only -- a saved built-in with no cars is repaired on read, which is a
+     * different reason for the bytes to move.
      */
     @Test
     fun `a theme never renamed reads and writes exactly as before`() {

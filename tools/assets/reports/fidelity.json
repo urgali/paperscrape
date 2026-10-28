@@ -983,47 +983,6 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        2,
-        2,
-        58,
-        26
-      ],
-      "candidate_padding_fraction": 0.1703703703703704,
-      "candidate_size": [
-        60,
-        27
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "deco_bat",
-      "reference_bbox": [
-        2,
-        2,
-        58,
-        26
-      ],
-      "reference_padding_fraction": 0.1703703703703704,
-      "reference_size": [
-        60,
-        27
-      ],
-      "size_match": true,
-      "total_pixels": 1620,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
         0,
         0,
         24,
@@ -1067,13 +1026,13 @@
       "candidate_bbox": [
         2,
         2,
-        61,
-        61
+        55,
+        55
       ],
-      "candidate_padding_fraction": 0.12295288485764677,
+      "candidate_padding_fraction": 0.13542628501077258,
       "candidate_size": [
-        63,
-        63
+        57,
+        57
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1084,16 +1043,16 @@
       "reference_bbox": [
         2,
         2,
-        61,
-        61
+        55,
+        55
       ],
-      "reference_padding_fraction": 0.12295288485764677,
+      "reference_padding_fraction": 0.13542628501077258,
       "reference_size": [
-        63,
-        63
+        57,
+        57
       ],
       "size_match": true,
-      "total_pixels": 3969,
+      "total_pixels": 3249,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2008,35 +1967,117 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        96,
-        198
+        1,
+        1,
+        34,
+        56
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.11549707602339176,
       "candidate_size": [
-        96,
-        198
+        36,
+        57
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "horseman_rider",
+      "name": "horseman_rider_arm",
+      "reference_bbox": [
+        1,
+        1,
+        34,
+        56
+      ],
+      "reference_padding_fraction": 0.11549707602339176,
+      "reference_size": [
+        36,
+        57
+      ],
+      "size_match": true,
+      "total_pixels": 2052,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        84,
+        123
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        84,
+        123
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "horseman_rider_body",
       "reference_bbox": [
         0,
         0,
-        96,
-        198
+        84,
+        123
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        96,
-        198
+        84,
+        123
       ],
       "size_match": true,
-      "total_pixels": 19008,
+      "total_pixels": 10332,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        0,
+        51,
+        54
+      ],
+      "candidate_padding_fraction": 0.019607843137254943,
+      "candidate_size": [
+        51,
+        54
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "horseman_rider_pumpkin",
+      "reference_bbox": [
+        1,
+        0,
+        51,
+        54
+      ],
+      "reference_padding_fraction": 0.019607843137254943,
+      "reference_size": [
+        51,
+        54
+      ],
+      "size_match": true,
+      "total_pixels": 2754,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
 
 /**
  * **The rule that says a golden may not warm a scene up through a storm, and the switch that lets
- * the one that does satisfy it.** `BACKLOG_v4_31.md` item 112.
+ * the one that does satisfy it.**
  *
  * Two halves, and neither is worth much without the other:
  *
@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
  * **Nothing here is probabilistic.** The shipped interval is `4 + U(0, 8)` s and the *first* one is
  * `4 + U(0, 6)` s, so both are at most 12 s: [STORM_SECONDS] of storm clock contains at least one
  * strike whatever the unseeded `Random` produces. That is why this can assert "it flashed" rather
- * than "it usually flashes", which is the distinction item 112 is about in the first place.
+ * than "it usually flashes".
  */
 @RunWith(AndroidJUnit4::class)
 class LightningPinTest {
@@ -40,7 +40,7 @@ class LightningPinTest {
         const val DELTA = 0.25f
         const val STORM_FRAMES = (STORM_SECONDS / DELTA).toInt()
 
-        /** Half the predicted lift of a strike frame (item 112: 21.8 predicted, 21.9 measured). */
+        /** Half the predicted lift of a strike frame (21.8 predicted, 21.9 measured). */
         const val FLASH_LIFT_THRESHOLD = 10.0
     }
 
@@ -176,7 +176,7 @@ class LightningPinTest {
      * Runs [scene] through the Canvas golden harness and hands back what it threw, or null.
      *
      * **The only `SceneGolden.assertMatches` call in this file, on purpose.** The Canvas golden
-     * count is taken by grepping for that call (`CLAUDE.md` §5), so every extra one here would be a
+     * count is taken by grepping for that call, so every extra one here would be a
      * golden that does not exist; there is one, it is this, and it is subtracted where the count is
      * written down. Caught outside the `try` as well: `fail` throws an `AssertionError` of its own,
      * and a catch that swallows it is a test that cannot report what it is testing for.
@@ -197,7 +197,7 @@ class LightningPinTest {
      * [PaperRenderer.lightningStrikesEnabled], so this is the sky a phone draws — and it must
      * still flash, or the fix would have quietly taken the lightning out of the wallpaper. The
      * pinned half is what a golden renders: it must never flash, and **two runs of it must be the
-     * same frame to the pixel**, which is the property item 112 says `wave-storm` did not have.
+     * same frame to the pixel**.
      *
      * **Why the two pinned runs rather than pinned against unpinned.** The obvious comparison —
      * "the pinned picture is the unpinned picture minus a veil" — is the coin itself: the measured

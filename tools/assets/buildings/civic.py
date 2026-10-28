@@ -1,36 +1,36 @@
 #!/usr/bin/env python3
-"""The three buildings of v5.13: the shop, the fire station and the police station.
+"""Three buildings: the shop, the fire station and the police station.
 
-The maintainer's request of 2026-10-11: three groups of buildings -- the towers, the shops (the
-restaurant, the bar and a new **shop**) and the public buildings (the school and a new **fire
-station** and **police station**) -- in the style of the buildings the street already has. Each is
+They complete three groups of buildings (`DESIGN_NOTES.md` §12, decision 62) -- the towers, the
+shops (the restaurant, the bar and the **shop**) and the public buildings (the school, the **fire
+station** and the **police station**) -- in the style of the buildings the street already has. Each is
 one cut-out figure in the language of `k2_profile.py` and `school.py`: the wall in its group's
 colour (a weight on the wall mask), the glass on the glass mask, and the fixed art carrying what
 says *what* the building is -- the awning's stripes and the shopping bag, the fire station's red
 doors and its engine, the police station's chequered band, light bar and shield -- in colours taken
 from the vehicles already in the scene (`firetruck_*`, the police car's livery and light bar). No
-text anywhere (DESIGN_NOTES "No text").
+text anywhere: a source holds no `<text>` element, since a font renders differently from machine to machine.
 
-The three drawings are the versions the maintainer chose from the photographed proposals: the shop
-«B» (a rounded false front with the bag on a round plaque, a green-and-white striped awning, two
-crates of fruit), the fire station «C (consigliata)» (one red door open on the fire engine, one
-shut, the hose tower with its red lamp) and the police station «B (consigliata)» (the chequered
-band under the cornice, the light bar on the roof, the shield, a garage). His words, 2026-10-11.
+The three drawings are decision 61's: the shop «B» (a rounded false front with the bag on a round
+plaque, a green-and-white striped awning, two crates of fruit), the fire station «C (consigliata)»
+(one red door open on the fire engine, one shut, the hose tower with its red lamp) and the police
+station «B (consigliata)» (the chequered band under the cornice, the light bar on the roof, the
+shield, a garage).
 
 **Every part that says what a building is measures 2.4 units or more** -- the bag's handle and the
 gap inside it, the doors' panel lines and the bars between their panes, the engine's lamps, bumper
 and light bar, the light bar's base, the star's arms -- **and so does every gap that keeps two of them
 apart**: the two crates, the engine's lamps from its windscreen and its bumper, the light bar's two
 lamps, a garage door's panes from its panel lines. Each of the six buildings among the houses can
-stand in any of the five places (v5.13; three until the v5.13B2 round), and the farthest place draws a unit
-at 0.89 px or more on the BV6600 (its depth, the size table's one metre, the size roll of +-8 %): 2.4
-units is 2.14 px there at the least, over the two pixels below which a detail stops reading
+stand in any of the five places, and the farthest place draws a unit at 0.89 px or more on the
+BV6600 (its depth, the size table's one metre, the size roll of +-8 %): 2.4 units is 2.14 px there
+at the least, over the two pixels below which a detail stops reading
 (`StorefrontDetailTest` holds the numbers). The window frames, the sills, the steps and the door
 handles are the vocabulary every building in the street shares at every depth (`vocab.py`) and are
 not counted among them.
 
 The group names are the wobble seeds of their cards (`core.Group.add`), so renaming one redraws it;
-they are English from the start and `names.py` maps each to itself.
+they are English, and `names.py` maps each to itself.
 """
 from __future__ import annotations
 
@@ -73,8 +73,8 @@ def striped_awning(g, host, x0, x1, y, depth, relief, amp, n, a=GREEN, b=CREAM):
                (xa + 0.25 * step, yb + dd * 0.85), (xa, yb)], b, amp=amp * 0.3)
 
 
-#: The bag's handle: its band and the gap it closes over, both [DETAIL] (inventory I-618: the band was
-#: 1.8 units and the gap 1.6 in the version photographed, 1.6 to 1.9 px at the far place).
+#: The bag's handle: its band and the gap it closes over, both [DETAIL], so neither falls under two
+#: pixels at the far place.
 BAG_BAND = DETAIL
 BAG_GAP = DETAIL
 
@@ -202,8 +202,7 @@ def shop():
     plaque, one wide window in three equal panes under a green-and-white striped awning, the door at
     the left, and two crates of fruit on the pavement by the window. 64 units wide and 56 tall at the
     crown: shorter than every house (the smallest, the small house without its storey under a gable, is 59
-    to its ridge), as a shop is (DESIGN_NOTES
-    §5, «A shop is visibly shorter than a house»)."""
+    to its ridge), as a shop is (`DESIGN_NOTES.md` §12, decision 61)."""
     g = Group("shop")
     p = Piece("shop", 56)
     body = [(-32, 0), (-32, -42), (-14, -42), (-12, -48), (-6, -52), (0, -53), (6, -52), (12, -48), (14, -42), (32, -42), (32, 0)]
@@ -249,10 +248,10 @@ def fire_station():
     its cap. 96 units wide (the school is 104), 86 tall at the tower's cap and 91 at its lamp, 88 declared
     (the school's turret is 74).
 
-    **The tower is a group of its own** (inventory I-607): drawn into one canvas with the block it made
-    the canvas as tall as the tower over the block's whole width, half of it air -- 299 KB decoded for
-    nothing. Two canvases, the tower's first so the block's cornice still laps over its edge as it did
-    in the version photographed."""
+    **The tower is a group of its own**: drawn into one canvas with the block it would make the canvas
+    as tall as the tower over the block's whole width, half of it air -- 299 KB decoded for nothing.
+    Two canvases, the tower's first so the block's cornice laps over its edge, as in the approved
+    drawing."""
     tower = Group("fire_station_tower")
     tower.face("tower", rect(30, -78, 46, 0))
     tower.add(rect(30, -78, 46, 0), vocab.BASE_LIGHT, relief=S["relief"], amp=S["amp"])

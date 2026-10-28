@@ -55,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +67,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -76,9 +78,8 @@ import com.paperscrape.livewallpaper.engine.AutoColorMode
 // Structure
 //
 // One vocabulary for every settings screen: a section header, a rounded group that holds rows,
-// and rows that are navigation, a switch, a slider, or read-only status. Grouping is what replaced
-// v2.8's single 20 dp-spaced column, and the container colour is what replaced its dividers --
-// see `DESIGN_NOTES.md` on the Material 3 scope being the settings UI only.
+// and rows that are navigation, a switch, a slider, or read-only status; the container colour
+// separates groups, not dividers. Material 3 is the settings UI's only, never the scene's.
 // ---------------------------------------------------------------------------------------------
 
 /** A Material 3 section label. Sits above a [SettingsGroup], never inside one. */
@@ -93,10 +94,8 @@ internal fun SettingsSectionHeader(text: String, modifier: Modifier = Modifier) 
 }
 
 /**
- * The rounded container a run of related rows sits in.
- *
- * Rows inside it need no divider: the container is what says "these belong together", which is
- * the whole reason the flat list needed one. Nesting these is deliberately not supported.
+ * The rounded container a run of related rows sits in: it says "these belong together", so rows need
+ * no divider. Not meant to be nested.
  */
 @Composable
 internal fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
@@ -110,11 +109,8 @@ internal fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable C
 
 /**
  * One row of a [SettingsGroup]: optional leading icon, title, optional supporting line, optional
- * trailing control.
- *
- * [supportingIsAccent] paints the supporting line in the primary colour, which is how a row
- * reports that something is on ("Live Weather on", "Driven by Live Weather") without needing a
- * badge or a second control.
+ * trailing control. [supportingIsAccent] paints the supporting line in the primary colour: how a row
+ * says something is on ("Live Weather on", "Driven by Live Weather") without a badge.
  */
 @Composable
 internal fun SettingsRow(
@@ -226,9 +222,8 @@ internal fun SettingsCaption(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * A filled note that states a rule the user is currently subject to -- "read-only while Live
- * Weather is on", "these edits belong to this theme". Distinct from [SettingsCaption] in weight,
- * not in kind: use it when ignoring the text would surprise the user.
+ * A filled note that states a rule the user is currently subject to ("these edits belong to this
+ * theme"): a heavier [SettingsCaption], for text whose ignoring would surprise the user.
  */
 @Composable
 internal fun SettingsBanner(text: String, modifier: Modifier = Modifier, isError: Boolean = false) {
@@ -251,13 +246,9 @@ internal fun SettingsBanner(text: String, modifier: Modifier = Modifier, isError
 }
 
 /**
- * A single-choice segmented button row.
- *
- * Used wherever one of a few mutually exclusive options is really one choice -- the location
- * source, the weather provider, the seasonal palette, rain or snow, and the preview's day or night
- * (`grep -rn 'SettingsSegmentedChoice(' ui/` lists them). It writes nothing itself: each caller
- * maps the index back to its own preference or state in its own `onSelect`; [SettingsUiModel]
- * reads the stored flags back into the selected index for the location source and the palette.
+ * A single-choice segmented button row, wherever a few mutually exclusive options are one choice
+ * (`grep -rn 'SettingsSegmentedChoice(' ui/` lists them). It writes nothing itself: each caller maps
+ * the index to its own preference in `onSelect`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -275,25 +266,17 @@ internal fun SettingsSegmentedChoice(
                 onClick = { onSelect(index) },
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                // **No check mark (v5.8B, the maintainer's decision of 2026-09-25).** The chosen
-                // segment is the filled one. Material 1.4.0 measures the label with the button's
-                // whole content width and only then shifts it right by the check mark (icon and
-                // label get the same constraints in `SegmentedButtonContentMeasurePolicy`), so at
-                // 360 dp a long chosen name did not fit beside it at any readable size: v5.7 and
-                // v5.8A drew "Open-Met..." and "OpenWeat..." for the provider in use.
+                // **No check mark**: the chosen segment is the filled one. Material measures the
+                // label with the button's whole content width and then shifts it right by the check
+                // mark (`SegmentedButtonContentMeasurePolicy`), so at 360 dp a long chosen name would not
+                // fit beside it at any readable size.
                 icon = {},
             ) {
-                // One line, ellipsised. A segmented button gives its label a fixed share of the
-                // width and does not clip it: a label too long for its share wraps and draws
-                // outside the control's own outline, over its neighbours' borders. Adding a third
-                // weather provider is what found that; bounding it here is what stops the fourth
-                // finding it again.
-                //
-                // **Every label shrinks to fit (v5.8).** Ellipsised alone they could not be read: at
-                // 360 dp the BV6600 drew "Netwo...", "Open-Met..." and "OpenWeat..." (assessment
-                // v5.7, photo 203). A label that fits keeps labelLarge exactly as before; one that
-                // does not steps down half a point at a time, down to labelSmall -- Material's own
-                // smallest label size -- and is cut only if even that is too wide.
+                // One line: a segmented button gives its label a fixed share of the width and does
+                // not clip it, so a label too long for its share wraps over its neighbours' borders.
+                // **Every label shrinks to fit**, because ellipsised alone they cannot be read at
+                // 360 dp: one that fits keeps labelLarge, one that does not steps down half a point at
+                // a time to labelSmall, Material's smallest, and is cut only if even that is too wide.
                 Text(
                     label,
                     style = MaterialTheme.typography.labelLarge,
@@ -311,19 +294,15 @@ internal fun SettingsSegmentedChoice(
 }
 
 /**
- * Trailing space under the last row of a scrolling screen.
- *
- * One spacer, used by every settings screen, a fixed [SettingsInsets.BOTTOM_BREATHING_ROOM] --
- * the inset the activity measured is spent on the dialog's height instead (see [SettingsInsets])
- * -- rather than each screen carrying a padding of its own, which is how the last row ended up
- * half under the gesture bar on some of them and not others.
+ * Trailing space under the last row of a scrolling screen: one spacer for every settings screen, so
+ * none carries a padding of its own, a fixed [SettingsInsets.BOTTOM_BREATHING_ROOM] (the measured
+ * inset is spent on the dialog's height, [SettingsInsets]).
  */
 @Composable
 internal fun SettingsBottomSpacer() {
-    // A constant. The system bars are accounted for outside the scroll container -- in a dialog
-    // by the height its content is given and by the Scaffold's own insets where the dialog window
-    // has any, on the home screen by its Scaffold -- so this is only the gap between the last row
-    // and the bottom edge; see SettingsInsets for why the reservation moved out of here.
+    // Only the gap between the last row and the bottom edge: the system bars are accounted for
+    // outside the scroll container (a dialog's content height and its Scaffold's insets, the home
+    // screen's Scaffold).
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -337,14 +316,9 @@ internal fun SettingsBottomSpacer() {
 
 
 /**
- * The shell every settings destination uses: a full-screen dialog with a back arrow and a
- * scrolling body.
- *
- * Still a `Dialog` rather than a navigation graph, deliberately -- the drill-down mechanism the
- * project already had works, handles the system back gesture through `onDismissRequest`, and
- * replacing it would be an architectural refactor with no user-visible result. What changed in
- * v2.9 is that every destination now uses a back arrow (they are all drill-downs from the home
- * screen) instead of a close cross at the top level and an arrow one level down.
+ * The shell every settings destination uses: a full-screen dialog with a back arrow (they are all
+ * drill-downs from the home screen) and a scrolling body. A `Dialog`, not a navigation graph: it
+ * handles the system back gesture through `onDismissRequest`.
  *
  * The body has **no padding**: [SettingsGroup] carries its own margins, so a screen made of
  * groups lines up on its own. Screens made of form controls use [SettingsFormSubScreen].
@@ -358,18 +332,14 @@ internal fun SettingsSubScreen(
 ) {
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
-            // **Not fillMaxSize.** The dialog's content is measured against the display, its
-            // window is only as tall as the space between the system bars, and the difference was
-            // laid out off-window and clipped. See SettingsInsets for the measurement and for why
-            // this is a height and not a padding.
+            // **Not fillMaxSize**: the dialog's content is measured against the display, its window
+            // only between the system bars, and the difference would be clipped. See SettingsInsets.
             modifier = Modifier.fillMaxWidth().height(settingsDialogHeight()),
             color = MaterialTheme.colorScheme.surface,
         ) {
             Scaffold(
-                // The dialog window's own insets, which are zero exactly when the window already
-                // fits the system bars -- the case the height above is sized for. A device whose
-                // dialog window is full-bleed instead reports real values here and they are
-                // reserved normally. Neither case needs to know which one it is.
+                // The dialog window's own insets: zero when the window already fits the system bars
+                // (what the height above is sized for), real values on a full-bleed dialog window.
                 contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
                     TopAppBar(
@@ -386,9 +356,8 @@ internal fun SettingsSubScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        // Before the scroll modifier, so the scrollable area itself shrinks when
-                        // the keyboard opens: the city search field stays visible with its results
-                        // rather than being pushed under it.
+                        // Before the scroll modifier, so the scrollable area shrinks when the keyboard
+                        // opens and the city search field stays visible with its results.
                         .imePadding()
                         .verticalScroll(rememberScrollState()),
                 ) {
@@ -402,8 +371,8 @@ internal fun SettingsSubScreen(
 
 /**
  * The same shell for the leaf screens that are a form rather than a list -- every Scene Objects
- * category, every decoration's options, and the three weather API key screens. Identical to what
- * those screens have always used: 16 dp padding, 12 dp between controls.
+ * category, every decoration's options, the weather API key screens: 16 dp padding, 12 dp between
+ * controls.
  */
 @Composable
 internal fun SettingsFormSubScreen(
@@ -479,10 +448,8 @@ internal fun ColorSwatchRow(label: String, color: Int, enabled: Boolean = true, 
         Text(
             label,
             style = MaterialTheme.typography.bodyLarge,
-            // A derived half is shown, not hidden: the user still needs to see the colour the
-            // scene will actually use. Greyed and inert says "this one is being worked out for
-            // you" without pretending the value does not exist -- the same treatment the Clouds
-            // screen already gives its controls while Live Weather is driving them.
+            // A derived half is shown greyed and inert, not hidden: the user still sees the colour the
+            // scene will use, and that it is worked out for them.
             color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Box(
@@ -496,14 +463,10 @@ internal fun ColorSwatchRow(label: String, color: Int, enabled: Boolean = true, 
 }
 
 /**
- * One day/night colour pair, with the toggle that decides who owns which half.
- *
- * Every pair in the settings screen goes through this, so the three modes look and behave the same
- * whether the user is editing houses, the lake or the sky -- and so the derived half is presented
- * the same way everywhere. The transform itself is not here: this composable only reads the colours
- * it is handed, which have already been resolved by
- * [com.paperscrape.livewallpaper.engine.CustomThemeRegistry.resolveActiveCustomization]. There is
- * one authority for what a night colour is, and this is not it.
+ * One day/night colour pair, with the toggle that decides who owns which half: every pair of the
+ * settings goes through it, so the three modes behave the same everywhere. It only shows the colours
+ * it is handed; what a derived colour is, is decided by
+ * [com.paperscrape.livewallpaper.engine.CustomThemeRegistry.resolveActiveCustomization].
  */
 @Composable
 internal fun DayNightColorPair(
@@ -550,9 +513,8 @@ internal fun parseHexColor(text: String): Int? {
 }
 
 /**
- * Touch-and-drag HSV color editor: a saturation/brightness square you drag your finger across
- * (classic palette-picker UX), a hue strip below it, and an editable hex field kept in sync both
- * ways -- dragging updates the hex text, and typing a valid hex value updates the picker.
+ * Touch-and-drag HSV colour editor: a saturation/brightness square, a hue strip below it, and a hex
+ * field kept in sync both ways.
  */
 @Composable
 internal fun ColorPickerDialog(
@@ -631,9 +593,8 @@ internal fun ColorPickerDialog(
 }
 
 /**
- * The classic "drag your finger across the palette" square: horizontal axis is saturation
- * (white -> full hue color), vertical axis is brightness (bright at top, black at bottom).
- * Responds to both a direct tap (jump straight to that color) and dragging.
+ * The palette square: saturation across (white to the full hue), brightness down (bright at the top,
+ * black at the bottom). A tap jumps to that colour; a drag follows the finger.
  */
 @Composable
 private fun SaturationBrightnessSquare(
@@ -654,23 +615,24 @@ private fun SaturationBrightnessSquare(
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
 
-        fun reportFromOffset(offset: Offset) {
-            val s = (offset.x / widthPx).coerceIn(0f, 1f)
-            val v = 1f - (offset.y / heightPx).coerceIn(0f, 1f)
-            onChange(s, v)
-        }
+        // A touch is read against the size the square has when it is touched (the input scope's own `size`), and the
+        // latest [onChange] the same way: the Activity keeps this dialog across a rotation and the handler goes on
+        // running, so a size kept from when it started would pick another colour than the one touched.
+        val currentOnChange by rememberUpdatedState(onChange)
+        fun report(offset: Offset, size: IntSize) =
+            currentOnChange(saturationAt(offset.x, size.width.toFloat()), brightnessAt(offset.y, size.height.toFloat()))
 
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(hue) {
+                .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragStart = { offset -> reportFromOffset(offset) },
-                        onDrag = { change, _ -> change.consume(); reportFromOffset(change.position) },
+                        onDragStart = { offset -> report(offset, size) },
+                        onDrag = { change, _ -> change.consume(); report(change.position, size) },
                     )
                 }
-                .pointerInput(hue) {
-                    detectTapGestures { offset -> reportFromOffset(offset) }
+                .pointerInput(Unit) {
+                    detectTapGestures { offset -> report(offset, size) }
                 },
         ) {
             drawRect(brush = Brush.horizontalGradient(listOf(Color.White, hueColor)))
@@ -691,6 +653,15 @@ private fun SaturationBrightnessSquare(
     }
 }
 
+/** The saturation a touch at [x] picks across a square [width] wide: 0 at the left, 1 at the right. */
+internal fun saturationAt(x: Float, width: Float): Float = if (width > 0f) (x / width).coerceIn(0f, 1f) else 0f
+
+/** The brightness a touch at [y] picks down a square [height] tall: 1 at the top, 0 at the bottom. */
+internal fun brightnessAt(y: Float, height: Float): Float = if (height > 0f) 1f - (y / height).coerceIn(0f, 1f) else 1f
+
+/** The hue, in degrees, a touch at [x] picks along a strip [width] wide. */
+internal fun hueAt(x: Float, width: Float): Float = (if (width > 0f) (x / width).coerceIn(0f, 1f) else 0f) * 360f
+
 /** A draggable rainbow strip for picking the hue (0-360 degrees). */
 @Composable
 private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier = Modifier) {
@@ -706,21 +677,21 @@ private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier =
     ) {
         val widthPx = with(density) { maxWidth.toPx() }
 
-        fun reportFromX(x: Float) {
-            onChange((x / widthPx).coerceIn(0f, 1f) * 360f)
-        }
+        // Read against the strip's width when it is touched, as the square's touches are ([SaturationBrightnessSquare]).
+        val currentOnChange by rememberUpdatedState(onChange)
+        fun report(x: Float, size: IntSize) = currentOnChange(hueAt(x, size.width.toFloat()))
 
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragStart = { offset -> reportFromX(offset.x) },
-                        onDrag = { change, _ -> change.consume(); reportFromX(change.position.x) },
+                        onDragStart = { offset -> report(offset.x, size) },
+                        onDrag = { change, _ -> change.consume(); report(change.position.x, size) },
                     )
                 }
                 .pointerInput(Unit) {
-                    detectTapGestures { offset -> reportFromX(offset.x) }
+                    detectTapGestures { offset -> report(offset.x, size) }
                 },
         ) {
             drawRect(brush = Brush.horizontalGradient(hueColors))
@@ -744,28 +715,14 @@ private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier =
 // ---------------------------------------------------------------------------------------------
 
 /**
- * A [Slider] that persists its value **once, when the drag ends**, instead of on every
- * intermediate position.
+ * A [Slider] that persists its value **once, when the drag ends**: written on every position, one drag
+ * would be dozens of DataStore writes, preference emissions and recompositions, and a disk round trip
+ * inside the thumb's own feedback loop that makes it stick instead of following the finger.
  *
- * Every slider in this screen used to write straight to DataStore from `onValueChange`. One drag
- * therefore produced dozens of disk writes, dozens of preference-flow emissions, dozens of
- * recompositions, and -- because any configuration difference used to reconstruct the whole
- * scene renderer -- dozens of full scene rebuilds, which restarted every car from its start
- * delay. The thumb also had a disk round trip inside its own feedback loop, which is what made
- * the sliders feel like they stuck near the ends of the track rather than following the finger.
- *
- * The in-flight value lives in local state for the duration of the drag, and the committed value
- * only until the preference catches up with it, so there is no lasting duplicate of the preference
- * -- and a caller that transforms the value before writing it says how, in [storedAs], so the
- * slider waits for what will actually come back. Until v5.8C the three callers that transform it
- * (Sun/Cloud Height, the two business-hours sliders) never caught up: their local copy stayed until
- * the slider left composition, and later changes to the stored value made elsewhere were not shown
- * (v5.8B comment audit). [label] receives
- * the value actually being displayed, so a caption like "Density: 42%" keeps updating live while
- * dragging even though nothing is written until the finger lifts.
- *
- * See [SliderDragState] for the handover rules and why the local value is not dropped the instant
- * the drag ends.
+ * The in-flight value lives in local state during the drag, and the committed one only until the
+ * preference catches up with it -- a caller that transforms the value before writing it says how, in
+ * [storedAs], so the slider waits for what will come back. [label] receives the value displayed, so a
+ * caption like "Density: 42%" follows the drag. [SliderDragState] holds the handover rules.
  */
 @Composable
 internal fun PreferenceSlider(
@@ -777,10 +734,9 @@ internal fun PreferenceSlider(
     enabled: Boolean = true,
     label: (@Composable (Float) -> Unit)? = null,
     /**
-     * What a committed value comes back as through the preference: identity for a caller that
-     * writes it unchanged, the caller's own transform otherwise -- the quarter-hour of the business
-     * hours, the fraction-to-height-and-back of Sun/Cloud Height. The slider holds its local copy
-     * until exactly that value arrives, and shows it meanwhile.
+     * What a committed value comes back as through the preference: identity, or the caller's own
+     * transform (the business hours' quarter hour, Sun/Cloud Height's fraction to height and back). The
+     * slider shows its local copy until exactly that value arrives.
      */
     storedAs: (Float) -> Float = { it },
 ) {
@@ -866,14 +822,11 @@ internal fun SettingsSliderRow(
 }
 
 /**
- * The question a theme pick asks while the calendar is choosing (v5.10C, row 9 of the maintainer's
- * table of 2026-09-30, inventory I-212): a gallery card, or *Shuffle a random theme*, chosen while
- * *Automatic theme by date* is on and the calendar is showing another theme today.
- *
- * Without it the pick was saved and **not shown** -- the calendar wins on the wallpaper and on the
- * home card -- so the tap changed nothing a user could see. "Show it" turns the automatic theme off
- * and shows the pick, in one write (`WallpaperPrefs.setThemeTurningAutoThemeOff`); "Cancel" leaves
- * everything as it was. Whether to ask is [SettingsUiModel.pickNeedsCalendarQuestion].
+ * The question a theme pick asks while the calendar is choosing: a gallery card, or *Shuffle a random
+ * theme*, chosen while *Automatic theme by date* is on and the calendar shows another theme today, would
+ * be saved and **not shown**. "Show it" turns the automatic theme off and shows the pick, in one write
+ * (`WallpaperPrefs.setThemeTurningAutoThemeOff`); "Cancel" changes nothing. Whether to ask is
+ * [SettingsUiModel.pickNeedsCalendarQuestion].
  */
 @Composable
 internal fun CalendarPickQuestion(

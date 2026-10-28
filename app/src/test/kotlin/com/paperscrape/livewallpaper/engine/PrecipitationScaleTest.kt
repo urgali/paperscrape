@@ -100,9 +100,8 @@ class PrecipitationScaleTest {
      * child of the day, reading as rain, with the next candidate up at 0.64 of one and reading as
      * a falling stick; v4.4 shipped 1.73 m, which was 1.28 of a whole child.
      *
-     * Whether 0.51 of a child is too much rain was a question for a photograph -- the open half of
-     * `BACKLOG_v4_30.md` item 99 -- and the maintainer answered it on 2026-09-28, looking at one:
-     * the rain stays as it is (inventory I-70). This test holds the ratio, not the verdict.
+     * The rain stays as it is at 0.51 of a child: the maintainer's decision of 2026-09-28, taken on a
+     * photograph. This test holds the ratio, not the verdict.
      */
     @Test
     fun `a raindrop is never more than a fraction of a child`() {

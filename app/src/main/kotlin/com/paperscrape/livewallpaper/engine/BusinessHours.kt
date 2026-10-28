@@ -36,7 +36,7 @@ package com.paperscrape.livewallpaper.engine
  * ### The clock
  *
  * The hour that comes in here is `DayPhase.hour24` -- **the hour that moved the sun**, whether it came
- * from the real clock, quantised to the minute (`SunPositionCalculator.currentHour24`), or from the user's
+ * from the real clock, quantised to the minute (`PaperWallpaperService.sceneHourNow`), or from the user's
  * `fixedHour`. Nothing in this file reads a clock of its own: `System.currentTimeMillis()` is the wrong
  * clock twice over -- it ignores `fixedHour`, and moving the device clock backwards would run a schedule
  * negative. A fixed hour at the opening hour is open; at the closing hour, shut.

@@ -12,7 +12,7 @@ Layout:
     staging/               rendered output; never the directory the app reads
     reports/              measurements committed as evidence
 
-See README.md for the pipeline and DESIGN_NOTES.md section 4 for the authoring
+See README.md for the pipeline and for the authoring
 conventions the SVG sources must obey.
 """
 

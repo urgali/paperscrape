@@ -3,22 +3,19 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Where each thing on the lake sits across the water, and in what order the water is painted.
  *
- * Two separate questions used to be answered badly in the same place.
+ * Two separate questions, answered in the same place.
  *
  * **Which line does a candidate travel along?** The band is cut into lanes and the two categories
- * take alternate ones, so a boat and a dolphin can never be placed on the same line. That part was
- * right. What was wrong was the arithmetic: with four candidates per category and six lanes, the
- * lane was `(i * 2 + category) % 6`, and `% 6` folded the fourth candidate back onto the first's
- * lane. Candidate 0 and candidate 3 of the *same* category therefore shared a line -- and since
- * every candidate picks its own speed, the two spent their time sliding through each other. One
- * lane per candidate per category is [LANE_COUNT] lanes, not six, and then nothing folds.
+ * take alternate ones, so a boat and a dolphin can never be placed on the same line, and there is
+ * one lane per candidate per category, [LANE_COUNT] lanes. With fewer, a modulo would fold a
+ * candidate back onto the lane of another of the *same* category -- and since every candidate
+ * picks its own speed, the two would spend their time sliding through each other.
  *
- * **Which one is in front?** Nothing decided. The lake drew its boats in candidate order and then
- * its dolphins in candidate order, so whichever had the higher index covered the other regardless
- * of where each sat on the water. On a flat scene with a horizon, distance *is* height: the thing
+ * **Which one is in front?** On a flat scene with a horizon, distance *is* height: the thing
  * lower down the band is nearer the viewer and has to be painted last. [orderByDepth] is that
  * rule, and it is what makes an overlap read as one boat passing in front of another rather than
- * as one boat sailing over another.
+ * as one boat sailing over another. Drawn in candidate order instead, whichever had the higher
+ * index would cover the other regardless of where each sits on the water.
  *
  * Nothing here scales anything by depth. The scene is deliberately flat paper -- a boat further up
  * the water is further away, and it says so by being higher up and behind, not by being smaller.
@@ -38,8 +35,8 @@ internal object LakeLanes {
      * The lane a candidate travels along.
      *
      * Even lanes are boats, odd lanes are dolphins, and no two calls with different arguments ever
-     * return the same lane -- which is the whole point, and is what the `% LANE_COUNT` this
-     * replaced could not promise.
+     * return the same lane -- which is the whole point, and what a `% LANE_COUNT` could not
+     * promise.
      */
     fun laneIndex(candidate: Int, isDolphin: Boolean): Int = candidate * 2 + if (isDolphin) 1 else 0
 
@@ -47,18 +44,16 @@ internal object LakeLanes {
      * The value [orderByDepth] sorts on: how far down the screen a thing's own base is drawn.
      *
      * For everything that stays on the water that is just its lane, and [heightAboveLane] is zero.
-     * It is not zero for a dolphin in mid-leap, and that is the whole of the v3.1 fix: sorting an
-     * airborne animal by the lane it left reads its depth from a point its body is no longer at.
-     * A sail stands several lane widths above its own waterline (about four when v3.1 measured
-     * it, roughly seven to nine with today's lake geometry) while lanes are one lane width
-     * apart, so a dolphin a single lane nearer than a sailboat -- painted after it, correctly, by
-     * lane -- crossed the sail in mid-air.
+     * It is not zero for a dolphin in mid-leap: sorting an airborne animal by the lane it left
+     * reads its depth from a point its body is no longer at. A sail stands several lane widths
+     * above its own waterline (roughly seven to nine with the lake's geometry) while lanes are one
+     * lane width apart, so a dolphin a single lane nearer than a sailboat -- painted after it,
+     * correctly, by lane -- would cross the sail in mid-air.
      *
-     * Ordering by the base instead makes one rule cover both: a dolphin recedes as it rises, drops
+     * Ordering by the base makes one rule cover both: a dolphin recedes as it rises, drops
      * behind the boat whose waterline it has climbed past, and comes back in front as it lands.
-     * Nothing else changes -- boats keep the lane they always had, so the far-to-near reading of
-     * two overlapping hulls that v3.0 established is untouched, and because [heightAboveLane] is
-     * never negative nothing is ever pulled *forward* of where its lane put it.
+     * Boats keep their lane, so two overlapping hulls read far to near, and because
+     * [heightAboveLane] is never negative nothing is ever pulled *forward* of where its lane put it.
      */
     fun depthOf(laneY: Float, heightAboveLane: Float): Float = laneY - heightAboveLane
 
@@ -67,21 +62,18 @@ internal object LakeLanes {
 
     /**
      * **Where a thing's drawing meets the water, which is the one value [orderByDepth] may compare**
-     * (v5.9B, inventory I-02 -- the real fix `BACKLOG_v4_28.md` item 84 named and did not take).
      *
-     * The three kinds are placed from three different points, and until v5.9B each was keyed by its
-     * own: a sailboat by its placement point, which `drawSailboat` hangs the hull
+     * The three kinds are placed from three different points: a sailboat by its placement point,
+     * which `drawSailboat` hangs the hull
      * [PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS] below; a dolphin by its lane, with its body
      * drawn centred on the leap point, so its belly is half the body -- `-DOLPHIN_ORIGIN_Y_UNITS` of
-     * its own units -- below; a wave by its base, which is its waterline. v4.28 lifted the wave by the
-     * hull's offset so that wave and hull were compared waterline to waterline, and left the dolphin
-     * alone: against both of the others it was still off by the difference, 16.9 px on the BV6600's
-     * 1440 px surface. The probe of v5.9B found that difference on screen at the factory settings --
-     * on Beach in a thunderstorm, 63 times in fifteen minutes of scene, a leaping dolphin painted
-     * across a wave and the sail of a boat whose waterlines were both nearer than its own
-     * (`consegna_v5_9b/registri/i02_sonda/`).
+     * its own units -- below; a wave by its base, which is its waterline. Keyed by those points, a
+     * leaping dolphin would be off against both of the others by the difference, 16.9 px on the
+     * BV6600's 1440 px surface, and paint across a wave and the sail of a boat whose waterlines are
+     * both nearer than its own (at the factory settings, on Beach in a thunderstorm, 63 times in
+     * fifteen minutes of scene).
      *
-     * So every kind now answers the same question in the same frame: **how far down the screen does
+     * So every kind answers the same question in the same frame: **how far down the screen does
      * its drawing meet the water right now.**
      *
      * - a sailboat: its placement point plus the hull's offset, at the boat's own scale;
@@ -91,9 +83,8 @@ internal object LakeLanes {
      *   the waterline is the lane itself;
      * - a wave: its base.
      *
-     * Two properties survive by construction. Boats among themselves and waves against boats are
-     * ordered exactly as before, because each moved by the same amount the other did; what changes
-     * is the dolphin against both. The climb still only ever moves a dolphin backwards (v3.1).
+     * Two properties hold by construction: boats among themselves, and waves against boats, are
+     * compared waterline to waterline; and the climb only ever moves a dolphin backwards ([depthOf]).
      */
     fun visibleWaterline(kind: Kind, placementY: Float, heightAboveLane: Float, screenHeight: Float): Float {
         val scale = SceneSpace.sceneScale(screenHeight)

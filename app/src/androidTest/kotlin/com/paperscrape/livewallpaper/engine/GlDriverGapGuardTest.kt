@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
  * |---|---|---|
  * | the emulator's reference software GL | until v4.21 | — |
  * | OnePlus 6T, Adreno 630 | v4.21 | the tree redraw moved all three by 8.8% of outline |
- * | **Blackview BV6600, PowerVR Rogue GE8320** | **v4.26** | the sky and water redraw; the three read 6.31 / 9.51 / 3.192% against 3.00 / 3.00 / 0.500%. `BACKLOG_v4_26.md` item 71, ratified by the maintainer in v4.27 |
+ * | **Blackview BV6600, PowerVR Rogue GE8320** | **v4.26** | the sky and water redraw; the three read 6.31 / 9.51 / 3.192% against 3.00 / 3.00 / 0.500%. Ratified by the maintainer in v4.27 |
  * | the same BV6600 (`gl-day` only) | v4.28 | the bird redrawn through the glow region |
  * | **the same BV6600, all three** | **v5.0, 2026-09-13** | the neighbourhood redrawn from scratch; the three read **21.21 / 19.49 / 21.64%** against a 3% gate |
  *
@@ -49,8 +49,8 @@ import org.junit.runner.RunWith
  *
  * **The cross-driver reading was given up in v4.26, not here.** The OnePlus 6T is gone; the
  * committed file and the running driver have been the same machine for six releases, so this test
- * has been measuring a difference with no source since then. `BACKLOG_v4_27.md` item 78 says so in
- * as many words; v5.4 closed it as a decision (`BACKLOG_v5_1.md` item 78): only a second GPU vendor could meet it.
+ * has been measuring a difference with no source since then. It is closed as a decision:
+ * only a second GPU vendor could meet it.
  *
  * **It will keep reading ~0 until such a device exists, and none is coming from here.** The
  * maintainer's personal phone is where an update is proved, not a test device. A reading other than
@@ -64,13 +64,12 @@ import org.junit.runner.RunWith
  *
  * ## The decision this records
  *
- * That is item 1 of `BACKLOG_v4_19.md`, and v4.20 closed it **as a decision, not as a fix**: the
+ * The driver gap is closed **as a decision, not as a fix**: the
  * two ways to actually remove the gap are per-driver reference sets, which double the maintenance
  * and make "the reference" ambiguous, or a shader change that takes away the driver's freedom at an
  * edge. Both cost more than a gap that is comfortably under the gate.
  *
- * **Item 56 of `BACKLOG_v5_0.md` closes in the same form**, and with a correction: it was held open
- * for three releases to protect a cross-driver measurement that had already been given up in v4.26.
+ * **The cross-driver reading is closed in the same form.**
  * See [GlGolden.EdgeDisplacement]'s v5.0 section.
  */
 @RunWith(AndroidJUnit4::class)

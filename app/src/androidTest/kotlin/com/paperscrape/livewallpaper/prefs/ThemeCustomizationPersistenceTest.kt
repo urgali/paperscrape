@@ -31,43 +31,30 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * A customization the user has made must survive everything except the user deleting it.
+ * A customization the user has made survives everything except a reset.
  *
- * ### The defect, reproduced on a device before it was fixed
+ * A per-theme edit lives in one flat set of DataStore keys, tagged by `pending_customization_theme_id`
+ * with the theme it belongs to. Every per-theme setter first archives the outgoing theme's keys under
+ * that theme's own key and restores the incoming theme's (`ensureFreshPendingTheme`). A setter that
+ * wiped them instead would make "customise `beach`, then move one slider on `winter`" delete
+ * everything done to `beach`, from disk, silently.
  *
- * Until v4.3 the only storage a per-theme edit reached was a **single flat set of DataStore keys**
- * with one `pending_customization_theme_id` marker naming whichever theme they currently belonged
- * to. `ensureFreshPendingTheme` — added in v2.12 to stop a *different* bug, one theme's values
- * leaking into another — wiped every one of those keys the moment a setter fired for a different
- * theme. So the sequence "customise `beach`, then move one slider on `winter`" deleted everything
- * the user had done to `beach`, from disk, silently and permanently:
- *
- * ```
- * after beach edits:     pendingThemeId=beach   houses=0.21  hillsDay=ff112233
- * after ONE winter edit: pendingThemeId=winter  houses=0.93  hillsDay=ffe9f1f7
- * beach resolves to:     houses=0.65  parasols=true  hillsDay=ffefd9a3   equalsDefault=TRUE
- * ```
- *
- * The maintainer reported it as "an update overwrote my beach settings". The update was a
- * coincidence: nothing in an install-over-install touches DataStore, `android:allowBackup` is
- * `false` so no cloud restore can either, and no startup path writes a per-theme setter. What an
- * update reliably *does* cause is a user opening the app and browsing their themes, which is all
- * it took.
- *
- * ### What these tests pin
- *
- * Not "a key exists in the DataStore" — the whole reconstructed [SceneCustomization], compared
- * field by field against what was written, for three built-in themes including `beach`, for a
- * built-in override and for a standalone custom theme, across a theme switch, a fresh read of the
- * store, and an install-over-install.
+ * What is compared is not "a key exists in the DataStore" but the whole reconstructed
+ * [SceneCustomization], field by field against what was written, for three built-in themes, a saved
+ * version of a built-in theme and a saved theme of the user's own, across a theme switch, a fresh read
+ * of the store and an install-over-install.
  */
 @RunWith(AndroidJUnit4::class)
 class ThemeCustomizationPersistenceTest {
 
     // Restores the real preference store around every test: these tests write the app's own
-    // DataStore on purpose, and without this the phone kept their last theme. See RealPrefsGuard.
+    // DataStore on purpose, and without this the phone would keep their last theme. See RealPrefsGuard.
     @get:org.junit.Rule
     val realPrefs = RealPrefsGuard()
+
+    // And the real saved themes: [wipe] deletes every saved theme and saved version on the phone.
+    @get:org.junit.Rule
+    val realSavedThemes = RealPrefsGuard(CUSTOM_THEME_STORE_NAME)
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val prefs get() = WallpaperPrefs(context)
@@ -79,8 +66,12 @@ class ThemeCustomizationPersistenceTest {
     @After
     fun tidy() = runBlocking { wipe() }
 
+    /**
+     * Every built-in theme's edits, not only the ones these tests write: the store is the phone's own `.debug` store, and
+     * an edit left there by anything else -- a theme planted for a photograph -- would read as an edit these tests had made.
+     */
     private suspend fun wipe() {
-        for (id in THEMES + listOf("sunset", "desert", "autumn", CUSTOM_ID)) prefs.resetAllCategories(id)
+        for (id in (ThemeCatalog.ALL.map { it.id } + THEMES + CUSTOM_ID).distinct()) prefs.resetAllCategories(id)
         store.clearAllOverrides()
         for (entry in store.dataFlow.first().customThemes) store.deleteCustomTheme(entry.id)
         CustomThemeRegistry.update(store.dataFlow.first())
@@ -105,14 +96,13 @@ class ThemeCustomizationPersistenceTest {
         )
     }
 
-    // ------------------------------------------------------------------ the two resets (v5.8C)
+    // ------------------------------------------------------------------ the two resets
 
     /**
-     * **The two reset rows of *Advanced & about*, on the real store** (v5.8C, the maintainer's
-     * decision of 2026-09-25). Edits made from the menus light the edits row and a saved version
-     * lights the saved row; a control moved and moved back lights nothing; each reset takes only
-     * what it names and leaves the other kind, and saved new themes, alone. Until v5.8C the one
-     * row there was counted only saved versions and reset only them.
+     * **The two reset rows of *Advanced & about*, on the real store**: each takes only what it names
+     * (`DESIGN_NOTES.md` §12, decision 42). Edits made from the menus light the edits row and a saved
+     * version lights the saved row; a control moved and moved back lights nothing; each reset leaves
+     * the other kind, and saved new themes, alone.
      */
     @Test
     fun theTwoResetsEachTakeOnlyWhatTheyName() = runBlocking {
@@ -157,9 +147,9 @@ class ThemeCustomizationPersistenceTest {
         assertEquals(beachEdited, customizationOf("beach"))
     }
 
-    // ------------------------------------------------------------------ the reported defect
+    // ------------------------------------------------------------------ editing another theme
 
-    /** The exact sequence that used to destroy `beach`. */
+    /** Customise `beach`, then move one slider on `winter`: `beach` keeps its whole look. */
     @Test
     fun editingASecondThemeDoesNotDestroyTheFirst() = runBlocking {
         customise("beach", 1)
@@ -179,7 +169,7 @@ class ThemeCustomizationPersistenceTest {
             customise(id, index + 1)
             expected[id] = customizationOf(id)
         }
-        // Round again, so every theme has been left and returned to.
+        // A second pass, so every theme has been left and returned to.
         for ((index, id) in THEMES.withIndex()) {
             assertEquals("$id changed while other themes were edited", expected[id], customizationOf(id))
             assertNotEquals("$id was never actually customised", defaultCustomizationFor(id), expected[id])
@@ -262,17 +252,11 @@ class ThemeCustomizationPersistenceTest {
     }
 
     /**
-     * The property behind the "the road disappeared on beach" report, stated as persistence.
+     * Whatever the user set for `beach`'s cars -- shown, at full density -- survives edits to the cars
+     * of two other themes, and those themes keep their own.
      *
-     * Diagnosed against v4.2: with `cars.density` at 100% the road can only be absent if
-     * `cars.visible` is false or the theme's layout carries no cars at all. The persistence defect
-     * this class exists for could not cause either — it wipes a theme back to its *defaults*, and
-     * `beach`'s default is cars on at 100%, so if anything it put the road back. This pins the
-     * half that is this release's business: whatever the user set for `beach`'s cars survives
-     * editing another theme.
-     *
-     * It deliberately asserts on the customization rather than on `drawRoad`, because the contract
-     * that belongs here is "beach keeps what the user chose", not "the renderer draws a strip".
+     * It asserts on the customization rather than on `drawRoad`: the contract that belongs here is
+     * "beach keeps what the user chose", not "the renderer draws a strip".
      */
     @Test
     fun beachKeepsItsCarSettingsWhenAnotherThemeIsEdited() = runBlocking {
@@ -351,20 +335,18 @@ class ThemeCustomizationPersistenceTest {
     // ------------------------------------------------- reset reaches the theme on screen, only it
 
     /**
-     * "Reset X to default" must reach the theme the user is looking at, and no other.
+     * "Reset X to default" reaches the theme the user is looking at, and no other.
      *
-     * The defect, reproduced on a device against v4.7: the flat scratch keys belong to whichever
-     * theme `PENDING_CUSTOMIZATION_THEME_ID` names, and that is the last theme *edited* -- opening
-     * a different theme does not move it, because `setTheme` writes `THEME_ID` alone. Every
-     * per-theme setter therefore takes a `forThemeId` and calls `ensureFreshPendingTheme` first;
-     * `resetCategory` was the one that took neither, so it removed the keys of whatever theme was
-     * last edited. Pressing "Reset Houses to default" as the first action after switching themes
-     * left the theme on screen untouched (the button appeared dead) and silently destroyed the
-     * previously edited theme's houses -- permanently, once the next `ensureFreshPendingTheme`
-     * archived the damaged scratch.
+     * The flat scratch keys belong to whichever theme `PENDING_CUSTOMIZATION_THEME_ID` names, and that
+     * is the last theme *edited*: opening a different theme does not move it, because `setTheme` writes
+     * `THEME_ID` alone. So `resetCategory`, like every per-theme setter, takes a `forThemeId` and calls
+     * `ensureFreshPendingTheme` first. A reset without them would remove the keys of the last edited
+     * theme: "Reset Houses to default" pressed first after switching themes would leave the theme on
+     * screen untouched (the button would seem dead) and lose the other theme's houses, for good once
+     * the next switch archived the damaged scratch.
      *
-     * The sequence below is that exact state: `city` customised, then `beach`, so the tag is on
-     * `beach` while the user resets a category on `city`.
+     * The sequence below is that state: `city` customised, then `beach`, so the tag is on `beach` while
+     * the user resets a category on `city`.
      */
     @Test
     fun resettingOneCategoryResetsTheThemeOnScreenAndNotTheLastEditedOne() = runBlocking {
@@ -388,8 +370,8 @@ class ThemeCustomizationPersistenceTest {
     }
 
     /**
-     * The same, through the Seasons screen's "Reset decorations to defaults" -- one write since v5.10E
-     * (`resetDecorations`, inventory I-214), where it was the six categories' resets and the palettes'.
+     * The same, through the Seasons screen's "Reset decorations to defaults", which is one write
+     * (`resetDecorations`).
      */
     @Test
     fun resettingTheSeasonalCategoriesLeavesTheLastEditedThemeAlone() = runBlocking {
@@ -411,13 +393,12 @@ class ThemeCustomizationPersistenceTest {
     // ------------------------------------------------------- the night pedestrian density is state
 
     /**
-     * `people_night_density` is per-theme scratch state and must be wiped like the rest of it.
-     *
-     * It was absent from `clearAllThemeCustomizationKeys`, the single wipe shared by
-     * `ensureFreshPendingTheme` (theme switch), `resetAllCategories` ("reset everything") and
-     * `replaceAll` (backup restore) -- so it survived all three. This pins the reset half: the
-     * leftover is invisible immediately after the reset, because that also drops the tag and the
-     * archive and the resolver falls back to defaults, and reappears on the next edit of the theme.
+     * `people_night_density` is per-theme scratch state and is wiped like the rest of it, by
+     * `clearAllThemeCustomizationKeys`, the one wipe shared by `ensureFreshPendingTheme` (theme switch),
+     * `resetAllCategories` ("reset everything") and `replaceAll` (backup restore). This holds the reset
+     * half. A key left behind would not show right after the reset, which also drops the tag and the
+     * archive so the resolver falls back to defaults; it would come back on the next edit of the theme,
+     * which is where this looks.
      */
     @Test
     fun resettingEverythingAlsoClearsTheNightPedestrianDensity() = runBlocking {
@@ -435,7 +416,7 @@ class ThemeCustomizationPersistenceTest {
         assertEquals("a reset field came back on the next edit", expected, customizationOf("beach"))
     }
 
-    /** And the leak half: one theme's night crowd must not follow the user into the next theme. */
+    /** And the leak half: one theme's night crowd does not follow the user into the next theme. */
     @Test
     fun theNightPedestrianDensityDoesNotLeakIntoAnotherTheme() = runBlocking {
         prefs.setPeopleNightDensity(0.2f, "beach")
@@ -453,10 +434,9 @@ class ThemeCustomizationPersistenceTest {
     // ------------------------------------------------------------ the palms switch is state too
 
     /**
-     * The defect measured on the BV6600 in the v5.7 assessment (M1), in its own order: palms off
-     * on Beach, then one unrelated edit on Desert, which had never been touched. Desert lost its
-     * palms. `PALMS_ENABLED` was the one per-theme key `clearAllThemeCustomizationKeys` did not
-     * remove, so Beach's "off" was still in the flat keys when Desert became the theme under edit.
+     * Palms off on Beach, then one unrelated edit on Desert, never touched before: Desert keeps its
+     * palms. `PALMS_ENABLED` is a per-theme key that `clearAllThemeCustomizationKeys` removes; left in
+     * the flat keys, Beach's "off" would become Desert's when Desert became the theme under edit.
      */
     @Test
     fun thePalmsSwitchDoesNotLeakIntoAnotherTheme() = runBlocking {
@@ -474,9 +454,9 @@ class ThemeCustomizationPersistenceTest {
     }
 
     /**
-     * Resetting the scene takes the palms switch with it, and it stays gone after the next edit.
-     * The reset always *looked* right -- it drops the tag and the archive, so the resolver fell back
-     * to defaults -- and the surviving key came back with the first edit (photograph 408).
+     * Resetting the scene takes the palms switch with it, and it stays gone after the next edit. Right
+     * after the reset a surviving key would not show -- the tag and the archive go, so the resolver
+     * falls back to defaults -- so the check is made after one more edit.
      */
     @Test
     fun resettingTheSceneAlsoClearsThePalmsSwitch() = runBlocking {
@@ -493,9 +473,8 @@ class ThemeCustomizationPersistenceTest {
 
     /**
      * **"Reset Trees to default" -- the call the Trees page makes -- turns Beach's palms back on**, and
-     * "Reset decorations to defaults" no longer touches them (v5.10E, inventory I-294, the maintainer's
-     * *«3 - si»* of 2026-10-04): the Palms switch is on the Trees page since v5.10C2, so the reset of that
-     * page is the one that takes it. Until v5.10E this test held the decorations' reset to it.
+     * "Reset decorations to defaults" leaves them alone (`DESIGN_NOTES.md` §12, decision 42): the Palms
+     * switch is on the Trees page, so the reset of that page is the one that takes it.
      */
     @Test
     fun resettingTheTreesBringsThePalmsBack() = runBlocking {
@@ -511,9 +490,9 @@ class ThemeCustomizationPersistenceTest {
     // ------------------------------------------------- the automatic colour modes survive a return
 
     /**
-     * The sequence measured on the BV6600 in the v5.7 assessment (M7): Autumn's hills on "Day
-     * sets night", one edit on Winter, back to Autumn and one unrelated edit there. The mode came
-     * back as "Both" -- MANUAL -- because the restore from the archive did not write it.
+     * Autumn's hills on "Day sets night", one edit on Winter, back to Autumn and one unrelated edit
+     * there: the hills are still on "Day sets night". The restore from the archive writes the mode; a
+     * restore without it would bring the hills back as "Both" -- MANUAL.
      */
     @Test
     fun anAutomaticColourModeSurvivesEditingAnotherThemeAndComingBack() = runBlocking {
@@ -551,10 +530,9 @@ class ThemeCustomizationPersistenceTest {
         prefs.setBirdsNight(true, "beach")
         prefs.setRainbowOpacity(0.77f, "beach")
         prefs.setSantaEnabled(true, "beach")
-        // The palms switch and every automatic day/night mode: the fields this round trip lost
-        // until v5.8 (`writeFlatCustomization` wrote no mode at all), and which this test never
-        // set, so it could not see them go. Both halves of each pair, on every category, and the
-        // nine pairs outside the category loop.
+        // The palms switch and every automatic day/night mode: both halves of each pair, on every
+        // category, and the nine pairs outside the category loop. A mode left at its default here
+        // could be lost by `writeFlatCustomization` without this test seeing it go.
         prefs.setPalmsEnabled(false, "beach")
         for (category in ObjectCategory.entries) {
             prefs.setCategoryAutoMode1(category, AutoColorMode.FROM_DAY, "beach")
@@ -569,14 +547,15 @@ class ThemeCustomizationPersistenceTest {
         prefs.setCloudsAutoMode(AutoColorMode.FROM_DAY, "beach")
         prefs.setPrecipitationRainAutoMode(AutoColorMode.FROM_NIGHT, "beach")
         prefs.setPrecipitationSnowAutoMode(AutoColorMode.FROM_DAY, "beach")
-        // v5.16's fields, each off its default: the three switches *Christmas lights* became, the Halloween switches that
-        // need nothing of the decorations' rule, the scarecrows; the Halloween decorations themselves on another theme below,
-        // as they and the Christmas ones exclude each other (decision 77).
+        // The seasonal fields, each off its default: the three *Christmas lights* switches, the Halloween switches the
+        // decorations' rule does not lock, the scarecrows; the Halloween decorations themselves on another theme below,
+        // as they and the Christmas ones exclude each other (`DESIGN_NOTES.md` §12, decision 77).
         prefs.setChristmasBuildingLightsEnabled(true, "beach")
         prefs.setChristmasTreeLightsEnabled(true, "beach")
         prefs.setChristmasFirsEnabled(true, "beach")
         prefs.setLaughingMoonEnabled(true, "beach")
         prefs.setNightSkyByDayEnabled(true, "beach")
+        prefs.setStillMoonEnabled(true, "beach")
         prefs.setBloodRainEnabled(true, "beach")
         prefs.setHeadlessHorsemanEnabled(true, "beach")
         prefs.setCategoryVisible(ObjectCategory.SCARECROWS, true, "beach")
@@ -588,7 +567,8 @@ class ThemeCustomizationPersistenceTest {
         assertEquals("a category's mode was never set", AutoColorMode.FROM_NIGHT, beach.houses.autoMode2)
         assertEquals("the snow's mode was never set", AutoColorMode.FROM_DAY, beach.precipitation.snowAutoMode)
         assertTrue("v5.16's switches were never set", beach.christmasBuildingLightsEnabled && beach.christmasTreeLightsEnabled && beach.christmasFirsEnabled &&
-            beach.laughingMoonEnabled && beach.nightSkyByDayEnabled && beach.bloodRainEnabled && beach.headlessHorsemanEnabled)
+            beach.laughingMoonEnabled && beach.nightSkyByDayEnabled && beach.bloodRainEnabled && beach.headlessHorsemanEnabled &&
+            beach.stillMoonEnabled)
         assertEquals("the scarecrows were never set", 0.31f, beach.scarecrows.density, 0f)
         assertTrue(beach.scarecrows.visible)
 
@@ -598,7 +578,7 @@ class ThemeCustomizationPersistenceTest {
 
         assertEquals("a field was lost archiving and restoring beach", beach, customizationOf("beach"))
 
-        // The other half of the Palms switch (v5.10C), which a palm theme never moves off its
+        // The other half of the Palms switch, which a palm theme never moves off its
         // default: palms in the trees' places on a theme that plants none, through the same cycle.
         prefs.setPalmsEnabled(true, "city")
         val city = customizationOf("city")
@@ -607,7 +587,7 @@ class ThemeCustomizationPersistenceTest {
         prefs.setCategoryDensity(ObjectCategory.HOUSES, city.houses.density, "city")
         assertEquals("a field was lost archiving and restoring city", city, customizationOf("city"))
 
-        // The Halloween decorations (v5.16), on a theme where no Christmas switch is on, through the same cycle.
+        // The Halloween decorations, on a theme where no Christmas switch is on, through the same cycle.
         prefs.setHalloweenDecorationsEnabled(true, "spring")
         val spring = customizationOf("spring")
         assertTrue("the Halloween decorations were never set", spring.halloweenDecorationsEnabled)
@@ -629,7 +609,7 @@ class ThemeCustomizationPersistenceTest {
         androidx.datastore.preferences.core.stringPreferencesKey("$THEME_CUSTOMIZATION_KEY_PREFIX$themeId")
 
     private companion object {
-        /** `beach` because it is the theme the defect was reported from, plus two more. */
+        /** Three built-in themes, each customised differently and compared in turn. */
         val THEMES = listOf("beach", "winter", "city")
         const val CUSTOM_ID = "custom:persistence-test"
     }

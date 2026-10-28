@@ -9,7 +9,7 @@
     "person_boy_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "boy_walk0",
@@ -19,7 +19,7 @@
     "person_boy_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "boy_walk1",
@@ -29,7 +29,7 @@
     "person_boy_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "boy_walk2",
@@ -39,7 +39,7 @@
     "person_boy_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "girl_head_car",
@@ -59,7 +59,7 @@
     "person_girl_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "girl_walk0",
@@ -69,7 +69,7 @@
     "person_girl_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "girl_walk1",
@@ -79,7 +79,7 @@
     "person_girl_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "girl_walk2",
@@ -89,7 +89,7 @@
     "person_girl_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "man_head_window",
@@ -99,7 +99,7 @@
     "person_man_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "man_walk0",
@@ -109,7 +109,7 @@
     "person_man_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "man_walk1",
@@ -119,7 +119,7 @@
     "person_man_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "man_walk2",
@@ -129,7 +129,7 @@
     "person_man_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "woman_head_window",
@@ -139,7 +139,7 @@
     "person_woman_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "woman_walk0",
@@ -149,7 +149,7 @@
     "person_woman_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "woman_walk1",
@@ -159,7 +159,7 @@
     "person_woman_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "woman_walk2",
@@ -169,7 +169,7 @@
     "person_woman_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks. That is artwork, not code: only a redraw changes it."
   },
   {
    "id": "ground_flowers",
@@ -1455,7 +1455,7 @@
     "kind": "svg",
     "file": "bird_body.svg"
    },
-   "notes": "Redrawn in v4.28 as concept B1 \"Swallow\" -- a deep forked tail, sickle wings swept back, a small head and a short beak. The canvas, the origin and the call site are v4.26's: 51x21 CANVAS_PIXELS, **flap axis canvas row 15**, blitted at BIRD_SPRITE_ORIGIN_Y_PX -15 and mirrored about that row for the down-stroke. What changed is legibility at the 42 px the bird actually reaches: v4.26's \"Dove\" raised both wings forward, and at that size the two humps were the largest shape in the outline and read as a fanned tail, so the eye turned the animal round. The facing was never wrong -- v4.27 measured that and `bird-facing` pins it -- so nothing here is mirrored; the largest shape simply moved behind the head. Head and beak point +x, the only direction birds drift."
+   "notes": "Concept B1 \"Swallow\" -- a deep forked tail, sickle wings swept back, a small head and a short beak. 51x21 CANVAS_PIXELS, **flap axis canvas row 15**, blitted at BIRD_SPRITE_ORIGIN_Y_PX -15 and mirrored about that row for the down-stroke. Drawn to be legible at the 42 px the bird actually reaches: the largest shape in the outline is behind the head, because two wing humps raised forward would be the largest shape at that size and read as a fanned tail, turning the animal round for the eye. Head and beak point +x, the only direction birds drift; `bird-facing` pins the facing, so nothing here is mirrored."
   },
   {
    "name": "bunny_body",
@@ -1559,7 +1559,7 @@
     "kind": "svg",
     "file": "car_body_compact.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. 44 units of canvas against v4.19's 51: the roof came down to -16 and the floor up to 26."
+   "notes": "\u00abCut-out\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. A canvas 44 units tall: the roof at -16 and the floor at 26."
   },
   {
    "name": "car_body_estate",
@@ -1585,7 +1585,7 @@
     "kind": "svg",
     "file": "car_body_estate.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
+   "notes": "\u00abCut-out\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
   },
   {
    "name": "car_body_saloon",
@@ -1611,7 +1611,7 @@
     "kind": "svg",
     "file": "car_body_saloon.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Still the fixed shell of the police car."
+   "notes": "\u00abCut-out\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Also the fixed shell of the police car."
   },
   {
    "name": "car_lamp_front",
@@ -1637,7 +1637,7 @@
     "kind": "svg",
     "file": "car_lamp_front.svg"
    },
-   "notes": "v4.19: amber front lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abCut-out\u00bb: same 6x4-unit canvas, no housing seat behind it."
+   "notes": "Amber front lens, SHARED by the three shells and the fire engine. Drawn for \u00abCut-out\u00bb on a 6x4-unit canvas, with no housing seat behind it."
   },
   {
    "name": "car_lamp_front_lit",
@@ -1663,7 +1663,7 @@
     "kind": "svg",
     "file": "car_lamp_front_lit.svg"
    },
-   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abCut-out\u00bb."
+   "notes": "The same lens lit, drawn for \u00abCut-out\u00bb."
   },
   {
    "name": "car_lamp_rear",
@@ -1689,7 +1689,7 @@
     "kind": "svg",
     "file": "car_lamp_rear.svg"
    },
-   "notes": "v4.19: red rear lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abCut-out\u00bb."
+   "notes": "Red rear lens, SHARED by the three shells and the fire engine. Drawn for \u00abCut-out\u00bb."
   },
   {
    "name": "car_lamp_rear_lit",
@@ -1715,7 +1715,7 @@
     "kind": "svg",
     "file": "car_lamp_rear_lit.svg"
    },
-   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abCut-out\u00bb."
+   "notes": "The same lens lit, drawn for \u00abCut-out\u00bb."
   },
   {
    "name": "car_window_compact",
@@ -1741,7 +1741,7 @@
     "kind": "svg",
     "file": "car_window_compact.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: the glass is a sheet BEHIND the body paper, seen through the holes, with a shadow band along the top and front edge of each hole -- which is what says the glass is behind. Three panes; the canvas carries half a unit of margin, so its blit origin (-28,-13) is not the pane's own top (-12)."
+   "notes": "\u00abCut-out\u00bb: the glass is a sheet BEHIND the body paper, seen through the holes, with a shadow band along the top and front edge of each hole -- which is what says the glass is behind. Three panes; the canvas carries half a unit of margin, so its blit origin (-28,-13) is not the pane's own top (-12)."
   },
   {
    "name": "car_window_estate",
@@ -1767,7 +1767,7 @@
     "kind": "svg",
     "file": "car_window_estate.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: three panes, the third over the load bay. Only the cabin pane is measured against the occupant criteria."
+   "notes": "\u00abCut-out\u00bb: three panes, the third over the load bay. Only the cabin pane is measured against the occupant criteria."
   },
   {
    "name": "car_window_saloon",
@@ -1793,7 +1793,7 @@
     "kind": "svg",
     "file": "car_window_saloon.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: two panes with a 3.5-unit paper pillar between them, in place of the drawn seat back the cars carried until v5.5."
+   "notes": "\u00abCut-out\u00bb: two panes with a 3.5-unit paper pillar between them."
   },
   {
    "name": "cloud_body",
@@ -1819,33 +1819,7 @@
     "kind": "svg",
     "file": "cloud_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept C1 \"Puff\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground -- DESIGN_NOTES 4.1 -- which is what lets it carry a gradient. Canvas and content box unchanged, so CloudCoverage.CLOUD_CONTENT_HALF_UNITS still reads 133."
-  },
-  {
-   "name": "deco_bat",
-   "category": "decoration",
-   "width": 60,
-   "height": 27,
-   "contentBox": [
-    2,
-    2,
-    58,
-    26
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "deco_bat.svg"
-   },
-   "notes": "v5.16: a paper bat in light violet #8A5BB8 hanging by its feet from (0,0) under the eaves, every three points of the roofline, swinging a little. Fixed art. Blitted at HalloweenDecorationTable.BAT_X/Y from the point it hangs from. Generated by tools/assets/halloween/build_halloween_deco.py from the set C, cobwebs and bats, the maintainer chose on 2026-10-21 (v5.16); that script writes the four SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
+   "notes": "Concept C1 \"Puff\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground, which is what lets it carry a gradient. CloudCoverage.CLOUD_CONTENT_HALF_UNITS, 133, is half this content box's width in units, so the two change together."
   },
   {
    "name": "deco_bulb",
@@ -1871,21 +1845,21 @@
     "kind": "svg",
     "file": "deco_bulb.svg"
    },
-   "notes": "v5.14: the white disc, tinted dot by dot through SceneCanvas.drawDisc (SpriteBlitter.drawDisc): every Christmas bulb (the roof strings, the sill strings, every tree's, palm's and fir's lights, the distant houses'), every falling snowflake and every point star. On the GL path a quad of the atlas each instead of a drawn disc of 24 vertices or more, which keeps Christmas at night to one GL draw call with everything on (GlDrawCallTest); on a Canvas the circle itself (DiscAgreementTest). 8 units (24 px) so no disc is ever drawn larger than its texture; drawn by its centre and radius."
+   "notes": "The white disc, tinted dot by dot through SceneCanvas.drawDisc (SpriteBlitter.drawDisc): every Christmas bulb (the roof strings, the sill strings, every tree's, palm's and fir's lights, the distant houses'), every falling snowflake and every point star. On the GL path a quad of the atlas each instead of a drawn disc of 24 vertices or more, which keeps Christmas at night to one GL draw call with everything on (GlDrawCallTest); on a Canvas the circle itself (DiscAgreementTest). 8 units (24 px) so no disc is ever drawn larger than its texture; drawn by its centre and radius."
   },
   {
    "name": "deco_cobweb",
    "category": "decoration",
-   "width": 63,
-   "height": 63,
+   "width": 57,
+   "height": 57,
    "contentBox": [
     2,
     2,
-    61,
-    61
+    55,
+    55
    ],
    "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
+   "tint": "TINTABLE",
    "usage": "referenced",
    "anchorRule": "PART_LOCAL",
    "anchor": [
@@ -1897,7 +1871,7 @@
     "kind": "svg",
     "file": "deco_cobweb.svg"
    },
-   "notes": "v5.16: a spider's web in the left corner of a roof, its corner at (0,0): three threads along the eave, down the wall and between, and two sagging arcs. Fixed art. Blitted at HalloweenDecorationTable.WEB_X/Y from each end of the top piece's roofline, mirrored at the right end. Generated by tools/assets/halloween/build_halloween_deco.py from the set C, cobwebs and bats, the maintainer chose on 2026-10-21 (v5.16); that script writes the four SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
+   "notes": "A spider's web in the left corner of a roof, its corner at (0,0): three threads along the eave, down the wall and between, and one row of scallops sagging toward the corner, reaching 6.2 bands (16 units) from it -- one a building, in the corner its top piece's drawing chooses (HalloweenDecorations.cobwebCorner), mirrored in the right one. A white mask, tinted as the walls choose: #E8E6EE on a dark wall, #4E4963 on a light one (the wall's luminance over 0.45; HalloweenDecorations.webTintOn), the one turned into the other while the wall's luminance crosses 0.43 to 0.47 at dusk and dawn (HalloweenDecorations.webTintAt). Blitted at HalloweenDecorationTable.WEB_X/Y from its corner. Generated by tools/assets/halloween/build_halloween_deco.py as the set A1 (decision 85: no bats, one smaller cobweb); that script writes the three SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
   },
   {
    "name": "deco_jack_o_lantern",
@@ -1923,7 +1897,7 @@
     "kind": "svg",
     "file": "deco_jack_o_lantern.svg"
    },
-   "notes": "v5.16: a small carved pumpkin standing on (0,0), its bottom's middle, to the left of a front door; by day its cuts are the dark of a carved pumpkin. Fixed art. Blitted at HalloweenDecorationTable.PUMPKIN_X/Y. Generated by tools/assets/halloween/build_halloween_deco.py from the set C, cobwebs and bats, the maintainer chose on 2026-10-21 (v5.16); that script writes the four SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
+   "notes": "A small carved pumpkin standing on (0,0), its bottom's middle, to the left of a front door; by day its cuts are the dark of a carved pumpkin. Fixed art. Blitted at HalloweenDecorationTable.PUMPKIN_X/Y. Generated by tools/assets/halloween/build_halloween_deco.py as the set A1 (decision 85: no bats, one smaller cobweb); that script writes the three SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
   },
   {
    "name": "deco_jack_o_lantern_light",
@@ -1949,7 +1923,7 @@
     "kind": "svg",
     "file": "deco_jack_o_lantern_light.svg"
    },
-   "notes": "v5.16: the candle's light in the small carved pumpkin's cuts, laid over deco_jack_o_lantern at night (its alpha how much night it is) at HalloweenDecorationTable.PUMPKIN_LIGHT_X/Y. Fixed art. Generated by tools/assets/halloween/build_halloween_deco.py from the set C, cobwebs and bats, the maintainer chose on 2026-10-21 (v5.16); that script writes the four SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
+   "notes": "The candle's light in the small carved pumpkin's cuts, laid over deco_jack_o_lantern at night (its alpha how much night it is) at HalloweenDecorationTable.PUMPKIN_LIGHT_X/Y. Fixed art. Generated by tools/assets/halloween/build_halloween_deco.py as the set A1 (decision 85: no bats, one smaller cobweb); that script writes the three SVGs and HalloweenDecorationTable.kt (where each blits from the point it hangs from or stands on) from one geometry. Drawn on the building's piece units; every band 2.59 units or more, 2.1 px on the BV6600 at the farthest house (0.28 deep, the smallest size roll: 0.812 px a unit). On the houses and the three shops only (HalloweenDecorations.decorates)."
   },
   {
    "name": "deco_wreath",
@@ -1975,7 +1949,7 @@
     "kind": "svg",
     "file": "deco_wreath.svg"
    },
-   "notes": "v5.14: the wreath on a front door (the maintainer's set C with the wreath, 2026-10-14), a ring of greenery and a red bow, blitted centred on the ring at (-5,-5) (SceneObjectRenderer.drawWreath), a tower's half as large again: one quad of the atlas where the same ring and bow drawn as shapes were 36 vertices."
+   "notes": "The wreath on a front door (decision 67), a ring of greenery and a red bow, blitted centred on the ring at (-5,-5) (SceneObjectRenderer.drawWreath), a tower's half as large again: one quad of the atlas where the same ring and bow drawn as shapes would be 36 vertices."
   },
   {
    "name": "dolphin_body",
@@ -2001,7 +1975,7 @@
     "kind": "svg",
     "file": "dolphin_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Relief\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. v4.31 cropped the 4x6 px of leading padding the redraw left inside the canvas -- 345x174 to 342x168 -- and compensated DOLPHIN_ORIGIN_X/Y_UNITS by the (1, 2) units removed, to (-56.3, -27); no drawn pixel moved. This note used to claim the v4.26 content was placed so the old (-57.3, -29) still landed the animal on its leap point. Measured in v4.31: it does not, and did not. The content centre is (57.167, 28.0) units and that origin put it (+0.87, +1.0) units off the leap point. v5.0 moved the animal onto it (BACKLOG_v5_0.md items 108 and 115): the origin is now (-57.167, -29) on a 342x171 canvas, and DolphinLeapOriginTest measures it against the alpha channel."
+   "notes": "Concept B \"Relief\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the dolphin-drawing themes paint and holds every paper of the animal above a gate. Faces +x, the only way lake decorations drift. The content centre lands on the leap point: the origin is (-57.167, -29) on a 342x171 canvas, and DolphinLeapOriginTest measures it against the alpha channel."
   },
   {
    "name": "easteregg_pattern",
@@ -2287,7 +2261,7 @@
     "kind": "svg",
     "file": "firetruck_body.svg"
    },
-   "notes": "v5.6F \u00abCut-out\u00bb: red paper with the cab glass cut out of it, the cream band and the three doors as cards with their own shadow paper, and three discs in front. 104x60 units at origin (-51,-26)."
+   "notes": "\u00abCut-out\u00bb: red paper with the cab glass cut out of it, the cream band and the three doors as cards with their own shadow paper, and three discs in front. 104x60 units at origin (-51,-26)."
   },
   {
    "name": "firetruck_ladder",
@@ -2313,7 +2287,7 @@
     "kind": "svg",
     "file": "firetruck_ladder.svg"
    },
-   "notes": "v4.19: the ladder over the appliance's body. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 50x7-unit canvas."
+   "notes": "The ladder over the appliance's body, drawn for \u00abCut-out\u00bb on a 50x7-unit canvas."
   },
   {
    "name": "firework",
@@ -2417,7 +2391,7 @@
     "kind": "svg",
     "file": "ground_flowers_bloom.svg"
    },
-   "notes": "One clump of ground flowers in bloom: tulip, daisy, buttercup, bluebells and cosmos on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. The blooming half of the ground_flowers pair -- ground_flowers_dry is the same clump gone over, and the renderer picks between them from the seasonal palette. Neither is named for a season: the dry one serves autumn and winter both. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers. Every head is two cut papers, an ink shadow offset 0.55 units under a light paper, which is the v4.32 buildings' shadow grammar."
+   "notes": "One clump of ground flowers in bloom: tulip, daisy, buttercup, bluebells and cosmos on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. The blooming half of the ground_flowers pair -- ground_flowers_dry is the same clump gone over, and the renderer picks between them from the seasonal palette. Neither is named for a season: the dry one serves autumn and winter both. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers. Every head is two cut papers, an ink shadow offset 0.55 units under a light paper, which is the buildings' shadow grammar."
   },
   {
    "name": "ground_flowers_dry",
@@ -2443,7 +2417,7 @@
     "kind": "svg",
     "file": "ground_flowers_dry.svg"
    },
-   "notes": "One clump of ground flowers gone over: thistle, coneflower, goldenrod, a spent aster, a grass spike and a seed head. Same canvas and same blit origin as ground_flowers_bloom, so the two are interchangeable at the call site. Drawn for autumn AND winter -- dry stems standing out of snow are a real thing to look at, and calling this sprite _autumn would have been a lie every time the winter palette was on. Fixed art, same reason as its twin. Chosen whenever the seasonal palette is AUTUMN or WINTER; flowersEnabled still only says whether there are flowers at all."
+   "notes": "One clump of ground flowers gone over: thistle, coneflower, goldenrod, a spent aster, a grass spike and a seed head. Same canvas and same blit origin as ground_flowers_bloom, so the two are interchangeable at the call site. Drawn for autumn AND winter -- dry stems standing out of snow are a real thing to look at, and calling this sprite _autumn would be a lie every time the winter palette is on. Fixed art, same reason as its twin. Chosen whenever the seasonal palette is AUTUMN or WINTER; flowersEnabled only says whether there are flowers at all."
   },
   {
    "name": "horseman_cape",
@@ -2469,7 +2443,7 @@
     "kind": "svg",
     "file": "horseman_cape.svg"
    },
-   "notes": "v5.16: the Headless Horseman's black cape lined in red, flying back from his shoulders, its pivot at (0,0). Fixed art. Blitted by HeadlessHorsemanDrawer first, behind everything, at HorsemanTable.CAPE_X/Y from the shoulders, swung CAPE_SWING_DEGREES either way with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's black cape lined in red, flying back from his shoulders, its pivot at (0,0). Fixed art. Blitted by HeadlessHorsemanDrawer first, behind everything, at HorsemanTable.CAPE_X/Y from the shoulders, swung CAPE_SWING_DEGREES either way with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_horse_0",
@@ -2495,7 +2469,7 @@
     "kind": "svg",
     "file": "horseman_horse_0.svg"
    },
-   "notes": "v5.16: the Headless Horseman's slate-black horse without its legs in pose 0 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[0], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's slate-black horse without its legs in pose 0 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[0], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_horse_1",
@@ -2521,7 +2495,7 @@
     "kind": "svg",
     "file": "horseman_horse_1.svg"
    },
-   "notes": "v5.16: the Headless Horseman's slate-black horse without its legs in pose 1 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[1], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's slate-black horse without its legs in pose 1 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[1], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_horse_2",
@@ -2547,7 +2521,7 @@
     "kind": "svg",
     "file": "horseman_horse_2.svg"
    },
-   "notes": "v5.16: the Headless Horseman's slate-black horse without its legs in pose 2 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[2], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's slate-black horse without its legs in pose 2 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[2], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_horse_3",
@@ -2573,7 +2547,7 @@
     "kind": "svg",
     "file": "horseman_horse_3.svg"
    },
-   "notes": "v5.16: the Headless Horseman's slate-black horse without its legs in pose 3 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[3], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's slate-black horse without its legs in pose 3 of the four of its flying gallop (the head's nod and the body's pitch the pose's), facing left, its body's middle at (0,0): body, neck and head, smoke-grey mane and tail, saddle cloth and saddle. Fixed art, drawn by night as by day. Blitted by HeadlessHorsemanDrawer at HorsemanTable.HORSE_X/Y[3], bobbing with the stride. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_legs_0",
@@ -2599,7 +2573,7 @@
     "kind": "svg",
     "file": "horseman_legs_0.svg"
    },
-   "notes": "v5.16: the Headless Horseman's horse's four legs in pose 0 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[0]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's horse's four legs in pose 0 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[0]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_legs_1",
@@ -2625,7 +2599,7 @@
     "kind": "svg",
     "file": "horseman_legs_1.svg"
    },
-   "notes": "v5.16: the Headless Horseman's horse's four legs in pose 1 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[1]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's horse's four legs in pose 1 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[1]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_legs_2",
@@ -2651,7 +2625,7 @@
     "kind": "svg",
     "file": "horseman_legs_2.svg"
    },
-   "notes": "v5.16: the Headless Horseman's horse's four legs in pose 2 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[2]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's horse's four legs in pose 2 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[2]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "horseman_legs_3",
@@ -2677,18 +2651,18 @@
     "kind": "svg",
     "file": "horseman_legs_3.svg"
    },
-   "notes": "v5.16: the Headless Horseman's horse's four legs in pose 3 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[3]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The Headless Horseman's horse's four legs in pose 3 of its gallop, in the body's frame, the far ones in the body's shadow tone; drawn behind the body. Fixed art. Blitted by HeadlessHorsemanDrawer at HorsemanTable.LEGS_X/Y[3]. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
-   "name": "horseman_rider",
+   "name": "horseman_rider_arm",
    "category": "decoration",
-   "width": 96,
-   "height": 198,
+   "width": 36,
+   "height": 57,
    "contentBox": [
-    0,
-    0,
-    96,
-    198
+    1,
+    1,
+    34,
+    56
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -2701,9 +2675,61 @@
    "season": "all",
    "source": {
     "kind": "svg",
-    "file": "horseman_rider.svg"
+    "file": "horseman_rider_arm.svg"
    },
-   "notes": "v5.16: the headless rider -- a dark coat with gold buttons, a high cream collar round the empty neck, his near leg in the stirrup, one hand for the reins and the other holding up a carved pumpkin lit from inside -- his seat at (0,0). Fixed art. Blitted by HeadlessHorsemanDrawer at the seat plus HorsemanTable.RIDER_X/Y, bobbing against the horse; the reins are a cord drawn under him. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow, the maintainer chose on 2026-10-21 (v5.16); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+   "notes": "The rider's near arm and its glove, holding the pumpkin up, in a frame a whole unit from its pivot at the shoulder. Fixed art. Blitted by HeadlessHorsemanDrawer at the seat plus HorsemanTable.ARM_PIVOT_X/Y, turned about it by the throw's angle (HorsemanFlight.armDegrees: back to 28 degrees, forward to -32 where it lets the pumpkin go), from ARM_X/Y; the gesture of decision 84, the maintainer's \u00abZ3: col gesto (consigliata)\u00bb (2026-10-24). Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+  },
+  {
+   "name": "horseman_rider_body",
+   "category": "decoration",
+   "width": 84,
+   "height": 123,
+   "contentBox": [
+    0,
+    0,
+    84,
+    123
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "horseman_rider_body.svg"
+   },
+   "notes": "The headless rider without his near arm and the pumpkin he holds -- a dark coat with gold buttons, a high cream collar round the empty neck, the round of his near shoulder over the collar's end, his near leg in the stirrup, the far arm with the hand for the reins -- his seat at (0,0). Fixed art. Blitted by HeadlessHorsemanDrawer at the seat plus HorsemanTable.BODY_X/Y, bobbing against the horse; the reins are a cord drawn under him, his arm and his pumpkin over him. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
+  },
+  {
+   "name": "horseman_rider_pumpkin",
+   "category": "decoration",
+   "width": 51,
+   "height": 54,
+   "contentBox": [
+    1,
+    0,
+    51,
+    54
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "horseman_rider_pumpkin.svg"
+   },
+   "notes": "The carved pumpkin lit from inside that the rider holds up and throws, in a frame a whole unit from its middle. Fixed art. Blitted by HeadlessHorsemanDrawer in his hand (HorsemanTable.PUMPKIN_X/Y from the seat, turned with the arm; growing from a third of its size after a throw) and, thrown, by drawThrownPumpkin at its middle, turning as it falls, from PUMPKIN_BLIT_X/Y. Drawn at HeadlessHorsemanScale.pxPerUnit, the rider (collar to boot) 1.3 times a pedestrian as Santa is: 1.235 px a unit on the BV6600, every band 2.02 units or more. Generated by tools/assets/horseman/build_horseman.py from the drawing B, the rider of Sleepy Hollow (decision 79); that script writes the SVGs and HorsemanTable.kt (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent, the rider's height and the size chosen) from one geometry."
   },
   {
    "name": "house_distant_chalet_fx",
@@ -3925,7 +3951,7 @@
     "kind": "svg",
     "file": "leaf_pile.svg"
    },
-   "notes": "v4.17. One heap of fallen leaves for the Leaf piles slider, in the same four tones drawFallingLeaves paints its leaves with, so a heap on the ground and a leaf in the air are the same leaves. Independent of the falling ones."
+   "notes": "One heap of fallen leaves for the Leaf piles slider, in the same four tones drawFallingLeaves paints its leaves with, so a heap on the ground and a leaf in the air are the same leaves. Independent of the falling ones."
   },
   {
    "name": "lightning_bolt",
@@ -3977,7 +4003,7 @@
     "kind": "svg",
     "file": "moon_crescent.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. The lit limb is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A52 34 0 0 0` corrected to `A20 34 0 0 0`, which had bulged past the canvas and been clipped flat on the device) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
+   "notes": "Concept B \"Scissors\", 40 vertices like the rest of the family. The lit limb is cut, not arced: the source draws it as facets, with no SVG arc. The same canvas, convention and anchor as the rest of the family."
   },
   {
    "name": "moon_full",
@@ -4003,7 +4029,7 @@
     "kind": "svg",
     "file": "moon_full.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\": 40 vertices, 9 degrees per facet, which is the step the whole moon family uses. Same canvas, convention and anchor as the artwork it replaces."
+   "notes": "Concept B \"Scissors\": 40 vertices, 9 degrees per facet, which is the step the whole moon family uses. The same canvas, convention and anchor as the rest of the family."
   },
   {
    "name": "moon_gibbous",
@@ -4029,7 +4055,7 @@
     "kind": "svg",
     "file": "moon_gibbous.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. The terminator is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A20 34 0 1 0` corrected to `A18 34 0 0 1`) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
+   "notes": "Concept B \"Scissors\", 40 vertices like the rest of the family. The terminator is cut, not arced: the source draws it as facets, with no SVG arc. The same canvas, convention and anchor as the rest of the family."
   },
   {
    "name": "moon_half",
@@ -4055,7 +4081,7 @@
     "kind": "svg",
     "file": "moon_half.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. Same canvas, convention and anchor as the artwork it replaces."
+   "notes": "Concept B \"Scissors\", 40 vertices like the rest of the family, on the same canvas, convention and anchor."
   },
   {
    "name": "moon_jack_o_lantern",
@@ -4081,7 +4107,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern.svg"
    },
-   "notes": "v5.15: the Halloween moon -- the full moon's disc (the 40 cuts of moon_full, read from its source) with five craters, the jack-o'-lantern's face cut out of it with an SVG mask, so the sky shows through the eyes, the nose and the grin (DESIGN_NOTES.md section 16, carved rather than painted). A tintable mask, #F4F4F4 and the craters #E1E1E1 as moon_full: the renderer tints it with the theme's own moon colour (an orange fixed for every theme until v5.15), and lays moon_jack_o_lantern_light over it, the light inside the cuts. About 158 px across on the BV6600, 44 on the gallery card. It shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas matches theirs. Generated by tools/assets/moon/build_jack_moon.py from the maintainer's 'C - faccia accesa' (2026-10-19)."
+   "notes": "The Halloween moon -- the full moon's disc (the 40 cuts of moon_full, read from its source) with five craters, the jack-o'-lantern's face cut out of it with an SVG mask, so the sky shows through the eyes, the nose and the grin (carved rather than painted). A tintable mask, #F4F4F4 and the craters #E1E1E1 as moon_full: the renderer tints it with the theme's own moon colour, and lays moon_jack_o_lantern_light over it, the light inside the cuts. About 158 px across on the BV6600, 44 on the gallery card. It shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas matches theirs. Generated by tools/assets/moon/build_jack_moon.py from the maintainer's 'C - faccia accesa' (2026-10-19, decision 74)."
   },
   {
    "name": "moon_jack_o_lantern_laugh",
@@ -4107,7 +4133,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern_laugh.svg"
    },
-   "notes": "v5.16: the Halloween moon laughing -- the full moon's disc and five craters with the laughing face cut out of it -- shown for a moment now and then in place of moon_jack_o_lantern. A tintable mask, #F4F4F4 and the craters #E1E1E1 as moon_full, tinted the theme's moon colour; its canvas is the moon's 240 px, placed as moon_jack_o_lantern is. Generated by tools/assets/moon/build_jack_moon_laugh.py, on build_jack_moon.py's moon, from the laughing face the maintainer chose on 2026-10-21 ('2 risata', v5.16): the eyes squeezed into two arches, the grin thrown open, the moon's own nose; every cut and the paper between two cuts 11 px of the 240 or more, and no cut leaving a piece of its own (inventory I-1022)."
+   "notes": "The Halloween moon laughing -- the full moon's disc and five craters with the laughing face cut out of it -- shown for a moment now and then in place of moon_jack_o_lantern. A tintable mask, #F4F4F4 and the craters #E1E1E1 as moon_full, tinted the theme's moon colour; its canvas is the moon's 240 px, placed as moon_jack_o_lantern is. Generated by tools/assets/moon/build_jack_moon_laugh.py, on build_jack_moon.py's moon, from the laughing face the maintainer chose on 2026-10-21 ('2 risata', decision 81): the eyes squeezed into two arches, the grin thrown open, the moon's own nose; every cut and the paper between two cuts 11 px of the 240 or more, and no cut leaving a piece of its own."
   },
   {
    "name": "moon_jack_o_lantern_laugh_light",
@@ -4133,7 +4159,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern_laugh_light.svg"
    },
-   "notes": "v5.16: the light inside the laughing moon's carved face, a warm yellow #FFD54F with an orange rim #F39C2E 4 px of the 240 wide along every cut as the moon's own (decision 74), blitted untinted over moon_jack_o_lantern_laugh at PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X/Y px from the moon's centre. Trimmed to the face with a transparent guard pixel round it. Generated by tools/assets/moon/build_jack_moon_laugh.py, on build_jack_moon.py's moon, from the laughing face the maintainer chose on 2026-10-21 ('2 risata', v5.16): the eyes squeezed into two arches, the grin thrown open, the moon's own nose; every cut and the paper between two cuts 11 px of the 240 or more, and no cut leaving a piece of its own (inventory I-1022)."
+   "notes": "The light inside the laughing moon's carved face, a warm yellow #FFD54F with an orange rim #F39C2E 4 px of the 240 wide along every cut as the moon's own (decision 74), blitted untinted over moon_jack_o_lantern_laugh at PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X/Y px from the moon's centre. Trimmed to the face with a transparent guard pixel round it. Generated by tools/assets/moon/build_jack_moon_laugh.py, on build_jack_moon.py's moon, from the laughing face the maintainer chose on 2026-10-21 ('2 risata', decision 81): the eyes squeezed into two arches, the grin thrown open, the moon's own nose; every cut and the paper between two cuts 11 px of the 240 or more, and no cut leaving a piece of its own."
   },
   {
    "name": "moon_jack_o_lantern_light",
@@ -4159,7 +4185,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern_light.svg"
    },
-   "notes": "v5.15: the light inside the Halloween moon's carved face, a warm yellow #FFD54F with an orange rim #F39C2E, blitted untinted over moon_jack_o_lantern at PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X/Y px from the moon's centre (the maintainer's 'C - faccia accesa', 2026-10-19). Trimmed to the face with a transparent guard pixel round it, so it costs its own content and not the moon's 240-px canvas. Generated by tools/assets/moon/build_jack_moon.py, which draws the moon and the light from one geometry."
+   "notes": "The light inside the Halloween moon's carved face, a warm yellow #FFD54F with an orange rim #F39C2E, blitted untinted over moon_jack_o_lantern at PaperRenderer.HALLOWEEN_LIGHT_ORIGIN_X/Y px from the moon's centre (the maintainer's 'C - faccia accesa', 2026-10-19, decision 74). Trimmed to the face with a transparent guard pixel round it, so it costs its own content and not the moon's 240-px canvas. Generated by tools/assets/moon/build_jack_moon.py, which draws the moon and the light from one geometry."
   },
   {
    "name": "palmtree_fronds",
@@ -4185,7 +4211,7 @@
     "kind": "svg",
     "file": "palmtree_fronds.svg"
    },
-   "notes": "The coconut palm's living crown, redrawn from scratch in v5.1 from concept A \"Coconut\". Seven broad lens-shaped blades that arch and fall, each a card with its own paper shadow and a lighter fold along its back, and three coconuts under the convergence. The canvas is 56x48 units because the blades fall BELOW the attachment point, which the 40x40 canvas this replaces had no room for. Its two alternatives share this canvas and this origin."
+   "notes": "The coconut palm's living crown, concept A \"Coconut\". Seven broad lens-shaped blades that arch and fall, each a card with its own paper shadow and a lighter fold along its back, and three coconuts under the convergence. The canvas is 56x48 units because the blades fall BELOW the attachment point, and the canvas has room for them there. Its two alternatives share this canvas and this origin."
   },
   {
    "name": "palmtree_fronds_dead",
@@ -4237,7 +4263,7 @@
     "kind": "svg",
     "file": "palmtree_fronds_frost.svg"
    },
-   "notes": "The winter palette's palm crown: the same seven blades in a cold green with snow settled along the backs of the five upper ones. v5.1 made it a WHOLE CROWN rather than the five white caps that used to be blitted on top of the live one, so drawPalmTree draws it INSTEAD of palmtree_fronds and the pixel-for-pixel coverage condition the overlay needed is gone. Same canvas, same declared attachment. Snow is white over a #C9D6E0 card."
+   "notes": "The winter palette's palm crown: the same seven blades in a cold green with snow settled along the backs of the five upper ones. It is a WHOLE CROWN, not caps blitted on top of the live one, so drawPalmTree draws it INSTEAD of palmtree_fronds and nothing has to cover the live crown pixel for pixel. The same canvas and declared attachment as palmtree_fronds. Snow is white over a #C9D6E0 card."
   },
   {
    "name": "palmtree_trunk",
@@ -4263,7 +4289,7 @@
     "kind": "svg",
     "file": "palmtree_trunk.svg"
    },
-   "notes": "The coconut palm's trunk, v5.1: a curved spindle leaning 7 units right over a flared foot, crescent leaf scars up the front, a shadow band down the right flank and a strip of light down the left. ANCHORED ON ITS FOOT, WHICH IS DECLARED RATHER THAN DERIVED. The drawn content spans x 2..60 px while the foot's centre is at x 24 px, because the trunk leans -- CONTENT_BOTTOM_CENTRE, true of the straight trunk this replaces, would derive 31 and stand the palm more than two units beside its own ground shadow while pivoting its sway off its base. drawPalmTree blits at (-8, -58), which is this anchor negated. The canvas is what `normalize` leaves: two pixels of guard on each side, because a filtered blit reads the column beside the ink and clamping onto it changes the edge (v4.31)."
+   "notes": "The coconut palm's trunk: a curved spindle leaning 7 units right over a flared foot, crescent leaf scars up the front, a shadow band down the right flank and a strip of light down the left. ANCHORED ON ITS FOOT, WHICH IS DECLARED RATHER THAN DERIVED. The drawn content spans x 2..60 px while the foot's centre is at x 24 px, because the trunk leans -- CONTENT_BOTTOM_CENTRE, right only for a straight trunk, would derive 31 and stand the palm more than two units beside its own ground shadow while pivoting its sway off its base. drawPalmTree blits at (-8, -58), which is this anchor negated. The canvas is what `normalize` leaves: two pixels of guard on each side, because a filtered blit reads the column beside the ink and clamping onto it changes the edge."
   },
   {
    "name": "penguin_beak",
@@ -4341,7 +4367,7 @@
     "kind": "svg",
     "file": "penguin_body.svg"
    },
-   "notes": "Placed as a part, not on its own content bottom: the penguin stands on penguin_feet, which is blitted separately at the ground line, so the body correctly sits one unit above it. Declaring CONTENT_BOTTOM_CENTRE said the body itself met the ground and made a correct composition look like defect D-9."
+   "notes": "Placed as a part, not on its own content bottom: the penguin stands on penguin_feet, which is blitted separately at the ground line, so the body correctly sits one unit above it. Declaring CONTENT_BOTTOM_CENTRE would say the body itself meets the ground, and a correct composition would look like a sprite floating one unit above it."
   },
   {
    "name": "penguin_feet",
@@ -4861,7 +4887,7 @@
     "kind": "svg",
     "file": "person_boy_summer_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_boy_summer_head_window_fx",
@@ -4991,7 +5017,7 @@
     "kind": "svg",
     "file": "person_boy_summer_walk0.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_summer_walk0_fx",
@@ -5147,7 +5173,7 @@
     "kind": "svg",
     "file": "person_boy_summer_walk1.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_summer_walk1_fx",
@@ -5303,7 +5329,7 @@
     "kind": "svg",
     "file": "person_boy_summer_walk2.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_summer_walk2_fx",
@@ -5771,7 +5797,7 @@
     "kind": "svg",
     "file": "person_boy_winter_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_boy_winter_walk0",
@@ -5797,7 +5823,7 @@
     "kind": "svg",
     "file": "person_boy_winter_walk0.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_winter_walk0_fx",
@@ -5927,7 +5953,7 @@
     "kind": "svg",
     "file": "person_boy_winter_walk1.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_winter_walk1_fx",
@@ -6057,7 +6083,7 @@
     "kind": "svg",
     "file": "person_boy_winter_walk2.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion regenerated in v4.30."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The walkers' un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and ThemePreviewScene blits the other three families' directly for the gallery card -- but not the boy's, which no preview draws. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest. He is also the subject of SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
   },
   {
    "name": "person_boy_winter_walk2_fx",
@@ -6499,7 +6525,7 @@
     "kind": "svg",
     "file": "person_girl_summer_head_car.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers. Until v4.30 it was also the exact source tools/generate_skin_variants.py recoloured into her three tone copies, which v4.30 stopped shipping; v4.20's measurement of what retiring it would cost (165-406 pixels differently at the anti-aliased edges, item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md) was about those copies."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers."
   },
   {
    "name": "person_girl_summer_head_car_fx",
@@ -6629,7 +6655,7 @@
     "kind": "svg",
     "file": "person_girl_summer_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_girl_summer_head_window_fx",
@@ -7435,7 +7461,7 @@
     "kind": "svg",
     "file": "person_girl_winter_head_car.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers. Until v4.30 it was also the exact source tools/generate_skin_variants.py recoloured into her three tone copies, which v4.30 stopped shipping; v4.20's measurement of what retiring it would cost (165-406 pixels differently at the anti-aliased edges, item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md) was about those copies."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers."
   },
   {
    "name": "person_girl_winter_head_car_fx",
@@ -7565,7 +7591,7 @@
     "kind": "svg",
     "file": "person_girl_winter_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_girl_winter_walk0",
@@ -8423,7 +8449,7 @@
     "kind": "svg",
     "file": "person_man_summer_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_man_summer_head_window_fx",
@@ -9359,7 +9385,7 @@
     "kind": "svg",
     "file": "person_man_winter_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_man_winter_walk0",
@@ -10191,7 +10217,7 @@
     "kind": "svg",
     "file": "person_woman_summer_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_woman_summer_head_window_fx",
@@ -11049,7 +11075,7 @@
     "kind": "svg",
     "file": "person_woman_winter_head_window.svg"
    },
-   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+   "notes": "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, which the draw path reads; the winter bust is not converted (RETIRED in that script: a person at their window is indoors, so the window has one season). Both are the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No table in the code names it: a sprite table no draw path reads would hide the orphan from SpriteReachabilityTest."
   },
   {
    "name": "person_woman_winter_walk0",
@@ -11543,7 +11569,7 @@
     "kind": "svg",
     "file": "police_lightbar.svg"
    },
-   "notes": "v4.19: the bar on the police saloon's roof. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 20x6-unit canvas."
+   "notes": "The bar on the police saloon's roof, drawn for \u00abCut-out\u00bb on a 20x6-unit canvas."
   },
   {
    "name": "police_station_fx",
@@ -11673,7 +11699,7 @@
     "kind": "svg",
     "file": "police_stripe.svg"
    },
-   "notes": "v4.19: 44 -> 40 units, because the run of shell between the compact's two arches at the band's own row is 42. v5.6F redraws it as a card with a chamfer and its own shadow paper; the arches it was measured against no longer exist, and the 40 is kept because it is the run of paper the band lies on."
+   "notes": "40 units, the run of paper the band lies on: a card with a chamfer and its own shadow paper, drawn for \u00abCut-out\u00bb."
   },
   {
    "name": "pumpkin_body",
@@ -11725,7 +11751,7 @@
     "kind": "svg",
     "file": "pumpkin_face.svg"
    },
-   "notes": "v4.17. The carved face, on pumpkin_body's own canvas and at its own anchor, so it registers with the body exactly rather than being placed against it. Drawn only when halloweenEnabled, which already exists and already strips the tree crowns: the same switch that makes the trees bare turns the pumpkins into lanterns. Two triangular eyes and a four-tooth grin and nothing else -- at the size a pumpkin is drawn on a phone a nose is one pixel and reads as dirt."
+   "notes": "The carved face, on pumpkin_body's own canvas and at its own anchor, so it registers with the body exactly rather than being placed against it. Drawn only when halloweenEnabled, which also strips the tree crowns: the same switch that makes the trees bare turns the pumpkins into lanterns. Two triangular eyes and a four-tooth grin and nothing else -- at the size a pumpkin is drawn on a phone a nose is one pixel and reads as dirt."
   },
   {
    "name": "pumpkin_stem",
@@ -11907,7 +11933,7 @@
     "kind": "svg",
     "file": "sailboat_hull.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Relief\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0. v4.31 cropped the 8 px of leading padding -- 252x51 to 246x51, an 82x17-unit canvas -- and compensated the blit origin by the 2 units removed, to (-40, 8); no drawn pixel moved. The **y** origin is untouched, which is what SAILBOAT_HULL_WATERLINE_UNITS derives its 25 from."
+   "notes": "Concept B \"Relief\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0. A 246x51 canvas, 82x17 units, blitted at (-40, 8); the **y** origin is what SAILBOAT_HULL_WATERLINE_UNITS derives its 25 from."
   },
   {
    "name": "sailboat_sail",
@@ -11933,7 +11959,7 @@
     "kind": "svg",
     "file": "sailboat_sail.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Relief\": mast, mainsail, band, boom and jib, each over an offset under-paper. Jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. v4.31 cropped the 27 px of leading and 4 px of trailing padding -- 210x180 to 180x180, a 60x60-unit canvas -- and compensated the blit origin by the 9 units removed, to (-26, -50); no drawn pixel moved. The mast was at x=43 of 70 units and is at x=34 of 60."
+   "notes": "Concept B \"Relief\": mast, mainsail, band, boom and jib, each over an offset under-paper. Jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. A 183x180 canvas, 61x60 units, blitted at (-27, -50)."
   },
   {
    "name": "santa_reindeer_0",
@@ -11959,7 +11985,7 @@
     "kind": "svg",
     "file": "santa_reindeer_0.svg"
    },
-   "notes": "v5.15: a reindeer of Santa's sleigh in pose 0 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[0]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised the maintainer chose on 2026-10-19 (v5.15); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
+   "notes": "A reindeer of Santa's sleigh in pose 0 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[0]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised (decision 73); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
   },
   {
    "name": "santa_reindeer_1",
@@ -11985,7 +12011,7 @@
     "kind": "svg",
     "file": "santa_reindeer_1.svg"
    },
-   "notes": "v5.15: a reindeer of Santa's sleigh in pose 1 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[1]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised the maintainer chose on 2026-10-19 (v5.15); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
+   "notes": "A reindeer of Santa's sleigh in pose 1 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[1]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised (decision 73); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
   },
   {
    "name": "santa_reindeer_2",
@@ -12011,7 +12037,7 @@
     "kind": "svg",
     "file": "santa_reindeer_2.svg"
    },
-   "notes": "v5.15: a reindeer of Santa's sleigh in pose 2 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[2]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised the maintainer chose on 2026-10-19 (v5.15); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
+   "notes": "A reindeer of Santa's sleigh in pose 2 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[2]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised (decision 73); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
   },
   {
    "name": "santa_reindeer_3",
@@ -12037,7 +12063,7 @@
     "kind": "svg",
     "file": "santa_reindeer_3.svg"
    },
-   "notes": "v5.15: a reindeer of Santa's sleigh in pose 3 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[3]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised the maintainer chose on 2026-10-19 (v5.15); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
+   "notes": "A reindeer of Santa's sleigh in pose 3 of the four of its flying gallop, facing left, its body's middle at (0,0): chubby, a red collar with a gold bell and a red band with a bell round its middle. One series for both reindeer: Rudolph is this with a red disc drawn over its nose (SantaSleighDrawer), so no second series ships. Blitted at SantaSleighTable.DEER_X/Y[3]. Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised (decision 73); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
   },
   {
    "name": "santa_sleigh",
@@ -12063,7 +12089,7 @@
     "kind": "svg",
     "file": "santa_sleigh.svg"
    },
-   "notes": "v5.15: Santa's sleigh -- the red sleigh with gold scrolls, a gold band and gold runners, its side raised to just under Santa's belt so he reads as sitting; Santa facing us, waving, the reins in his other hand; the presents piled behind him. Fixed art, drawn by night as by day (no shade). Blitted by SantaSleighDrawer at SantaSleighTable.SLEIGH_X/Y in the group's units, at the group's scale (SantaSleighScale: in proportion to the people). Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised the maintainer chose on 2026-10-19 (v5.15); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
+   "notes": "Santa's sleigh -- the red sleigh with gold scrolls, a gold band and gold runners, its side raised to just under Santa's belt so he reads as sitting; Santa facing us, waving, the reins in his other hand; the presents piled behind him. Fixed art, drawn by night as by day (no shade). Blitted by SantaSleighDrawer at SantaSleighTable.SLEIGH_X/Y in the group's units, at the group's scale (SantaSleighScale: in proportion to the people). Generated by tools/assets/sleigh/build_sleigh.py from the drawing of the sleigh B with its side raised (decision 73); that script writes the SVGs and SantaSleighTable.kt (where each piece blits, the cords' ends, the sack, Rudolph's nose, the group's extent and size) from one geometry."
   },
   {
    "name": "scarecrow",
@@ -12089,7 +12115,7 @@
     "kind": "svg",
     "file": "scarecrow.svg"
    },
-   "notes": "v5.16: the Halloween scarecrow on its pole, standing in a snowman's place: a black floppy pointed hat with an orange band, an old green coat with a brown and an orange patch, brown trousers, straw out of the cuffs and the hem, a carved pumpkin for a head whose cuts are the dark of a carved pumpkin by day. Fixed art, not shaded at night. Its canvas is centred on the pole and ends at the ground, so the pole's foot is its bottom centre; blitted at ScarecrowTable.X/Y. Generated by tools/assets/scarecrow/build_scarecrow.py from the drawing B, the Halloween scarecrow, the maintainer chose on 2026-10-21 (v5.16); that script writes the two SVGs and ScarecrowTable.kt (where both blit from the pole's foot, the drawing's height in units and the 2.4 m it reads as) from one geometry. Every band 4.5 units, 2.2 px on the BV6600 where it stands farthest (a snowman's place 0.45 deep, the smallest size roll: 0.481 px a unit)."
+   "notes": "The Halloween scarecrow on its pole, standing in a snowman's place: a black floppy pointed hat with an orange band, an old green coat with a brown and an orange patch, brown trousers, straw out of the cuffs and the hem, a carved pumpkin for a head whose cuts are the dark of a carved pumpkin by day. Fixed art, not shaded at night. Its canvas is centred on the pole and ends at the ground, so the pole's foot is its bottom centre; blitted at ScarecrowTable.X/Y. Generated by tools/assets/scarecrow/build_scarecrow.py from the drawing B, the Halloween scarecrow (decision 80); that script writes the two SVGs and ScarecrowTable.kt (where both blit from the pole's foot, the drawing's height in units and the 2.4 m it reads as) from one geometry. Every band 4.5 units, 2.2 px on the BV6600 where it stands farthest (a snowman's place 0.45 deep, the smallest size roll: 0.481 px a unit)."
   },
   {
    "name": "scarecrow_light",
@@ -12115,7 +12141,7 @@
     "kind": "svg",
     "file": "scarecrow_light.svg"
    },
-   "notes": "v5.16: the candle's light in the Halloween scarecrow's carved face, its cuts in a warm yellow, laid over scarecrow at night (its alpha how much night it is) at ScarecrowTable.LIGHT_X/Y from the pole's foot. Fixed art. Generated by tools/assets/scarecrow/build_scarecrow.py from the drawing B, the Halloween scarecrow, the maintainer chose on 2026-10-21 (v5.16); that script writes the two SVGs and ScarecrowTable.kt (where both blit from the pole's foot, the drawing's height in units and the 2.4 m it reads as) from one geometry. Every band 4.5 units, 2.2 px on the BV6600 where it stands farthest (a snowman's place 0.45 deep, the smallest size roll: 0.481 px a unit)."
+   "notes": "The candle's light in the Halloween scarecrow's carved face, its cuts in a warm yellow, laid over scarecrow at night (its alpha how much night it is) at ScarecrowTable.LIGHT_X/Y from the pole's foot. Fixed art. Generated by tools/assets/scarecrow/build_scarecrow.py from the drawing B, the Halloween scarecrow (decision 80); that script writes the two SVGs and ScarecrowTable.kt (where both blit from the pole's foot, the drawing's height in units and the 2.4 m it reads as) from one geometry. Every band 4.5 units, 2.2 px on the BV6600 where it stands farthest (a snowman's place 0.45 deep, the smallest size roll: 0.481 px a unit)."
   },
   {
    "name": "school_fx",
@@ -12349,7 +12375,7 @@
     "kind": "svg",
     "file": "snow_pile.svg"
    },
-   "notes": "v4.17. One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
+   "notes": "One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
   },
   {
    "name": "snowman_body",
@@ -12453,7 +12479,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it. The gallery card also uses it, tinted, as Christmas baubles -- the only tinted uses, both on the preview: three on the fir (ThemePreviewScene.fir, at FirTable.BAUBLE_X/BAUBLE_Y, which tools/assets/fir/build_fir.py writes and tests/test_fir.py holds on the fir's paper, v5.14) and one on a lit palm's crown (ThemePreviewScene.palmTree, placed by eye)."
+   "notes": "Concept B \"Scissors\", drawn for PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR 16: a full waist of 24-28 units, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. SCENE_UNITS, not CANVAS_PIXELS: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, three times too large. The scale follows PaperRenderer.drawStars, which is the source of truth for a convention; the scene blits it untinted, as its FIXED_ART tint class says. The gallery card also uses it, tinted, as Christmas baubles -- the only tinted uses, both on the preview: three on the fir (ThemePreviewScene.fir, at FirTable.BAUBLE_X/BAUBLE_Y, which tools/assets/fir/build_fir.py writes and tests/test_fir.py holds on the fir's paper) and one on a lit palm's crown (ThemePreviewScene.palmTree, placed by eye)."
   },
   {
    "name": "sun_body",
@@ -12479,7 +12505,7 @@
     "kind": "svg",
     "file": "sun_body.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\": a disc cut with scissors rather than struck with a compass -- a faceted rim with a hand-cut wobble, and the paper's own cream. Same 240x240 canvas, same CANVAS_PIXELS convention and same SPRITE_CENTRE anchor as the artwork it replaces, so CELESTIAL_DISC_ORIGIN_UNITS and every call site are unchanged."
+   "notes": "Concept B \"Scissors\": a disc cut with scissors rather than struck with a compass -- a faceted rim with a hand-cut wobble, and the paper's own cream. A 240x240 canvas in the CANVAS_PIXELS convention with the SPRITE_CENTRE anchor, the moon phases' own, so CELESTIAL_DISC_ORIGIN_UNITS places all of them."
   },
   {
    "name": "sun_glow",
@@ -12505,7 +12531,7 @@
     "kind": "svg",
     "file": "sun_glow.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", variant halo/v2_refined/c: a compass-struck ring at full opacity with a warmed gradient (0.55 #FBE289 / 0.28 #F0A03C). Same 396x396 canvas and same contentBox as the artwork it replaces, so SUN_GLOW_ORIGIN_UNITS (-198) is unchanged and the ray ring still sits outside the disc's 120 units."
+   "notes": "Concept B \"Scissors\", variant halo/v2_refined/c: a compass-struck ring at full opacity with a warmed gradient (0.55 #FBE289 / 0.28 #F0A03C). A 396x396 canvas, centred by SUN_GLOW_ORIGIN_UNITS (-198); the ray ring sits outside the disc's 120 units."
   },
   {
    "name": "taxi_checker",
@@ -12531,7 +12557,7 @@
     "kind": "svg",
     "file": "taxi_checker.svg"
    },
-   "notes": "v4.19: the chequer band, 40 units, the same width as the police stripe and for the same reason. Redrawn in v5.6F for \u00abCut-out\u00bb."
+   "notes": "The chequer band, 40 units, the same width as the police stripe and for the same reason. Drawn for \u00abCut-out\u00bb."
   },
   {
    "name": "taxi_sign",
@@ -12557,7 +12583,7 @@
     "kind": "svg",
     "file": "taxi_sign.svg"
    },
-   "notes": "v4.19: the sign on the taxi's roof. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 14x6-unit canvas."
+   "notes": "The sign on the taxi's roof, drawn for \u00abCut-out\u00bb on a 14x6-unit canvas."
   },
   {
    "name": "tower_bay_door_fx",
@@ -13545,7 +13571,7 @@
     "kind": "svg",
     "file": "tree_canopy.svg"
    },
-   "notes": "v4.21 'Broad Oak': a cushion of foliage wider than it is tall (101x66 u against 82x74), a scalloped rim, three horizontal bands of paper plus the light on the top. It replaces the octagon on a straight trunk that read as a lollipop. Canvas trimmed to the content, viewBox at x=2. Crown and cap are re-derived together: the clip mask of tree_canopy_snowcap is the copy of this file's circles."
+   "notes": "'Broad Oak': a cushion of foliage wider than it is tall (101x66 u), a scalloped rim, three horizontal bands of paper plus the light on the top, so the tree does not read as a lollipop. Canvas trimmed to the content, viewBox at x=2. Crown and cap are re-derived together: the clip mask of tree_canopy_snowcap is the copy of this file's circles."
   },
   {
    "name": "tree_canopy_snowcap",
@@ -13571,7 +13597,7 @@
     "kind": "svg",
     "file": "tree_canopy_snowcap.svg"
    },
-   "notes": "v4.21: snow on the top of the 'Broad Oak'. The upper edge is not drawn but CUT OUT along the crown's silhouette - the clipPath copies every circle of tree_canopy, not only the upper ones, because the inner bands are shifted to the upper left and stand out by half a unit. So the cap repeats the crown by construction: zero pixels outside the crown, and the first 94 rows of 114 have the same first and last opaque column. The crown's canvas and origin (viewBox x=2, y=0, blit -50/-80): the two cannot slide over one another. If the crown changes, this mask is copied again in the same pass. Right side and bottom trimmed to the content in v4.21; the 6 units of margin on the left stay because they are the origin shared with the crown (SNOWCAP_X == CANOPY_X)."
+   "notes": "Snow on the top of the 'Broad Oak'. The upper edge is not drawn but CUT OUT along the crown's silhouette - the clipPath copies every circle of tree_canopy, not only the upper ones, because the inner bands are shifted to the upper left and stand out by half a unit. So the cap repeats the crown by construction: zero pixels outside the crown, and the first 94 rows of 114 have the same first and last opaque column. The crown's canvas and origin (viewBox x=2, y=0, blit -50/-80): the two cannot slide over one another. If the crown changes, this mask is copied again in the same pass. Right side and bottom trimmed to the content; the 6 units of margin on the left stay because they are the origin shared with the crown (SNOWCAP_X == CANOPY_X)."
   },
   {
    "name": "tree_dead_branches",
@@ -13597,7 +13623,7 @@
     "kind": "svg",
     "file": "tree_dead_branches.svg"
    },
-   "notes": "v4.21: the Halloween crown of the 'Broad Oak' - the two arms of the fork carry on into knotty branches that spread as far as the cushion spread. It sits on the CROWN'S CANVAS (303x198, the same blit origin) although the drawing takes 83 units of its 101: branches are naturally narrower than foliage, and the shared canvas is what guarantees that they meet the trunk where the leaves met it. The transparent margin is declared, not waste. Fixed art in the trunk's browns. Right side trimmed to the content in v4.21; the 11 units of margin on the left stay because they are the origin shared with the crown (DEAD_BRANCHES_X == CANOPY_X)."
+   "notes": "The Halloween crown of the 'Broad Oak' - the two arms of the fork carry on into knotty branches that spread as far as the cushion spreads. It sits on the CROWN'S CANVAS (303x198, the same blit origin) although the drawing takes 83 units of its 101: branches are naturally narrower than foliage, and the shared canvas is what guarantees that they meet the trunk where the leaves meet it. The transparent margin is declared, not waste. Fixed art in the trunk's browns. Right side trimmed to the content; the 11 units of margin on the left stay because they are the origin shared with the crown (DEAD_BRANCHES_X == CANOPY_X)."
   },
   {
    "name": "tree_fir",
@@ -13623,7 +13649,7 @@
     "kind": "svg",
     "file": "tree_fir.svg"
    },
-   "notes": "v5.14: the fir A -- four tiers whose hems are cut in a zigzag, each over a darker under-paper 4.5 units under it, and the trunk; the star is a piece of its own (tree_fir_star). Fixed art drawn under the trees' night shade (decision 36). 70x120 units trimmed to its content from the fir's 72x126 frame, blitted at FirTable.FIR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
+   "notes": "The fir A -- four tiers whose hems are cut in a zigzag, each over a darker under-paper 4.5 units under it, and the trunk; the star is a piece of its own (tree_fir_star). Fixed art drawn under the trees' night shade (decision 36). 70x120 units trimmed to its content from the fir's 72x126 frame, blitted at FirTable.FIR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A (decision 66); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
   },
   {
    "name": "tree_fir_snow",
@@ -13649,7 +13675,7 @@
     "kind": "svg",
     "file": "tree_fir_snow.svg"
    },
-   "notes": "v5.14: the snow of the fir A under the winter palette, each tier's cap cut to what is seen of that tier (an SVG mask), with its cool rim; trimmed to its content, blitted at FirTable.SNOW_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
+   "notes": "The snow of the fir A under the winter palette, each tier's cap cut to what is seen of that tier (an SVG mask), with its cool rim; trimmed to its content, blitted at FirTable.SNOW_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A (decision 66); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
   },
   {
    "name": "tree_fir_star",
@@ -13675,7 +13701,7 @@
     "kind": "svg",
     "file": "tree_fir_star.svg"
    },
-   "notes": "v5.14: the fir A's five-pointed star, a piece of its own so it stays bright at night while the fir takes the trees' night shade; blitted at FirTable.STAR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A the maintainer chose on 2026-10-14 (v5.14); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
+   "notes": "The fir A's five-pointed star, a piece of its own so it stays bright at night while the fir takes the trees' night shade; blitted at FirTable.STAR_X/Y. Generated by tools/assets/fir/build_fir.py from the drawing of the fir A (decision 66); that script writes the SVG, FirTable.kt (where it blits) and the launcher icon's fir from one geometry."
   },
   {
    "name": "tree_trunk",
@@ -13701,7 +13727,7 @@
     "kind": "svg",
     "file": "tree_trunk.svg"
    },
-   "notes": "v4.21: the squat trunk of the 'Broad Oak' - a single silhouette, a flared base, a V fork whose arms enter the foliage cushion, a double root foot, a shadow band on the right flank. 32x62 u against the 10x44 of the straight shaft before it."
+   "notes": "The squat trunk of the 'Broad Oak' - a single silhouette, a flared base, a V fork whose arms enter the foliage cushion, a double root foot, a shadow band on the right flank. 32x62 u."
   },
   {
    "name": "umbrella_canopy",
@@ -13727,7 +13753,7 @@
     "kind": "svg",
     "file": "umbrella_canopy.svg"
    },
-   "notes": "v4.28 canopy U1 \"Tall\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is dealt per pedestrian and per crossing from PedestrianCarry.PALETTE (PedestrianCarry.canopyColour). The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
+   "notes": "Canopy U1 \"Tall\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is dealt per pedestrian and per crossing from PedestrianCarry.PALETTE (PedestrianCarry.canopyColour). The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
   },
   {
    "name": "water_splash0",
@@ -13805,7 +13831,7 @@
     "kind": "svg",
     "file": "wave_tube_body.svg"
    },
-   "notes": "v4.28 wave WA3 \"Tube\", the body: the face under the lip, with the hollow beneath it. 120x44 units, the steep face to +x (the direction of travel) and the long back to -x. Tinted per frame to the luma WaveTint derives from the water under it -- see PaperRenderer.WAVE_BODY_LUMA_GAP and WaveContrastTest."
+   "notes": "Wave WA3 \"Tube\", the body: the face under the lip, with the hollow beneath it. 120x44 units, the steep face to +x (the direction of travel) and the long back to -x. Tinted per frame to the luma WaveTint derives from the water under it -- see PaperRenderer.WAVE_BODY_LUMA_GAP and WaveContrastTest."
   },
   {
    "name": "wave_tube_crest",
@@ -13831,7 +13857,7 @@
     "kind": "svg",
     "file": "wave_tube_crest.svg"
    },
-   "notes": "v4.28 wave WA3 \"Tube\", the foam: the lip curling forward into a tube and the spray thrown ahead of it. Same 120x44 canvas as wave_tube_body so the two blit at one origin. Always the lighter of the two papers -- see WaveTint.foamLuma."
+   "notes": "Wave WA3 \"Tube\", the foam: the lip curling forward into a tube and the spray thrown ahead of it. Same 120x44 canvas as wave_tube_body so the two blit at one origin. Always the lighter of the two papers -- see WaveTint.foamLuma."
   }
  ],
  "retiredBases": {}

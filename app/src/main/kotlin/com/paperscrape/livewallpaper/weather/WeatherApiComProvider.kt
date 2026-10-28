@@ -22,7 +22,8 @@ import org.json.JSONObject
  *
  * Also, from the official pages at the time of writing: signup needs an email and **no payment
  * card**; the free plan allows **100 000 calls a month** and, unlike Open-Meteo's free tier,
- * **permits commercial use** with attribution. Over quota it simply stops returning data. That
+ * **permits commercial use** with attribution. Over quota it answers 403 with its error code 2007, which
+ * [WeatherHttp.statusToFailure] reads as the provider's limit and not as a refused key. That
  * commercial-use difference is the substantive reason a second provider exists at all — Open-Meteo's
  * free service is licensed for non-commercial use only, and this is the compliant way out for
  * anyone who needs one.

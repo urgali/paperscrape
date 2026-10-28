@@ -151,8 +151,8 @@ class UpdatePrefs(private val context: Context) : UpdateReplyStore {
      * implementation. Kept as an explicit function anyway so the intent is clear at the call site
      * rather than a silent no-op.
      *
-     * **The label this sits behind is no longer "Next app launch", and that is the repair** (A4,
-     * v5.7D). The old label promised a schedule the app does not keep: with the automatic check off
+     * **The label this sits behind is no longer "Next app launch", and that is the repair.**
+     * The old label promised a schedule the app does not keep: with the automatic check off
      * -- the default -- a user who reached the prompt from Advanced and about's button was never
      * asked again next launch, because nothing asks. v5.7C measured that and carried it as a
      * decision; the maintainer took the first of the three options offered, so the button now says

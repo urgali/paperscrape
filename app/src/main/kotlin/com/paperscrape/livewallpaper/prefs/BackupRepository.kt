@@ -2,7 +2,6 @@ package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.toJsonString
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 /**
@@ -27,13 +26,13 @@ import kotlinx.coroutines.withContext
  * 4. If the rollback itself fails, say so plainly rather than reporting success — that is the one
  *    case where the app cannot put things back, and the user needs to know which file to re-import.
  *
- * ### v4.6: the staging only holds if nothing can interrupt it
+ * ### The staging only holds if nothing can interrupt it
  *
- * Steps 3 and 4 run inside `NonCancellable`. They did not, and the caller's scope is the settings
- * screen's composition — so a rotation or a back press between the two writes produced exactly the
- * half-old, half-new state the staging exists to prevent, *and* skipped the rollback. See the
- * comment at the call site; that is the whole of the change, and nothing about the format, the
- * ordering or the number of stores moved with it.
+ * Steps 3 and 4 run inside `NonCancellable`. The caller's scope is the settings screen's
+ * composition, so without it a rotation or a back press between the two writes would produce
+ * exactly the half-old, half-new state the staging exists to prevent, *and* skip the rollback. See
+ * the comment at the call site; the format, the ordering and the number of stores do not depend
+ * on it.
  */
 class BackupRepository(
     private val prefs: WallpaperPrefs,
@@ -42,16 +41,20 @@ class BackupRepository(
     private val now: () -> Long = System::currentTimeMillis,
 ) {
 
-    /** Everything this install would put in a backup file, right now. */
-    suspend fun snapshot(): AppBackup = AppBackup.from(
-        settings = prefs.settingsFlow.first(),
-        customThemeData = store.dataFlow.first(),
-        appVersionName = appVersionName,
-        nowMillis = now(),
-    )
+    /**
+     * Everything this install would put in a backup file, right now, or `null` when the settings or the saved themes
+     * cannot be read just now ([WallpaperPrefs.readSettings], [CustomThemeStore.readOnce]): what stands in for them then
+     * is a fresh install's settings and no themes, and a backup of those would be restored over the user's own.
+     * `DESIGN_NOTES.md` §12, decision 93.
+     */
+    suspend fun snapshot(): AppBackup? {
+        val settings = prefs.readSettings() ?: return null
+        val themes = store.readOnce() ?: return null
+        return AppBackup.from(settings = settings, customThemeData = themes, appVersionName = appVersionName, nowMillis = now())
+    }
 
-    /** The document an export writes, as text. */
-    suspend fun export(): String = snapshot().toJsonString()
+    /** The document an export writes, as text, or `null` when there is none to write ([snapshot]). */
+    suspend fun export(): String? = snapshot()?.toJsonString()
 
     /** What an import did, for the UI to report. */
     sealed interface ImportResult {
@@ -69,14 +72,19 @@ class BackupRepository(
      * Validates [raw] and, only if it is a whole valid backup, applies it to both stores.
      *
      * Returns without touching anything if the document is not a backup, is a shared theme file,
-     * is newer than this build understands, or is malformed.
+     * is newer than this build understands, or is malformed -- or if this install's settings or saved themes cannot be
+     * read just now ([BackupImportError.Unreadable]): [WallpaperPrefs.settingsFlow] would serve a fresh install's in
+     * their place, and a failed write would be put back to those.
      */
     suspend fun import(raw: String?): ImportResult {
-        val parsed = parseAppBackup(raw, prefs.settingsFlow.first())
+        val current = prefs.readSettings() ?: return ImportResult.Refused(BackupImportError.Unreadable)
+        val currentThemes = store.readOnce() ?: return ImportResult.Refused(BackupImportError.Unreadable)
+        val parsed = parseAppBackup(raw, current)
         if (parsed is BackupParseResult.Failed) return ImportResult.Refused(parsed.error)
         val backup = (parsed as BackupParseResult.Ok).backup
 
-        val undo = snapshot()
+        // What a failed write is put back to: the settings and the saved themes as they were read above.
+        val undo = AppBackup.from(settings = current, customThemeData = currentThemes, appVersionName = appVersionName, nowMillis = now())
         // **The two writes and the rollback are one uncancellable region.**
         //
         // Everything above this line may be cancelled freely: parsing and the snapshot read
@@ -87,18 +95,18 @@ class BackupRepository(
         // The failure this closes is not a crash. `import` is called from the settings screen's
         // `rememberCoroutineScope`, which the composition cancels when it goes away -- a rotation,
         // a back press, the system reclaiming the Activity. Without this, a cancellation landing
-        // between the two `replaceAll`s left the preferences new and the saved themes old, and
-        // then made it worse: the `catch` below caught the `CancellationException`, the rollback
-        // suspended on an already-cancelled job, threw again immediately, and the result was
-        // `Broken` -- reported to a UI that no longer existed. The window is milliseconds wide and
-        // needs no crash to reach.
+        // between the two `replaceAll`s would leave the preferences new and the saved themes old,
+        // and then make it worse: the `catch` below would catch the `CancellationException`, the
+        // rollback would suspend on an already-cancelled job and throw again immediately, and the
+        // result would be `Broken` -- reported to a UI that no longer exists. The window is
+        // milliseconds wide and needs no crash to reach.
         //
-        // `NonCancellable` is the whole fix. No journal, no write-ahead log, no third store: the
-        // pair is short, bounded and already ordered, and what it lacked was only the guarantee
-        // that nothing could interrupt it half way.
-        // **BCK-06: and a kill is not a cancellation.** `NonCancellable` above stops the coroutine
-        // being interrupted; it cannot stop the process being killed, and between the two writes the
-        // preferences were new while the saved themes were still old.
+        // `NonCancellable` is all this needs. No journal, no write-ahead log, no third store: the
+        // pair is short, bounded and already ordered, and what it needs is only the guarantee
+        // that nothing can interrupt it half way.
+        // **And a kill is not a cancellation.** `NonCancellable` above stops the coroutine being
+        // interrupted; it cannot stop the process being killed, and between the two writes the
+        // preferences would be new while the saved themes are still old.
         //
         // The two stores have no transaction between them and are not going to get one. What each
         // store *does* guarantee is that its own write is atomic, and that is enough to make the
@@ -110,7 +118,10 @@ class BackupRepository(
         // This is deliberately not a journal. There is no sequence to replay, no ordering to
         // reconstruct and nothing to undo: the pending document *is* the whole of the remaining
         // work, and [finishPendingImport] is one call: write it, then clear it (`ImportStaging.finish`).
-        val pendingJson = backup.customThemeData.toJsonString()
+        //
+        // The phone's saved themes this build cannot read stay ([AppBackup.themesWrittenOver]): nothing can choose
+        // them away, and the store keeps the only copy.
+        val pendingJson = backup.themesWrittenOver(undo.customThemeData).toJsonString()
         return withContext(NonCancellable) {
             try {
                 ImportStaging.apply(
@@ -168,7 +179,7 @@ class BackupRepository(
 }
 
 /**
- * The two halves of a two-store import, as an order and a recovery (BCK-06).
+ * The two halves of a two-store import, as an order and a recovery.
  *
  * Written as functions over the writes rather than inline in [BackupRepository] for one reason: the
  * property that matters is **what a kill at each point leaves behind**, and a kill is not something

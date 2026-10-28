@@ -13,34 +13,34 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P2-5: measures how many `Shader` objects the `Canvas` backend needs, against how many it used to
- * build.
+ * Measures how many `Shader` objects the `Canvas` backend needs, against how many gradients the
+ * renderer asks it for.
  *
- * **Why this is a measurement and not an assertion about the fix.** [GradientRequestRecorder]
+ * **Why this is a measurement and not an assertion about the cache.** [GradientRequestRecorder]
  * wraps the real backend and records the *full argument tuple* of every gradient entry point the
  * real [PaperRenderer] calls, over a run of animated frames. It would record exactly the same
  * numbers with or without [GradientShaderCache] present, because it sits above it. That is what
  * makes it evidence rather than a restatement: the gap between `total` and `distinct` is a
- * property of the renderer's call pattern, measured, and it is the size of the waste that existed
- * before the cache regardless of what the cache then does about it.
+ * property of the renderer's call pattern, measured, and it is the size of the waste a backend
+ * without the cache would have, regardless of what the cache then does about it.
  *
- * Pre-v3.6 [CanvasSceneTarget] built a `LinearGradient` or a `RadialGradient` unconditionally on
+ * A [CanvasSceneTarget] that built a `LinearGradient` or a `RadialGradient` unconditionally on
  * every one of those calls -- three straight-line constructor invocations, no branch, no reuse --
- * so `total` *was* the allocation count. That equality was checked directly rather than reasoned
- * about: the pre-v3.6 backend was run on an API 37 device with a counter on each of the three
- * constructor sites, and it reported 180 objects built over the 60 frames of
+ * would make `total` the allocation count. That equality is measured rather than reasoned
+ * about: such a backend, run on an API 37 device with a counter on each of the three
+ * constructor sites, reported 180 objects built over the 60 frames of
  * [gradientRequestsRepeatAcrossFrames] and 900 over 300 scrolling frames, against 3 distinct
  * gradients in both cases.
  *
- * **One thing this test exists to have disproved.** The hill layers' `-1, 0, +1` wrap-tile loop
- * reads as three copies of one gradient per frame, and the first version of this file asserted so.
- * It is false: the loop's own culling `continue` rejects two of the three, at every scroll offset
+ * **The hill layers do not ask for three copies a frame.** Their `-1, 0, +1` wrap-tile loop
+ * reads as three copies of one gradient per frame, and an assertion that it does would be wrong:
+ * the loop's own culling `continue` rejects two of the three, at every scroll offset
  * sampled, so the per-frame count is three gradients and not five. The waste is entirely
  * frame-to-frame, not within-frame, and the assertions below say only that.
  *
  * **Why the frames animate.** `deltaSeconds` is a real 1/30 s and scene time advances, so objects
  * move between frames and the renderer does genuine per-frame work. What deliberately does *not*
- * move is the day phase: [SunPositionCalculator.currentHour24] quantises the clock to the minute,
+ * move is the day phase: [SolarDaySchedule.sceneHour] quantises the clock to the minute,
  * so a running wallpaper holds one `DayPhase` for ~1800 consecutive frames at 30 fps. Fixing it
  * here reproduces the inside of one such minute, which is where the wallpaper spends all of its
  * time.
@@ -161,7 +161,7 @@ class CanvasGradientAllocationTest {
         scene.configure(renderer)
         // The wallpaper's normal state is scrolling. Deliberately on here: a moving scene is the
         // one that could plausibly need a new gradient every frame, and measuring it is what
-        // established that it does not.
+        // shows that it does not.
         renderer.scrollSpeed = 0.15f
         var sceneSeconds = SceneTime(0.0)
         repeat(frames) {
@@ -200,7 +200,7 @@ class CanvasGradientAllocationTest {
             "expected a small fixed set of gradients across a minute, got ${distinct.size}",
             distinct.size <= 6,
         )
-        // The point of the whole item: almost every request is for something already built.
+        // The point of the whole test: almost every request is for something already built.
         assertTrue(
             "expected the vast majority of requests to be repeats",
             distinct.size * 20 < requests.size,

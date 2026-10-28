@@ -1,35 +1,33 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * The two groups the buildings among the houses keep their colours and their opening hours by
- * (v5.13): the shops -- the restaurant, the bar and the shop -- and the public buildings -- the
- * school, the fire station and the police station. The towers are the third group, the Buildings
- * category, and keep theirs as they always did.
- *
- * The maintainer's request of 2026-10-11: *«l'obiettivo è avere 3 sezioni»* -- towers and offices,
- * shops, public buildings -- each with colours and opening hours of its own.
+ * The two groups the buildings among the houses keep their colours and their opening hours by: the
+ * shops -- the restaurant, the bar and the shop -- and the public buildings -- the school, the fire
+ * station and the police station. The towers are the third group, the Buildings category. Three
+ * groups, each with colours and opening hours of its own:
+ * `DESIGN_NOTES.md` §12, decision 62.
  */
 enum class StorefrontGroup { SHOPS, PUBLIC }
 
 /**
- * The six buildings that stand among the houses (v5.13), and what each of them carries wherever it
+ * The six buildings that stand among the houses, and what each of them carries wherever it
  * stands: its group ([StorefrontGroup]: its colours and its opening hours), the people at its windows
  * ([kind]: children at the school, adults elsewhere) and the place its identity is taken from
  * ([home]).
  *
- * **A street has five places among the houses and six buildings to stand in them** ([StorefrontStreet]; three
- * places until v5.13B2): the maintainer's *«ci vanno tutti sempre in qualsiasi tema ma in modo randomico
- * mentre scorre il wallpaper»* (2026-10-11), and *«Sì, 5 posti, in un giro a parte»* (2026-10-12). The place -- its depth, and with it the size table's row
+ * **A street has five places among the houses and six buildings to stand in them** ([StorefrontStreet]):
+ * all six in every theme, taking turns as the wallpaper scrolls,
+ * `DESIGN_NOTES.md` §12, decision 60. The place -- its depth, and with it the size table's row
  * the building is drawn at ([SceneObjectRenderer.variantFor]) -- is the street's; which building
  * stands in it is this.
  *
- * **[home] is not where the building stands.** The restaurant, the school and the bar each stood in
- * one place until v5.13, and that place's object, where it stood in the 5.12, is still where each takes
- * its identity from on a built-in street ([StorefrontStreet.identities], v5.13B's identities kept as a literal) -- the coin of Color 1 or Color 2, the bar's figure, the seed of the people at its
- * windows -- so the restaurant of a theme has the people, the colour and the figure it had in the 5.12
- * in every place it stands (the number of people at a building is one of the scene's quantities the
- * maintainer keeps; [StorefrontStreet.identities]).
- * The three new ones take theirs from a place too, half a tile along ([StorefrontStreet.identities]),
+ * **[home] is not where the building stands.** On a built-in street the restaurant, the school and the
+ * bar take their identity from the place each stood in on the v5.12 street, kept as a literal
+ * ([StorefrontStreet.identities]) -- the coin of Color 1 or Color 2, the bar's figure, the seed of the
+ * people at its windows -- so the restaurant of a theme has the same people, colour and figure in
+ * every place it stands (how many people a building shows does not change,
+ * `DESIGN_NOTES.md` §12, decision 54).
+ * The other three take theirs from a place too, half a tile along ([StorefrontStreet.identities]),
  * so no two of the six share one.
  */
 enum class Storefront(
@@ -58,7 +56,7 @@ enum class Storefront(
 
     /**
      * How tall the building's ink stands above its foot, in its own piece units: the top of the highest
-     * part any of its deals draws, snow, lamps and the people at its windows left out (v5.13B2). Its front
+     * part any of its deals draws, snow, lamps and the people at its windows left out. Its front
      * is measured both ways -- as tall as the family declares and as tall as it draws -- by the plan of the
      * places (`SceneObjectCatalog.frontRects`) and by `StorefrontFrontVisibilityTest`, which measures it the
      * same way off the same table.
@@ -74,14 +72,13 @@ enum class Storefront(
 
     /**
      * Whether this building keeps its group's opening hours: all but the fire station and the police
-     * station, which never close -- the maintainer's words of 2026-10-12, *«pompieri e polizia sono sempre
-     * aperti, 24 ore su 24, tutti i giorni, perché nella realtà non chiudono mai. L'interruttore e il "dalle
-     * / alle" degli edifici pubblici valgono solo per la scuola (e per edifici pubblici futuri)»*.
+     * station, which never close; the public buildings' hours are the school's.
+     * `DESIGN_NOTES.md` §12, decision 62.
      */
     internal val keepsHours: Boolean
         get() = this != FIRE_STATION && this != POLICE_STATION
 
-    /** Whether this building stood in its [home] until v5.13 -- the restaurant, the school and the bar. */
+    /** Whether this building takes its identity from its [home] itself, not half a tile along: the restaurant, the school and the bar. */
     internal val stoodThere: Boolean
         get() = ordinal < 3
 
@@ -92,16 +89,16 @@ enum class Storefront(
 }
 
 /**
- * Which of the six buildings stands in each place among the houses, copy by copy of the street (v5.13;
- * five places a tile and the rule of four since v5.13B2).
+ * Which of the six buildings stands in each place among the houses, copy by copy of the street: five
+ * places a tile, and never the same building in four places in a row.
  *
  * ### The street
  *
  * The scene repeats every tile -- two screens wide ([GroundGeometry.tileWidth]) -- and the street is
  * the tile's places in a row, copy after copy: place `p` of the street is the `rank`-th place of the
  * tile (by where it stands across the tile) of copy `c`, `p = c * placesPerTile + rank` ([placeIndex]).
- * A **copy** is one physical repetition of the tile, `tileIndex - scrollTileBias` in
- * [SceneObjectRenderer.draw] (the number the falling leaves already key on): it keeps its number for as
+ * A **copy** is one physical repetition of the tile, [SceneObjectRenderer.copyOf] in
+ * [SceneObjectRenderer.draw] (the number the falling leaves key on too): it keeps its number for as
  * long as it exists, so the building in a place never changes under the eyes, and scrolling back finds
  * the same one.
  *
@@ -128,8 +125,7 @@ enum class Storefront(
  * copy keeps its buildings for as long as it exists, coming back from an app and with the screen on again
  * alike, and a new one comes in from the edge as the scene scrolls -- at *Scroll speed* 0 % never; a new
  * engine (the phone restarted, the app updated) starts the theme's street again at copy 0, where the
- * scroll starts. The maintainer's «C» of 2026-10-14, which took back the new round each return dealt
- * from v5.13 on.
+ * scroll starts. `DESIGN_NOTES.md` §12, decision 60.
  */
 internal object StorefrontStreet {
 
@@ -256,9 +252,9 @@ internal object StorefrontStreet {
 
     /**
      * The built-in theme whose street's places [places] are -- the same positions to the bit, the plan's
-     * ([ShopPlanTable.SHOP_X]) -- or null (v5.13B2). A built-in theme saved since v5.13B2 stores its street
-     * with its places where the plan put them, and no other street stands its places there: the streets the
-     * 5.12 saved have three, a random theme's stand where they were rolled.
+     * ([ShopPlanTable.SHOP_X]) -- or null. A built-in theme saved with five places stores its street with
+     * them where the plan put them, and no other street stands its places there: a street saved by v5.12
+     * has three, a random theme's stand where they were rolled.
      */
     internal fun builtInStreetOf(places: List<StaticSceneObject>): String? {
         val xs = FloatArray(places.size) { places[it].tileFractionX }.also { it.sort() }
@@ -281,16 +277,15 @@ internal object StorefrontStreet {
     )
 
     /**
-     * **The six buildings' identities on each built-in street, as v5.13B gave them** -- the object each one's
-     * colour coin, figure and people are taken from ([identities]), in [Storefront.ALL]'s order, bit for bit:
-     * a fact about the past, so a literal. The restaurant, the school and the bar take theirs from where they
-     * stood in the 5.12 -- that release's place of each, its position, depth and figure -- and the shop, the
-     * fire station and the police station from the place of their [Storefront.home] half a tile along, as
-     * v5.13B's plan had them. v5.13B2 planned five places and moved them all; the identities stay, so every
-     * building has the people at its windows, the colour and the figure it had (the number of people at a
-     * building is one of the scene's factory quantities, which the maintainer keeps). `WindowPeopleCountTest`
-     * counts them, theme by theme: the restaurant, the school and the bar against the 5.12, the shop and the
-     * two stations against v5.13B.
+     * **The six buildings' identities on each built-in street, fixed** -- the object each one's colour
+     * coin, figure and people are taken from ([identities]), in [Storefront.ALL]'s order, bit for bit, so a
+     * literal: the places move, the identities do not. The restaurant, the school and the bar take theirs
+     * from where they stood on the v5.12 street -- that release's place of each, its position, depth and
+     * figure -- and the shop, the fire station and the police station from the place of their
+     * [Storefront.home] on the v5.13B street, half a tile along. So every building keeps the people at its
+     * windows, the colour and the figure it has (how many people a building shows does not change,
+     * `DESIGN_NOTES.md` §12, decision 54). `WindowPeopleCountTest` counts them, theme by theme: the
+     * restaurant, the school and the bar against the 5.12, the shop and the two stations against v5.13B.
      */
     private val IDENTITIES: Map<String, Array<StaticSceneObject>> = mapOf(
         "sunset" to arrayOf(
@@ -394,16 +389,15 @@ internal object StorefrontStreet {
     /**
      * Each building's identity among [places] (see [Storefront]): the object its colour coin, its figure
      * and its people are taken from, in [Storefront.ALL]'s order. On a built-in street ([themeId], its
-     * own layout) the ones v5.13B gave ([IDENTITIES]). Elsewhere -- a saved theme, a theme of the user's
+     * own layout) the fixed ones ([IDENTITIES]). Elsewhere -- a saved theme, a theme of the user's
      * own, a random one -- the restaurant, the school and the bar take the first place of their own row as
      * it stands, and the shop, the fire station and the police station their [Storefront.home]'s, half a
      * tile along. Where a layout has no place in a building's home (a random theme), it takes the first
      * place's, moved along by a share of the tile of its own. **No two of the six share one**: an
      * identity whose seed ([SceneObjectRenderer.buildingSeedOf], its position) an earlier one already has
      * is moved along a ninety-seventh of the tile until it is its own -- which never happens on the
-     * built-in streets (`StorefrontStreetTest`), and on a random theme whose only place stood in a station's
-     * home made the restaurant that station's twin until the read-only review of v5.13B. Null when there is
-     * no place at all.
+     * built-in streets (`StorefrontStreetTest`); without it, on a random theme whose only place stands in a
+     * station's home the restaurant would be that station's twin. Null when there is no place at all.
      */
     fun identities(layout: SceneObjectLayout, themeId: String? = null): Array<StaticSceneObject>? {
         val stored = places(layout).map { layout.placesAsSaved[it] ?: it }.sortedWith(PLACE_ORDER)
@@ -412,9 +406,9 @@ internal object StorefrontStreet {
 
     /**
      * The same, of [places] as they stand. [identities] of a layout reads a saved street's places where the
-     * theme stores them, before the loader moved any ([SceneObjectLayout.placesAsSaved], v5.13B2): moving a
+     * theme stores them, before the loader moved any ([SceneObjectLayout.placesAsSaved]): moving a
      * place keeps its buildings' colours and people. And a saved street whose places are a built-in street's
-     * -- a built-in theme saved since v5.13B2, under its own name or as a copy, or shared as a file -- is that
+     * -- a built-in theme saved with five places, under its own name or as a copy, or shared as a file -- is that
      * street, and its six buildings keep the identities the built-in theme gives them ([builtInStreetOf]):
      * saving a theme keeps their colours and people (a copy, a new id, deals them to other places).
      */
@@ -444,7 +438,7 @@ internal object StorefrontStreet {
      * The three buildings a gallery card draws among its houses, far to near (its restaurant's, school's
      * and bar's rows): **three of the street's first stretch**, copy 0 -- one stretch of the street, not the
      * buildings a given wallpaper shows, which deals others as it scrolls -- in each row of the size table, the place of copy 0 the card stands for it ([cardPlaceOf]); the far
-     * place of the restaurant's row and of the bar's are left out (`DESIGN_NOTES.md` §9). A row
+     * place of the restaurant's row and of the bar's are left out (`DESIGN_NOTES.md` §12, decision 65). A row
      * with no place on the layout (a random theme) takes the next places of the street, so the three are
      * three different buildings.
      */
@@ -467,9 +461,8 @@ internal object StorefrontStreet {
 
     /**
      * The rank among [places] of the place a gallery card draws for [band]: of the places in that row of the
-     * size table, the middle one by depth, the nearer of two -- the one the catalogue kept in the row when a
-     * row had one place (0.444, 0.622 and 0.800 on a built-in street) -- then the first across the tile. Null
-     * when the row has none.
+     * size table, the middle one by depth, the nearer of two (0.444, 0.622 and 0.800 on a built-in street),
+     * then the first across the tile. Null when the row has none.
      */
     internal fun cardPlaceOf(places: List<StaticSceneObject>, band: SceneSpace.SceneVariant): Int? {
         val row = places.indices

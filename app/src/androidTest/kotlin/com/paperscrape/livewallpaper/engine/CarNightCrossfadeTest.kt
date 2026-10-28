@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * At dusk the car count changes **by itself**, and still no car pops (v4.22 Phase 3).
+ * At dusk the car count changes **by itself**, and still no car pops.
  *
  * `CarCountOffScreenApplyTest` pins the off-screen rule for a slider the user drags.
  * This is the case the rule really exists for: with day density 1 and night density 0 the target
@@ -25,7 +25,7 @@ import org.junit.Test
  */
 class CarNightCrossfadeTest {
 
-    private class DuskScene {
+    internal class DuskScene {
         val bitmap: Bitmap = Bitmap.createBitmap(SceneGolden.WIDTH, SceneGolden.HEIGHT, Bitmap.Config.ARGB_8888)
         private val target = CanvasSceneTarget()
         private val renderer = PaperRenderer(
@@ -42,13 +42,22 @@ class CarNightCrossfadeTest {
                 it.copy(cars = it.cars.copy(visible = true, density = 1f), carsNightDensity = 0f)
             }
             target.bind(Canvas(bitmap))
-            // The traffic golden's own warm-up, so the road starts with the full day's traffic.
-            repeat(SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES) { frame(13f) }
+            // The traffic golden's own warm-up, so the road starts with the full day's traffic. All but
+            // its last frame are drawn on SceneGolden.BlankTarget, which leaves the renderer and its
+            // objects in the same state without rasterising anything. The last is drawn on the bitmap,
+            // so the first dusk frame is drawn over a whole 13:00 frame rather than over a transparent
+            // bitmap: a sky blended between day and night can come out at alpha 254
+            // (SceneColour.blendArgb truncates every channel, the alpha too) and let 1/255 of what is
+            // under it through, so what lies under a measured frame can be part of it. At 13:00 the
+            // day blend is exactly 1 and the sky is opaque over the whole frame, so that frame's pixels
+            // are its own, whatever the frames before it were drawn on.
+            repeat(SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES - 1) { frame(13f, SceneGolden.BlankTarget) }
+            frame(13f)
         }
 
-        fun frame(hour24: Float) {
+        fun frame(hour24: Float, on: SceneCanvas = target) {
             clock += 1f / 30f
-            renderer.draw(target, SunPositionCalculator.compute(hour24 = hour24), clock, 1f / 30f)
+            renderer.draw(on, SunPositionCalculator.compute(hour24 = hour24), clock, 1f / 30f)
         }
     }
 

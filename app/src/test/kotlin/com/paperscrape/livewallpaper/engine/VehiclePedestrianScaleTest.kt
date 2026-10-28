@@ -427,8 +427,7 @@ class VehiclePedestrianScaleTest {
     /**
      * Both busts stay inside every pane, clear of both pillars, with the driver forward.
      *
-     * **The clearance is a share of the head, not of the pane** -- v4.19 re-derives the criterion
-     * item 6 of `BACKLOG_v4_19.md` asked about. Against the pane it moved every time the glass
+     * **The clearance is a share of the head, not of the pane**. Against the pane it moved every time the glass
      * did, which is how v4.18 ended up lowering it from 15% to 13% to pay for a wider cabin.
      * Against the head it says the thing that actually matters: a head must not look wedged into
      * its pillar.

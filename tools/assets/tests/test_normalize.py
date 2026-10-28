@@ -80,8 +80,7 @@ class NormalisedBoxTest(unittest.TestCase):
         those four edges sits on the ink, so the crop would take away the transparent
         pixel the bilinear filter reads at the drawing's edge, and the rasterised edge
         would change without anything having moved. Measured at 6 pixels per frame in
-        three lake goldens; see that function's docstring and `BACKLOG_v4_31.md`
-        item 106.
+        three lake goldens; see that function's docstring.
 
         Kept as the same case with the correct expectation rather than deleted, because
         it is the clearest statement of what the rule does: one grid cell out on all
@@ -395,11 +394,9 @@ class TrailingCropTest(unittest.TestCase):
 # needs no compensation and costs nothing. What is left is ~55 KB of decoded
 # memory that could be recovered by giving both sprites derived origins; the
 # release did not need it (133 KB of headroom under the 29 MiB ceiling) and the
-# guard is worth more than the bytes. Recorded as item 24 of `BACKLOG_v4_21.md`;
-# v5.9C measured the margin at 35 136 B, and the maintainer closed the item on
-# 2026-09-27 without doing it (`ROADMAP.md` row A41). They were counted here as the two
-# pending targets until v5.10G, which declared them in `EXCLUSIONS`: a decision belongs in
-# that list, and a check of the shipped set (`normalize`, and `all` after it) then passes.
+# guard is worth more than the bytes. The margin measures 35 136 B and is kept, on the maintainer's
+# decision: the two trees are in `EXCLUSIONS`, because a decision belongs in that list, and a check
+# of the shipped set (`normalize`, and `all` after it) then passes.
 KNOWN_PENDING_CROP_COUNT = 0
 
 
@@ -427,8 +424,8 @@ class ShippedSetTest(unittest.TestCase):
             self.referenced,
         )
         pending = normalize.pending(plans)
-        # **None**: the two trees kept on purpose (closed without cropping on 2026-09-27,
-        # `ROADMAP.md` row A41) are in `EXCLUSIONS`. Phase 3.3 normalised the set that existed
+        # **None**: the two trees kept uncropped on purpose (the maintainer's decision) are in
+        # `EXCLUSIONS`. Phase 3.3 normalised the set that existed
         # then and the V2 asset library went through the same pass; nothing else in scope
         # carries removable padding, so this reads as a guard: a new sprite that ships with
         # padding, or a crop that is undone, fails here.

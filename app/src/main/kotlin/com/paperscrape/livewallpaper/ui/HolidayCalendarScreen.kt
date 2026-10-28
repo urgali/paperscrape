@@ -7,15 +7,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.outlined.AcUnit
-import androidx.compose.material.icons.outlined.CardGiftcard
-import androidx.compose.material.icons.outlined.Celebration
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Egg
-import androidx.compose.material.icons.outlined.LocalFlorist
-import androidx.compose.material.icons.outlined.Park
-import androidx.compose.material.icons.outlined.WbSunny
+import com.paperscrape.livewallpaper.ui.icons.filled.Event
+import com.paperscrape.livewallpaper.ui.icons.outlined.AcUnit
+import com.paperscrape.livewallpaper.ui.icons.outlined.CardGiftcard
+import com.paperscrape.livewallpaper.ui.icons.outlined.Celebration
+import com.paperscrape.livewallpaper.ui.icons.outlined.DarkMode
+import com.paperscrape.livewallpaper.ui.icons.outlined.Egg
+import com.paperscrape.livewallpaper.ui.icons.outlined.LocalFlorist
+import com.paperscrape.livewallpaper.ui.icons.outlined.Park
+import com.paperscrape.livewallpaper.ui.icons.outlined.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -84,13 +84,19 @@ import java.util.Locale
 internal fun HolidayCalendarScreen(
     calendar: SeasonalCalendar,
     autoThemeEnabled: Boolean,
+    /**
+     * The settings' date (`SettingsScreen`'s `today`, read again at midnight and each time the settings come to the
+     * front). The window drawn in the accent is this day's, and Easter's dates are given for its year, so a page left
+     * open over midnight shows the new day's window. The clock is not read here: a page left open would not read it
+     * again.
+     */
+    today: LocalDate,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onBack: () -> Unit,
 ) {
     var editing by remember { mutableStateOf<CalendarWindow?>(null) }
     val coverage = calendar.coverage()
-    val today = LocalDate.now()
     val activeWindow = SeasonalThemeRules.windowForDate(today, calendar)
 
     SettingsSubScreen(title = "Holiday calendar", onBack = onBack) {
@@ -100,10 +106,7 @@ internal fun HolidayCalendarScreen(
                     "now. Your edits are kept, and take effect as soon as you turn it back on.",
             )
         } else {
-            SettingsBanner(
-                "The calendar picks a theme for each day. Holidays sit on top; the seasons " +
-                    "underneath cover the rest of the year.",
-            )
+            SettingsBanner(SettingsUiModel.calendarBanner(coverage.hasGaps))
         }
 
         // A gap is legal and recoverable -- the wallpaper falls back to the theme picked by hand --
@@ -167,6 +170,7 @@ internal fun HolidayCalendarScreen(
         if (window.isComputed) {
             EasterWindowEditor(
                 calendar = calendar,
+                year = today.year,
                 onSave = { scope.launch { prefs.setSeasonalCalendar(calendar.withEaster(it)) } },
                 onClose = { editing = null },
             )
@@ -226,8 +230,8 @@ private fun DatedWindowEditor(
 
         SettingsGroup {
             // Stacked, each at full width, rather than side by side. Two half-width fields fit the
-            // screen and not the label: "Starts (day/month)" wrapped onto a second line and ran
-            // through the field's own outline, which only showed up on the device. The order is
+            // screen and not the label: "Starts (day/month)" wraps onto a second line and runs
+            // through the field's own outline, which a test on the JVM cannot see. The order is
             // part of the label and cannot be shortened away, so the field gets the width instead.
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -313,11 +317,13 @@ private fun DatedWindowEditor(
  * There is no date to show: Easter Sunday is computed, and it moves by up to five weeks between
  * years. Showing a date picker here would be showing one year's answer as though it were the
  * setting. So the two controls are lengths — how many days before the Sunday, how many after — and
- * the line underneath says where that lands in the year the user is standing in.
+ * the line underneath says where that lands in the year the user is standing in ([year], the settings'
+ * date's).
  */
 @Composable
 private fun EasterWindowEditor(
     calendar: SeasonalCalendar,
+    year: Int,
     onSave: (EasterSpan) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -326,7 +332,6 @@ private fun EasterWindowEditor(
     var after by remember { mutableIntStateOf(current.daysAfter) }
 
     val draft = EasterSpan(before, after)
-    val year = LocalDate.now().year
     val landing = SeasonalThemeRules.easterWindowIn(year, calendar.withEaster(draft))
 
     SettingsSubScreen(title = "Easter", onBack = onClose) {
@@ -392,10 +397,10 @@ private fun EasterWindowEditor(
  * ### The cursor is pinned to the end, and that is not cosmetic
  *
  * The filter inserts the separator, which makes the text longer than what was typed, and Compose
- * keeps a plain `String` field's cursor at its old index. Typing `3 0 0 2` therefore produced
- * **`30/20`**: after `30/0` the cursor sat between the slash and the zero, and the next digit
- * landed there. Found on the device, not in a test — a unit test of the filter cannot see a
- * cursor. Rebuilding the value with the selection at the end on every recomposition fixes it, and
+ * keeps a plain `String` field's cursor at its old index. Unpinned, typing `3 0 0 2` gives
+ * **`30/20`**: after `30/0` the cursor sits between the slash and the zero, and the next digit
+ * lands there. Only the phone shows it, not a test — a unit test of the filter cannot see a
+ * cursor. Rebuilding the value with the selection at the end on every recomposition prevents it, and
  * costs nothing a five-character numeric field would miss: there is no mid-string editing to
  * preserve here, only typing and backspacing.
  */

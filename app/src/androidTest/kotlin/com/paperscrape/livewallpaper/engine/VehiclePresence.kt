@@ -30,6 +30,18 @@ object VehiclePresence {
     /** How much of the road band a column must carry before it counts as vehicle and not marking. */
     const val VEHICLE_COLUMN_DEPTH_SHARE = 0.12
 
+    /**
+     * The road band's tarmac (its commonest colour), how much of the band is not tarmac, and the runs
+     * of columns a vehicle fills.
+     *
+     * The band is read in one `getPixels` and its colours counted on a sorted copy, with nothing boxed:
+     * `CarNightCrossfadeTest`, the suite's slowest test, measures some four thousand frames, and a
+     * `getPixel` and a `HashMap<Int, Int>` entry per pixel would cost each of them some 35 000 calls
+     * through JNI and some 17 000 boxed counts. The decisions are the ones of a pixel-by-pixel read
+     * into that map, to the pixel (`VehiclePresenceTest` holds them against it), down to a tie for the
+     * commonest colour, which goes to the colour the map's own order would have met first
+     * ([commonestAsTheMapOrdersIt]).
+     */
     fun measure(bitmap: Bitmap): Result {
         val h = bitmap.height
         val w = bitmap.width
@@ -42,52 +54,54 @@ object VehiclePresence {
         val top = ((SceneSpace.ROAD_LANE_FAR_Y_FRACTION - margin) * h).toInt()
         val bottom = ((SceneSpace.ROAD_LANE_NEAR_Y_FRACTION + margin) * h).toInt()
 
-        val counts = HashMap<Int, Int>()
-        for (y in top..bottom) for (x in 0 until w) {
-            val p = bitmap.getPixel(x, y) or (0xFF shl 24)
-            counts[p] = (counts[p] ?: 0) + 1
+        // The band, row after row: pixel (x, y) is band[(y - top) * w + x].
+        val rows = bottom - top + 1
+        val band = IntArray(rows * w)
+        bitmap.getPixels(band, 0, w, 0, top, w, rows)
+
+        val sorted = IntArray(band.size) { band[it] or OPAQUE }
+        sorted.sort()
+        var tarmacCount = 0
+        var tarmacColour = 0
+        var tied = false
+        var i = 0
+        while (i < sorted.size) {
+            var j = i + 1
+            while (j < sorted.size && sorted[j] == sorted[i]) j++
+            val count = j - i
+            if (count > tarmacCount) {
+                tarmacCount = count
+                tarmacColour = sorted[i]
+                tied = false
+            } else if (count == tarmacCount) {
+                tied = true
+            }
+            i = j
         }
-        val tarmac = counts.maxByOrNull { it.value }!!
-        val bandPixels = (bottom - top + 1) * w
+        if (tied) tarmacColour = commonestAsTheMapOrdersIt(band)
+        val bandPixels = rows * w
 
         var nonTarmac = 0
         val columnHit = BooleanArray(w)
         for (x in 0 until w) {
             var hits = 0
+            var k = x
             for (y in top..bottom) {
-                if (delta(bitmap.getPixel(x, y), tarmac.key) > 90) {
+                if (delta(band[k], tarmacColour) > 90) {
                     nonTarmac++
                     hits++
                 }
+                k += w
             }
-            // A lane marking is a thin dash; a vehicle fills a good part of the band's depth.
-            //
-            // The share was a quarter of the band until the saloon was redrawn. A quarter of a
-            // 49-pixel band is twelve pixels of vehicle in a column, and the old shell reached that
-            // almost everywhere along its length because it was a slab: a straight bottom edge and
-            // a rear that ramped down from the roof in one line. The redrawn shell has a lower
-            // nose, a boot deck and a hole cut over each wheel, so its ends are shallower, and the
-            // far-lane car's dense run fell from thirteen columns to eleven -- under the twelve
-            // this counts as a vehicle, so a car that is plainly on the road stopped being one.
-            //
-            // A fifth of the band is ten pixels, which is still five times a lane dash's three and
-            // is what the constant was always for. Measured on both the old goldens and the new:
-            // at a quarter the day frame reports three vehicles before and two after, and at a
-            // fifth it reports three before and three after, four at night either side.
-            //
-            // **v4.25 re-derived it again, from a fifth to an eighth, and the same thing had
-            // happened one step further along.** `CarNightCrossfadeTest` reported a vehicle
-            // vanishing mid-road at dusk; the frames say otherwise -- the far-lane car is plainly
-            // on the road in every one of them, and it is this count that loses it for three
-            // frames. As the crossfade darkens the car, its body's delta from the tarmac falls
-            // under the threshold and only its darkest slice still qualifies, so its dense run
-            // collapses from twenty-six columns to nine, under the twelve a run needs. Measured
-            // over the eight frames around it: the car's columns carry a median 0.208 of the band
-            // and a tenth percentile of 0.167, a lane dash carries 0.062, and there is nothing in
-            // between -- at 0.16 and below the run is 47 to 54 columns in every frame, at 0.20 it
-            // is nine to twenty-six. An eighth sits midway between the weakest column that must
-            // count and the strongest thing that must not, which is how this constant has been
-            // derived each time.
+            // A lane marking is a thin dash; a vehicle fills a good part of the band's depth, and the
+            // share sits midway between the weakest column that must count and the strongest thing
+            // that must not. The weakest is a car at dusk: as the night crossfade darkens it, its
+            // body's delta from the tarmac falls under the threshold and only its darkest slice still
+            // qualifies. Measured over the eight `CarNightCrossfadeTest` frames around it, the
+            // far-lane car's columns carry a median 0.208 of the band and a tenth percentile of
+            // 0.167, a lane dash carries 0.062, and there is nothing in between -- at 0.16 and below
+            // the car's run is 47 to 54 columns in every frame, at 0.20 it is nine to twenty-six,
+            // under the twelve a run needs. An eighth keeps the car on the road in every frame.
             columnHit[x] = hits >= (bottom - top) * VEHICLE_COLUMN_DEPTH_SHARE
         }
 
@@ -103,8 +117,24 @@ object VehiclePresence {
         }
         if (start >= 0 && w - start >= 12) runs.add(start until w)
 
-        return Result(top, bottom, tarmac.value / bandPixels.toDouble(), nonTarmac, bandPixels, runs)
+        return Result(top, bottom, tarmacCount / bandPixels.toDouble(), nonTarmac, bandPixels, runs)
     }
+
+    /**
+     * Of the colours tied for the commonest in [band], the one a `HashMap<Int, Int>` filled in the
+     * band's order meets first: what `maxByOrNull` over that map picks, which keeps the first of equal
+     * counts. Only a tie comes here, so the boxing is paid on a frame that has one.
+     */
+    private fun commonestAsTheMapOrdersIt(band: IntArray): Int {
+        val counts = HashMap<Int, Int>()
+        for (pixel in band) {
+            val p = pixel or OPAQUE
+            counts[p] = (counts[p] ?: 0) + 1
+        }
+        return counts.maxByOrNull { it.value }!!.key
+    }
+
+    private const val OPAQUE = 0xFF shl 24
 
     /**
      * Whether each lane carries a vehicle, as `(far, near)`.
@@ -122,7 +152,7 @@ object VehiclePresence {
 
     private fun laneOccupied(bitmap: Bitmap, wheelLineY: Int): Boolean {
         val w = bitmap.width
-        // Four rows immediately above the wheel line: the body, clear of the road markings that
+        // Nine rows, 4 to 12 px above the wheel line: the body, clear of the road markings that
         // sit on the surface itself.
         val rows = (wheelLineY - 12)..(wheelLineY - 4)
         val counts = HashMap<Int, Int>()

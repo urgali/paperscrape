@@ -2,8 +2,8 @@ package com.paperscrape.livewallpaper.engine
 
 /**
  * Where the distant houses stand on a mountain, which drawing each is, which of the houses' two
- * colours it wears and whether its window is lit (v5.11, inventory I-407; the maintainer's choices of
- * 2026-10-06: on the mountains, off as every theme ships, three drawings mixed, 50 % when turned on).
+ * colours it wears and whether its window is lit: on the mountains, off as every theme ships, three
+ * drawings mixed, 50 % when turned on (`DESIGN_NOTES.md` §12, decision 52).
  *
  * ### Where
  *
@@ -15,34 +15,33 @@ package com.paperscrape.livewallpaper.engine
  * slope is sunk by the slope under half its width ([footY]), so its downhill corner stays on the
  * paper instead of hanging over the sky.
  *
- * ### How many, and on which side (v5.14)
+ * ### How many, and on which side
  *
  * A mountain carries [count] houses -- the amount times its five places plus a coin of the mountain's own,
- * rounded down, one at least above 0 %: two or three at 50 % (two and a half on average, as the coins of a
- * place each gave until v5.14), five at 100 %, fewer only where a place is covered (below) -- and they take its
+ * rounded down, one at least above 0 %: two or three at 50 % (two and a half on average), five at 100 %,
+ * fewer only where a place is covered (below) -- and they take its
  * places in an order that **puts them on
  * both sides** ([rank]): one side, the other, the top, then the second place of each side. The side a
  * mountain starts from changes from one mountain to the next, so the mountains that carry one house have it
  * on one side and the next, counted along the whole strip of the layer ([startsLeft]). Raising the amount only adds houses, lowering it only takes them away, the
- * others staying where they stand. Until v5.14 each place kept its own coin under the amount, and at 50 %
- * Autumn stood six on the left of its mountains and none on the right (the maintainer, 2026-10-14: *«case
- * lontane su montagne - sembra che siano solo a sinistra della montagna»*); the side rule was chosen with
- * *«si a tutte»* (2026-10-15) to the photographs of the proposals.
+ * others staying where they stand. With a coin of its own under the amount for each place, a theme could
+ * stand all its houses on one side of its mountains (Autumn at 50 %: six on the left, none on the right);
+ * both sides are `DESIGN_NOTES.md` §12, decision 52.
  *
- * ### Only where it shows (v5.14C2)
+ * ### Only where it shows
  *
  * A mountain of the same layer drawn after this one covers what of this one it overlaps, houses included: with both
- * layers raised to 80 % or more, on Autumn the right-hand house of one mountain a tile stood wholly behind the next, so at
- * 50 % that mountain showed houses on one side only. **A place where a house would not be wholly seen is not given
+ * layers raised to 80 % or more, on Autumn the right-hand house of one mountain a tile would stand wholly behind the
+ * next, and at 50 % that mountain would show houses on one side only. **A place where a house would not be wholly seen is not given
  * one** ([hiddenPlaces]: any of the house's drawing under such a mountain), and the house takes the next place of
  * the order instead -- **its side's other place first** ([standingMask]: the first side's first free place, the other
  * side's, the top, then each side's second), so a mountain with two houses or more still has them on both sides
- * wherever both its sides have a free place. The places nothing covers keep the order they had, so on every mountain
- * no layer of its own covers -- every theme as it ships -- the houses stand where they stood; the amount still only
+ * wherever both its sides have a free place. The places nothing covers keep the order [rank] gives them, so on every
+ * mountain no layer of its own covers -- every theme as it ships -- the houses stand where [rank] puts them; the amount only
  * adds and takes away; with every place of a mountain taken -- the houses at 100 % -- a covered one is not drawn, and
  * a mountain with every place covered would carry none (there is none such on the twelve themes' layers at 0 to 100 %
- * on the four screens `DistantHousesTest` measures, 720 x 1440 to a tablet on its side). The maintainer's *«Spostala dove si
- * vede»* (2026-10-16).
+ * on the four screens `DistantHousesTest` measures, 720 x 1440 to a tablet on its side). Only where their own layer
+ * leaves them in sight: `DESIGN_NOTES.md` §12, decision 52.
  *
  * ### How large
  *
@@ -50,7 +49,7 @@ package com.paperscrape.livewallpaper.engine
  * the size the projection gives at [SceneSpace.DISTANT_HOUSE_FLOOR_Y_FRACTION]. The mountains stand
  * above that line, where the ground plane's projection gives nothing, so on a mountain every house is
  * that size -- 14 px on the BV6600 -- with no reduction for the mountain behind: smaller, its windows
- * and its snow fell under the two pixels every drawn detail is held to.
+ * and its snow would fall under the two pixels every drawn detail is held to.
  *
  * Pure, so the JVM suite holds the rules; the drawing is `PaperRenderer.drawDistantHouses`.
  */
@@ -64,8 +63,8 @@ internal object DistantHouses {
 
     /**
      * The share of the houses with a lit window at night; the rest are dark glass, as a window of the
-     * village left unlit is (v5.12, inventory I-513: until then they kept 15 % of the light, a pale
-     * window that read at night as a lit one of cold light).
+     * village left unlit is: a pale window keeping some of the light would read at night as a lit one
+     * of cold light.
      */
     const val LIT_SHARE = 0.8f
 
@@ -102,7 +101,7 @@ internal object DistantHouses {
     /**
      * How many houses the mountain seeded [seed] carries at [density]: `floor(density x 5 + coin)`, one at
      * least above 0 -- so a mountain the scene draws carries a house while the row reads on
-     * (`AI_PROJECT_RULES.md` 8.7), wherever it has a place no later mountain covers ([standingMask]) -- and none at 0.
+     * (`DESIGN_NOTES.md` §12, decision 40), wherever it has a place no later mountain covers ([standingMask]) -- and none at 0.
      * Never fewer as the amount rises.
      */
     fun count(seed: Int, density: Float): Int {
@@ -148,7 +147,7 @@ internal object DistantHouses {
         if (houses == 0) return 0
         var mask = 0
         if (hidden == 0) {
-            // Nothing covered: the 5.14's own rule, bit for bit.
+            // Nothing covered: the places of rank under count, bit for bit.
             for (slot in SLOTS.indices) if (rank(seed, slot, leftFirst) < houses) mask = mask or (1 shl slot)
             return mask
         }
@@ -250,9 +249,9 @@ internal object DistantHouses {
      * Whether the houses of a mountain start from the left side: every other mountain **along the whole strip of
      * its layer** -- the [shown]-th (0 first) of the [perTile] mountains a tile of the layer draws, on copy [copy]
      * of the tile (0 the copy on screen at scroll 0) -- the front layer starting from the other side than the back.
-     * Counted along the strip and not tile by tile: a count that started again at each tile put two neighbours on
-     * one side at every seam when a tile draws an odd number of mountains, and with one a tile every mountain of
-     * the layer on the same side (v5.14B, found by the round's review). With an even number a tile the two counts
+     * Counted along the strip and not tile by tile: a count that started again at each tile would put two neighbours
+     * on one side at every seam when a tile draws an odd number of mountains, and with one a tile every mountain of
+     * the layer on the same side. With an even number a tile the two counts
      * agree. A copy keeps its number while it is on screen, so no house changes side under the eyes.
      */
     fun startsLeft(copy: Int, shown: Int, perTile: Int, frontLayer: Boolean): Boolean =

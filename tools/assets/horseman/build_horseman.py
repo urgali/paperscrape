@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The Headless Horseman (v5.16): the rider of Sleepy Hollow on his black horse, drawn from one geometry.
+"""The Headless Horseman, his rider in three pieces with the arm that throws: the rider of Sleepy Hollow on his black
+horse, drawn from one geometry.
 
-The maintainer, 2026-10-21: *«durante halloween, cavaliere senza testa passa in cielo (come babbo natale)»*; of the three
-groups drawn and photographed he chose B, *«B classico ma le zucche che cadono devono essere in fiamme»* (the flaming
-pumpkins that fall are drawn by the renderer, `HeadlessHorsemanEffect`, not here); and of its size, *«cavaliere deve
-diventare 1,3 come babbo natale»* (2026-10-21). This is B, *the rider of Sleepy Hollow*: a slate-black horse with a
-smoke-grey mane and tail, galloping; the headless rider in a dark coat with gold buttons and a high cream collar round the
+The drawing is `DESIGN_NOTES.md` §12, decision 79: the classic rider, his falling pumpkins on fire (the flames are drawn
+by the renderer, `HeadlessHorsemanEffect`; the pumpkin he throws is his own, drawn here), the rider as tall as Santa; and
+he throws the pumpkin from his hand, with the arm's gesture (decision 84). This is *the rider of Sleepy Hollow*: a
+slate-black horse with a smoke-grey mane and tail, galloping; the headless rider in a dark coat with gold buttons and a high cream collar round the
 empty neck, his black cape lined in red flying back from his shoulders, the carved pumpkin lit from inside and held up
 high in his hand; the reins from his other hand to the horse's head.
 
@@ -17,8 +17,13 @@ The pieces, all fixed art and `SCENE_UNITS` (3 px a unit), each trimmed to its c
   middle at (0, 0): the group flies left, as the sleigh does, and the renderer mirrors it to fly right;
 * ``horseman_legs_0`` .. ``_3`` -- its four legs in the same four poses, drawn behind the body, the far ones in the body's
   shadow tone;
-* ``horseman_rider`` -- the rider, his seat at (0, 0): his near leg down the horse's side, his coat, the collar, the arm
-  reaching for the reins and the arm holding the pumpkin up;
+* the rider in three pieces, so he throws from his hand with the arm's gesture (decision 84), laid in this order and,
+  with the arm unturned, the rider holding his pumpkin up:
+  ``horseman_rider_body`` -- his seat at (0, 0): his near leg down the horse's side, his coat, the collar, the round of his
+  near shoulder ([SHOULDER_CAP]) and the arm reaching for the reins --; ``horseman_rider_arm`` -- the near arm and its
+  glove, in a frame a whole unit from its pivot at the shoulder ([ARM_PIVOT]), which the renderer turns to throw --; and
+  ``horseman_rider_pumpkin`` -- the carved pumpkin lit from inside, in a frame a whole unit from its middle, drawn in his
+  hand and, thrown, alone. The whole units keep each piece's pixels where the rider's in one piece would be;
 * ``horseman_cape`` -- his cape, its pivot at his shoulders (0, 0), which the renderer swings a little with the stride;
 * the reins are a cord the renderer draws from the rider's hand to the horse's head ([BIT]), between the horse and the
   rider (`HeadlessHorsemanDrawer`: the cape, the legs, the horse, the reins, the rider).
@@ -30,43 +35,52 @@ rider's height` px a unit there (1.235). **Every band of colour is [Size.band] u
 that size and a quarter more, the sleigh's rule, `round(2.0 / px_per_unit x 1.25, 2)` --, the under-papers' relief
 included, and the reins are 2.5 px or more ([Size.rein]).
 
-What the size asked of the drawing first shown (drawn at 1.676 px a unit, its narrowest bands 1.49 units): every band
-drawn at the narrowest width is 2.02 units now (the under-papers of the body, the coat, the collar, the cape and the
-pumpkin, the saddle cloth's trim, the stirrup, the pumpkin's stem); and four details were redrawn, because at the new
-size and at some moment of the gallop -- the horse rising and falling with its stride while the rider sits it the other
-way, so the two move 1.8 units against each other, and the cape swinging -- each left a piece of some colour under 2 px:
+What the size asks of the drawing: every band drawn at the narrowest width is [Size.band] units, 2.02 at the shipped
+size (the under-papers of the body, the coat, the collar, the cape and the pumpkin, the saddle cloth's trim, the
+stirrup, the pumpkin's stem); and four details are drawn so that at this size and at every moment of the gallop -- the
+horse rising and falling with its stride while the rider sits it the other way, so the two move 1.8 units against each
+other, and the cape swinging -- none leaves a piece of some colour under 2 px:
 
-* **the coat's buttons**: two, not three ([BUTTONS]), spaced evenly between the collar's shadow and the belt -- the shadow,
-  2.02 units deep now, covered the top one down to 1.5 units;
-* **the coat's skirt** hangs lower at its back ([SKIRT]), so the saddle no longer shows under it as a sliver behind him
-  when the rider rises out of the saddle (in front of the coat a scrap of it, under the 12 px of the 3x drawing every 2 px
+* **the coat's buttons**: two ([BUTTONS]), spaced evenly between the collar's shadow and the belt -- under the shadow,
+  2.02 units deep, a third button at the top would be covered down to 1.5 units;
+* **the coat's skirt** hangs low at its back ([SKIRT]), so the saddle never shows under it as a sliver behind him when
+  the rider rises out of the saddle (in front of the coat a scrap of it, under the 12 px of the 3x drawing every 2 px
   test leaves out as an edge's speck, can show at one moment of the gallop);
-* **the reins reach the head higher**, at [BIT] (the drawing first shown: (-29.0, -11.2), the corner of the mouth): along
-  the lower jaw they left a strip of the head under 2 px between the rein and the jaw's edge, and at its front they cut
-  the muzzle in two;
-* **the pumpkin's carved face** ([FACE]): its two eyes are slanted quadrilaterals rather than triangles, and the grin with
-  its two teeth is a little smaller and lower, so each eye and the grin hold 2 px and so does the pumpkin's paper between
-  any two of them -- in the face first shown neither eye held a square of 2 px, and the paper between an eye and the grin
-  was under 1 px. The pumpkin's ring of paper round the grin is under 2 px at its bottom, as Santa's skin between his eyes
-  and his hat's band is (decision 73): no rule holds it.
+* **the reins reach the head high**, at [BIT]: reaching it at the corner of the mouth, along the lower jaw they would
+  leave a strip of the head under 2 px between the rein and the jaw's edge, and at its front they would cut the muzzle
+  in two;
+* **the pumpkin's carved face** ([FACE]): its two eyes are slanted quadrilaterals, and the grin with its two teeth is
+  small and low, so each eye and the grin hold 2 px and so does the pumpkin's paper between any two of them. The
+  pumpkin's ring of paper round the grin is under 2 px at its bottom, as Santa's skin between his eyes and his hat's band
+  is (decision 73): no rule holds it.
 
-And the rider's own frame is a unit higher than the drawing first shown ([RIDER_FRAME_DY]): his seat ([SEAT]) lies on the
-saddle's paper, about half a unit below its top edge (0.43 to 0.66 in the four poses), and everything of him is drawn a
-unit higher in his frame, so he sits where he
-sat (to 0.05 units: the seat turns with the body's pitch).
+And the rider's own frame is a unit above the drawing's ([RIDER_FRAME_DY]): his seat ([SEAT]) lies on the saddle's
+paper, about half a unit below its top edge (0.43 to 0.66 in the four poses: the seat turns with the body's pitch), and
+everything of him is drawn a unit higher in his frame, so he is drawn sitting on top of the saddle.
 
-It writes, from one run (and, with ``--res``, the ten PNGs rendered from the SVGs):
+**The shoulder, drawn for the throw** (decision 84). The arm, cut out of the rider and turned to its gesture's angles,
+uncovers what lies under it, and without the shoulder three slivers under 2 px on the BV6600 would show there: the
+collar's under-paper beside it from the arm at rest to its wind-up, the cape behind it wound right back, and -- thrown
+forward, the arm over the collar's right side -- the thin crescent of the collar's inside over the neck, left alone. So
+the near shoulder is a round of coat over the collar's right end and the cape behind it, from the pivot up to the
+collar's top ([SHOULDER_CAP]), and the dark of the neck is 7.8 units across ([NECK_HOLE]), so the collar's inside holds
+2 px on its left side alone; at rest the arm covers most of the round.
 
-* ``sources/svg/horseman_horse_0..3.svg``, ``horseman_legs_0..3.svg``, ``horseman_rider.svg`` and ``horseman_cape.svg``;
+It writes, from one run (and, with ``--res``, the twelve PNGs rendered from the SVGs):
+
+* ``sources/svg/horseman_horse_0..3.svg``, ``horseman_legs_0..3.svg``, ``horseman_rider_body.svg``,
+  ``horseman_rider_arm.svg``, ``horseman_rider_pumpkin.svg`` and ``horseman_cape.svg``;
 * ``app/.../engine/HorsemanTable.kt`` -- where each piece blits, the seat and the bit in each pose, the rider's hand, his
-  shoulders and his pumpkin, the group's extent, the rider's height and the size chosen, the reins' width and the narrowest
-  band.
+  shoulders, his arm's pivot and his pumpkin's middle and radius, the group's extent, the rider's height and the size
+  chosen, the reins' width and the narrowest band.
 
 ``--check`` writes nothing and fails, naming every stale file, unless every file this writes is what it draws
 (``tests/test_horseman.py`` makes the same comparison). ``--two-px`` composes the group as the renderer draws it -- in its
 order, the cape swung and the horse and the rider bobbing by the drawer's own constants, at the moments of a stride
-[moments] names, the reins included -- from the SVGs rendered without antialiasing, and lists every piece of one colour
-that holds no square of 2 px on the BV6600 anywhere. ``--rider-to-pedestrian R --out DIR`` (or ``--group-to-pedestrian G
+[moments] names, the reins included, the near arm turned to every angle of the throw the flight's constants give
+([gesture_angles], every degree) with the pumpkin in its hand -- from the SVGs rendered without antialiasing, and lists
+every piece of one colour that holds no square of 2 px on the BV6600 anywhere (the pumpkin's papers, turned with the arm, no
+disc 2 px across: [thin_pieces]). ``--rider-to-pedestrian R --out DIR`` (or ``--group-to-pedestrian G
 --out DIR``: the size at which the whole group, its lowest hoof to the top of the pumpkin's stem, is G pedestrians tall)
 writes into DIR, and nothing into the tree, the whole set drawn for that size -- every band drawn at the narrowest width
 thickened to that size's own (what is drawn at a size of its own, as the coat's, the collar's and the face's shapes, is
@@ -97,7 +111,7 @@ ASSETS = HERE.parent
 sys.path.insert(0, str(ASSETS))
 from papercut import (Sheet, capsule, content_box, cut, darker, ellipse, move, polyline_band,  # noqa: E402
                       render_body, rotate, svg_document)
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 REPO = ASSETS.parent.parent
 SVG_DIR = ASSETS / "sources" / "svg"
@@ -110,8 +124,8 @@ PX = 3  # SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
 # ------------------------------------------------------------------ the size, and what it asks of the drawing
 #: How tall the rider is drawn -- the top of his collar to the bottom of his boot, what is seen of him -- against an adult
-#: walking on the near row of the pavement: Santa's (`SantaSleighTable.SANTA_TO_PEDESTRIAN`), the maintainer's
-#: *«cavaliere deve diventare 1,3 come babbo natale»* (2026-10-21).
+#: walking on the near row of the pavement: Santa's (`SantaSleighTable.SANTA_TO_PEDESTRIAN`),
+#: `DESIGN_NOTES.md` §12, decision 79.
 RIDER_TO_PEDESTRIAN = 1.3
 
 #: An adult walking on the near row of the pavement on the BV6600, in px: `SceneSpace.PERSON_METRES_TALL` (1.75 m) at
@@ -357,25 +371,41 @@ def pumpkin(z: Size, s: Sheet, cx, cy, r, seed) -> float:
 
 
 # ------------------------------------------------------------------ the rider and his cape
-#: How much lower the coat's skirt hangs than in the drawing first shown, at its three back corners (the back of the waist,
-#: the back of the hem, the hem under the seat), in units: so the saddle never shows under it as a sliver when the rider
-#: rises out of the saddle with the stride.
+#: How much lower than the coat's outline the skirt hangs at its three back corners (the back of the waist, the back of
+#: the hem, the hem under the seat), in units: so the saddle never shows under it as a sliver when the rider rises out of
+#: the saddle with the stride.
 SKIRT = (0.0, 1.2, 1.6)
 #: The coat's buttons: their radius, and their heights in the drawing's frame (see [RIDER_FRAME_DY]), evenly between the
 #: collar's shadow (2.02 units under the collar) and the belt.
 BUTTON_RADIUS = 1.49
 BUTTONS = (-14.02, -9.56)
 #: The rider's frame against the drawing's: everything of him is drawn this much higher, so his seat ([SEAT]) lies on the
-#: saddle's paper and he sits where he sat.
+#: saddle's paper while he is drawn sitting on top of the saddle.
 RIDER_FRAME_DY = -1.0
+#: The near arm's pivot at the shoulder, in the drawing's frame: where its sleeve starts, inside the coat under the collar.
+#: The renderer turns the arm about it to throw (`HorsemanFlight.armDegrees`).
+ARM_PIVOT = (2.6, -18.6)
+#: The round of the near shoulder, (cx, cy, rx, ry) in the drawing's frame: coat over the collar's right end and the cape
+#: behind it, from the pivot up to the collar's top. Turned to throw, the arm uncovers what lies under it: without the
+#: round, slivers under 2 px on the BV6600 of the collar's under-paper (`#B6B0A1`, from the arm at rest to its wind-up)
+#: and of the cape (`#1F1D27`, wound up) would show there, and the shoulder covers them.
+SHOULDER_CAP = (6.2, -20.8, 3.2, 4.2)
+#: The dark of the neck inside the collar, (cx, cy, rx, ry) in the drawing's frame: 7.8 units across, a little left of the
+#: collar's middle, so the collar's back holds 2 px on its left side alone -- thrown forward, the arm covers its right
+#: side, and a wider dark would leave a thin crescent of it (`#C8C2B2`) alone over the neck.
+NECK_HOLE = (-0.6, -23.0, 3.9, 1.6)
 
 
 def rider(z: Size):
-    """The headless rider sitting on the saddle, facing left, the seat at (0, 0): his near leg down the horse's side, his
-    coat, the collar round the empty neck, the rein arm forward, the other holding the pumpkin up. Returns the sheet and
-    his points: the rein hand, the shoulders (the cape's pivot), the pumpkin's middle and its top, the collar's top and
-    the boot's bottom (what is seen of him)."""
-    s = Sheet()
+    """The headless rider sitting on the saddle, facing left, the seat at (0, 0), in three papers' worth of pieces:
+    ``body`` -- his near leg down the horse's side, his coat, the far arm reaching for the reins, the collar round the empty
+    neck and the round of his near shoulder ([SHOULDER_CAP]) --; ``arm`` -- the near arm holding the pumpkin up, which the
+    renderer turns about [ARM_PIVOT] to throw --; and ``pumpkin`` -- the carved pumpkin lit from inside, in his hand and
+    thrown. Laid in that order with the arm unturned they are the rider holding his pumpkin up. Returns the three sheets
+    and his points: the rein hand, the shoulders (the cape's pivot), the arm's pivot, the pumpkin's middle and its top, the
+    collar's top and the boot's bottom (what is seen of him)."""
+    body, arm, lantern = Sheet(), Sheet(), Sheet()
+    s = body
     # The far arm's sleeve first, behind the coat, reaching forward for the reins.
     rein_hand = (-12.6, -8.6)
     s.add(cut(capsule(-3.0, -16.0, -9.6, -10.0, z.thick(4.6), z.thick(4.0)), "rfarm", 0.1), COAT_DARK)
@@ -396,24 +426,30 @@ def rider(z: Size):
     for i, by in enumerate(BUTTONS):
         s.add(cut(ellipse(-4.4, by, z.half(BUTTON_RADIUS), z.half(BUTTON_RADIUS), 8), f"rbtn{i}", 0.04), BUTTON)
     # The collar round the empty neck, and the dark of the neck inside it: no head, and nothing gory.
+    nx, ny, nrx, nry = NECK_HOLE
     collar_back = cut(ellipse(-0.4, -23.2, 6.6, 2.8, 16), "rcollarb", 0.08)
     s.add(collar_back, COLLAR_PAPERS[0])
-    s.add(cut(ellipse(-0.4, -23.0, 4.2, 1.6, 12), "rneck", 0.05), NECK)
+    s.add(cut(ellipse(nx, ny, nrx, nry, 12), "rneck", 0.05), NECK)
     band = [(-7.0, -23.0), (6.2, -23.0), (5.8, -19.0), (-6.6, -19.0)]
     s.add(move(cut(band, "rcollar", 0.1), *z.drop(0.4, 0.8)), COLLAR_PAPERS[1])
     s.add(cut(band, "rcollar", 0.1), COLLAR_PAPERS[2])
+    # The round of the near shoulder, over the collar's end: the arm turns out of it ([SHOULDER_CAP]).
+    s.add(cut(ellipse(*SHOULDER_CAP, 14), "rshoulder", 0.06), COAT)
     # The near arm holding the pumpkin up high, the glove under it.
     elbow, hand = (9.0, -24.6), (7.4, -32.4)
     r = PUMPKIN_RADIUS
     pc = (7.8, -41.2)
-    s.add(cut(capsule(2.6, -18.6, *elbow, z.thick(4.6), z.thick(4.2)), "rnarm", 0.1), COAT)
-    s.add(cut(capsule(*elbow, *hand, z.thick(4.2), z.thick(3.8)), "rnfore", 0.1), COAT)
-    s.add(cut(ellipse(*hand, z.half(2.4), z.half(2.2), 10), "rnglove", 0.06), GLOVE)
-    pumpkin_top = pumpkin(z, s, *pc, r, "rp")
+    arm.add(cut(capsule(*ARM_PIVOT, *elbow, z.thick(4.6), z.thick(4.2)), "rnarm", 0.1), COAT)
+    arm.add(cut(capsule(*elbow, *hand, z.thick(4.2), z.thick(3.8)), "rnfore", 0.1), COAT)
+    arm.add(cut(ellipse(*hand, z.half(2.4), z.half(2.2), 10), "rnglove", 0.06), GLOVE)
+    pumpkin_top = pumpkin(z, lantern, *pc, r, "rp")
     dy = RIDER_FRAME_DY
-    s.pieces = [(move(p, 0.0, dy), c, clip) for p, c, clip in s.pieces]
-    return s, dict(rein_hand=(rein_hand[0] - 1.0, rein_hand[1] + dy), shoulder=(2.0, -20.0 + dy), pumpkin=(pc[0], pc[1] + dy),
-                   pumpkin_top=pumpkin_top + dy, top=min(y for _, y in collar_back) + dy, bottom=max(y for _, y in boot) + dy)
+    for sheet in (body, arm, lantern):
+        sheet.pieces = [(move(p, 0.0, dy), c, clip) for p, c, clip in sheet.pieces]
+    return dict(body=body, arm=arm, pumpkin=lantern), dict(
+        rein_hand=(rein_hand[0] - 1.0, rein_hand[1] + dy), shoulder=(2.0, -20.0 + dy), arm_pivot=(ARM_PIVOT[0], ARM_PIVOT[1] + dy),
+        pumpkin=(pc[0], pc[1] + dy), pumpkin_top=pumpkin_top + dy, top=min(y for _, y in collar_back) + dy,
+        bottom=max(y for _, y in boot) + dy)
 
 
 def cape(z: Size) -> Sheet:
@@ -430,9 +466,12 @@ def cape(z: Size) -> Sheet:
 
 
 # ------------------------------------------------------------------ the pieces and the table
-NAMES = [f"horseman_horse_{p}" for p in range(4)] + [f"horseman_legs_{p}" for p in range(4)] + ["horseman_rider", "horseman_cape"]
+#: The rider's three pieces, and each one's frame in the drawing's: the arm's and the pumpkin's moved by whole units, the
+#: whole unit nearest the arm's pivot and the pumpkin's middle, so that at rest their pixels fall where the rider's would.
+RIDER_PIECES = ("horseman_rider_body", "horseman_rider_arm", "horseman_rider_pumpkin")
+NAMES = [f"horseman_horse_{p}" for p in range(4)] + [f"horseman_legs_{p}" for p in range(4)] + list(RIDER_PIECES) + ["horseman_cape"]
 
-COMMENT = ("The Headless Horseman (v5.16, the maintainer's «B», the rider of Sleepy Hollow, 2026-10-21): {what}. Fixed art. "
+COMMENT = ("The Headless Horseman, the rider of Sleepy Hollow (DESIGN_NOTES.md §12, decision 79): {what}. Fixed art. "
            "Generated by tools/assets/horseman/build_horseman.py: edit that, not this.")
 
 
@@ -468,13 +507,31 @@ def build(ratio: float = RIDER_TO_PEDESTRIAN):
             what=f"the horse's four legs in pose {p} of its gallop, in the body's frame, drawn behind it")).encode()
         out[RES / f"{name}.png"] = render_body(lbody, lbox, PX)
         t["legs"].append(dict(ox=lbox[0], oy=lbox[1], w=lbox[2], h=lbox[3]))
-    rs, rp = rider(z)
-    rbody = rs.body()
-    rbox = boxed(rbody, (-40, -90, 70, 120))
-    out[SVG_DIR / "horseman_rider.svg"] = svg_document(rbody, rbox, PX, COMMENT.format(
-        what="the headless rider with his near leg, his arms and the lit pumpkin he holds up, his seat at (0,0)")).encode()
-    out[RES / "horseman_rider.png"] = render_body(rbody, rbox, PX)
-    t["rider"] = dict(ox=rbox[0], oy=rbox[1], w=rbox[2], h=rbox[3], **rp)
+    sheets, rp = rider(z)
+    t["rider"] = dict(rp)
+    for name, part, frame, what in (
+        ("horseman_rider_body", "body", (-40, -90, 70, 120),
+         "the headless rider without his near arm and his pumpkin (his coat, the collar round the empty neck, the round of his "
+         "near shoulder, his near leg, the far arm on the reins), his seat at (0,0)"),
+        ("horseman_rider_arm", "arm", (-20, -30, 40, 45),
+         "his near arm and its glove, in a frame a whole unit from its pivot at the shoulder, about which the renderer turns it "
+         "to throw"),
+        ("horseman_rider_pumpkin", "pumpkin", (-15, -20, 30, 30),
+         "the carved pumpkin lit from inside that he holds up and throws, in a frame a whole unit from its middle"),
+    ):
+        origin = {"body": (0, 0), "arm": whole(rp["arm_pivot"]), "pumpkin": whole(rp["pumpkin"])}[part]
+        sheet = Sheet()
+        sheet.clips = {n: [move(sh, -origin[0], -origin[1]) for sh in shapes] for n, shapes in sheets[part].clips.items()}
+        for pts, colour, clip in sheets[part].pieces:
+            sheet.add(move(pts, -origin[0], -origin[1]), colour, clip)
+        pbody = sheet.body()
+        pbox = boxed(pbody, frame)
+        out[SVG_DIR / f"{name}.svg"] = svg_document(pbody, pbox, PX, COMMENT.format(what=what)).encode()
+        out[RES / f"{name}.png"] = render_body(pbody, pbox, PX)
+        # Where it blits: from the seat (the body), from the pivot (the arm), from the middle (the pumpkin).
+        anchor = {"body": (0.0, 0.0), "arm": rp["arm_pivot"], "pumpkin": rp["pumpkin"]}[part]
+        t["rider"][f"{part}_piece"] = dict(ox=pbox[0] + origin[0] - anchor[0], oy=pbox[1] + origin[1] - anchor[1], w=pbox[2], h=pbox[3],
+                                frame=origin, box=pbox)
     cbody = cape(z).body()
     cbox = boxed(cbody, (-20, -20, 60, 50))
     out[SVG_DIR / "horseman_cape.svg"] = svg_document(cbody, cbox, PX, COMMENT.format(
@@ -487,8 +544,10 @@ def build(ratio: float = RIDER_TO_PEDESTRIAN):
     for P, L in zip(t["poses"], t["legs"]):
         sx, sy = P["seat"]
         kx, ky = sx + R["shoulder"][0], sy + R["shoulder"][1]
-        boxes += [(P["ox"], P["oy"], P["w"], P["h"]), (L["ox"], L["oy"], L["w"], L["h"]),
-                  (sx + R["ox"], sy + R["oy"], R["w"], R["h"]), (kx + C["ox"], ky + C["oy"], C["w"], C["h"])]
+        boxes += [(P["ox"], P["oy"], P["w"], P["h"]), (L["ox"], L["oy"], L["w"], L["h"]), (kx + C["ox"], ky + C["oy"], C["w"], C["h"])]
+        for part, anchor in (("body", (0.0, 0.0)), ("arm", R["arm_pivot"]), ("pumpkin", R["pumpkin"])):
+            Q = R[f"{part}_piece"]
+            boxes.append((sx + anchor[0] + Q["ox"], sy + anchor[1] + Q["oy"], Q["w"], Q["h"]))
     t["left"] = min(b[0] for b in boxes)
     t["right"] = max(b[0] + b[2] for b in boxes)
     t["top"] = min(b[1] for b in boxes)
@@ -497,6 +556,11 @@ def build(ratio: float = RIDER_TO_PEDESTRIAN):
     t["pumpkin_top"] = min(P["seat"][1] + R["pumpkin_top"] for P in t["poses"])
     out[TABLE] = kotlin_table(t, z).encode()
     return out, t, z
+
+
+def whole(point) -> tuple[int, int]:
+    """The whole unit nearest [point]: the origin of a piece's own frame."""
+    return int(round(point[0])), int(round(point[1]))
 
 
 def f(x: float) -> str:
@@ -514,7 +578,7 @@ def kotlin_table(t, z: Size) -> str:
 import com.paperscrape.livewallpaper.R
 
 /**
- * The Headless Horseman (v5.16), in units of the group: the horse's body's middle at (0, 0), the group facing left (the
+ * The Headless Horseman, in units of the group: the horse's body's middle at (0, 0), the group facing left (the
  * drawer mirrors it to fly right). `*_X`/`*_Y` of a piece is where its sprite's top-left blits. **Generated** by
  * `tools/assets/horseman/build_horseman.py` from the geometry it draws the SVGs with; edit that script, not this file.
  */
@@ -540,18 +604,32 @@ internal object HorsemanTable {{
     val SEAT_X = {fa([p["seat"][0] for p in P])}
     val SEAT_Y = {fa([p["seat"][1] for p in P])}
 
-    /** The rider with his pumpkin, and where he blits from the seat. */
-    val RIDER_RES = R.drawable.horseman_rider
-    const val RIDER_X = {f(R["ox"])}
-    const val RIDER_Y = {f(R["oy"])}
+    /**
+     * The rider in three pieces, laid in this order: his body (all of him but his near arm and his pumpkin), from the seat;
+     * his near arm, which turns about its pivot at the shoulder to throw -- the pivot from the seat, and where the arm's
+     * sprite blits from the pivot --; and the carved pumpkin he holds up and throws -- its middle from the seat, in his hand
+     * with the arm unturned, where its sprite blits from its middle, and its radius across.
+     */
+    val BODY_RES = R.drawable.horseman_rider_body
+    const val BODY_X = {f(R["body_piece"]["ox"])}
+    const val BODY_Y = {f(R["body_piece"]["oy"])}
+    val ARM_RES = R.drawable.horseman_rider_arm
+    const val ARM_PIVOT_X = {f(R["arm_pivot"][0])}
+    const val ARM_PIVOT_Y = {f(R["arm_pivot"][1])}
+    const val ARM_X = {f(R["arm_piece"]["ox"])}
+    const val ARM_Y = {f(R["arm_piece"]["oy"])}
+    val PUMPKIN_RES = R.drawable.horseman_rider_pumpkin
+    const val PUMPKIN_X = {f(R["pumpkin"][0])}
+    const val PUMPKIN_Y = {f(R["pumpkin"][1])}
+    const val PUMPKIN_BLIT_X = {f(R["pumpkin_piece"]["ox"])}
+    const val PUMPKIN_BLIT_Y = {f(R["pumpkin_piece"]["oy"])}
+    const val RIDER_PUMPKIN_RADIUS_UNITS = {f(PUMPKIN_RADIUS)}
 
-    /** From the seat: the hand holding the reins, the shoulders (the cape's pivot), and the middle of the pumpkin he holds up. */
+    /** From the seat: the hand holding the reins, and the shoulders (the cape's pivot). */
     const val HAND_X = {f(R["rein_hand"][0])}
     const val HAND_Y = {f(R["rein_hand"][1])}
     const val SHOULDER_X = {f(R["shoulder"][0])}
     const val SHOULDER_Y = {f(R["shoulder"][1])}
-    const val PUMPKIN_X = {f(R["pumpkin"][0])}
-    const val PUMPKIN_Y = {f(R["pumpkin"][1])}
 
     /** The cape, and where it blits from its pivot at the shoulders. */
     val CAPE_RES = R.drawable.horseman_cape
@@ -569,8 +647,8 @@ internal object HorsemanTable {{
     const val RIDER_BOTTOM = {f(R["bottom"])}
 
     /**
-     * How tall the rider is drawn against an adult walking on the near row of the pavement: Santa's, the maintainer's
-     * *«cavaliere deve diventare 1,3 come babbo natale»* (2026-10-21).
+     * How tall the rider is drawn against an adult walking on the near row of the pavement: Santa's
+     * (`DESIGN_NOTES.md` §12, decision 79).
      */
     const val RIDER_TO_PEDESTRIAN = {f(z.ratio)}
 }}
@@ -586,7 +664,7 @@ def drawer_motion() -> dict[str, float]:
 
 
 #: The order `HeadlessHorsemanDrawer.draw` lays the group down in (`tests/test_horseman.py` reads it off the drawer).
-ORDER = ("cape", "legs", "horse", "reins", "rider")
+ORDER = ("cape", "legs", "horse", "reins", "body", "arm", "pumpkin")
 
 
 def moments(k: dict[str, float]) -> list[tuple[int, float]]:
@@ -602,31 +680,86 @@ def moments(k: dict[str, float]) -> list[tuple[int, float]]:
     return out
 
 
+#: The flight that throws the pumpkins, whose gesture's angles the ``--two-px`` composition reads.
+EFFECT = ENGINE / "HeadlessHorsemanEffect.kt"
+
+
+def gesture() -> dict[str, float]:
+    """The throw's two extreme angles of the arm, read from the flight that moves it: back as it winds up
+    (`WIND_BACK_DEGREES`, clockwise on the screen, towards the tail) and forward where it lets the pumpkin go
+    (`RELEASE_DEGREES`)."""
+    text = EFFECT.read_text()
+    return {n: float(re.search(rf"const val {n} = (-?[0-9.]+)f", text).group(1)) for n in ("WIND_BACK_DEGREES", "RELEASE_DEGREES")}
+
+
+def gesture_angles(g: dict[str, float], step: float = 1.0) -> list[float]:
+    """Every angle the arm passes on its way, looked at: from the release to the wind-up's most, every [step] degrees, the
+    two ends and the arm at rest (0) included."""
+    lo, hi = g["RELEASE_DEGREES"], g["WIND_BACK_DEGREES"]
+    out = {lo, hi, 0.0}
+    a = math.ceil(lo / step) * step
+    while a < hi:
+        out.add(float(a))
+        a += step
+    return sorted(out)
+
+
 def crisp(svg: str) -> str:
     """The same SVG rendered without antialiasing: every pixel one paper's, so a band's width is its own."""
     return svg.replace("<svg ", '<svg shape-rendering="crispEdges" ', 1)
 
 
+def svg_frame(svg: str) -> tuple[float, float, float, float]:
+    return tuple(float(v) for v in re.search(r'viewBox="([-0-9.]+) ([-0-9.]+) ([-0-9.]+) ([-0-9.]+)"', svg).groups())
+
+
+def svg_inner(svg: str) -> str:
+    return svg[svg.index(">") + 1:svg.rindex("</svg>")]
+
+
 def turned(svg: str, degrees: float) -> tuple[Image.Image, tuple[int, int]]:
     """An SVG drawn turned by [degrees] (clockwise on the screen, as the renderer's canvas turns) about its frame's (0, 0),
     without antialiasing: the image and its top-left, in units of that frame."""
-    x, y, w, h = (float(v) for v in re.search(r'viewBox="([-0-9.]+) ([-0-9.]+) ([-0-9.]+) ([-0-9.]+)"', svg).groups())
+    x, y, w, h = svg_frame(svg)
     corners = rotate([(x, y), (x + w, y), (x, y + h), (x + w, y + h)], 0.0, 0.0, degrees)
     x0, y0 = math.floor(min(p[0] for p in corners)), math.floor(min(p[1] for p in corners))
     x1, y1 = math.ceil(max(p[0] for p in corners)), math.ceil(max(p[1] for p in corners))
-    inner = svg[svg.index(">") + 1:svg.rindex("</svg>")]
     doc = (f'<svg xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="{(x1 - x0) * PX}" '
-           f'height="{(y1 - y0) * PX}" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}"><g transform="rotate({degrees:.6f})">{inner}</g></svg>')
+           f'height="{(y1 - y0) * PX}" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}"><g transform="rotate({degrees:.6f})">{svg_inner(svg)}</g></svg>')
     return Image.open(io.BytesIO(render_svg(doc).png_bytes)).convert("RGBA"), (x0, y0)
 
 
-def compose(out, t, z: Size, pose: int, phase: float, k: dict[str, float], order=ORDER, rest: bool = False) -> Image.Image:
+def in_hand(out, t, part: str, scale: float = 1.0) -> str:
+    """The arm's or the pumpkin's SVG moved into the arm pivot's own frame (the pivot at (0, 0)) -- as the drawer blits
+    each, the pumpkin about its middle by [scale] --, so that [turned] turns it as the renderer turns the arm."""
+    R = t["rider"]
+    name = {"arm": "horseman_rider_arm", "pumpkin": "horseman_rider_pumpkin"}[part]
+    svg = out[SVG_DIR / f"{name}.svg"].decode()
+    x, y, w, h = svg_frame(svg)
+    Q = R[f"{part}_piece"]
+    if part == "arm":
+        dx, dy = Q["ox"] - x, Q["oy"] - y
+        transform = f"translate({dx:.6f},{dy:.6f})"
+        box = (Q["ox"], Q["oy"], w, h)
+    else:
+        mx, my = R["pumpkin"][0] - R["arm_pivot"][0], R["pumpkin"][1] - R["arm_pivot"][1]
+        transform = f"translate({mx:.6f},{my:.6f}) scale({scale:.6f}) translate({Q['ox'] - x:.6f},{Q['oy'] - y:.6f})"
+        box = (mx + Q["ox"] * scale, my + Q["oy"] * scale, w * scale, h * scale)
+    x0, y0 = math.floor(box[0]), math.floor(box[1])
+    x1, y1 = math.ceil(box[0] + box[2]), math.ceil(box[1] + box[3])
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{(x1 - x0) * PX}" height="{(y1 - y0) * PX}" '
+            f'viewBox="{x0} {y0} {x1 - x0} {y1 - y0}"><g transform="{transform}">{svg_inner(svg)}</g></svg>')
+
+
+def compose(out, t, z: Size, pose: int, phase: float, k: dict[str, float], order=ORDER, rest: bool = False,
+            arm: float = 0.0, hand: float = 1.0) -> Image.Image:
     """The group as `HeadlessHorsemanDrawer.draw` lays it down, at 3 px a unit, from the SVGs rendered without
     antialiasing: in pose [pose] at the stride's [phase] -- the horse and its legs bobbing by `HORSE_BOB_UNITS` with the
     stride, the rider the other way by `RIDER_BOB_UNITS`, the cape swung `CAPE_SWING_DEGREES` about his shoulders a little
-    behind it (`CAPE_PHASE`) -- and the reins a line [Size.rein] wide with round ends from his hand to the bit, as the
-    renderer's paint draws them. [rest]: no bob and no swing. The canvas's (0, 0) is the group's
-    (floor(LEFT) - 6, floor(TOP) - 6)."""
+    behind it (`CAPE_PHASE`) -- the reins a line [Size.rein] wide with round ends from his hand to the bit, as the
+    renderer's paint draws them, and his near arm turned [arm] degrees about its pivot with the pumpkin in its hand, the
+    pumpkin at [hand] of its size about its middle (0: none in his hand). [rest]: no bob and no swing. The canvas's (0, 0)
+    is the group's (floor(LEFT) - 6, floor(TOP) - 6)."""
     stride = 0.0 if rest else math.sin(phase)
     horse_bob, rider_bob = stride * k["HORSE_BOB_UNITS"], -stride * k["RIDER_BOB_UNITS"]
     swing = 0.0 if rest else math.sin(phase + k["CAPE_PHASE"]) * k["CAPE_SWING_DEGREES"]
@@ -641,6 +774,7 @@ def compose(out, t, z: Size, pose: int, phase: float, k: dict[str, float], order
 
     P, L, R = t["poses"][pose], t["legs"][pose], t["rider"]
     seat_x, seat_y = P["seat"][0], P["seat"][1] + rider_bob
+    pivot_x, pivot_y = seat_x + R["arm_pivot"][0], seat_y + R["arm_pivot"][1]
 
     def cape_():
         image, (x0, y0) = turned(out[SVG_DIR / "horseman_cape.svg"].decode(), swing)
@@ -663,10 +797,21 @@ def compose(out, t, z: Size, pose: int, phase: float, k: dict[str, float], order
             draw.ellipse((x - r, y - r, x + r, y + r), fill=REIN_COLOUR)
         canvas.alpha_composite(layer)
 
-    def rider_():
-        canvas.alpha_composite(sprite("horseman_rider"), at(seat_x + R["ox"], seat_y + R["oy"]))
+    def body_():
+        Q = R["body_piece"]
+        canvas.alpha_composite(sprite("horseman_rider_body"), at(seat_x + Q["ox"], seat_y + Q["oy"]))
 
-    steps = dict(cape=cape_, legs=legs_, horse=horse_, reins=reins_, rider=rider_)
+    def arm_():
+        image, (x0, y0) = turned(in_hand(out, t, "arm"), arm)
+        canvas.alpha_composite(image, at(pivot_x + x0, pivot_y + y0))
+
+    def pumpkin_():
+        if hand <= 0.0:
+            return
+        image, (x0, y0) = turned(in_hand(out, t, "pumpkin", hand), arm)
+        canvas.alpha_composite(image, at(pivot_x + x0, pivot_y + y0))
+
+    steps = dict(cape=cape_, legs=legs_, horse=horse_, reins=reins_, body=body_, arm=arm_, pumpkin=pumpkin_)
     for step in order:
         steps[step]()
     return canvas
@@ -706,36 +851,71 @@ def squares(mask: np.ndarray, k: int) -> np.ndarray:
     return corners
 
 
-def thin_pieces(image: Image.Image, k: int, smallest: int = 12):
-    """Every piece of one colour of [image] (its opaque pixels) that holds no k x k square anywhere, as (colour, pixels,
-    (x0, x1, y0, y1)); pieces under [smallest] pixels are the corners where three papers meet."""
+def discs(mask: np.ndarray, side: float) -> np.ndarray:
+    """True at the middle of every disc [side] px across lying wholly inside [mask] (the pixels within half of it of the
+    middle): a turned band's measure, which an upright square's is not -- a band [side] wide turned 45 degrees holds a disc
+    [side] across and an upright square of only 0.71 of it."""
+    r = side / 2
+    reach = int(math.floor(r))
+    H, W = mask.shape
+    padded = np.pad(mask, reach)
+    out = np.ones_like(mask)
+    for dy in range(-reach, reach + 1):
+        for dx in range(-reach, reach + 1):
+            if dx * dx + dy * dy <= r * r:
+                out &= padded[reach + dy:reach + dy + H, reach + dx:reach + dx + W]
+    return out
+
+
+def thin_pieces(image: Image.Image, k: int, smallest: int = 12, disc: float | None = None, turned: frozenset[str] = frozenset()):
+    """Every piece of one colour of [image] (its opaque pixels) that holds no k x k square anywhere -- or, for a colour in
+    [turned] (a paper turned off the upright), no disc [disc] px across --, as (colour, pixels, (x0, x1, y0, y1)); pieces
+    under [smallest] pixels are the corners where three papers meet."""
     a = np.array(image).astype(np.int64)
     opaque = a[:, :, 3] == 255
     keys = (a[:, :, 0] << 16) | (a[:, :, 1] << 8) | a[:, :, 2]
     found = []
     for key in np.unique(keys[opaque]):
         mask = opaque & (keys == key)
-        ok = squares(mask, k)
+        colour = "#%06X" % int(key)
+        ok = discs(mask, disc) if disc is not None and colour in turned else squares(mask, k)
         for pts in pieces(mask):
             if len(pts) >= smallest and not any(ok[p] for p in pts):
                 ys, xs = [p[0] for p in pts], [p[1] for p in pts]
-                found.append(("#%06X" % int(key), len(pts), (min(xs), max(xs), min(ys), max(ys))))
+                found.append((colour, len(pts), (min(xs), max(xs), min(ys), max(ys))))
     return found
 
 
-def two_px_report(out, t, z: Size) -> list[str]:
-    """Every piece of one colour of the group, composed as the renderer draws it at every moment [moments] names, that
-    holds no square of 2 px on the BV6600 (at [z]'s size) anywhere; and the reins' width."""
+def pumpkin_papers() -> frozenset[str]:
+    """The colours of the pumpkin he holds and throws, which no other piece of the group wears: the papers that turn with
+    his arm and fall turning."""
+    sheets, _ = rider(size_for(RIDER_TO_PEDESTRIAN))
+    return frozenset(c.upper() for _, c, _ in sheets["pumpkin"].pieces)
+
+
+def two_px_report(out, t, z: Size, step: float = 1.0) -> list[str]:
+    """Every piece of one colour of the group, composed as the renderer draws it at every moment [moments] names and with
+    the near arm at every angle of the throw [gesture_angles] names ([step] degrees apart), the pumpkin in its hand, that is
+    under 2 px on the BV6600 (at [z]'s size) everywhere: a piece that holds no upright square of 2 px anywhere -- but for the
+    pumpkin's papers with the arm turned ([pumpkin_papers]), held to a disc 2 px across, because they are not upright then,
+    and an upright square in a band shrinks as the band turns (by 0.71 at 45 degrees) while the band does not. And the
+    reins' width."""
     k = drawer_motion()
     side = 2.0 / z.px_per_unit * PX
     square = math.ceil(side)
+    angles = gesture_angles(gesture(), step)
+    turned = pumpkin_papers()
     lines, bad = [], 0
-    for pose, phase in moments(k):
-        for colour, n, (x0, x1, y0, y1) in thin_pieces(compose(out, t, z, pose, phase, k), square):
-            bad += 1
-            lines.append(f"pose {pose} phase {phase:.3f}: {colour} {n} px at x {x0}..{x1} y {y0}..{y1} of the 3x composition")
-    lines.append(f"{bad} pieces under 2 px in {len(moments(k))} moments (a square of {square} px of the 3x drawing: 2 px are "
-                 f"{side:.2f}); the reins {z.rein:.2f} units, {z.rein * z.px_per_unit:.2f} px")
+    for angle in angles:
+        for pose, phase in moments(k):
+            image = compose(out, t, z, pose, phase, k, arm=angle)
+            for colour, n, (x0, x1, y0, y1) in thin_pieces(image, square, disc=side, turned=turned if angle != 0.0 else frozenset()):
+                bad += 1
+                lines.append(f"arm {angle:+.0f} pose {pose} phase {phase:.3f}: {colour} {n} px at x {x0}..{x1} y {y0}..{y1} of the "
+                             f"3x composition")
+    lines.append(f"{bad} pieces under 2 px in {len(moments(k))} moments x {len(angles)} angles of the arm ({angles[0]:+.0f} to "
+                 f"{angles[-1]:+.0f} degrees, every {step:g}; a square of {square} px of the 3x drawing, the turned pumpkin's papers a "
+                 f"disc of {side:.2f}: 2 px are {side:.2f}); the reins {z.rein:.2f} units, {z.rein * z.px_per_unit:.2f} px")
     return lines
 
 
@@ -808,7 +988,7 @@ def main(argv) -> int:
         for line in two_px_report(out, t, z):
             print(line)
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

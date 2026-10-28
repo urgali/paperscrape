@@ -10,20 +10,19 @@ import org.junit.Test
  * ### Why this class exists next to `PedestrianPopulationTest`
  *
  * That class sweeps hundreds of synthetic seeds and asserts on the aggregate, which is the right
- * way to test a generator and is not enough. v4.1 passed every one of those tests and still shipped
- * a `beach` theme whose six pedestrians were five girls and a boy, every one of them on the darkest
- * of the three tones, with no adult of either sex -- because a wallpaper does not draw hundreds of
- * seeds. It draws **one**, for as long as the user keeps the theme, and if that one seed's sample
- * is lumpy the lump is what the user sees for ever.
+ * way to test a generator and is not enough: a generator can pass every one of those tests and
+ * still give a theme six pedestrians who are five girls and a boy, all on one tone, with no adult
+ * of either sex -- because a wallpaper does not draw hundreds of seeds. It draws **one**, for as
+ * long as the user keeps the theme, and if that one seed's sample is lumpy the lump is what the
+ * user sees for ever.
  *
  * So every assertion here is made **per theme id**, over exactly the seeds the shipped app uses.
- * A property that holds on average across the catalogue but fails on `beach` fails here, which is
- * the whole point: `beach` is the theme the defect was reported from.
+ * A property that holds on average across the catalogue but fails on one theme fails here.
  *
  * ### What "no pathological bias" is taken to mean
  *
  * Not a perfect distribution -- four groups cannot be perfectly distributed and should not look as
- * if they were. The bar is the list the brief for this release set out: on every theme the street
+ * if they were. The bar is this list: on every theme the street
  * must contain an adult male, an adult female, a boy and a girl, all three skin tones, both
  * directions of travel and groups of one, two and three; and no single sprite kind or tone may
  * take three quarters of the pavement.
@@ -48,8 +47,7 @@ class RealThemeDistributionTest {
     // ------------------------------------------------------- the four kinds
 
     /**
-     * The headline defect: `beach` had no adult of either sex, and `sunset` and `new_year` had no
-     * girl. All four have to be on every shipped street.
+     * All four kinds have to be on every shipped street, whatever its seed deals.
      */
     @Test
     fun `every built-in theme puts an adult male, an adult female, a boy and a girl on the street`() {
@@ -64,7 +62,7 @@ class RealThemeDistributionTest {
         }
     }
 
-    /** `beach` was five girls in six. Nothing may take three quarters of the pavement. */
+    /** Nothing may take three quarters of the pavement. */
     @Test
     fun `no built-in theme lets one kind of person take three quarters of the street`() {
         for (id in themeIds) {
@@ -79,7 +77,7 @@ class RealThemeDistributionTest {
 
     // -------------------------------------------------------------- skin
 
-    /** `beach` was six people on tone 2 and none on 0 or 1; `winter` had no tone 2 at all. */
+    /** Every tone on every shipped street, not one tone on all of it. */
     @Test
     fun `every built-in theme shows all three skin tones`() {
         for (id in themeIds) {
@@ -106,7 +104,7 @@ class RealThemeDistributionTest {
 
     // --------------------------------------------------------- direction
 
-    /** `tundra` had all ten of its people walking rightward. */
+    /** Never a whole street walking one way. */
     @Test
     fun `every built-in theme has people walking both ways`() {
         for (id in themeIds) {
@@ -118,7 +116,7 @@ class RealThemeDistributionTest {
 
     // ------------------------------------------------------- group sizes
 
-    /** Eight of the twelve themes were missing one of the three group sizes entirely. */
+    /** Every one of the three group sizes on every shipped street. */
     @Test
     fun `every built-in theme shows a lone walker, a pair and a group of three`() {
         for (id in themeIds) {
@@ -133,15 +131,13 @@ class RealThemeDistributionTest {
     /**
      * Over the twelve shipped seeds together, no attribute may predict another.
      *
-     * v4.1 failed this on skin against age: of the 96 people the catalogue produced, tone 2 was
-     * 25 children to 10 adults while tone 1 was 20 adults to 11 children -- the darkest tone was
-     * a child's tone and the middle one an adult's, on the seeds that actually ship. Neither
-     * "the channels are separate" nor a sweep over synthetic seeds shows that; only counting the
-     * real ones does.
+     * A lean of skin against age -- the darkest tone a child's tone and the middle one an adult's,
+     * on the seeds that actually ship -- is the kind of defect this catches: neither "the channels
+     * are separate" nor a sweep over synthetic seeds shows it; only counting the real ones does.
      *
      * The tolerance is wide on purpose. Ninety-odd people is a small sample and a 50/50 split of
-     * it is *expected* to land a few either way; what is being ruled out is the two-to-one lean
-     * that was there, not ordinary noise.
+     * it is *expected* to land a few either way; what is being ruled out is a two-to-one lean, not
+     * ordinary noise.
      */
     @Test
     fun `across the shipped themes no attribute predicts another`() {
@@ -185,13 +181,10 @@ class RealThemeDistributionTest {
         share("group size -> age", { groupSizeOf.getValue(it) }, { it.age == PersonAge.ADULT }, adultShare)
         share("group size -> direction", { groupSizeOf.getValue(it) }, { it.direction > 0f }, rightShare)
 
-        // Measured, not guessed. v4.1's strongest lean over these twelve seeds is **0.258** --
-        // a lone walker was adult 20% of the time against 46% on the street as a whole, which is
-        // the "not one adult male ever walks alone" defect seen from the other side, and its
-        // second-strongest is 0.187 for tone 2 being a child's tone. v4.2's strongest is
-        // **0.154**. The bound sits between them with comparable room on each side: tight enough
-        // that the defect fails it, loose enough that ninety-odd people are allowed to be the
-        // small sample they are.
+        // Measured, not guessed: lone walkers who are adults 20% of the time against 46% on the
+        // street as a whole lean **0.258** (no adult male ever walking alone, seen from the other
+        // side), and tone 2 as a child's tone 0.187. The bound is tight enough that such a lean
+        // fails it, loose enough that ninety-odd people are allowed to be the small sample they are.
         assertTrue("strongest lean is $worstName", worst <= MAX_LEAN)
     }
 
@@ -202,9 +195,9 @@ class RealThemeDistributionTest {
     /**
      * Group size must not decide who is in the group.
      *
-     * v4.1's fifteen lone walkers across the catalogue were three women, five boys and seven girls
-     * -- **not one adult male ever walked alone** on any shipped theme. Measured per size rather
-     * than as a correlation coefficient because that is the shape the defect had.
+     * Measured per size rather than as a correlation coefficient, because that is the shape of the
+     * defect it catches: a size of group that never holds one kind of person -- **no adult male
+     * ever walking alone** on any shipped theme.
      */
     @Test
     fun `a group of any size can contain any kind of person`() {
@@ -264,13 +257,12 @@ class RealThemeDistributionTest {
     // ------------------------------------------------- density semantics
 
     /**
-     * **The density parameter still means what it meant.**
+     * **The density parameter selects groups by the shared rule.**
      *
-     * v4.2 changed what a present group *contains*; it must not have changed which groups are
-     * present. This asserts that directly against [CandidateThreshold], the shared rule every
-     * other category uses: at every density the set of group indices on the street is exactly the
-     * set the threshold selects, so "20% of the pool" is still 20% of the same pool of four slots
-     * and not a new meaning wearing the old name.
+     * What a present group *contains* is this class's subject; which groups are present is not.
+     * This asserts that directly against [CandidateThreshold], the shared rule every other
+     * category uses: at every density the set of group indices on the street is exactly the set
+     * the threshold selects, so "20% of the pool" is 20% of the same pool of four slots.
      */
     @Test
     fun `density still selects the same group slots it always did`() {

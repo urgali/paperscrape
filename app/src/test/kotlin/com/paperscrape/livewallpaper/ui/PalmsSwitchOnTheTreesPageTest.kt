@@ -8,16 +8,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **The Palms switch is on the Trees page** (v5.10C2) -- the maintainer, 2026-10-03, on the photographs
- * of v5.10C: *«inoltre il flag non deve stare in summer ma in tree»*. The palms stand in the trees'
- * places, so the switch is set beside *Show Trees* and the density in World & scene, and Seasons &
- * decorations no longer has it -- nor the Summer season, which held nothing else.
+ * **The Palms switch is on the Trees page** (`DESIGN_NOTES.md` §12, decision 39). The palms stand in the
+ * trees' places, so the switch is set beside *Show Trees* and the density in World & scene, and Seasons &
+ * decorations does not have it -- nor a Summer season, which would hold nothing else.
  *
- * The rules it carries are v5.10C's and are tested there (`SwitchesTellTheTruthTest`: off and locked
- * with no tree to stand in), plus one of the same kind since the firs stay firs: off and locked where
- * every tree left would be a fir (`FirsAmongThePalmsTest` has the scene's side of it). What is held here
- * is where the screens draw it, read off their source as the project does for Compose it cannot run on
- * the JVM, and the home line that no longer counts it.
+ * The rules it carries are tested in `SwitchesTellTheTruthTest` (off and locked with no tree to stand
+ * in), plus one of the same kind because the firs stay firs: off and locked where every tree left would
+ * be a fir (`FirsAmongThePalmsTest` has the scene's side of it). What is held here is where the screens
+ * draw it, read off their source as the project does for Compose it cannot run on the JVM, and the home
+ * line that does not count it.
  */
 class PalmsSwitchOnTheTreesPageTest {
 
@@ -29,7 +28,7 @@ class PalmsSwitchOnTheTreesPageTest {
         val after = trees.substringAfter("afterDensity = {", missingDelimiterValue = "").substringBefore("\n            },\n        )")
         assertTrue("the switch is not under the trees' density", after.contains("title = \"Palms\""))
         for (wiring in listOf(
-            "val palms = SettingsUiModel.palms(customization, themeHasPalms, onlyFirsWouldStand = palmsOnlyFirs)",
+            "val palms = SettingsUiModel.palms(customization, themeHasPalms, onlyFirsWouldStand = palmsOnlyFirs, treesStand = treesStand)",
             "checked = palms.shownOn,",
             "enabled = palms.interactive,",
             "onCheckedChange = { scope.launch { prefs.setPalmsEnabled(it, forThemeId) } },",
@@ -37,10 +36,10 @@ class PalmsSwitchOnTheTreesPageTest {
             assertTrue("the Trees page does not draw: $wiring", after.contains(wiring))
         }
         // And the theme's layout reaches it, from the screen that asks the layout.
-        assertTrue(world.contains("\"trees\" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, forThemeId, prefs, scope)"))
+        assertTrue(world.contains("\"trees\" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, standing.trees, standing.themeHasTrees, standing.onlyFirsEvenAtFull, forThemeId, prefs, scope)"))
         val home = source("ui/SettingsScreen.kt")
         assertTrue(home.contains("WorldSceneScreen(\n            customization = customization,\n            settings = settings,\n            theme = effectiveTheme,\n            forThemeId = effectiveThemeId,\n            themeName = effectiveTheme.displayName,\n            themeHasPalms = themeHasPalms,\n            palmsOnlyFirs = palmsOnlyFirs,"))
-        // The only-firs answer is the theme's own layout asked with the customization on screen (v5.10C2).
+        // The only-firs answer is the theme's own layout asked with the customization on screen.
         assertTrue(home.contains("val palmsOnlyFirs = themeLayout.keepsOnlyFirsUnderPalms(customization)"))
     }
 
@@ -72,7 +71,7 @@ class PalmsSwitchOnTheTreesPageTest {
         val christmas = defaultCustomizationFor("christmas")
         assertEquals(SettingsUiModel.decorationsOn(christmas), SettingsUiModel.decorationsOn(christmas.copy(palmsInsteadOfTrees = true)))
         assertTrue(SettingsUiModel.palms(christmas.copy(palmsInsteadOfTrees = true), layoutPlantsPalms = false, onlyFirsWouldStand = false).shownOn)
-        // And where every tree left is a fir, off and locked, the choice kept (v5.10C2).
+        // And where every tree left is a fir, off and locked, the choice kept.
         val onlyFirs = SettingsUiModel.palms(christmas.copy(palmsInsteadOfTrees = true), layoutPlantsPalms = false, onlyFirsWouldStand = true)
         assertFalse(onlyFirs.shownOn)
         assertFalse(onlyFirs.interactive)

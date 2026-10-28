@@ -10,6 +10,7 @@ import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.SceneObjectType
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.customThemeEntryFromJson
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
@@ -17,6 +18,7 @@ import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
 import com.paperscrape.livewallpaper.engine.toJson
 import com.paperscrape.livewallpaper.engine.withChristmasLights
 import com.paperscrape.livewallpaper.ui.SettingsUiModel
+import com.paperscrape.livewallpaper.ui.snapshotEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,7 +35,7 @@ import java.io.File
 
 /**
  * **The Halloween decorations and the Christmas ones are never on together in a theme, and the first turned on wins**
- * (v5.16; the maintainer, 2026-10-21: *«addobbi visibili: solo halloween o natale; vince il primo scelto e il secondo deve
+ * (decision 77, 2026-10-21: *«addobbi visibili: solo halloween o natale; vince il primo scelto e il secondo deve
  * avere il toggle non attivabile con errore "è già acceso natale" o "è già acceso halloween"»*).
  *
  * In every order and on every way in: Christmas first, Halloween first, per theme, after a change of theme, from a theme
@@ -134,12 +136,12 @@ class HalloweenOrChristmasDecorationsTest {
     }
 
     /**
-     * **Each of the three moves only itself** (v5.16B, the mid-round review): a store without the two newer keys reads them
-     * from the first's, the one *Christmas lights* had, so a writer of that key alone moved all three -- on a fresh install
-     * of Christmas, *Lights on the buildings* turned off took the trees' lights and the firs with it; on Autumn turned on
-     * it lit them. Every switch, both ways, on a fresh store and on one as the 5.15 left it -- its *Christmas lights* key on
-     * for Christmas, off for Autumn. And where it matters, the Halloween theme with a store of 5.15 that had *Christmas
-     * lights* on there: the last Christmas switch turned off does not turn the Halloween decorations on by themselves.
+     * **Each of the three moves only itself**: a store without the two newer keys reads them from the first's, the one
+     * *Christmas lights* has, so a writer of that key alone would move all three -- on a fresh install of Christmas, *Lights
+     * on the buildings* turned off would take the trees' lights and the firs with it; on Autumn turned on it would light
+     * them. Every switch, both ways, on a fresh store and on one holding only the single key -- its *Christmas lights* key
+     * on for Christmas, off for Autumn. And where it matters, the Halloween theme with a store holding only *Christmas
+     * lights*, on there: the last Christmas switch turned off does not turn the Halloween decorations on by themselves.
      */
     @Test
     fun `each Christmas switch moves only itself, on a fresh store and on one as the 5_15 left it`() = runBlocking {
@@ -162,7 +164,7 @@ class HalloweenOrChristmasDecorationsTest {
         }
         // And the last Christmas switch turned off does not turn the Halloween decorations on by themselves. Where it can:
         // the Halloween theme, whose decorations without a key of their own read as the theme ships them, on -- but off
-        // where the Christmas ones are on, as a store of 5.15 with *Christmas lights* on there has them. Each Christmas
+        // where the Christmas ones are on, as a store holding only *Christmas lights*, on there, has them. Each Christmas
         // setter writes the decorations' key as it reads then (`WallpaperPrefs.setChristmasDecoration`), so it stays off.
         store.edit { p -> p.clear(); p[theme] = "halloween"; p[pending] = "halloween"; p[lights] = true }
         assertEquals("the 5.15 store's lights on Halloween", listOf(true, true, true), christmas(of("halloween")))
@@ -173,9 +175,9 @@ class HalloweenOrChristmasDecorationsTest {
     }
 
     /**
-     * **A refused tap on another theme leaves both themes' looks where they were** (v5.16B, the mid-round review): the
-     * scratch space becomes the tapped theme's before the refusal, and is marked so; until then it was left marked as the
-     * theme edited before, which then read the tapped theme's look, and the next edit of a third theme archived that over it.
+     * **A refused tap on another theme leaves both themes' looks where they were**: the scratch space becomes the tapped
+     * theme's before the refusal, and is marked so; left marked as the theme edited before, it would read the tapped
+     * theme's look, and the next edit of a third theme would archive that over it.
      */
     @Test
     fun `a refused tap on another theme moves no theme's look`() = runBlocking {
@@ -228,7 +230,7 @@ class HalloweenOrChristmasDecorationsTest {
             assertEquals(id, halloweenWins, read.halloweenDecorationsEnabled)
             assertEquals(id, List(3) { !halloweenWins }, christmas(read))
         }
-        // Without a theme to read against (a payload whose theme is unknown): Christmas, the older side.
+        // Without a theme to read against (a payload whose theme is unknown): Christmas, the side kept on every theme but Halloween.
         val unknown = sceneCustomizationFromJson(SceneCustomization.DEFAULT.withChristmasLights(true).copy(halloweenDecorationsEnabled = true).toJson())
         assertFalse(unknown.halloweenDecorationsEnabled)
         // A backup: its theme customizations go through the same reader.
@@ -288,8 +290,8 @@ class HalloweenOrChristmasDecorationsTest {
     }
 
     /**
-     * **With no tree standing, the trees' two Christmas switches read off and locked, and hold nothing** (decision 40; the
-     * maintainer's *«A: grigi con la frase, come le palme (consigliata)»*, 2026-10-22): with *Show Trees* off or at 0 %,
+     * **With no tree standing, the trees' two Christmas switches read off and locked, and hold nothing** (decisions 40 and
+     * 76: greyed with their line, as the palms' switch is): with *Show Trees* off or at 0 %,
      * *Lights on the trees* and *Christmas firs* read off, take no tap and say what is missing, the stored choice untouched
      * and back with the trees; *Lights on the buildings* is not the trees' and stays as it is. And a switch that reads off
      * does not hold the Halloween decorations off: they go on beside it, on the store as in the rule. The Seasons screen
@@ -337,29 +339,30 @@ class HalloweenOrChristmasDecorationsTest {
         assertTrue("allowed with no tree to carry the firs", autumn.halloweenDecorationsEnabled)
         assertTrue("the firs' choice kept", autumn.christmasFirsEnabled)
 
-        // The screen draws the two rows, and counts them, from the rule.
-        var dir: File? = File(".").absoluteFile
-        var screen: File? = null
-        while (dir != null && screen == null) {
-            for (prefix in listOf("", "app/")) {
-                val f = File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/ui/SeasonsScreen.kt")
-                if (f.isFile) screen = f
-            }
-            dir = dir.parentFile
-        }
-        val text = (screen ?: throw AssertionError("SeasonsScreen.kt not found")).readText()
-        for (field in listOf("christmasTreeLightsEnabled", "christmasFirsEnabled")) {
+        // The screen draws the two rows, and counts them, from the rule: its every line that asks it, whole, the Christmas
+        // row's count and the switch's state, and the switch row shows what the state says.
+        val screen = seasonsScreenLines()
+        for ((rule, field, title) in listOf(
+            Triple("christmasTreeDecoration", "christmasTreeLightsEnabled", "Lights on the trees"),
+            Triple("christmasFirs", "christmasFirsEnabled", "Christmas firs"),
+        )) {
             assertEquals(
-                "both uses of $field go through the trees' rule",
-                2, Regex("""SettingsUiModel\.christmasTreeDecoration\(customization\.$field, customization\)""").findAll(text).count(),
+                "both uses of $field go through its rule",
+                listOf(
+                    "\"$title\" to SettingsUiModel.$rule(customization.$field, customization, themeLayout).shownOn,",
+                    "state = SettingsUiModel.$rule(customization.$field, customization, themeLayout),",
+                ),
+                screen.filter { "SettingsUiModel.$rule(" in it },
             )
         }
-        assertTrue(text.contains("state.needsLine != null -> state.needsLine"))
+        for (line in listOf("state.needsLine != null -> state.needsLine", "checked = state.shownOn,", "enabled = state.interactive,")) {
+            assertTrue(line, screen.contains(line))
+        }
     }
 
     /**
      * **With no house or building standing, the buildings' lights and the Halloween decorations read off and locked, and
-     * hold nothing** (decision 40; the maintainer's *«A: grigi con la frase, come gli abeti (consigliata)»*, 2026-10-22):
+     * hold nothing** (decisions 40, 76 and 83: greyed with their line, as the firs' switch is):
      * with the houses and *Show Buildings* off -- the three shops are *Show Buildings*' -- *Halloween decorations* reads off,
      * takes no tap and says what to turn on, and so does *Lights on the buildings* while no house on the mountains stands
      * either (their three bulbs are its); the stored choice untouched and back with a house. And one that reads off holds the
@@ -412,21 +415,100 @@ class HalloweenOrChristmasDecorationsTest {
         assertFalse(DecorationExclusion.christmasOn(of("autumn")))
         assertTrue(of("autumn").christmasBuildingLightsEnabled)
 
+        // The screen draws the two rows, and counts them, from their rules: its every line that asks one, whole.
+        val screen = seasonsScreenLines()
+        assertEquals(
+            "both uses of the buildings' lights go through their rule",
+            listOf(
+                "\"Lights on the buildings\" to SettingsUiModel.christmasBuildingDecoration(" +
+                    "customization.christmasBuildingLightsEnabled, customization, themeLayout).shownOn,",
+                "state = SettingsUiModel.christmasBuildingDecoration(customization.christmasBuildingLightsEnabled, customization, themeLayout),",
+            ),
+            screen.filter { "SettingsUiModel.christmasBuildingDecoration(" in it },
+        )
+        assertEquals(
+            "both uses of the Halloween decorations go through theirs",
+            listOf(
+                "\"Halloween decorations\" to SettingsUiModel.halloweenDecorations(customization, themeLayout).shownOn,",
+                "val decorations = SettingsUiModel.halloweenDecorations(customization, themeLayout)",
+            ),
+            screen.filter { "SettingsUiModel.halloweenDecorations(" in it },
+        )
+        for (line in listOf(
+            "decorations.needsLine != null -> decorations.needsLine",
+            "checked = decorations.shownOn,",
+            "enabled = decorations.interactive,",
+        )) {
+            assertTrue(line, screen.contains(line))
+        }
+    }
+
+    /**
+     * **A switch the settings take reads back on, on a saved street with no place among the houses** (decisions 40 and
+     * 77): the Halloween theme saved over with *Show Buildings* off keeps no tower and no place (`snapshotEntry`); then
+     * *Reset Buildings to default* turns *Show Buildings* back on, the houses go off and the houses on the mountains on.
+     * The Halloween decorations, stored on, hang on nothing there, so *Lights on the buildings* takes the tap, and the
+     * store's reader keeps it on: the side that hangs on the street. Never both on, or the gallery card would draw the two
+     * on its shops. With the houses back both hang, the Halloween theme's side stays, a switch that can be turned off, and
+     * the lights wait greyed with their reason.
+     */
+    @Test
+    fun `on a saved street with no place, Lights on the buildings taken beside decorations that hang on nothing reads on`() = runBlocking {
+        val halloween = defaultCustomizationFor("halloween")
+        val entry = snapshotEntry("halloween", "Halloween", "halloween", halloween.copy(buildings = halloween.buildings.copy(visible = false)), "halloween")
+        CustomThemeRegistry.update(CustomThemeData(overrides = mapOf("halloween" to entry)))
+        try {
+            val street = DecorationExclusion.streetOf("halloween")
+            assertTrue("the saved street keeps its houses", street.staticObjects.any { it.type == SceneObjectType.HOUSE })
+            assertFalse("and no tower or place", street.staticObjects.any { it.type == SceneObjectType.SKYSCRAPER })
+            prefs.resetCategory(ObjectCategory.BUILDINGS, "halloween")
+            prefs.setCategoryVisible(ObjectCategory.HOUSES, false, "halloween")
+            prefs.setDistantHousesDensity(0.5f, "halloween")
+            prefs.setDistantHousesVisible(true, "halloween")
+            prefs.setMountainDensity(true, 1f, "halloween")
+            prefs.setMountainVisible(true, true, "halloween")
+            val before = of("halloween")
+            assertTrue("Show Buildings back on", before.buildings.visible)
+            assertTrue("the decorations stored on", before.halloweenDecorationsEnabled)
+            val free = SettingsUiModel.christmasBuildingDecoration(before.christmasBuildingLightsEnabled, before, street)
+            assertTrue("Lights on the buildings takes a tap", free.interactive && !free.shownOn && !free.blockedByTheOther)
+
+            prefs.setChristmasBuildingLightsEnabled(true, "halloween")
+            val after = of("halloween")
+            assertTrue("the tap reads back on", after.christmasBuildingLightsEnabled)
+            assertTrue(SettingsUiModel.christmasBuildingDecoration(after.christmasBuildingLightsEnabled, after, street).shownOn)
+            assertFalse("never both on: the card would draw the two on its shops", after.halloweenDecorationsEnabled)
+            val decorations = SettingsUiModel.halloweenDecorations(after, street)
+            assertFalse(decorations.shownOn || decorations.interactive)
+            assertEquals("Needs the houses on in World & scene: this theme has no shops. Your choice is kept until then.", decorations.needsLine)
+
+            prefs.setCategoryVisible(ObjectCategory.HOUSES, true, "halloween")
+            val both = of("halloween")
+            assertTrue("the Halloween theme's side", both.halloweenDecorationsEnabled)
+            assertFalse(both.christmasBuildingLightsEnabled)
+            val decorationsBack = SettingsUiModel.halloweenDecorations(both, street)
+            assertTrue("on, and free to go off", decorationsBack.shownOn && decorationsBack.interactive)
+            assertTrue(SettingsUiModel.christmasBuildingDecoration(both.christmasBuildingLightsEnabled, both, street).blockedByTheOther)
+        } finally {
+            CustomThemeRegistry.update(CustomThemeData.EMPTY)
+        }
+    }
+
+    /** `ui/SeasonsScreen.kt`'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
+    private fun seasonsScreenLines(): List<String> {
         var dir: File? = File(".").absoluteFile
-        var screen: File? = null
-        while (dir != null && screen == null) {
+        while (dir != null) {
             for (prefix in listOf("", "app/")) {
                 val f = File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/ui/SeasonsScreen.kt")
-                if (f.isFile) screen = f
+                if (f.isFile) {
+                    return f.readLines().map { it.trim() }
+                        .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+                        .map { it.substringBefore(" //").trim() }
+                        .filter { it.isNotEmpty() }
+                }
             }
             dir = dir.parentFile
         }
-        val text = (screen ?: throw AssertionError("SeasonsScreen.kt not found")).readText()
-        assertEquals(
-            "both uses of the buildings' lights go through their rule",
-            2, Regex("""SettingsUiModel\.christmasBuildingDecoration\(customization\.christmasBuildingLightsEnabled, customization\)""").findAll(text).count(),
-        )
-        assertEquals("both uses of the Halloween decorations go through theirs", 2, Regex("""SettingsUiModel\.halloweenDecorations\(customization\)""").findAll(text).count())
-        assertTrue(text.contains("decorations.needsLine != null -> decorations.needsLine"))
+        throw AssertionError("SeasonsScreen.kt not found")
     }
 }

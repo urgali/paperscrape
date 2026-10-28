@@ -5,13 +5,10 @@ package com.paperscrape.livewallpaper.engine
  * reads as being, and how large a real-world object standing there must be drawn.
  *
  * Everything that touches size or vertical placement resolves through this object: static scene
- * objects, the road and its lanes, the vehicles on it, the pedestrians in front of it and the
- * lake's own inhabitants. Nothing else may define a ground line, a depth scale or a category
- * size, because the previous arrangement -- four multiplicative factors owned by three classes,
- * plus per-category constants that could not be compared with one another -- is what produced
- * five per-asset size patches across v67-v73 and left the scene with a person shorter than a car.
- *
- * Pure Kotlin with no Android types, so every relation below is directly unit-testable.
+ * objects, the road and its lanes, the vehicles, the pedestrians and the lake's inhabitants.
+ * Nothing else may define a ground line, a depth scale or a category size, so sizes stay
+ * comparable across categories (a person is never drawn shorter than a car). Pure Kotlin, so
+ * every relation below is unit-testable.
  *
  * ### The four stages
  *
@@ -24,22 +21,16 @@ package com.paperscrape.livewallpaper.engine
  *
  * Each stage answers exactly one question, and no stage may compensate for another. A sprite that
  * draws too large is a wrong entry in the size table, never a correction bolted onto the call
- * site -- see `AI_PROJECT_RULES.md` 7.3.
+ * site: a per-asset patch fixes one object and leaves the shared fault to break the next.
  */
 object SceneSpace {
 
     // ---- Stage 4: the viewport ----------------------------------------------------------
 
     /**
-     * The screen height every constant in this file is expressed against.
-     *
-     * Object sizes used to be absolute canvas pixels while every ground line was a fraction of
-     * screen height, so the composition was only correct on one device: the same house occupied
-     * a quarter of a small phone's ground band and a tenth of a tablet's. Sizes are now tied to
-     * the same unit the placement already used.
-     *
-     * 2400 px is chosen so a contemporary phone renders at almost exactly 1.0 and the numbers
-     * below can be read as pixels without conversion.
+     * The screen height every constant in this file is expressed against: sizes scale with the
+     * screen as the ground lines do, so a house takes the same share of the ground band on every
+     * device. 2400 px puts a contemporary phone at about 1.0, so the numbers below read as pixels.
      */
     const val REFERENCE_SCREEN_HEIGHT_PX = 2400f
 
@@ -48,19 +39,10 @@ object SceneSpace {
         if (screenHeightPx <= 0f) 1f else screenHeightPx / REFERENCE_SCREEN_HEIGHT_PX
 
     /**
-     * How many pixels one scene metre occupies on this viewport, at [REFERENCE_Y_FRACTION].
-     *
-     * The single conversion between "how big is this thing in the world" and "how big is it on
-     * this screen". Every category already goes through it indirectly -- a size table in metres,
-     * [PIXELS_PER_METRE_AT_REFERENCE], then [sceneScale] -- and v4.5 brought the atmospheric
-     * effects onto the same route, which is why it is now named rather than spelled out at each
-     * call site.
-     *
-     * **A consequence worth stating, because a scaling decision keeps being made without it:** a
-     * metre is `45 x screenHeight / 2400` pixels, so the viewport always shows the same
-     * `2400 / 45 = 53.3` metres of world however tall it is. A fixed number of particles is
-     * therefore already a fixed density *per square metre of world* on every device -- the count
-     * does not need to scale with the screen, only the size of each particle does.
+     * How many pixels one scene metre occupies on this viewport, at [REFERENCE_Y_FRACTION]: the one
+     * conversion from world size to screen size, for every category and the atmospheric effects.
+     * The viewport always shows `2400 / 45 = 53.3` metres of world, so a fixed number of particles
+     * is a fixed density on every device, and only each particle's size scales with the screen.
      */
     fun pixelsPerMetre(screenHeightPx: Float): Float =
         PIXELS_PER_METRE_AT_REFERENCE * sceneScale(screenHeightPx)
@@ -74,15 +56,11 @@ object SceneSpace {
     const val HILL_LAYER_HEIGHT_FRACTION = 0.40f
 
     /**
-     * How far down its own band the hill's silhouette is solid paper at *every* x, whatever the
-     * top edge's sine wave is doing.
-     *
-     * `buildBaseHillPath` draws that edge over `0.13 +/- 0.09` of the layer's height, so 0.22 is
-     * the lowest the visible paper can start and 0.26 keeps a margin past it. Anything placed
-     * above this line can end up standing in open sky. Mountains, the lake's lower edge and the
-     * rainbow's base all anchor here too, so they meet the hills with no gap at any x.
-     *
-     * Re-derive this if the hill path's amplitude ever changes.
+     * How far down its own band the hill is solid paper at every x. The crest runs over
+     * `0.13 +/- 0.09` of the layer ([hillCrestFraction]), so 0.22 is the lowest it reaches and 0.26
+     * keeps a margin: anything placed above this line can stand in open sky. Mountains, the lake's lower edge
+     * and the rainbow's base anchor here too, so they meet the hills at every x. Re-derive it if the
+     * crest's amplitude changes.
      */
     const val HILL_SOLID_TOP_DEPTH_FRACTION = 0.26f
 
@@ -127,8 +105,7 @@ object SceneSpace {
 
     /**
      * How far below the crest a tower's foot has to stand not to look set on top of it: 0.045 of
-     * the screen, 65 px on the BV6600 (v5.11, inventory I-404, the maintainer's choice B of
-     * 2026-10-06, photographed in v5.11A).
+     * the screen, 65 px on the BV6600 (`DESIGN_NOTES.md` §12, decision 49).
      */
     const val TOWER_CREST_CLEARANCE_FRACTION = 0.045f
 
@@ -139,16 +116,14 @@ object SceneSpace {
     const val TOWER_PLANTED_MAX_DEPTH = 0.29f
 
     /**
-     * **The rule for a tower near the crest** (v5.11, I-404): the depth a tower at [depthFraction] and
-     * [tileFractionX] is *drawn* at. A tower whose foot stands within [TOWER_CREST_CLEARANCE_FRACTION]
-     * of the hill's crest above it reads as set on the crest rather than in the town, so it is drawn
-     * just far enough forward to clear it, never past [TOWER_PLANTED_MAX_DEPTH]; every other tower is
-     * drawn where it stands.
+     * The depth a tower at [depthFraction] and [tileFractionX] is *drawn* at. A tower whose foot
+     * stands within [TOWER_CREST_CLEARANCE_FRACTION] of the crest above it reads as set on the
+     * crest, so it is drawn just far enough forward to clear it, never past
+     * [TOWER_PLANTED_MAX_DEPTH]; every other tower is drawn where it stands.
      *
-     * **The drawn depth only**: where the foot is, and -- the projection being what it is -- how large
-     * the tower is. The stored depth is what the density's threshold, the colour coin, the deal, the
-     * height coin and the shop plan read, so no tower appears, goes, changes colour, crown or height,
-     * and no shop moves. With *Hills variation* changed the crest moves and the towers near it with it.
+     * Only the foot and, through the projection, the size move. The density threshold, the colour
+     * coin, the deal, the height coin and the shop plan read the stored depth, so no tower appears,
+     * goes or changes, and no shop moves. *Hills variation* moves the crest and these towers with it.
      */
     fun towerDrawnDepth(depthFraction: Float, tileFractionX: Float, hillsVariation: Float, phase: Float): Float {
         if (depthFraction >= BUILDING_TOWER_MAX_DEPTH) return depthFraction
@@ -161,13 +136,10 @@ object SceneSpace {
     // ---- Stage 3: the ground plane and its perspective ----------------------------------
 
     /**
-     * The vanishing line of the ground plane, as a fraction of screen height.
-     *
-     * It sits above the farthest ground the scene actually uses rather than on it: a point *on*
-     * the horizon has zero apparent size, so the band has to start below it. The gap between this
-     * line and [OBJECT_BAND_TOP_Y_FRACTION] is what decides how strongly the scene reads as
-     * receding -- move it up and the scene flattens, move it down and the farthest objects
-     * collapse to nothing.
+     * The vanishing line of the ground plane, as a fraction of screen height. It sits above the
+     * farthest ground used, because a point on it has zero size. Its gap to
+     * [OBJECT_BAND_TOP_Y_FRACTION] sets how strongly the scene recedes: up flattens it, down
+     * shrinks the farthest objects to nothing.
      */
     const val HORIZON_Y_FRACTION = 0.655f
 
@@ -175,63 +147,38 @@ object SceneSpace {
     const val OBJECT_BAND_TOP_Y_FRACTION = GROUND_SOLID_TOP_Y_FRACTION
 
     /**
-     * Where a static object of `depthFraction = 1` stands.
-     *
-     * Bounded by the road: a static object is drawn before the road strip, so anything standing
-     * below [roadTopYFraction] would be painted over. The margin between the two is asserted by
-     * `SceneSpaceTest` rather than left to be re-derived by hand, which is what the old
-     * `ROAD_SAFE_DEPTH_MAX` required -- and that constant capped every category at 0.375 of the
-     * depth range, which is why the whole scene stood inside a band 111 px tall.
+     * Where a static object of `depthFraction = 1` stands. Bounded by the road: static objects are
+     * drawn before the road strip, so one standing below [roadTopYFraction] would be painted over.
+     * `SceneSpaceTest` asserts the margin.
      */
     const val OBJECT_BAND_BOTTOM_Y_FRACTION = 0.790f
 
     /**
-     * The wheel line of the far traffic lane, as a fraction of screen height.
-     *
-     * Both lanes moved down by 0.016 in v76.7, keeping their spacing -- and therefore the width of
-     * the carriageway -- exactly as it was. The move is what opens [PAVEMENT_FAR_Y_FRACTION] and
-     * [PAVEMENT_NEAR_Y_FRACTION] as a band of ground between the buildings and the road, which is
-     * where people belong: they were walking below the road's lower edge, which read as standing
-     * on the tarmac and a long way from anything they might be walking to.
+     * The wheel line of the far traffic lane, as a fraction of screen height. The road sits low
+     * enough to leave [PAVEMENT_FAR_Y_FRACTION]..[PAVEMENT_NEAR_Y_FRACTION] as ground between the
+     * buildings and the road, where people walk.
      */
     const val ROAD_LANE_FAR_Y_FRACTION = 0.834f
 
     /**
-     * The wheel line of the near traffic lane.
-     *
-     * The spacing narrowed from 0.035 to 0.028 in the v76.6 tuning pass. On a device the
-     * carriageway read as a dark band the traffic sat inside with room to spare, rather than as a
-     * road: two lanes have to be about a vehicle apart, not comfortably more, or the strip
-     * dominates the scene vertically. Narrowing the pair narrows the strip with it, because the
-     * road's edges are derived from the lanes -- and the spacing is unchanged since, so moving the
-     * road moves it without resizing it.
+     * The wheel line of the near traffic lane. The lanes are 0.028 apart, about a vehicle: wider
+     * and the carriageway reads as a dark band dominating the scene. The road's edges derive from
+     * the lanes, so moving the pair moves the road without resizing it.
      */
     const val ROAD_LANE_NEAR_Y_FRACTION = 0.862f
 
     /**
-     * How far past the outer lanes the painted surface reaches, as a fraction of one lane's own
-     * half-spacing.
-     *
-     * The strip stays symmetric about the centre line by construction: each lane owns half of it,
-     * plus this shoulder. Expressing the shoulder against the lane spacing rather than in local
-     * units means a road built from a different lane pair stays in proportion, instead of gaining
-     * a fixed verge that is generous at one spacing and invisible at another.
+     * How far past the outer lanes the painted surface reaches, as a fraction of one lane's
+     * half-spacing: each lane owns half of the strip plus this shoulder, so the strip stays
+     * symmetric and in proportion for any lane pair.
      */
     const val ROAD_SHOULDER_LANE_FRACTION = 0.16f
 
     /**
-     * Where the farther row of pedestrians walks.
-     *
-     * **Between the buildings and the road, not in front of the road.** Until v76.7 both rows sat
-     * below the carriageway, where a pedestrian read as standing on the road surface and as
-     * having nothing to do with the village behind it. They now occupy the strip of ground the
-     * road's downward move opened up: below [OBJECT_BAND_BOTTOM_Y_FRACTION], where the nearest
-     * buildings stand, and above [roadTopYFraction].
-     *
-     * A consequence worth stating, because it looks like a regression and is not: people are
-     * drawn considerably smaller than they were. They are further away now, and the projection
-     * charges them for it exactly as it charges everything else. [PERSON_METRES_TALL] carries a
-     * small reduction on top of that; almost all of the change is the move.
+     * Where the farther row of pedestrians walks: between the buildings and the road, below
+     * [OBJECT_BAND_BOTTOM_Y_FRACTION] and above [roadTopYFraction], so a person reads as on the
+     * pavement in front of the village, not on the tarmac. That far back, the projection draws
+     * people small; this is distance, not a size error.
      */
     const val PAVEMENT_FAR_Y_FRACTION = 0.795f
 
@@ -240,13 +187,8 @@ object SceneSpace {
 
     /**
      * The ground line at which [perspectiveScaleAt] is exactly 1, so the size table below reads
-     * directly as "pixels at this line, on a reference-height screen".
-     *
-     * **Its own constant, not an alias for a lane.** It was defined as [ROAD_LANE_NEAR_Y_FRACTION]
-     * until v76.7, which meant the metre was defined in terms of a composition element: moving the
-     * road one step down rescaled every object in the scene, because the denominator below moved
-     * with it. The reference line belongs to the projection. It keeps the value the near lane
-     * happened to have, so nothing changed size when the two were separated.
+     * directly as "pixels at this line, on a reference-height screen". Its own constant, not a lane:
+     * tied to a lane, moving the road would rescale every object in the scene.
      */
     const val REFERENCE_Y_FRACTION = 0.846f
 
@@ -258,18 +200,10 @@ object SceneSpace {
 
     /**
      * How large something standing at [yFraction] reads, relative to the same thing standing at
-     * [REFERENCE_Y_FRACTION].
-     *
-     * This is the whole perspective model: on a flat ground plane seen from a fixed viewpoint,
-     * apparent size is proportional to the distance below the horizon. Expressing it that way
-     * rather than as a separate hand-tuned curve is what makes the road, the pavement and the
-     * object band share one projection -- a pedestrian in front of the road is automatically
-     * larger than a car on it, by exactly the amount their two ground lines imply, with nothing
-     * to keep in step by hand.
-     *
-     * Clamped at zero rather than allowed to go negative: a caller passing a y above the horizon
-     * is asking about something that is not on this ground plane at all, and a negative scale
-     * would mirror the sprite rather than fail.
+     * [REFERENCE_Y_FRACTION]. The whole perspective model: on a flat ground plane, apparent size is
+     * proportional to the distance below the horizon, so the road, the pavement and the object band
+     * share one projection. Clamped at zero: a y above the horizon is not on this plane, and a
+     * negative scale would mirror the sprite.
      */
     fun perspectiveScaleAt(yFraction: Float): Float =
         ((yFraction - HORIZON_Y_FRACTION) / (REFERENCE_Y_FRACTION - HORIZON_Y_FRACTION)).coerceAtLeast(0f)
@@ -281,23 +215,18 @@ object SceneSpace {
 
     /**
      * Where the distant houses stop shrinking: as small as a house standing 0.6722 down the screen,
-     * 25 px under the horizon on the BV6600, where a small house is 14.0 px tall (v5.11, inventory
-     * I-407: the maintainer's *14 px minimum*; 0.672 gave 13.84).
-     *
-     * The ground plane's projection is zero at the horizon and above it, where the mountains and most
-     * of the hill's crest are, so a house sized by it alone would vanish. Above this line it would be
-     * smaller than 14 px on the BV6600, and its smallest details -- a window, the chalet's attic, the
-     * lip of the snow -- smaller than the two pixels every drawn detail is held to.
+     * 25 px under the horizon, where a small house is 14.0 px tall on the BV6600 (the maintainer's
+     * 14 px minimum; 0.672 gives 13.84). The projection is zero at and above the horizon, where the
+     * mountains are, so a house sized by it alone would vanish, and its details (a window, the
+     * chalet's attic, the snow's lip) would fall under the 2 px every drawn detail is held to.
      */
     const val DISTANT_HOUSE_FLOOR_Y_FRACTION = 0.6722f
 
     /**
-     * **The size rule for a distant house** (v5.11): how many pixels tall one stands with its foot at
-     * [footYFraction] -- a small house ([SceneVariant.HOUSE_SMALL]'s metres) at the projection of that
-     * point, and never smaller than at [DISTANT_HOUSE_FLOOR_Y_FRACTION]. Continuous with the
-     * projection wherever a foot stands below that line; on the mountains, which stand above it, every
-     * house is the floor's size. A house of the village, the nearest to the horizon, is about 40 px on
-     * the BV6600, so a distant house is always smaller than everything in the town.
+     * How many pixels tall a distant house stands with its foot at [footYFraction]: a small house
+     * ([SceneVariant.HOUSE_SMALL]'s metres) at the projection of that point, never smaller than at
+     * [DISTANT_HOUSE_FLOOR_Y_FRACTION], so on the mountains every house is the floor's size. A
+     * village house is about 40 px on the BV6600, so a distant house is smaller than anything in town.
      */
     fun distantHousePixelsTall(footYFraction: Float, screenHeightPx: Float): Float =
         SceneVariant.HOUSE_SMALL.metresTall * pixelsPerMetre(screenHeightPx) *
@@ -309,30 +238,22 @@ object SceneSpace {
     const val CANONICAL_LANE_SPACING_FRACTION = ROAD_LANE_NEAR_Y_FRACTION - ROAD_LANE_FAR_Y_FRACTION
 
     /**
-     * Below this spacing a lane pair is treated as degenerate and the canonical spacing is used
-     * instead.
-     *
-     * A theme saved before v76.2 put every car on one lane fraction, so its "pair" has a spacing
-     * of zero -- and a margin derived from zero is zero, which paints the road as a hairline.
-     * Half the canonical spacing is comfortably below any real pair and comfortably above the
-     * float noise in a saved value.
+     * Below this spacing a lane pair is degenerate and the canonical spacing is used instead: a
+     * saved theme can put every car on one lane, and a margin derived from a zero spacing paints
+     * the road as a hairline. Half the canonical spacing is well below any real pair and well
+     * above the float noise in a saved value.
      */
     const val MIN_ROAD_LANE_SPACING_FRACTION = CANONICAL_LANE_SPACING_FRACTION / 2f
 
     /**
      * How far the painted road reaches beyond its outermost lane, given the lane pair in use, as
-     * a fraction of screen height.
+     * a fraction of screen height. Derived from the lanes, so a custom theme with its own lane pair
+     * gets a strip centred on its traffic; for the canonical lanes it yields [roadTopYFraction] and
+     * [roadBottomYFraction].
      *
-     * Derived from the lanes rather than stated outright, so a custom theme saved with its own
-     * lane pair still gets a strip centred on its own traffic. For the canonical lanes it yields
-     * exactly [roadTopYFraction] and [roadBottomYFraction].
-     *
-     * **The lane pair must come from the theme's whole car list, never from the cars a density
-     * setting happens to have kept.** Feeding it the filtered list makes the road's own width a
-     * function of the density slider: thinning the traffic until only one lane survives collapses
-     * the spacing to zero and the strip with it. The road is terrain, and terrain does not depend
-     * on how much traffic is on it. The degenerate guard below is a second line of defence, not
-     * the fix for that.
+     * **The lane pair comes from the theme's whole car list, never from the cars a density setting
+     * kept**: otherwise thinning the traffic to one lane collapses the road. The degenerate guard
+     * is a second line of defence, not the fix for that.
      */
     fun roadEdgeMarginFraction(minLaneYFraction: Float, maxLaneYFraction: Float): Float {
         val spacing = maxLaneYFraction - minLaneYFraction
@@ -349,11 +270,8 @@ object SceneSpace {
         ROAD_LANE_NEAR_Y_FRACTION + roadEdgeMarginFraction(ROAD_LANE_FAR_Y_FRACTION, ROAD_LANE_NEAR_Y_FRACTION)
 
     /**
-     * Road markings, in pixels at [REFERENCE_SCREEN_HEIGHT_PX].
-     *
-     * These belong to the road surface rather than to any object standing on it, so they scale
-     * with the viewport and not with any object's depth. The values reproduce what the strip
-     * looked like while they were local units multiplied by a global factor of two.
+     * Road markings, in pixels at [REFERENCE_SCREEN_HEIGHT_PX]. They belong to the road surface,
+     * so they scale with the viewport, not with any object's depth.
      */
     const val ROAD_EDGE_STROKE_PX = 4f
     const val ROAD_CENTRE_LINE_STROKE_PX = 8f
@@ -363,20 +281,14 @@ object SceneSpace {
     // ---- Traffic and pedestrians ---------------------------------------------------------
 
     /**
-     * The near lane's speed, in screen widths per second.
-     *
-     * One speed per lane, never one per car: a lane is a queue, and a queue only keeps its
-     * spacing if nothing in it overtakes.
+     * The near lane's speed, in screen widths per second. One speed per lane, never per car: a
+     * lane is a queue, and a queue keeps its spacing only if nothing overtakes.
      */
     const val CAR_SPEED_NEAR = 0.075f
 
     /**
-     * The far lane's speed, derived rather than chosen.
-     *
-     * Two cars travelling at the same real speed cover the same ground per second, so the farther
-     * one must cross the screen more slowly by exactly the ratio its distance implies. Picking
-     * this by hand is how the two lanes previously ended up merely *looking* unsynchronised
-     * rather than being consistent with their own depths.
+     * The far lane's speed, derived: at the same real speed the farther car crosses the screen
+     * more slowly by exactly the ratio of the two lanes' perspective scales.
      */
     val CAR_SPEED_FAR: Float
         get() = CAR_SPEED_NEAR * perspectiveScaleAt(ROAD_LANE_FAR_Y_FRACTION) /
@@ -399,65 +311,23 @@ object SceneSpace {
     // ---- Stage 1: the size table --------------------------------------------------------
 
     /**
-     * Local units per metre at [REFERENCE_Y_FRACTION], on a reference-height screen.
-     *
-     * Every category's base scale is derived from this and its own declared real height, so a
-     * sprite drawn at any internal scale still lands at the right physical size. That derivation
-     * is the point: measured on their own artwork, the V2 sprites run from roughly 13 units per
-     * metre for a shop front to 46 for a person -- a spread of three and a half times -- and no
-     * set of hand-authored per-category multipliers had ever corrected for it.
+     * Local units per metre at [REFERENCE_Y_FRACTION], on a reference-height screen: the one number
+     * that states the world's size. Every category's base scale is `metres * this / spriteUnits`, so a
+     * sprite drawn at any internal scale lands at its declared size, and changing this enlarges every
+     * standing object alike without changing a ratio between them. The road, laid out in screen
+     * fractions, does not grow with it: a larger metre crowds the two lanes' traffic into each other.
+     * The lake keeps its own metric ([LAKE_PIXELS_PER_METRE]), so its boats do not grow with the
+     * foreground.
      */
     const val PIXELS_PER_METRE_AT_REFERENCE = 45f
 
     /*
-     * **Raised from 40 in v2.5, and this is the only place the world's size is stated.**
-     *
-     * On a Pixel 9 the scene read as a model of a place rather than a place: correctly
-     * proportioned and too small to have presence. One number governs that, because every
-     * category's base scale is `metres * PIXELS_PER_METRE_AT_REFERENCE / spriteUnits` -- so
-     * raising it enlarges houses, buildings, trees, people, cars and every other standing object
-     * by the same 12.5% and **cannot change a single ratio between them**. A per-category
-     * multiplier pass would have been the other way to do it and would have had to be argued
-     * object by object, with the ratios as the thing at risk.
-     *
-     * 12.5% is deliberately short of what the impression alone would ask for. The road is laid out
-     * in fractions of the screen and does not scale with this, so the objects standing on it grow
-     * into a fixed band: a car was 1.45 m, which was 58 px against a 67 px lane spacing and became
-     * 65 px in v2.5 (the vehicle family has since moved to its own metre-per-unit,
-     * [CAR_UNIT_METRES]). Past this the near lane's traffic starts meeting the far lane's.
-     * Everything else grows upward from a ground line and has room.
-     *
-     * The lake keeps its own metric (`LAKE_PIXELS_PER_METRE`) and is deliberately not raised with
-     * this: it is a band at the horizon, and growing its boats and dolphins in step with the
-     * foreground would flatten the depth the two separate metrics exist to express.
-     */
-
-    /**
-     * ### On the word "metres"
-     *
-     * The heights below are what each object should **read as**, not a physical measurement. They
-     * started as real-world sizes and remain within sight of them, because a table anchored to
-     * something real is the only kind that can be argued about; but a live wallpaper is looked at
-     * for a second at a time on a screen held at arm's length, and a few of them were tuned away
-     * from the physical value in v76.6 after a device pass, for legibility:
-     *
-     * - **A person is 1.75 m.** v76.6 raised it for legibility (to 2.0 m, trimmed to 1.9 in
-     *   v76.7), and v4.3 put it back at the physical height because 1.9 m made the far-lane cars
-     *   read smaller than the people behind them -- see [PERSON_METRES_TALL].
-     * - **A car was 1.45 m, not 1.55**, in v76.6: the V2 car sprite was stubby, so matching its
-     *   height exactly made it read as bulky next to a person. Since v4.19 a car is
-     *   [CAR_UNIT_METRES] -- v4.18's 1.51 m over 50 units -- times its own units: 1.60 m for every
-     *   body (see [CarShell.metresTall]).
-     * - **A tower is 15.6 m over its 182-unit facade, not 20.** Physically defensible either way,
-     *   but at 20 it dominated the foreground it is supposed to sit behind.
-     * - **A tree is 9.479 m** and **a gift 0.905 m** (the drawn sizes of the 9.8 m and 0.95 m tuned
-     *   by eye), and **a parasol 2.9 m**, all nudged up for presence.
-     * - **A rabbit is 0.9 m and an Easter egg 1.0 m**, well past life size. They are the Easter
-     *   theme's two subjects and at their real heights neither could be made out at all.
-     *
-     * Departures are recorded here rather than made silently, and they are departures from a
-     * stated anchor rather than free parameters. The hierarchy in `DESIGN_NOTES.md` §5 is what
-     * must hold; the individual numbers serve it.
+     * The heights below are what each object reads as, anchored to real sizes and moved off them only
+     * for legibility: a person 1.75 m and a car body 1.60 m, physical; a tower 15.6 m, short enough
+     * not to dominate the foreground; a tree 9.479 m, a gift 0.905 m and a parasol 2.9 m, nudged up
+     * for presence; a rabbit 0.89 m and an Easter egg 1.0 m, well past life size, or the Easter
+     * theme's two subjects could not be made out. What must hold is the hierarchy, person < car <
+     * house < tree < larger building; the numbers serve it.
      */
 
     /** [metresTall] of real object drawn across [spriteUnitsTall] of local units. */
@@ -468,29 +338,19 @@ object SceneSpace {
      * Every distinct thing the scene draws standing on the ground, with the real height it is
      * meant to read as and the local-unit height its own drawing occupies.
      *
-     * **Height is the governed dimension, and width follows the artwork.** The V2 sprites are
-     * stylised: a cottage is drawn narrower than a real one and a car shorter than a real one.
-     * Governing both dimensions is impossible without redrawing them, and governing width instead
-     * makes a person shorter than a car -- the exact complaint this table exists to settle.
-     * Heights are also what the eye compares in an elevation like this one, where every object
-     * meets the same ground line.
-     *
-     * [spriteUnitsTall] is the drawn extent that carries the object's identity, not necessarily
-     * its whole bounding box: a shop's height is its wall, not the top of the sign hanging above
-     * it, and a tree's is trunk plus canopy. Each value is measured from the call site that draws
-     * it, and `SceneSpaceTest` pins the relations between them.
+     * **Height is governed, width follows the artwork**: the sprites are stylised (a cottage
+     * narrower than a real one), governing width would make a person shorter than a car, and
+     * heights are what the eye compares when every object meets the same ground line.
+     * [spriteUnitsTall] is the extent that carries the object's identity, not its whole box: a
+     * shop's wall, not its hanging sign; a tree's trunk plus canopy. `SceneSpaceTest` pins the
+     * relations between the entries, `BuildingHeightDeclarationTest` the buildings' units against
+     * their blits.
      */
     enum class SceneVariant(val metresTall: Float, val spriteUnitsTall: Float) {
-        /** A one-bay cottage. Its own door is 38 units, which fixes the internal scale at 2 m. */
-        // Raised from 5.8 m in v2.5 with the second window. One window, a door pushed to one
-        // side and a 5.8 m ridge made a cabin; the height is what settles whether the elevation
-        // reads as a house, and 6.4 puts it in a defensible relation to the 7.6 m large house
-        // rather than at three quarters of it.
-        // Lowered from 6.4 m in v2.8 to the large house's own metres-per-unit. At 6.4 the small
-        // house's windows and door were 11 % larger than the large house's and its sills sat
-        // 1.57 m up against the large house's 1.20 m -- the same family drawn at two scales. The
-        // facade also went from 86 to 96 units wide, which is width and not height, so it is in
-        // the artwork rather than here.
+        /**
+         * A one-bay cottage; its door is 38 units, 2 m. Drawn at the large house's metres-per-unit,
+         * so the two houses' windows, doors and sills are one family at one scale.
+         */
         HOUSE_SMALL(5.76f, 110f),
 
         /**
@@ -500,55 +360,20 @@ object SceneSpace {
         HOUSE_LARGE(7.6f, 145f),
 
         /**
-         * Trunk to crown; the trunk is 53 % of it.
-         *
-         * **118 units, not 122.** Measured from the two blits that make a tree: `tree_trunk`
-         * (96x186 px = 32x62 u) at (-16,-62), and `tree_canopy` (303x198 px = 101x66 u) at
-         * `TreeSpriteLayout.CANOPY_Y` = -80 inside the canopy's own `translate(0,-38)`, so the
-         * crown tops out at -118. The entry said 122 and the tree was therefore reading 9.48 m
-         * rather than the 9.8 it declared.
-         *
-         * **v4.21 redrew both sprites and this entry did not move**, which is the point worth
-         * recording: the "Broad Oak" is a wider tree, not a taller one. The crown still tops
-         * out at -118 and the foot still stands on 0, so the metres-per-unit the whole size table
-         * is argued against is untouched and no other object's scale had to be renegotiated. The
-         * trunk's share of the height went from 37 % to 53 % because the stocky forked stem is
-         * 62 units against the old rod's 44 -- the crown sits lower and spreads instead of
-         * perching. Height stays the governed dimension; width followed the artwork, exactly as
-         * this enum's own preamble says it should.
-         *
-         * The metre is what moved, not the artwork. 9.8 was tuned by eye in v76.6 "for presence
-         * beside the houses", so the drawn size is the decision and the declaration was the thing
-         * that had drifted; 9.479 is 118 units at the metres-per-unit this tree has always been
-         * drawn at, which leaves the picture where it is to within 0.02 px at the reference
-         * resolution.
+         * Trunk to crown; the trunk is 53 % of it. 118 units: `tree_canopy` stands at
+         * `TreeSpriteLayout.CANOPY_Y` (-80) inside the canopy's `translate(0,-38)`, so the crown
+         * tops out at -118. 9.479 m is those 118 units at the metre the tree is drawn at, a size
+         * chosen by eye for presence beside the houses.
          */
         TREE(9.479f, 118f),
 
         /**
-         * The Christmas fir that replaces one tree in three while *Christmas firs* is on.
-         *
-         * **126 units at [TREE]'s own metres-per-unit, which is why it reads taller than a leafy
-         * tree rather than shorter.** `variantFor` never returns FIR -- a fir is a *state* of a
-         * TREE candidate (`SceneObjectRenderer.standsAsFir`), so it is drawn under TREE's scale
-         * and this `baseScale` is not applied; the only other reference is a `-> Unit` arm in the
-         * draw dispatch. The fir of v5.14 (`FirTable`, the fir A the maintainer chose on 2026-10-14)
-         * stands 72 units wide and 126 tall where the leafy tree occupies 118, and at 0.0803 m/unit
-         * that is 10.12 m against the tree's 9.479 -- one metre governs both, so a fir cannot drift
-         * out of scale with the wood it stands in. (The fir of v4.21 to v5.13 was 80 by 122 units,
-         * 9.8 m; this row followed the drawing then too.)
-         *
-         * This entry used to say 9.3 m, and `SceneSpaceTest` pinned "a fir is shorter than a
-         * tree". **Both were wrong, and the project said so itself.** v2.8 introduced the entry as
-         * `9.3 m / 122 u` and explained it in the same breath: *"FIR shares TREE's 122 units so
-         * one metre governs both: a fir cannot drift out of scale with the wood it stands in"*
-         * (`RELEASE_HISTORY.md`). One metre governing both is exactly what sharing a scale means,
-         * and it is what the code has always done -- but a fir at 9.3/122 would have had a
-         * *different* metre-per-unit from a tree at 9.8/122, which is the drift that sentence
-         * exists to forbid. The stated intent and the stated number contradicted each other; the
-         * intent is the one the renderer implements, so the number is what moved.
-         *
-         * Nothing is drawn differently by this change: the value was never read.
+         * The Christmas fir that replaces one tree in three while *Christmas firs* is on. Never
+         * returned by `variantFor`: a fir is a state of a TREE candidate
+         * (`SceneObjectRenderer.standsAsFir`) drawn at TREE's scale, so this `baseScale` is not
+         * applied. The entry follows the drawing (`FirTable`, 72 units wide and 126 tall;
+         * `DESIGN_NOTES.md` §12, decision 66) at TREE's metres-per-unit, 10.12 m: one metre governs both, so a fir stays
+         * in scale with the wood.
          */
         FIR(10.12f, 126f),
 
@@ -556,172 +381,81 @@ object SceneSpace {
         PALM_TREE(8f, 90.33f),
 
         /**
-         * The office block. A backdrop rather than a landmark, but it has to out-top the houses
-         * in front of it: at 17 m against v2.5's enlarged 7.6 m house it had stopped reading as a
-         * different class of building. Raised to 21 m in v2.7 with the shops, so the hierarchy
-         * the scene is supposed to show -- tower over shop over house -- holds by height rather
-         * than by depth alone.
+         * The office block, behind the village and the tallest thing in the scene. Declared as the
+         * middle of its three bodies, which stand 0.93 to 1.37 of it; every piece is drawn at 15.6 m
+         * over 182 units, 0.0857 m per unit (`BuildingHeightDeclarationTest`).
          */
-        // Lowered from 21 m in v2.8 with a coarser window grid. At 21 m over an 18-unit grid a
-        // window read as 0.86 m and a storey as under a metre; at 16.8 m over a 27-unit grid a
-        // window is 1.2 m and a floor 2.3 m, which is a building people work in. Still comfortably
-        // the tallest thing in the scene.
-        //
-        // **v4.15: 15.6 over 182, and the picture did not move.** 196 was measured to the tip of
-        // the aerial `drawSkyscraperBuilding` strokes above the setback, and the rule at the top of
-        // this enum excludes exactly that -- "a shop's height is its wall, not the top of the sign
-        // hanging above it", which is why RESTAURANT declares 96 for a wall it draws at 96 and says
-        // nothing about its own hanging sign. The tower was the one variant measuring an
-        // appendage, so it was drawing its 182 units of facade-plus-setback at 182/196 of the size
-        // 16.8 m asks for and reading as 15.6.
-        //
-        // The metres-per-unit is untouched at 0.0857, so the scale `metres * pixelsPerMetre /
-        // spriteUnitsTall` comes out at the same 3.857 px per unit it always has: **this changes no
-        // pixel**, and the window-grid reasoning above still holds exactly. What changes is that
-        // the number now describes the building. `BuildingHeightDeclarationTest` reads the blits and
-        // fails if any variant drifts from them again.
         TOWER(15.6f, 182f),
 
         /**
-         * Shop front, measured to the top of the wall and not to its hanging sign.
-         *
-         * ### v5.4: the declaration now describes the building that is drawn (item 113)
-         *
-         * This entry read **8.2 m over 96 units** from v2.8 to v5.3, and the paragraph that
-         * justified it said what the 96 were: *"a shop front with a residential storey over it"*.
-         * **The v5.0 redraw took the residential storey away.** `RESTAURANT_PAVILION` is a
-         * single-storey pavilion, one deal, and it tops out at **56 units** -- 58 % of what the
-         * entry claimed. The bar's two deals top out at 53 and 73 of its 92.
-         *
-         * Two things were wrong because of it, and only the second is visible:
-         *
-         *  - the entry said the restaurant was 8.2 m tall, and at the common metre it is
-         *    **4.78 m**;
-         *  - `spriteUnitsTall` is the top edge of the rectangle the shop-front criterion divides
-         *    by (`SceneObject.frontRect`), so **42 % of the rectangle the 40 % ceiling was
-         *    measured over was empty sky**. Measured where the ink stops, two shops were over the
-         *    ceiling: `desert`'s restaurant at 43.0 % and `easter`'s at 43.5 %.
-         *
-         * **The correction is the declaration, not the drawing.** The drawing is what the
-         * maintainer chose from the phase-4 photographs and ratified in phase 5, and in this
-         * project nothing overrules a photograph. So all three numbers that described the old
-         * facade move together -- these two and `NeighbourhoodTable`'s own `unitsTall` -- and they
-         * move by the same factor, which is what makes the change invisible in the building
-         * itself: the renderer draws a piece unit at `metresTall * pixelsPerMetre / unitsTall`,
-         * and that is **0.085417 m per piece unit before and after**, to seven figures.
-         * `BuildingHeightDeclarationTest` pins both halves.
-         *
-         * **What is not invisible is the layout**, and it was costed before the edit: the
-         * separation pass places a shop by its declared height, so nine shops on eight of the
-         * twelve themes move, one of them by 0.18 of a tile. The photographs are in
-         * `consegna_v5_4d/foto/`.
-         *
-         * **And a v2.7 decision does not survive the correction.** That paragraph raised the shops
-         * so *"a parade of shops"* would not *"read as outbuildings behind the houses"*. On the
-         * shipped artwork it does: 4.78 m and 4.53-6.24 m against a large house's 7.17-10.85 m.
-         * The declaration was the only place that decision still held, and correcting it is what
-         * makes the contradiction visible rather than what creates it -- `BuildingHeightDeclarationTest`
-         * has carried the drawn figures since v5.0 and `SceneContentV27Test` asserted the opposite
-         * from the declaration in the same suite. Both now read the drawing. It was a question about
-         * the artwork, and the maintainer answered it on 2026-09-28: the shops stay as they are
-         * drawn -- the designs chosen from the photographs on 2026-09-13 -- and the v2.7 decision
-         * is superseded.
+         * Shop front, measured to the top of the wall and not to its hanging sign:
+         * `RESTAURANT_PAVILION` is a single-storey pavilion that tops out at 56 units, 4.78 m at the
+         * common 0.085417 m per piece unit. These two numbers and `NeighbourhoodTable`'s `unitsTall`
+         * describe one facade and move together, so the renderer's `metresTall * pixelsPerMetre /
+         * unitsTall` stays the common metre (`BuildingHeightDeclarationTest`). The separation pass
+         * places a shop by this height and the shop-front ceiling divides by it
+         * (`SceneObject.frontRect`), so it is the drawn height, not a taller one. A shop stands
+         * lower than a large house, as drawn, and stays so.
          */
         RESTAURANT(4.7833333f, 56f),
 
         /**
-         * The same family, the chamfered corner unit: 53 units on one deal and 73 on the other.
-         *
-         * Declared at the taller of the two, so a crown over the tall deal is never measured
-         * against a front rectangle shorter than the building it covers. The short deal therefore
-         * still leaves 27 % of its declared front as sky, against the 41 % of v5.3 -- see
-         * `ShopFrontVisibilityTest`, which measures each instance on its own ink and no longer has
-         * to.
-         *
-         * 74.50136 rather than a round 74.5: it is `73 * 92 / 90.146`, the family's own ratio, so
-         * `spriteUnitsTall / unitsTall` is bit-for-bit what it was and the bar is drawn at exactly
-         * the size it was drawn at in v5.3. A typed 74.5 would have moved it by 0.005 px at the
-         * reference viewport, which is nothing and is still not zero.
+         * The same family, the chamfered corner unit: 53 units on one deal and 73 on the other,
+         * declared at the taller, so a crown over the tall deal is never measured against a front
+         * shorter than the building it covers (`ShopFrontVisibilityTest` measures each instance on
+         * its own ink). 74.50136 is `73 * 92 / 90.146`, the family's own ratio, so
+         * `spriteUnitsTall / unitsTall` is exact.
          */
         BAR(6.23544f, 74.50136f),
 
         /**
-         * The school: a turret with a clock, four bay windows and a pencil on a plaque.
-         *
-         * **72 units = 6.15 m at the common metre**, the same 0.085417 m per piece unit every
-         * other family is drawn at -- which is the whole reason a child at one of its windows is
-         * the size of a child anywhere else.
-         *
-         * It **draws 74** and declares 72: the two units are the turret cornice, which tops out at
-         * -73.5 and is rounded to the sprite grid at -74. The tower (5-15 %) and the large house
-         * (up to 45 %) vary around their declarations too, and the restaurant hits its own
-         * exactly; the school's 2.8 % is the smallest non-zero departure in the set.
-         * `BuildingHeightDeclarationTest` measures it off the blits rather than reading this
-         * paragraph.
-         *
-         * Between the restaurant's 4.78 m and the bar's 6.24 m, which is where its depth band puts
-         * it: see [RESTAURANT_MAX_DEPTH].
+         * The school: a turret with a clock, four bay windows and a pencil on a plaque. 72 units =
+         * 6.15 m at the common 0.085417 m per piece unit, so a child at one of its windows is a
+         * child's size. It draws 74: the turret cornice tops out at -73.5, rounded to the sprite
+         * grid; `BuildingHeightDeclarationTest` measures it off the blits. Between the restaurant
+         * and the bar in height, as its depth band puts it ([RESTAURANT_MAX_DEPTH]).
          */
         SCHOOL(6.15f, 72f),
 
-        /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
+        /** Pole to canopy rim, past life size: smaller, it is lost in the composition. */
         PARASOL(2.9f, 84f),
 
-        /** Three spheres and a hat. 74 units: `snowman_body` is 114x222 px = 38x74 u at (-19,-74),
-         *  and the nose and scarf sit inside it. The code's own "75-unit canvas" comment at the
-         *  blit was one unit out; 1.6773 is 74 units at the metre-per-unit it has always drawn at. */
+        /** Three spheres and a hat: `snowman_body` spans -74..0, the nose and scarf inside it. */
         SNOWMAN(1.6773f, 74f),
 
-        /** A large wrapped present, measured over the bow. Nudged up in v76.6 -- at 0.6 m it read
-         *  as a speck, and that nudge is a decision about the drawn size, so it is preserved here.
-         *  40 units, not 42: `gift_box` (40x30 u at (-20,-30)) plus `gift_ribbon` (40x40 u at
-         *  (-20,-40)) span -40..0. */
+        /**
+         * A large wrapped present, measured over the bow, past life size so it is not a speck.
+         * 40 units: `gift_box` and `gift_ribbon` together span -40..0.
+         */
         GIFT(0.9048f, 40f),
 
         /**
-         * An emperor penguin, which is the size the artwork is drawn at -- 49 units, not 46.
-         *
-         * It is also the **only** static whose art crosses the ground line: `penguin_body`
-         * (28x44 u at (-14,-45)) stops one unit short of it, and `penguin_feet` (20x4 u) is
-         * blitted at (-10, **0**), so the feet occupy y 0..+4 while every other static -- tree,
-         * gift, snowman, bunny -- ends exactly at y=0. That is a separate question from this
-         * table, and moving the feet would move the bird, so it is left as it is and recorded
-         * here rather than silently corrected.
+         * An emperor penguin, 49 units of artwork. The only static whose art crosses the ground
+         * line: `penguin_feet` is blitted at y 0, so the feet occupy 0..+4 while every other static
+         * ends at 0. Moving the feet would move the bird, so they stay.
          */
         PENGUIN(1.1717f, 49f),
 
         /**
-         * A rabbit sitting up, ears included. Raised from 0.55 m in v76.10: at the physical
-         * height it was a couple of dozen pixels of the same colour as the ground behind it and
-         * simply did not read. The Easter theme's two subjects are the eggs and the rabbit, and
-         * an object nobody can see is not carrying a theme.
+         * A rabbit sitting up, ears included, past life size: at a real rabbit's height it is a
+         * few dozen pixels of the ground's colour, and it is one of the Easter theme's two subjects.
          */
         BUNNY(0.8855f, 61f),
 
-        /** An oversized decorative garden egg, not a hen's egg. Raised with the rabbit, and for
-         * the same reason -- see [BUNNY]. */
+        /** An oversized decorative garden egg, not a hen's egg, past life size as [BUNNY] is. */
         EASTER_EGG(1f, 40f),
 
         /**
-         * A prize pumpkin, measured over the stem.
-         *
-         * **0.5 m through v4.15, 0.85 in v4.16, 1.0 here, and each step was a device pass rather
-         * than a calculation.** At 0.5 it was half an [EASTER_EGG] and read on a OnePlus 6T as an
-         * orange bead beside the gifts and the snowmen; 0.85 was reported as still small. 0.85,
-         * 1.00 and 1.10 were then rendered side by side on the phone with a gift, a snowman, a
-         * penguin and an egg in the same frame: **1.10 stands in front of the penguin and hides
-         * it**, and 1.00 reads as a pumpkin while leaving its neighbours alone. Level with the egg
-         * is where it belongs -- both are decorative props of about the same bulk.
-         *
-         * `SceneSpaceTest` holds the floor (not smaller than a gift or a bunny) and the ceiling
-         * (shorter than a penguin) so it cannot drift back down.
+         * A prize pumpkin, measured over the stem, level with the egg: smaller it reads as a bead
+         * beside the gifts, and at 1.10 m it hides a penguin standing behind it. `SceneSpaceTest`
+         * holds it no smaller than a gift or a bunny and shorter than a penguin.
          */
         PUMPKIN(1.0f, 42f),
 
         /**
-         * A scarecrow on its pole (v5.16), the pole's foot to the tip of its hat: a person's 1.75 m on a pole and a hat,
-         * beside the snowman's 1.68 m whose places it shares (the maintainer, 2026-10-21, shown it beside the people and
-         * the snowmen: *«spaventapasseri ok»*). The units are the drawing's, written by `tools/assets/scarecrow`.
+         * A scarecrow on its pole, the pole's foot to the tip of its hat: a person's 1.75 m on a pole
+         * and a hat, beside the snowman whose places it shares (`DESIGN_NOTES.md` §12, decision 80).
+         * The units are the drawing's, written by `tools/assets/scarecrow`.
          */
         SCARECROW(ScarecrowTable.METRES_TALL, ScarecrowTable.UNITS_TALL),
         ;
@@ -731,130 +465,79 @@ object SceneSpace {
     }
 
     /**
-     * The depth below which a building candidate is drawn as a [SceneVariant.TOWER] rather than
-     * as a shop.
-     *
-     * One category covers both because they share a colour, a density slider and a candidate
-     * pool. Which one a candidate becomes used to be a hash of its horizontal position, so a
-     * four-metre shop front could land at the very back of the scene and a tower at the very
-     * front. Deciding it by depth instead puts the towers behind the village and the street-level
-     * businesses among the houses, which is both what the objects are and what the perspective
-     * already implies.
+     * The depth below which a building candidate is drawn as a [SceneVariant.TOWER] rather than as
+     * a shop. The two share a colour, a density slider and a candidate pool; deciding by depth puts
+     * the towers behind the village and the shops among the houses, as the perspective implies.
      */
     const val BUILDING_TOWER_MAX_DEPTH = 0.30f
 
     /**
-     * The far edge of the shop band: past this, a building candidate is not generated at all.
-     *
-     * Written here rather than only in `SceneObjectCatalog`'s `0.0f..0.80f` because the two
-     * thresholds below are derived from it, and a band whose end is a literal in one file and a
-     * divisor in another is a band that can be widened in one place only.
+     * The far edge of the shop band: past this, no building candidate is generated. Stated here,
+     * not only as `SceneObjectCatalog`'s `0.0f..0.80f`, because the thresholds below derive from it.
      */
     const val SHOP_BAND_MAX_DEPTH = 0.80f
 
     /**
-     * **The shop band is divided in three equal parts, one per storefront: restaurant, school,
-     * bar, in that order from far to near.**
+     * **The shop band is divided in three equal parts, one per row of the size table: restaurant,
+     * school, bar, from far to near.** Depth decides a place's row because it never changes after
+     * generation, whatever the visibility pass does to x; which building a place draws is the
+     * street's deal ([StorefrontStreet]).
      *
-     * Which shop a candidate becomes used to be a hash of its horizontal position — sanctioned
-     * at the time as "interchangeable at any depth", which is true of the *artwork* but made the
-     * shop's identity a function of the hundredth-of-a-tile its jitter (or the visibility pass)
-     * happened to land it on: nothing stopped every shop in a scene from hashing to the same
-     * storefront, and the rc2 frames delivered exactly that — two identical trattorias in one
-     * screen. Depth is the property that already decides what a building *is* (tower vs shop,
-     * [BUILDING_TOWER_MAX_DEPTH]), it never changes after generation, and the catalogue then kept at
-     * most one shop per band ([SceneObjectCatalog] `singleShopPerVariant`), so it also decided
-     * *which* shop — stably, whatever the visibility pass does to x. Since v5.13 the street deals the
-     * building a place draws ([StorefrontStreet]), and depth decides the place's row of the size table.
-     *
-     * ### Why three equal thirds, and not the 0.55 this replaces (v5.6F)
-     *
-     * A third shop needs a third band, and the two splits had to be chosen rather than inherited.
-     * Three properties settled it, in this order:
-     *
-     *  - **Every band must hold candidates on every theme, or a theme silently loses a shop.**
-     *    A building candidate's depth carries no jitter: `SceneObjectCatalog` lays the ten of them
-     *    on `i / 9 * 0.80`, so the six in the shop band stand at 0.356, 0.444, 0.533, 0.622, 0.711
-     *    and 0.800 on all twelve themes and on every custom one. Equal thirds put **exactly two in
-     *    each**, and both splits land in a gap between two candidate depths rather than near one.
-     *    Any division that left a band with one candidate would make that shop's presence depend
-     *    on the density slider not dropping it.
-     *  - **Far to near should read as small to large**, which is the same argument
-     *    [BUILDING_TOWER_MAX_DEPTH] makes for putting towers behind the village. The three shops
-     *    are 4.78 m, 6.15 m and 6.24 m tall in that order, so restaurant-school-bar is the order
-     *    the perspective already implies.
-     *  - **The restaurant must not move**, and it does not: the middle candidate of the first
-     *    third is 0.444, which is where the restaurant has stood since rc3. The bar does move, from
-     *    0.711 to 0.800, and there is no arrangement in which it does not — three shops have to
-     *    occupy three of the six slots, and the school takes one the bar used to be able to reach.
-     *    That move is the reason `ShopFrontVisibilityTest` re-measures and the goldens re-authored.
+     * Equal thirds because a building candidate's depth has no jitter: `SceneObjectCatalog` lays
+     * the ten on `i / 9 * 0.80`, so the six in the shop band stand at 0.356, 0.444, 0.533, 0.622,
+     * 0.711 and 0.800 on every theme, and equal thirds put exactly two in each, with both splits
+     * in a gap between candidates. A band with one candidate would lose its shop to the density
+     * slider. Far to near also reads small to large: 4.78 m, 6.15 m, 6.24 m.
      */
     private const val SHOP_BAND_THIRD = (SHOP_BAND_MAX_DEPTH - BUILDING_TOWER_MAX_DEPTH) / 3f
 
-    /** Below this a place among the houses is in the restaurant's row of the size table: the first third
-     * of the band (which of the six buildings stands there is [StorefrontStreet]'s, v5.13). */
+    /**
+     * Below this a place among the houses is in the restaurant's row of the size table: the first
+     * third of the band.
+     */
     const val RESTAURANT_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + SHOP_BAND_THIRD
 
-    /** Below this, and above [RESTAURANT_MAX_DEPTH], a place is in the school's row of the size table;
-     * above it, in the bar's. */
+    /**
+     * Below this, and above [RESTAURANT_MAX_DEPTH], a place is in the school's row of the size
+     * table; above it, in the bar's.
+     */
     const val SCHOOL_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + 2f * SHOP_BAND_THIRD
 
     /*
      * The vehicles, kept out of [SceneVariant] because they are placed by lane rather than by
-     * depth and never appear in the static object list.
-     *
-     * A car's governed height is roof to wheel contact, 53 local units on all three bodies
-     * ([CarShell.unitsTall]); the fire engine's own body reaches 68 over the same wheel line.
+     * depth and never appear in the static object list. A car's governed height is roof to wheel
+     * contact, 53 local units on all three bodies ([CarShell.unitsTall]); the fire engine's body
+     * reaches 68 over the same wheel line.
      */
     /**
-     * **What one local unit of car artwork is worth in metres.** This, not a per-body height, is
-     * the constant the vehicle family is built on since v4.19.
-     *
-     * v4.18 had one car, so a height in metres over a height in units said the same thing. v4.19
-     * shipped three ([CarShell]) and they were deliberately *not* the same height (57, 56 and 57.8
-     * units; since v5.6F all three stand 53). Governing each one by its own
-     * metres-over-units would give each its own scale, and a unit would then mean a different
-     * number of pixels on each body -- which is precisely how three drawings stop reading as one
-     * set. Fixing the metre-per-unit instead makes every body, every wheel radius, every corner
-     * radius and every seat position directly comparable across the family, and lets
-     * [CAR_BASE_SCALE] stay a single number.
-     *
-     * The value is v4.18's own: 1.51 m over 50 units. **Nothing about how large a car draws
-     * changed by arithmetic** -- what changed is that the artwork itself grew, and it grew in
-     * metres because it grew in units.
+     * **What one local unit of car artwork is worth in metres**: the constant the vehicle family is
+     * built on, rather than a height per body, so a unit is the same pixel on every body and every
+     * body, wheel radius, corner radius and seat position is comparable across the family, with
+     * one [CAR_BASE_SCALE]. 1.51 m over 50 units.
      */
     const val CAR_UNIT_METRES = 1.51f / 50f
 
     /**
-     * The saloon, kept as the family's reference pair for the height table and for every test
-     * that compares a car against a pedestrian.
-     *
-     * [CarShell.SALOON]'s own numbers: 53 units since v5.6F lowered every body. The pair said 56
-     * until v5.8C, so the tests that size a car from it measured a 56-unit, 1.69 m car while the
-     * street drew 53-unit, 1.60 m bodies (v5.8B comment audit). [CAR_BASE_SCALE] does not depend on
-     * it -- the height cancels, and it is bit-identical at 53 and 56 -- and the bodies derive their
-     * metres through [CAR_UNIT_METRES]; see [CarShell.metresTall].
+     * The saloon ([CarShell.SALOON], 53 units, 1.60 m), the family's reference pair for the height
+     * table and for every test that compares a car with a pedestrian. [CAR_BASE_SCALE] does not
+     * depend on it (the height cancels); the bodies derive their metres through
+     * [CAR_UNIT_METRES] ([CarShell.metresTall]).
      */
     const val CAR_SPRITE_UNITS_TALL = 53f
     const val CAR_METRES_TALL = CAR_UNIT_METRES * CAR_SPRITE_UNITS_TALL
 
     /**
      * The fire engine keeps a metre-per-unit of its own (2.9 m over 68 units = 0.0426 m/u against
-     * the cars' 0.0302), and that is deliberate rather than an oversight. It is a different
-     * vehicle drawn at a different size; forcing it onto the cars' unit would need a 96-unit-tall
-     * canvas to reach 2.9 m, which costs 0.29 MiB of decoded sprite for no visible gain. What has
-     * to match is the *rendered* treatment, and v4.19's redraw achieves that by dividing its
-     * radii by the ratio between the two units -- see `firetruck_body.svg`.
+     * the cars' 0.0302): on the cars' unit it would need a 96-unit-tall canvas, 0.29 MiB more of
+     * decoded sprite for no visible gain. Its radii are divided by the ratio of the two units so it
+     * renders like the cars (`firetruck_body.svg`).
      */
     const val FIRE_TRUCK_METRES_TALL = 2.9f
     const val FIRE_TRUCK_SPRITE_UNITS_TALL = 68f
 
     /**
-     * The one scale every car body is drawn at.
-     *
-     * Because metres are [CAR_UNIT_METRES] times units for all three bodies, this reduces to the
-     * metre-per-unit times the reference projection: the body's own height cancels out. Three
-     * silhouettes, one scale, and a local unit that means the same pixel on each of them.
+     * The one scale every car body is drawn at: metres being [CAR_UNIT_METRES] times units on all
+     * three bodies, the body's height cancels, and a local unit is the same pixel on each.
      */
     val CAR_BASE_SCALE: Float get() = scaleForHeight(CAR_METRES_TALL, CAR_SPRITE_UNITS_TALL)
 
@@ -864,54 +547,19 @@ object SceneSpace {
 
     /**
      * An adult pedestrian: 1.75 m across the 80 local units of content the walk sprites carry
-     * inside their 84-unit canvas.
+     * inside their 84-unit canvas. The children are drawn 52 units tall in the same canvas, 0.65 of
+     * an adult (1.14 m) with a child's share of leg, so one scale serves both; 0.65 is the
+     * maintainer's choice from photographs on the phone (0.70 read as a short adult, 0.60 as a dot
+     * at night).
      *
-     * The children are drawn shorter *within the same canvas* -- **52 units against the adults'
-     * 80** -- so one scale gives them their own 0.65 of adult height with no second entry here. At
-     * 1.75 m that puts a child at 1.14 m.
+     * **The children's height is written in five places**, moved together: the drawing,
+     * `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`, `PrecipitationScaleTest.childMetres`
+     * and `build_people_concepts.CHILD_OF_ADULT`, on this 80-unit metre, and
+     * `VehicleScalePixelTest.CHILD_UNITS`, the child's ink in the sprite's own units with its ground
+     * shadow, 54 rather than 52, which a search for 52 does not find.
      *
-     * **v4.30 moved that from 62 units, and it is a drawing decision rather than a projection
-     * one.** The children were 0.779 of an adult, which is a ten-year-old's proportion, and they
-     * had the adult's own 31 % of leg, which is what made them read as small adults rather than as
-     * children. The maintainer chose 0.65 from photographs of three candidates at 1x on the
-     * device: at 0.70 the figure was still a short adult, and at 0.60 it was a dot at night in a
-     * crowded scene.
-     *
-     * **The number lives in five places, not four**, and this is the one the other four quote:
-     * `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`, `PrecipitationScaleTest.childMetres`,
-     * `build_people_concepts.CHILD_OF_ADULT` -- all three on this same 80-unit metre -- and
-     * `VehicleScalePixelTest.CHILD_UNITS`, which is **not** on it. That last one is the ink a
-     * child occupies in the *sprite's own* units, ground shadow included, so it is 54 where these
-     * are 52 and a search for the number does not find it. v4.30's brief named four, all four were
-     * moved together, the JVM suite went green, and only the instrumented suite found the fifth --
-     * `BACKLOG_v4_30.md` item 102. This comment said "four" until v4.31, in the release that
-     * discovered the fifth.
-     *
-     * **v4.3: the constant said `1.9f` while this comment three lines above it said 1.75 m.** The
-     * comment was right and the number was not, and the 8.6% it added to every pedestrian was the
-     * whole of the reported "cars look too small next to the people walking behind them". Nothing
-     * else was wrong: measured on rendered frames, both draw paths reproduce this model to within
-     * a pixel of antialiasing, and `CAR_METRES_TALL` over [CAR_SPRITE_UNITS_TALL] was then an
-     * honest roof-to-wheel-contact reading of the artwork (the v5.6F bodies stand 53 units, see
-     * [CAR_SPRITE_UNITS_TALL]).
-     *
-     * What the extra 8.6% did was invert one comparison. A car in the **far lane** stands nearer
-     * the viewer than a pedestrian on the **far pavement**, so it must be drawn larger; at 1.9 m
-     * the pedestrian won that comparison (62.7 reference px against the car's 61.1) and a car
-     * with a person visible behind it read as a toy. At the documented 1.75 m the ordering is the
-     * one the ground plane implies -- 57.7 against 61.1 then, and against 71.3 at today's
-     * [CAR_METRES_TALL] -- and `VehiclePedestrianScaleTest` fails if it ever inverts again.
-     *
-     * **v4.6: the busts behind a windscreen were not governed by this, and that was the rest of
-     * the same report.** `CAR_HEAD_SCALE` sizes them against the glass, which is the right thing
-     * for it to do, but nobody had checked the result against the way this artwork actually draws
-     * a person. A walk sprite then gave a pedestrian a head 25.00 of its 80.67 content units tall --
-     * **31% of their own height**, a paper-cutout proportion -- so an adult's head was 0.547 m (since
-     * the v4.25 redraw, 24.3 of 80 and 0.532 m: `SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS`). The
-     * driver's was 0.320 m, 59% of it, on a plane nearer the viewer than the pavement; the people
-     * inside the cars read as children. See `SceneObjectRenderer`'s bust block for the fix, which
-     * is a taller pane and one rule instead of three tuned scales, and which leaves
-     * [CAR_METRES_TALL] alone.
+     * A car in the far lane stands nearer than a pedestrian on the far pavement, so it is drawn
+     * larger: 67.5 reference px against 57.7. `VehiclePedestrianScaleTest` fails if that inverts.
      */
     const val PERSON_METRES_TALL = 1.75f
     const val PERSON_SPRITE_UNITS_TALL = 80f
@@ -922,25 +570,16 @@ object SceneSpace {
     // ---- The lake -----------------------------------------------------------------------
 
     /**
-     * The lake's own metric, separate from the ground plane's.
-     *
-     * The water sits at and slightly above the horizon, where [perspectiveScaleAt] is at or near
-     * zero, so nothing floating on it can take its size from the ground projection -- it would
-     * vanish. What its inhabitants do need is to be the right size *relative to each other*,
-     * which they were not: the dolphin was drawn longer than the sailboat.
-     *
-     * Raised from 15 in v76.6. Getting the two right relative to each other left both close to
-     * invisible on a device, which is a different failure from the one it fixed. Their ratio is
-     * what the metric protects; how large the pair is on screen is a legibility decision, and one
-     * number moves both together.
+     * The lake's own metric, separate from the ground plane's: the water sits at and just above
+     * the horizon, where [perspectiveScaleAt] is near zero, so its inhabitants are sized against
+     * each other by this one number (a dolphin shorter than the sailboat), which also sets how
+     * large the pair reads on screen.
      */
     const val LAKE_PIXELS_PER_METRE = 21f
 
     /**
      * Bow to stern of the hull, over the 81.3 local units its content spans (of the 82-unit
-     * `sailboat_hull` canvas). Until v5.8C the base scale divided by 84, so the boat was drawn
-     * about 3 % shorter than the 6.5 m it declares -- and the dolphin-to-sailboat ratio this metric
-     * exists to protect was off by as much (v5.8B comment audit).
+     * `sailboat_hull` canvas), so the dolphin-to-sailboat ratio is the declared one.
      */
     const val SAILBOAT_METRES_LONG = 6.5f
     const val SAILBOAT_SPRITE_UNITS_LONG = 81.3f
@@ -964,13 +603,8 @@ object SceneSpace {
 
     /**
      * How much one candidate of a category may differ in size from another, as a fraction either
-     * side of 1.
-     *
-     * `StaticSceneObject.scale` used to carry the category's whole base size, which meant two
-     * unrelated decisions -- "what kind of thing is this" and "is this one slightly bigger than
-     * its neighbour" -- shared a field, and neither could be read without knowing the other. It
-     * is now purely the second, so a value of 1 always means "the size this category is supposed
-     * to be".
+     * side of 1. `StaticSceneObject.scale` holds only this variation, so 1 always means the
+     * category's own size.
      */
     const val SIZE_VARIATION_SPREAD = 0.16f
 
@@ -978,11 +612,9 @@ object SceneSpace {
     const val MIN_SIZE_VARIATION = 0.5f
 
     /**
-     * Converts a pre-`SceneSpace` absolute `scale` into the relative variation replacing it.
-     *
-     * Persisted custom themes hold the old absolute values, and the base scales they were written
-     * against are the only way to read them. Kept here beside the new table rather than inside the
-     * migration so both halves of the conversion are visible in one place.
+     * Converts an absolute `scale`, as older saved custom themes hold it, into the relative
+     * variation: these are the base scales those values were written against. Kept beside the
+     * size table so both halves of the conversion are in one place.
      */
     fun legacyBaseScaleFor(type: SceneObjectType): Float = when (type) {
         SceneObjectType.HOUSE -> 1.5f
@@ -995,7 +627,7 @@ object SceneSpace {
         SceneObjectType.BUNNY -> 1.25f
         SceneObjectType.EASTER_EGG -> 1.1f
         SceneObjectType.PUMPKIN -> 1.2f
-        // Never in a payload written before the size table (v5.16): the snowman's, whose places it shares.
+        // Never in a payload with absolute scales: the snowman's, whose places it shares.
         SceneObjectType.SCARECROW -> 1.3f
         SceneObjectType.CAR -> 1f
     }

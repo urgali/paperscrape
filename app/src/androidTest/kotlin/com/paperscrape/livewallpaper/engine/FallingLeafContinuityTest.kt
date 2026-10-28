@@ -15,16 +15,14 @@ import kotlin.math.abs
 /**
  * A falling leaf belongs to its tree, not to whatever else happens to be on screen.
  *
- * ### The defect this pins
+ * ### The defect this keeps out
  *
- * The maintainer reported that swiping between home pages made the autumn scene look rebuilt:
- * leaves mid-fall jumped to new positions. The clock was never the problem -- `elapsedSeconds`
- * runs straight through a swipe -- and neither was the engine's lifecycle: the same process and
- * renderer survive every swipe. The cause was `drawFallingLeaves` assigning candidate `i` to
- * visible crown `i % count`: the visible-crown array shuffles whenever the parallax scrolls a
- * tree across a screen edge, and that modulo then handed **every** leaf to a different tree.
- * Confirmed on a OnePlus 6T 30 fps screen recording: leaf blobs teleported in exactly the frames
- * the visible set changed, and in no others.
+ * Swiping between home pages must not make the autumn scene look rebuilt, with leaves mid-fall
+ * jumping to new positions. The clock runs straight through a swipe and the same renderer
+ * survives it, so what can break this is the deal: a leaf given to a slot of the frame's
+ * visible-crown array -- candidate `i` to crown `i % count` -- moves whenever the parallax
+ * carries a tree across a screen edge, because the array reshuffles and **every** leaf goes to a
+ * different tree. Each crown derives its leaves from its own stable identity instead.
  *
  * ### What is asserted
  *
@@ -34,9 +32,9 @@ import kotlin.math.abs
  * formula. Two renders at the same clock differ in one thing: a second tree stands on the
  * screen. Every leaf the lone tree shed in the first render must be drawn at the identical spot
  * in the second, because a swipe is precisely "other trees enter and leave the view" and a leaf
- * that moves when that happens is the reported defect. Under the `i % count` rule the first
- * render gave the tree all the pool's leaves and the second dealt half to the newcomer, so this
- * fails loudly against the old code -- it is not satisfiable by accident.
+ * that moves when that happens is the defect. Under an `i % count` rule the first render gives
+ * the tree all the pool's leaves and the second deals half to the newcomer, so this fails loudly
+ * against any slot-based deal -- it is not satisfiable by accident.
  *
  * A leaf is identified in the recording by its signature rather than by paint colour heuristics
  * on pixels: leaves are the only ovals the scene draws with the local rect (-4,-6,4,6).
@@ -52,7 +50,7 @@ class FallingLeafContinuityTest {
         // left edge and the second offset carries it off screen; T stays on screen at both. The
         // per-leaf allotment makes the leaf counts themselves a precondition check, so a wrong
         // placement fails loudly here rather than weakening the real assertion below.
-        // rc2: a crown's leaf count is proportional to its drawn size (3..13), so the counts
+        // A crown's leaf count is proportional to its drawn size (3..13), so the counts
         // are measured off the lone-tree render rather than taken from a constant. T and U stand
         // at the same depth, so they shed the same number.
         val perTree = render(listOf(tree(T_FRACTION)), offset = 0f).size
@@ -78,11 +76,11 @@ class FallingLeafContinuityTest {
         assertTrue("the scroll is one rigid shift for the whole layer", deltas.all { abs(it - delta) < EPSILON })
         assertTrue("the two offsets really scroll the scene", abs(delta) > 10f)
 
-        // **The assertion the old code fails.** T's own leaves at offset 0 are the cluster around
-        // T's anchor, away from U's. After the scroll they must be exactly that cluster, rigidly
-        // shifted -- same candidates, same phases, same fall. Under the retired `i % count` rule
-        // (and under any slot-based assignment), U's exit re-deals T's candidate indices and the
-        // leaves land at other phases of other falls.
+        // **The assertion a slot-based deal fails.** T's own leaves at offset 0 are the cluster
+        // around T's anchor, away from U's. After the scroll they must be exactly that cluster,
+        // rigidly shifted -- same candidates, same phases, same fall. Under an `i % count` rule, or
+        // any slot-based assignment, U's exit re-deals T's candidate indices and the leaves land at
+        // other phases of other falls.
         val tCluster = both.filter { abs(it.x - T_FRACTION * TILE_WIDTH) < CLUSTER_RADIUS }
         assertEquals("T's own leaves are the cluster at its anchor", perTree, tCluster.size)
         for (leaf in tCluster) {
@@ -94,30 +92,28 @@ class FallingLeafContinuityTest {
     }
 
     /**
-     * **rc2 criterion: zero leaves drawn inside the crown's own bounding box.**
+     * **Zero leaves drawn inside the crown's own bounding box.**
      *
-     * Leaves used to spawn at the crown's centre, so the first 40% of every fall happened inside
-     * the canopy -- invisible, or a dark blot lying on the foliage. They detach at the bounding
-     * box's bottom edge now, with a margin covering the oval's own extent, and this drives the
-     * real renderer over a whole fall cycle to prove no drawn leaf ever intersects the box. The
-     * box is the canopy blit's, mapped through the same transform it was drawn with.
+     * A leaf spawned at the crown's centre spends the first 40 % of its fall inside the canopy --
+     * invisible, or a dark blot lying on the foliage. Leaves detach at the bounding box's bottom
+     * edge, with a margin covering the oval's own extent, and this drives the real renderer over
+     * a whole fall cycle to prove no drawn leaf ever intersects the box. The box is the canopy
+     * blit's, mapped through the same transform it was drawn with.
      *
-     * ### Where 7.3 comes from, re-derived for v4.21
+     * ### Where 7.3 comes from
      *
      * It is the leaf's own bounding radius and nothing else: `drawFallingLeaves` draws every leaf
      * as `drawOval(-4,-6,4,6)` **unscaled**, so the furthest any of its pixels sits from the point
      * this recorder captures is `hypot(4,6) = 7.211`, and 7.3 rounds that up. It does not depend
-     * on the canopy, which is why the "Broad Oak" redraw leaves it at 7.3 — the honest
-     * re-derivation of this number is the finding that it was never a canopy measurement.
+     * on the canopy.
      *
-     * What the redraw *did* move is the clearance the spawn point has to give: `recordLeafSource`
-     * detaches a leaf at `(centre + halfHeight + 4) * scale + 8` px below the ground line, i.e.
-     * 4 scene units plus 8 raw pixels under the crown's content bottom. In v4.20 the canopy canvas
-     * carried slack below its content and those 4 units partly paid for it; the new canvas is
-     * trimmed to the drawing, so the crown's box bottom **is** its content bottom at -52, and the
-     * whole 4 units + 8 px are clearance. 8 px alone already clears 7.21 at any scale, so the
-     * property holds by construction rather than by margin — and the forty samples below still
-     * measure it, because a future spawn-point change should fail loudly here.
+     * The clearance is the spawn point's: `recordLeafSource` detaches a leaf at
+     * `groundY + (centre + halfHeight + 4) * scale + 8`, i.e. 4 scene units plus 8 raw pixels
+     * under the crown's content bottom. The canopy canvas is trimmed to the drawing, so the crown's
+     * box bottom **is** its content bottom at -52, and the whole 4 units + 8 px are clearance.
+     * 8 px alone already clears 7.21 at any scale, so the property holds by construction rather
+     * than by margin -- and the forty samples below still measure it, so a change to the spawn
+     * point fails loudly here.
      */
     @Test
     fun noLeafIsEverDrawnInsideItsCrownsBoundingBox() {
@@ -157,31 +153,82 @@ class FallingLeafContinuityTest {
         )
     }
 
+    /**
+     * **No leaf falls from a crown *Halloween* has stripped**: the leafy tree is bare limbs then and the palm dead fronds,
+     * and a falling leaf would come down from the air where the leafy crown would be. A tree in leaf and a palm in leaf
+     * still shed theirs; stripped, neither sheds one.
+     */
+    @Test
+    fun noLeafFallsFromATreeOrAPalmHalloweenHasStripped() {
+        for (type in listOf(SceneObjectType.TREE, SceneObjectType.PALM_TREE)) {
+            val layout = listOf(StaticSceneObject(type, TREE_DEPTH, T_FRACTION))
+            val inLeaf = renderRecording(layout).leaves
+            assertTrue("a $type in leaf shed no leaf: the check below would be about nothing", inLeaf.isNotEmpty())
+            val stripped = renderRecording(layout, customise = { it.copy(halloweenEnabled = true) }).leaves
+            assertEquals("leaves falling from a $type that Halloween has stripped", 0, stripped.size)
+        }
+    }
+
+    /**
+     * **A theme of 167 objects sheds its leaves, and the wallpaper goes on.** A leaf's colour is its candidate's remainder
+     * by the palette, and the candidate is the tree's identity times 13: the 167th object of a theme -- runtime index
+     * 166, a tree in front of 166 houses -- takes it past `Int.MAX_VALUE`, and a negative remainder would read the
+     * palette at -3, an exception on the render thread that ends the wallpaper's process (twice in ten seconds, and
+     * Android puts its own wallpaper back). A built-in theme stands a few dozen objects; an imported one or one saved
+     * again and again has no limit. Drawn as the phone draws it -- Autumn with its fall colours, on a Canvas target, 150 frames
+     * -- and with a lone tree at the right edge of the tile too, whose copy a tile to the left is numbered -1.
+     */
+    @Test
+    fun aThemeOf167ObjectsShedsItsLeavesAndGoesOn() {
+        val houses = (0 until 166).map { StaticSceneObject(SceneObjectType.HOUSE, 0.30f + it * 0.0001f, (it % 50) / 50f) }
+        val layouts = listOf(
+            "a tree in front of 166 houses" to houses + StaticSceneObject(SceneObjectType.TREE, 0.95f, 0.5f),
+            "a lone tree at the right edge of the tile" to listOf(StaticSceneObject(SceneObjectType.TREE, 0.6f, 0.97f)),
+        )
+        for ((name, layout) in layouts) {
+            val theme = ThemeCatalog.byId(THEME_ID)
+            val defaults = defaultCustomizationFor(THEME_ID)
+            val customization = defaults.copy(
+                houses = defaults.houses.copy(visible = true, density = 1f),
+                trees = defaults.trees.copy(visible = true, density = 1f),
+            )
+            assertTrue("Autumn sheds its leaves as it ships", customization.fallColorsEnabled)
+            installLayout(layout, defaults)
+            val bitmap = Bitmap.createBitmap(PHONE_WIDTH, PHONE_HEIGHT, Bitmap.Config.ARGB_8888)
+            val target = CanvasSceneTarget()
+            target.bind(android.graphics.Canvas(bitmap))
+            try {
+                val renderer = PaperRenderer(PHONE_WIDTH, PHONE_HEIGHT, context)
+                renderer.theme = theme
+                renderer.sceneCustomization = customization
+                renderer.scrollSpeed = 0f
+                renderer.swipeScrollEnabled = false
+                renderer.homeScreenOffset = 0f
+                renderer.lightningStrikesEnabled = false
+                val phase = SunPositionCalculator.compute(hour24 = 12f)
+                var clock = SceneTime(120.0)
+                repeat(150) {
+                    clock += 1f / 30f
+                    renderer.draw(target, phase, clock, 1f / 30f)
+                }
+                val recorder = RecordingSceneCanvas()
+                renderer.draw(recorder, phase, clock, 0f)
+                assertTrue("$name: no leaf drawn, so the frames above drew none either", recorder.leaves.isNotEmpty())
+            } finally {
+                target.unbind()
+                bitmap.recycle()
+                CustomThemeRegistry.update(CustomThemeData.EMPTY)
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ rendering
 
     private fun tree(xFraction: Float) = StaticSceneObject(SceneObjectType.TREE, TREE_DEPTH, xFraction)
 
-    private fun render(
-        layout: List<StaticSceneObject>,
-        atSeconds: Double = AT_SECONDS,
-        offset: Float = 0f,
-    ): List<Leaf> = renderRecording(layout, atSeconds, offset).leaves
-
-    private class Recording(val leaves: List<Leaf>, val crowns: List<RectF>, val colors: List<Int>)
-
-    private fun renderRecording(
-        layout: List<StaticSceneObject>,
-        atSeconds: Double = AT_SECONDS,
-        offset: Float = 0f,
-    ): Recording {
+    /** [layout] saved over the theme, with [customization], so a renderer of the theme draws it. */
+    private fun installLayout(layout: List<StaticSceneObject>, customization: SceneCustomization) {
         val theme = ThemeCatalog.byId(THEME_ID)
-        val defaults = defaultCustomizationFor(THEME_ID)
-        val customization = defaults.copy(
-            fallColorsEnabled = true,
-            trees = defaults.trees.copy(visible = true, density = 1f),
-            cars = defaults.cars.copy(visible = false),
-            people = defaults.people.copy(visible = false),
-        )
         CustomThemeRegistry.update(
             CustomThemeData(
                 overrides = mapOf(
@@ -195,6 +242,33 @@ class FallingLeafContinuityTest {
                 ),
             ),
         )
+    }
+
+    private fun render(
+        layout: List<StaticSceneObject>,
+        atSeconds: Double = AT_SECONDS,
+        offset: Float = 0f,
+    ): List<Leaf> = renderRecording(layout, atSeconds, offset).leaves
+
+    private class Recording(val leaves: List<Leaf>, val crowns: List<RectF>, val colors: List<Int>)
+
+    private fun renderRecording(
+        layout: List<StaticSceneObject>,
+        atSeconds: Double = AT_SECONDS,
+        offset: Float = 0f,
+        customise: (SceneCustomization) -> SceneCustomization = { it },
+    ): Recording {
+        val theme = ThemeCatalog.byId(THEME_ID)
+        val defaults = defaultCustomizationFor(THEME_ID)
+        val customization = customise(
+            defaults.copy(
+                fallColorsEnabled = true,
+                trees = defaults.trees.copy(visible = true, density = 1f),
+                cars = defaults.cars.copy(visible = false),
+                people = defaults.people.copy(visible = false),
+            ),
+        )
+        installLayout(layout, customization)
         try {
             val recorder = RecordingSceneCanvas()
             val renderer = PaperRenderer(WIDTH, HEIGHT, context)
@@ -297,7 +371,7 @@ class FallingLeafContinuityTest {
         ) = Unit
 
         override fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) = Unit
-        // A sprite cut to a box (v5.12, a person walking out of a window) is recorded as the blit it is.
+        // A sprite cut to a box (a person walking out of a window) is recorded as the blit it is.
         override fun drawSpriteClipped(
             resId: Int,
             source: SpriteSource,
@@ -324,8 +398,8 @@ class FallingLeafContinuityTest {
             // The crown blits, mapped through the transform they are drawn with. SCENE_UNITS
             // art goes through SpriteBlitter, which has already pushed its own 1/3 grid scale
             // onto the canvas by the time drawSprite fires -- so the current matrix is in raw
-            // sprite pixels and the rect must be built in raw pixels too. Building it in units
-            // here shrank the recorded box threefold and let a spawn-at-centre mutation slip
+            // sprite pixels and the rect must be built in raw pixels too. A rect built in units
+            // would shrink the recorded box threefold and let a spawn-at-centre mutation slip
             // straight through the intersection test.
             if (resId != com.paperscrape.livewallpaper.R.drawable.tree_canopy &&
                 resId != com.paperscrape.livewallpaper.R.drawable.palmtree_fronds
@@ -340,6 +414,10 @@ class FallingLeafContinuityTest {
     private companion object {
         const val WIDTH = 1080
         const val HEIGHT = 2400
+
+        /** The BV6600's screen, for the frames drawn as the phone draws them. */
+        const val PHONE_WIDTH = 720
+        const val PHONE_HEIGHT = 1440
         const val THEME_ID = "autumn"
         const val AT_SECONDS = 50.0
         const val EPSILON = 0.01f
@@ -360,9 +438,9 @@ class FallingLeafContinuityTest {
         const val T_FRACTION = 0.25f
 
         /**
-         * Near the left edge: on screen at offset 0, carried off by offset 1's shift (measured
-         * at -324 px with parallaxStrength 2). The test's own leaf-count preconditions verify
-         * both placements rather than trusting this comment.
+         * Near the left edge: on screen at offset 0, carried off by offset 1's shift with
+         * parallaxStrength 2. The test's own leaf-count preconditions verify both placements
+         * rather than trusting this comment.
          */
         const val U_FRACTION = 0.01f
     }

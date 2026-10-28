@@ -48,7 +48,7 @@ REGISTRY_PATH = SOURCES_DIR / "sprites.json"
 STAGING_DIR = TOOL_ROOT / "staging"
 REPORTS_DIR = TOOL_ROOT / "reports"
 #: The neighbourhood generator writes its own committed report here rather than into
-#: `reports/`, which is why the staleness check missed it until v5.5C.
+#: `reports/`, so the staleness check is handed this directory as well.
 BUILDINGS_DIR = TOOL_ROOT / "buildings"
 
 
@@ -167,12 +167,11 @@ def cmd_validate(_: argparse.Namespace) -> int:
     problems.extend(site_problems)
 
     # The committed reports are claims about the shipped PNGs too, and they are the claims most
-    # likely to go stale without anyone noticing: nothing reads them at build time. v5.2 found
-    # both of them describing a palm that had been redrawn a release earlier.
+    # likely to go stale without anyone noticing: nothing reads them at build time, so a redraw
+    # that does not re-run `inventory` or `compare` leaves them describing artwork that has changed.
     #
-    # `BUILDINGS_DIR` joined them in v5.5C: `buildings/budget.json` is the third committed report
-    # item 125 names, it lives outside `reports/`, and for three releases it was the one this
-    # check did not look at.
+    # `BUILDINGS_DIR` is passed too: `buildings/budget.json` is the third committed report, and it
+    # lives outside `reports/`.
     problems.extend(report.stale_reports(REPORTS_DIR, runtime, BUILDINGS_DIR))
 
     if problems:
@@ -194,7 +193,7 @@ def cmd_validate(_: argparse.Namespace) -> int:
         f"{len(specs) - with_source} recorded as gaps"
     )
     print(f"anchors: {with_anchor} determined, {len(specs) - with_anchor} undetermined")
-    # The two sprite counts BACKLOG_v4_24.md item 54 asked to be printed rather than written into a
+    # Two sprite counts, printed here rather than written into a
     # document, counted from the sets the normaliser itself defines: the sprites a lookup table
     # chooses among, which share one origin per group and are cropped together, and the ones it
     # leaves uncropped on purpose, each with its reason in `normalize.EXCLUSIONS`.
@@ -208,7 +207,7 @@ def cmd_validate(_: argparse.Namespace) -> int:
     )
     gaps = [v for v in variants if not v.must_differ]
     print(
-        f"variants: {len(variants)} groups checked against the shipped bytes, "
+        f"variants: {len(variants)} groups checked against the shipped pixels, "
         f"{len(variants) - len(gaps)} distinct, {len(gaps)} declared identical gaps"
     )
     for gap in gaps:
@@ -240,8 +239,7 @@ def _rewritten_registry_geometry(
     """The registry's text with the geometry fields patched, leaving its shape alone.
 
     **Returns the new text rather than writing it**, so `_crop_targets` can fail here
-    before it has written a single PNG -- which is what v4.31 needed it to do. See
-    that function.
+    before it has written a single PNG. See that function.
 
     A load-and-dump round trip would reformat every entry and bury a
     four-field change in a whole-file diff, so each entry is edited as text
@@ -255,12 +253,12 @@ def _rewritten_registry_geometry(
     *declarations* -- a part's own zero, and the joint another sprite attaches to --
     and `derive_anchor` returns `None` for both by design.
 
-    Guarding this on `has_anchor` instead was what aborted the v76.9 normalisation
-    partway through, on `bar_sign`, with a message saying `PART_LOCAL` no longer
-    held. It held perfectly well; the applier was asking a derivation question of a
-    rule that does not answer one, and the abort was recorded as an anchor-model
-    conflict rather than as the tooling defect it was. `validate` re-derives every
-    anchor afterwards, so a mistake here still fails there.
+    Guarding this on `has_anchor` instead would ask a derivation question of a rule
+    that does not answer one: on a `PART_LOCAL` sprite the applier would stop with a
+    message saying the rule no longer holds, when it holds perfectly well, and the
+    stop would read as an anchor-model conflict rather than as the tooling defect it
+    is. `validate` re-derives every anchor afterwards, so a mistake here still fails
+    there.
     """
     by_name = {s.name: s for s in specs}
     text = path.read_text(encoding="utf-8")
@@ -279,12 +277,10 @@ def _rewritten_registry_geometry(
         )
         spec = by_name[name]
         if spec.derives_anchor_from_box:
-            # In pixels, deliberately: `derive_anchor`'s own docstring records that
-            # passing `units_per_pixel` here produces local units and then writes
-            # them into a field the registry declares in pixels, so every
-            # `SCENE_UNITS` sprite ends up disagreeing with itself by a factor of
-            # three. This call site was making exactly that mistake, unexercised
-            # because no `--apply` run had ever completed.
+            # In pixels, deliberately, as `derive_anchor`'s own docstring says: passing
+            # `units_per_pixel` here would produce local units and write them into a
+            # field the registry declares in pixels, so every `SCENE_UNITS` sprite
+            # would disagree with itself by a factor of three.
             anchor = registry.derive_anchor(spec.anchor_rule, box, (width, height))
             if anchor is None:
                 raise SystemExit(
@@ -304,18 +300,14 @@ def _rewritten_registry_geometry(
 def _entry_end(text: str, start: int) -> int:
     """Index of the closing brace of the sprite object containing ``start``.
 
-    **This used to be ``text.index("\\n    }", start)``, and that could not work.**
-    `sprites.json` is written with a one-space indent, so a sprite object closes on
-    ``"\\n  }"`` and the four-space form appears nowhere in the file -- every
-    ``normalize --apply`` run died here with `ValueError: substring not found`,
-    *after* every PNG and SVG had already been rewritten. The function's own
-    docstring said the anchor branch was "unexercised because no ``--apply`` run had
-    ever completed"; this is why none ever did.
-
-    Found by matching braces backwards to the object's ``{`` and forwards to its
-    ``}`` instead of by guessing an indent, so the registry may be reformatted
-    without breaking the applier again. Strings are skipped, because a `notes` field
-    is free text and this registry's notes contain both braces and escaped quotes.
+    **Found by counting braces, never by searching for an indent.** ``start`` is
+    inside the object, so the first ``}`` reached at depth zero is the one that
+    closes it. An indent depends on how the file was dumped: `sprites.json` is
+    written with a one-space indent, so a sprite object closes on ``"\\n  }"``, and
+    a search for any other indent finds nothing and raises `ValueError: substring
+    not found`. Counting lets the registry be reformatted without breaking the
+    applier. Strings are skipped, because a `notes` field is free text and this
+    registry's notes contain both braces and escaped quotes.
     """
     depth = 0
     i = start
@@ -352,8 +344,8 @@ def _resized_svg_canvas(path: Path, box: tuple[int, int, int, int]) -> str:
     renders the drawing where the PNG no longer has it.
 
     Without this the PNG and its source would disagree, and
-    `ShippedAgainstSourceTest` -- the measurement D-7's closure rests on -- would
-    fail on the first sprite cropped.
+    `ShippedAgainstSourceTest`, which bounds every shipped PNG against its source's
+    render, would fail on the first sprite cropped.
     """
     text = path.read_text(encoding="utf-8")
     match = re.search(
@@ -392,15 +384,13 @@ def _crop_targets(
     """Crop each target's PNGs to its box and keep the source and registry with them.
 
     **Nothing is written until every part of the change has been computed**, and that
-    ordering is the point rather than tidiness. The first version cropped and saved
-    each PNG, rewrote each SVG, and only then rewrote the registry -- so
-    `_rewrite_registry_geometry` raising left the shipped PNGs cropped, the sources
-    cropped and the registry describing the canvases none of them had any more, with
-    no way back inside the working tree. v4.31 hit exactly that: the registry patcher
-    was looking for an indent the file does not use (see `_entry_end`), and the abort
-    came after six files had already been rewritten.
+    ordering is the point rather than tidiness. Saving each PNG and rewriting each
+    SVG before the registry text is computed would let a registry patch that raises
+    (`_rewritten_registry_geometry`, `_entry_end`) leave the shipped PNGs cropped, the
+    sources cropped and the registry describing canvases none of them have any more,
+    with no way back inside the working tree.
 
-    So this now runs in two passes. The first decodes, crops in memory, checks that no
+    So this runs in two passes. The first decodes, crops in memory, checks that no
     opaque pixel is discarded, renders the new SVG and registry **text**, and can
     raise as often as it likes. The second writes, and by then the only way to fail is
     the filesystem itself.
@@ -429,8 +419,8 @@ def _crop_targets(
                     f"{int(discarded.max())}, which is artwork rather than padding"
                 )
             png_writes.append((path, cropped))
-            # Measured off the cropped image in memory, which is the same measurement
-            # the old code took by re-reading the file it had just written.
+            # Measured off the cropped image in memory: the same box a re-read of the
+            # written file would give, taken before anything is written.
             box = cropped.getchannel("A").getbbox() or (0, 0, cropped.width, cropped.height)
             updates[name] = (cropped.width, cropped.height, tuple(box))
             source = SVG_DIR / f"{name}.svg"
@@ -439,7 +429,7 @@ def _crop_targets(
     registry_text = _rewritten_registry_geometry(REGISTRY_PATH, updates, specs)
 
     for path, image in png_writes:
-        image.save(path, format="PNG", optimize=True)
+        path.write_bytes(raster.encode_png(image))
     for path, text in svg_writes:
         path.write_text(text, encoding="utf-8")
     REGISTRY_PATH.write_text(registry_text, encoding="utf-8")
@@ -512,12 +502,11 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     print("origin compensations to apply at the call sites:")
     for item in outstanding:
         dx, dy = item.compensation
-        # **Not "single call site".** That is what this printed when `origin_site` was unset,
-        # and it is a claim the tool has not earned: in v4.31 all three lake sprites came back
-        # as "single call site" and every one of them had two -- the renderer's own blit and
-        # `ThemePreviewScene`'s gallery card. Compensating only the first would have left the
-        # preview's boats shifted by the crop, which is the exact failure this line exists to
-        # prevent. Say what is known instead.
+        # **Not "single call site".** With `origin_site` unset the tool has not resolved the
+        # call sites, and a sprite outside a lookup group can have more than one: the lake
+        # sprites are blitted by the renderer and again by `ThemePreviewScene`'s gallery card.
+        # Compensating only the first would leave the preview's boats shifted by the crop,
+        # which is the exact failure this line exists to prevent. Say what is known instead.
         where = item.origin_site or "call sites NOT resolved -- grep for every blit of this sprite"
         print(f"  {item.key:26} +({dx:g},{dy:g}) units   {where}")
     return 0
@@ -660,11 +649,8 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         help=(
-            "restrict --apply/--apply-trailing to these targets; repeatable. An all-or-nothing "
-            "--apply could not express 'crop the three that drifted' while the pending set mixed "
-            "drift with decisions (the two tree sprites, whose leading margin is a shared blit "
-            "origin, are in EXCLUSIONS since v5.10G); v4.31 needed exactly that, which is why the "
-            "crop it performed is reproducible now."
+            "restrict --apply/--apply-trailing to these targets; repeatable. It crops some of the "
+            "pending targets and leaves the rest, which an all-or-nothing --apply cannot express."
         ),
     )
     normalise.set_defaults(func=cmd_normalize)

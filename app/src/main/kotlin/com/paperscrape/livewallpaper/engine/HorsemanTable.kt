@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * The Headless Horseman (v5.16), in units of the group: the horse's body's middle at (0, 0), the group facing left (the
+ * The Headless Horseman, in units of the group: the horse's body's middle at (0, 0), the group facing left (the
  * drawer mirrors it to fly right). `*_X`/`*_Y` of a piece is where its sprite's top-left blits. **Generated** by
  * `tools/assets/horseman/build_horseman.py` from the geometry it draws the SVGs with; edit that script, not this file.
  */
@@ -29,18 +29,32 @@ internal object HorsemanTable {
     val SEAT_X = floatArrayOf(-1.33f, -0.84f, -0.59f, -0.92f)
     val SEAT_Y = floatArrayOf(-9.36f, -10.42f, -11.23f, -10.01f)
 
-    /** The rider with his pumpkin, and where he blits from the seat. */
-    val RIDER_RES = R.drawable.horseman_rider
-    const val RIDER_X = -15.00f
-    const val RIDER_Y = -52.00f
+    /**
+     * The rider in three pieces, laid in this order: his body (all of him but his near arm and his pumpkin), from the seat;
+     * his near arm, which turns about its pivot at the shoulder to throw -- the pivot from the seat, and where the arm's
+     * sprite blits from the pivot --; and the carved pumpkin he holds up and throws -- its middle from the seat, in his hand
+     * with the arm unturned, where its sprite blits from its middle, and its radius across.
+     */
+    val BODY_RES = R.drawable.horseman_rider_body
+    const val BODY_X = -15.00f
+    const val BODY_Y = -27.00f
+    val ARM_RES = R.drawable.horseman_rider_arm
+    const val ARM_PIVOT_X = 2.60f
+    const val ARM_PIVOT_Y = -19.60f
+    const val ARM_X = -2.60f
+    const val ARM_Y = -16.40f
+    val PUMPKIN_RES = R.drawable.horseman_rider_pumpkin
+    const val PUMPKIN_X = 7.80f
+    const val PUMPKIN_Y = -42.20f
+    const val PUMPKIN_BLIT_X = -7.80f
+    const val PUMPKIN_BLIT_Y = -9.80f
+    const val RIDER_PUMPKIN_RADIUS_UNITS = 7.20f
 
-    /** From the seat: the hand holding the reins, the shoulders (the cape's pivot), and the middle of the pumpkin he holds up. */
+    /** From the seat: the hand holding the reins, and the shoulders (the cape's pivot). */
     const val HAND_X = -13.60f
     const val HAND_Y = -9.60f
     const val SHOULDER_X = 2.00f
     const val SHOULDER_Y = -21.00f
-    const val PUMPKIN_X = 7.80f
-    const val PUMPKIN_Y = -42.20f
 
     /** The cape, and where it blits from its pivot at the shoulders. */
     val CAPE_RES = R.drawable.horseman_cape
@@ -58,8 +72,8 @@ internal object HorsemanTable {
     const val RIDER_BOTTOM = 12.59f
 
     /**
-     * How tall the rider is drawn against an adult walking on the near row of the pavement: Santa's, the maintainer's
-     * *«cavaliere deve diventare 1,3 come babbo natale»* (2026-10-21).
+     * How tall the rider is drawn against an adult walking on the near row of the pavement: Santa's
+     * (`DESIGN_NOTES.md` §12, decision 79).
      */
     const val RIDER_TO_PEDESTRIAN = 1.30f
 }

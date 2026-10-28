@@ -2,6 +2,7 @@ package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.fail
 import java.io.File
@@ -13,7 +14,7 @@ import kotlin.math.abs
  * **Why this runs on a device and not on the JVM.** [SceneCanvas] passes `android.graphics.Paint`
  * through rather than decomposing it, which is the right call for the renderers -- but it means a
  * unit test would be reading colours off the mockable `android.jar`'s stub Paint, which throws.
- * The alternative was a second, JVM-only implementation of the drawing surface, which is the
+ * The alternative would be a second, JVM-only implementation of the drawing surface, which is the
  * parallel renderer this project explicitly does not want: a golden produced by different drawing
  * code proves nothing about the drawing code that ships. So the goldens are produced by
  * [CanvasSceneTarget] -- the same backend that draws the settings preview and the EGL fallback --
@@ -21,93 +22,48 @@ import kotlin.math.abs
  *
  * **What makes a frame reproducible.** [PaperRenderer] is deterministic given a fixed size, theme,
  * customisation, day phase and scene time: every candidate system is seeded from the theme id (see
- * `PaperRenderer.seedFor`), and the two `Random` uses are a seeded one and the lightning timer,
- * which only advances with `deltaSeconds`.
+ * `PaperRenderer.seedFor`), and of its `Random` uses one is seeded, while the lightning timer and the
+ * sky's visitors (`SceneRandom.source`, `Random.Default` unless a test seeds it) move only with
+ * `deltaSeconds`.
  *
- * **That used to be the whole story, because every scene was one frame at `deltaSeconds = 0`.**
- * `warmUpFrames` ended it in v3.8 without anybody noticing what it meant for a storm: a warmed-up
- * scene advances the timer 320 times, and `wave-storm` warmed one up from v4.28 until v5.0, which
- * is 1 render in 32 comparing a frame with a bolt in it against a committed file that has none.
- * The rule that a warmed-up scene must not be an unpinned storm is now a check rather than a
+ * A warmed-up storm advances that timer once per frame -- 320 times for `wave-storm` -- so,
+ * unpinned, it compares a frame with a bolt in it in 1 render of 32 against a committed file that
+ * has none. The rule that a warmed-up scene must not be an unpinned storm is a check rather than a
  * sentence — [GoldenScene.requireDeterministicLightning], run below — and the one scene it applies
- * to satisfies it with [GoldenScene.pinLightning]. `BACKLOG_v4_31.md` item 112.
+ * to satisfies it with [GoldenScene.pinLightning].
  *
- * The lightning *bolt* is therefore still deliberately outside these goldens -- it is a timed
+ * The lightning *bolt* is therefore deliberately outside these goldens -- it is a timed
  * event, and pinning it would mean pinning a random number generator rather than a picture. What
  * the storm golden does pin is everything `StormAtmosphere` drives: the darkened sky, the darkened
  * cloud band and the attenuated sun.
  *
- * ### v5.4 work D re-authored twenty-four of the thirty-three committed frames
- *
- * Twenty-one Canvas PNGs and **all three `gl-*.png`**, from two causes, each attributed with its
- * own diagnostic build before anything was regenerated (`consegna_v5_4d/registri/40_*`):
- *
- *  - **the two shops' declaration** (`BACKLOG_v5_0.md` item 113). The separation pass places a shop
- *    by `SceneSpace.SceneVariant.spriteUnitsTall`; correcting it moved nine shops on eight themes,
- *    `sunset`'s restaurant by 0.18 of a tile. **Twenty-four assertions** went red over those
- *    twenty-one PNGs, 844 to 2 852 px. (The two twenty-fours are a coincidence and are not the same
- *    twenty-four: twenty-four *files* were rewritten — twenty-one Canvas plus the three GL, which
- *    carry no assertions of their own in this harness — and twenty-four *assertions* changed, three
- *    of them on `day` and two on `lake-busy`. This paragraph is written out because the suite's own
- *    notes record that "33 Canvas goldens" has already been read as "33 Canvas files" once.)
- *  - **the umbrella share** (`PedestrianCarry`). Exactly **one** frame, `umbrella-rain`, by
- *    **56 px** — one of `sunset`'s three adults puts its umbrella down, because the share is dealt
- *    now instead of rolled per walker.
- *
- * The two are disjoint and additive, which is what says the attribution is complete: on
- * `umbrella-rain`, the shop cause alone gives 899 px, the umbrella cause alone 56, and the two
- * together exactly **955**. The other nine committed frames are **pixel-identical** to what this
- * device rendered before the change — the environment reproduces the shipped goldens exactly, so a
- * frame that moved, moved because of the code.
- *
- * ### v5.4 work E re-authored two, and the arithmetic of D closes on them
- *
- * The maintainer removed the share: in the rain **every walker who has a carry pose is carrying**.
- * Two frames moved and they are the only two that *could* — an umbrella is state, not a predicate,
- * so a golden rendered at scene time zero shows none whatever the rule is, and `umbrella-rain` and
- * `wave-storm` are the only rainy scenes with a warm-up (320 frames x 0.25 s). `rain`,
+ * **Umbrellas.** In the rain every walker who has a carry pose is carrying, but an umbrella is
+ * state, not a predicate: a golden rendered at scene time zero shows none, so only the rainy scenes
+ * with a warm-up, `umbrella-rain` and `wave-storm` (320 frames x 0.25 s), show them. `rain`,
  * `rain-worst-sky` and `thunderstorm` all rain and all render at zero.
  *
- * Both moved by **56 px**, which is one canopy at this viewport — the same 56 work D measured
- * when one went down. `umbrella-rain`'s theme deals three adults and all three carry again;
- * `wave-storm`'s `beach` deals four and the fourth picks one up.
- *
- * **The sum closes on `umbrella-rain`**, and it is worth writing because it makes work D's
- * attribution checkable from outside: against the v5.4C file, D was **955** and E is **899**, and
- * 899 is exactly D's shop cause on its own. The umbrella went back up in the pixel it came down
- * from. On `wave-storm`, C and D are byte-identical and E differs from both by the same 56.
- *
- * No `gl-*.png` moved, so the three GL references were **not** touched — the protocol below says to
- * leave them unless the Canvas frames of their own scenes change, and none did. Of the nineteen
- * frames `updateGoldens` rewrote, **seventeen came back byte-identical** to the committed files.
- *
- * The three GL references were regenerated for the first time since the BV6600 migration. They had
- * been **passing** on the moved layout, at 899 px against `Tolerance.Gl`'s 0.50 % of the frame —
- * 0.31 %, which is 62 % of the budget spent on one release's change. They are retrievable on this
- * device (Android 10 lets `adb pull` reach the app's external files directory) and were pulled,
- * not transcribed.
+ * **The reference device reproduces the committed goldens exactly**, so a frame that moved, moved
+ * because of the code. The three `gl-*.png` references are pulled from the device with `adb pull`
+ * (Android 10 lets the shell reach the app's external files directory), never transcribed.
  *
  * **Updating a golden.** Never blindly. Run with `-e updateGoldens true`, which writes the new PNGs
  * to the device's external files dir instead of comparing, then look at what changed and say why in
  * the commit. A golden that changed without a reason in the diff is a regression that has just been
  * blessed.
  *
- * **The regeneration protocol, and the one thing v4.26 changed in it.**
+ * **The regeneration protocol.**
  *
  * A regeneration pass is: attribute the change region by region *before* regenerating; regenerate;
- * check the four derived gate rectangles read 0.0000%; move no tolerance; leave the GL references
- * alone unless the Canvas frames of their own scenes changed; and count **assertions**, never files
- * in the golden directory.
+ * move no tolerance; leave the GL references alone unless the Canvas frames of their own scenes
+ * changed; and count **assertions**, never files in the golden directory.
  *
  * The double regeneration -- every changed scene captured twice, in two separate instrumentation
  * runs, compared byte for byte -- exists to show that the noise floor is exactly zero, so that a
- * later difference is the scene changing and never the phone. **From v4.26 it is run only on the
- * scenes whose frames actually changed**, which is `BACKLOG_v4_25.md` item 64 decided by the
- * maintainer. The argument for it: what the check tests is the renderer plus this phone plus this
- * Android build, none of which moves between releases, and it has been clean on four separate
- * executions here across a reboot. The argument it has to answer: a release can introduce
- * non-determinism of its own, and moving the check to "device changed" would remove the one thing
- * that would catch it. Restricting it to changed scenes keeps that, because **a newly
+ * later difference is the scene changing and never the phone. **It is run only on the scenes whose
+ * frames actually changed.** The argument for it: what the check tests is the renderer plus this
+ * phone plus this Android build, none of which moves between releases. The argument it has to
+ * answer: a release can introduce non-determinism of its own, and moving the check to "device
+ * changed" would remove the one thing that would catch it. Restricting it to changed scenes keeps that, because **a newly
  * non-deterministic scene is a changed scene by definition** -- it cannot match its committed
  * golden -- while a scene whose bytes did not move has already demonstrated its own determinism by
  * matching. An unchanged scene is regenerated zero times, not once.
@@ -125,72 +81,48 @@ object SceneGolden {
     const val HEIGHT = 800
 
     /**
-     * How far two frames may differ and still be the same picture. **Zero pixels, since v4.31.**
+     * How far two frames may differ and still be the same picture: **zero pixels.**
      *
      * Anti-aliasing is absorbed **per pixel**, by [CHANNEL_TOLERANCE]: the same scene rendered on
      * two Android versions, or on hardware with a different Skia build, differs by a greyscale
      * level or two along glyph and sprite edges, and a channel tolerance of 8 covers that. This
      * constant is a *second* allowance stacked on top of it -- how many pixels may exceed even
-     * that -- and it was never derived from anything.
-     *
-     * ### Why it was 0.002, and what that permitted
-     *
-     * This KDoc used to end *"small enough that a sprite moving by one pixel fails"*. **Measured
-     * in v4.31, that is false, and the cost of it being false was two releases of silent drift.**
-     * 0.002 of a 360x800 frame is **576 pixels**. `bird_body.png` was not moved by a pixel in
-     * v4.28 -- it was redrawn -- and the six Canvas goldens that were not re-authored with it went
-     * on passing:
-     *
-     * | golden | pixels the stale bird cost | share of the 576 |
-     * |---|---:|---:|
-     * | `lake-dolphin-leap` | 384 | 67 % |
-     * | `lake-boats` | 62 | 11 % |
-     * | `traffic-day` | 14 | 2 % |
-     *
-     * Attributed by mutation rather than by argument: v4.29 built from its own delivery ZIP with
-     * **v4.26's `bird_body.png` swapped back in** renders all three at exactly **0** against their
-     * committed files. A census of `drawable-nodpi/` between the two releases finds **one** sprite
-     * changed, and it is that one. `BACKLOG_v4_31.md` item 104 has the whole measurement, including
-     * that `BACKLOG_v4_30.md` item 98's stated cause -- a wing-flap sine caught across a zero
-     * crossing -- is arithmetically impossible: the closest any bird in any theme at any golden
-     * clock comes to that crossing is `|sin| = 0.0038`, twelve orders of magnitude above the
-     * double-precision noise in an argument of ~1800 radians.
+     * that.
      *
      * ### Why zero, and why zero is not a tuning
      *
-     * Derived the way v4.22 derives a focus gate -- between the measured noise floor and the
-     * weakest regression that must fail:
+     * A gate sits between the measured noise floor and the weakest regression that must fail:
      *
      *  - **the floor is 0.** A Canvas golden that matches differs by exactly zero pixels on the
-     *    reference device. 24 of 30 in v4.30's attribution pass and 15 of 19 in v4.31's
-     *    re-measurement, two independent sessions; every non-zero one had a cause;
-     *  - **the weakest regression that must fail is 14 pixels**, the stale bird in `traffic-day`.
+     *    reference device, in two independent sessions; every non-zero one had a cause;
+     *  - **the weakest regression that must fail is 14 pixels.** A redrawn `bird_body.png` with
+     *    the goldens left as they were costs `lake-dolphin-leap` 384 pixels, `lake-boats` 62 and
+     *    `traffic-day` 14, attributed by mutation: the same build with the previous `bird_body.png`
+     *    swapped back in renders all three at exactly **0**. A wing-flap sine caught across a zero
+     *    crossing cannot be the cause: the closest any bird in any theme at any golden clock comes
+     *    to that crossing is `|sin| = 0.0038`, twelve orders of magnitude above the
+     *    double-precision noise in an argument of ~1800 radians.
      *
-     * The old gate sat **41x above** the weakest thing it has to catch. Anywhere in `[0, 14)` is
-     * defensible and every value but one is arbitrary, so the gate is the floor itself. It is a
-     * tightening and never a raise, and `AI_PROJECT_RULES.md`'s rule about tolerances is about the
-     * other direction.
+     * 0.002 of a 360x800 frame is **576 pixels**, and passes all three. Anywhere in `[0, 14)` is
+     * defensible and every value but one is arbitrary, so the gate is the floor itself. A raise is
+     * the direction that would let a stale golden pass.
      *
-     * A golden that differs at all is now stale until somebody says why, which is what a golden is
-     * for. [MAX_FOCUS_DIFFERING_FRACTION] and the per-focus derived gates are **untouched**: they
-     * measure a small patch where a diagonal really is mostly anti-aliased edge. So are the three
-     * GL references, which answer to [GlGolden]'s own gates and to `GlDriverGapGuardTest`.
+     * A golden that differs at all is stale until somebody says why, which is what a golden is for.
+     *
+     * ### Why there is no second pass over a [GoldenFocus]
+     *
+     * At zero, a frame that passes has no differing pixel anywhere, so it has none inside any patch
+     * of itself: a second count over a focus rectangle, by the same per-pixel rule, could never fail
+     * after this one has passed. A focus is therefore not a gate in this harness. It names the part
+     * of the frame the golden is about, and when the frame fails, the message says how many of the
+     * differing pixels fall inside each focus. **If this fraction is ever raised above zero**, a
+     * small sprite can move or vanish inside the allowance again, and each focus has to become a
+     * gate again with a limit of its own -- below the share of its rectangle the smallest regression
+     * it is about moves. The three GL references answer to [GlGolden]'s own gates, where a focus is
+     * a gate (`GlGolden.Tolerance.Region`), and to `GlDriverGapGuardTest`.
      */
     const val CHANNEL_TOLERANCE = 8
     const val MAX_DIFFERING_FRACTION = 0.0
-
-    /**
-     * The same rule applied to a [GoldenFocus], with a looser fraction and a far smaller area.
-     *
-     * Looser per pixel because a small patch is mostly edges -- a sail is a diagonal, and diagonals
-     * are where anti-aliasing differs between Skia builds. It was also the stricter of the two in
-     * absolute terms while the whole frame allowed 0.2% (576 pixels, until v4.31): 2% of a
-     * 900-pixel patch is 18 pixels, and a dolphin covers about 160 pixels at this frame size, so a
-     * golden about which side of a sail a dolphin is on could not be measured against the old
-     * whole-frame budget -- the sprite could move anywhere, or vanish, and the frame would still
-     * pass. Since v4.31 the whole frame allows no differing pixel ([MAX_DIFFERING_FRACTION]).
-     */
-    const val MAX_FOCUS_DIFFERING_FRACTION = 0.02
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
@@ -203,22 +135,13 @@ object SceneGolden {
             .apply { mkdirs() }
 
     /**
-     * Draws [scene] into a bitmap through [CanvasSceneTarget], the real Canvas backend.
+     * Runs [GoldenScene.warmUpFrames] frames of [scene] into [target] and returns the scene clock they left.
      *
-     * The renderer is built fresh for every scene so nothing -- scroll accumulation, lightning
-     * timer, cached paths -- carries from one golden into the next.
-     */
-    /**
-     * Runs [GoldenScene.warmUpFrames] frames into [target] and returns the scene clock they left.
-     *
-     * The frames are drawn rather than simulated, because "advance the renderer without drawing"
-     * is not a state a running wallpaper is ever in and a golden built from one would be pinning
-     * something the app never does. They land on the same bitmap and are painted over by the frame
-     * that follows, the scene repainting its whole background every frame.
-     *
-     * Shared by both golden harnesses so a scene warms up identically whichever backend draws it —
-     * the GL suite's cross-check against the Canvas golden means nothing if the two ran the scene
-     * for different lengths of time.
+     * Every frame is a whole [PaperRenderer.draw], because "advance the renderer without drawing" is
+     * not a state a running wallpaper is ever in: what a warm-up skips is only the rasterising of
+     * frames nobody compares. [render] hands it [BlankTarget]; the GL harness warms its scenes up on
+     * its own GL target, frame by frame, because there the order the sprites reach the atlas is part
+     * of the picture.
      */
     fun warmUp(renderer: PaperRenderer, target: SceneCanvas, scene: GoldenScene): SceneTime {
         var clock = SceneTime(scene.sceneSeconds)
@@ -229,30 +152,99 @@ object SceneGolden {
         return clock
     }
 
+    /**
+     * Draws [scene] into a bitmap through [CanvasSceneTarget], the real Canvas backend.
+     *
+     * The renderer is built fresh for every scene so nothing -- scroll accumulation, lightning
+     * timer, cached paths -- carries from one golden into the next.
+     *
+     * **The warm-up is drawn on [BlankTarget], the compared frame on the bitmap.** The state a
+     * warm-up leaves is the renderer's and its objects', never the target's: every [SceneCanvas]
+     * call returns nothing, so the scene cannot read anything back from where it draws, and
+     * [CanvasSceneTarget] changes only its own paints and its own shader cache, never a paint the
+     * scene hands it. A sprite's pixels are pulled by the target from `SpriteCache`, which decodes
+     * the same pixels whenever it is asked. So the frame compared is the same frame, and only the
+     * Skia work of the frames before it goes. It starts on a fresh, transparent bitmap, and that
+     * gives the same pixels as starting over earlier frames: the scene paints its sky over the whole
+     * frame first, opaque -- at the [GoldenScene.day] and [GoldenScene.night] hours every warmed-up
+     * golden is taken at, the sky's colours are the theme's own day or night pair, blended at 1 or at
+     * 0, and come out at full alpha -- and draws everything else over it.
+     */
     fun render(scene: GoldenScene): Bitmap {
+        val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
+        scene.configure(renderer)
+        val clock = warmUp(renderer, BlankTarget, scene)
         val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val target = CanvasSceneTarget()
         target.bind(Canvas(bitmap))
-        val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
-        scene.configure(renderer)
-        val clock = warmUp(renderer, target, scene)
         renderer.draw(target, scene.dayPhase, clock, 0f)
         target.unbind()
         return bitmap
     }
 
     /**
-     * Renders [scene] and asserts it still looks like its committed golden.
-     *
-     * [extraFocus] adds focus rectangles **at the assertion site**, on top of whatever the scene
-     * itself declares. It exists for one situation and should not grow past it: two tests that
-     * describe the same scene must share one PNG (see `GoldenUniquenessTest`), and when one of
-     * those scenes is a [SharedGoldenScenes] entry it cannot absorb the other's focus — the GL
-     * suite iterates `scene.focus` too, so a rectangle added there would silently change what
-     * `GlSceneGoldenTest` measures against `gl-<name>.png`. Passing it here instead leaves the
-     * shared scene object untouched and keeps the extra rectangle in the suite that owns the claim.
+     * A [SceneCanvas] that draws nothing: what a warm-up is drawn on when only the state it leaves is
+     * wanted ([render]). Every call is accepted and dropped, so the scene runs exactly as it does on
+     * a real target.
      */
-    fun assertMatches(scene: GoldenScene, extraFocus: List<GoldenFocus> = emptyList()) {
+    object BlankTarget : SceneCanvas {
+        override fun save() = Unit
+        override fun restore() = Unit
+        override fun translate(dx: Float, dy: Float) = Unit
+        override fun scale(sx: Float, sy: Float) = Unit
+        override fun rotate(degrees: Float) = Unit
+        override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
+        override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
+        override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
+        override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
+        override fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: Paint) = Unit
+        override fun drawShape(shape: SceneShape, paint: Paint) = Unit
+        override fun drawVerticalGradientShape(
+            shape: SceneShape,
+            gradientTopY: Float,
+            gradientBottomY: Float,
+            topColor: Int,
+            bottomColor: Int,
+            alpha: Int,
+        ) = Unit
+        override fun drawVerticalGradientRect(left: Float, top: Float, right: Float, bottom: Float, topColor: Int, bottomColor: Int) = Unit
+        override fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) = Unit
+        override fun drawSprite(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+        ) = Unit
+        override fun drawSpriteClipped(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+            clipLeft: Float,
+            clipTop: Float,
+            clipRight: Float,
+            clipBottom: Float,
+        ) = Unit
+        override fun drawDisc(resId: Int, source: SpriteSource, cx: Float, cy: Float, radius: Float, colour: Int, alpha: Int) = Unit
+    }
+
+    /**
+     * Renders [scene] and asserts it still looks like its committed golden: not one pixel beyond
+     * [CHANNEL_TOLERANCE] ([MAX_DIFFERING_FRACTION]), over the whole frame.
+     *
+     * One assertion per committed PNG: a second assertion of the same scene against the same file,
+     * at the same zero, fails and passes with the first on every change, so it carries nothing of its
+     * own (see `GoldenUniquenessTest` for the files). The scene's [GoldenScene.focus] rectangles are
+     * not a second pass ([MAX_DIFFERING_FRACTION] says why); a failure reports how many of the
+     * differing pixels fall inside each.
+     */
+    fun assertMatches(scene: GoldenScene) {
         scene.requireDeterministicLightning()
         val actual = render(scene)
         assertReproducesOverTime(scene, actual)
@@ -286,34 +278,19 @@ object SceneGolden {
         val fraction = differing.toDouble() / (WIDTH * HEIGHT)
         if (fraction > MAX_DIFFERING_FRACTION) {
             reject(scene, actual, expected)
+            // Where the change fell against what the golden is about: a report, not a second gate.
+            val inFocus = scene.focus.joinToString("") { focus ->
+                " Inside '${focus.label}' (${focus.left},${focus.top})-(${focus.right},${focus.bottom}): " +
+                    "${countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)} " +
+                    "of ${focus.area}."
+            }
             fail(
                 "Golden '${scene.name}' changed: $differing pixels differ by more than " +
                     "$CHANNEL_TOLERANCE per channel (${"%.3f".format(fraction * 100)}%, limit " +
-                    "${"%.3f".format(MAX_DIFFERING_FRACTION * 100)}%). The rendered frame and a " +
+                    "${"%.3f".format(MAX_DIFFERING_FRACTION * 100)}%).$inFocus The rendered frame and a " +
                     "diff are in ${outputDir()}. If the change was intended, say why before " +
                     "regenerating the golden.",
             )
-            return
-        }
-
-        // The second, tighter pass, for scenes that are about one small part of the picture. See
-        // [MAX_FOCUS_DIFFERING_FRACTION], and [GoldenFocus.maxDifferingFraction] for the derived
-        // per-focus gates of v4.22.
-        for (focus in scene.focus + extraFocus) {
-            val inFocus = countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
-            val focusFraction = inFocus.toDouble() / focus.area
-            if (focusFraction > focus.maxDifferingFraction) {
-                reject(scene, actual, expected)
-                fail(
-                    "Golden '${scene.name}' changed inside '${focus.label}' " +
-                        "(${focus.left},${focus.top})-(${focus.right},${focus.bottom}): $inFocus of " +
-                        "${focus.area} pixels differ (${"%.4f".format(focusFraction * 100)}%, limit " +
-                        "${"%.4f".format(focus.maxDifferingFraction * 100)}%). This is the part of " +
-                        "the frame the golden is about; the whole frame passed. The rendered frame " +
-                        "and a diff are in ${outputDir()}.",
-                )
-                return
-            }
         }
     }
 
@@ -332,15 +309,13 @@ object SceneGolden {
      *    pair falls in the same one of the nine pictures `drawMoonWithPhase` can paint. (The two
      *    can share an *illuminated* bucket: `illuminated` is `sin^2(pi * phase)`, symmetric about
      *    the full moon, so the pair meets at one phase per half cycle. At that phase they are on
-     *    opposite sides of it, which is a 180 degree rotation and a different picture. Verified
-     *    the hard way: the first mutation written for this check leaked the clock into
-     *    `illuminated` **and not** into `waxing`, and passed.)
+     *    opposite sides of it, which is a 180 degree rotation and a different picture. A mutation
+     *    that leaks the clock into `illuminated` **and not** into `waxing` can pass.)
      *
-     * That last point is why the displacement is large rather than the three hours that exposed
-     * the defect. The leak is a *threshold* crossing: a few hours moves the real moon across a
-     * boundary on two or three days a month and on the rest changes nothing, which is exactly how
-     * `night` stayed green every evening from before v5.4D until the night somebody rendered it
-     * after 22:00.
+     * That last point is why the displacement is large rather than a few hours. The leak is a
+     * *threshold* crossing: a few hours moves the real moon across a boundary on two or three days
+     * a month and on the rest changes nothing, so a short displacement leaves a moon-phase leak
+     * green on most evenings.
      *
      * The pair is `now` and `now + this`, not two fixed instants, so it walks with the calendar:
      * a leak that this pair happens not to separate today is separated by the same check tomorrow.
@@ -362,12 +337,9 @@ object SceneGolden {
      * scenes loses nothing, because "a newly non-deterministic scene is a changed scene by
      * definition -- it cannot match its committed golden". That sentence is true of a scene that
      * is non-deterministic **within a run** and false of one that is non-deterministic **over
-     * time**: `night` matched its committed golden at 19:02 and again at 19:05 and did not match
-     * it at 22:25, on a build that had not changed, because
-     * `PaperRenderer.drawMoonWithPhase` was reading `System.currentTimeMillis()` and the real
-     * moon had crossed from crescent to half. Twenty-one Canvas frames were re-authored in v5.4D
-     * and two more in v5.4E, and nothing in either pass could have noticed that two of the thirty
-     * were not reproducible at all.
+     * time**: a render path that reads `System.currentTimeMillis()` -- the moon's phase is the
+     * one this check is written against -- matches its golden at one hour and not at another, on a
+     * build that has not changed, and no regeneration pass can notice it.
      *
      * Every Canvas golden pays for this, rather than a list of the scenes somebody thought could
      * be affected: a list of scenes that read the clock is a list nobody can maintain, which is
@@ -392,33 +364,15 @@ object SceneGolden {
                 "clock instead of taking it as an input, so this golden can go red on its own " +
                 "without a line of code changing -- and green again later. Both frames are in " +
                 "${outputDir()} as '${scene.name}-now.png' and '${scene.name}-later.png'. Do not " +
-                "re-author the golden: find the read. SunPositionCalculator.moonPhase() was the " +
-                "last one (v5.4G).",
+                "re-author the golden: find the read.",
         )
     }
-
-    /**
-     * The share of [focus] on which two frames disagree, by the same per-pixel rule a golden
-     * uses. Public for the v4.22 gate-derivation tests, which show each derived gate standing
-     * between the measured floor and the regression it must catch rather than asserting that it
-     * does.
-     */
-    fun differingFractionIn(expected: Bitmap, actual: Bitmap, focus: GoldenFocus): Double =
-        countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
-            .toDouble() / focus.area
 
     private fun reject(scene: GoldenScene, actual: Bitmap, expected: Bitmap) {
         write(actual, File(outputDir(), "${scene.name}-actual.png"))
         write(diffImage(expected, actual), File(outputDir(), "${scene.name}-diff.png"))
     }
 
-    /**
-     * The share of the whole frame on which two renders disagree, by the same rule a golden uses.
-     *
-     * Exposed so `TrafficGoldenTest` can show that a plausible traffic regression moves more than
-     * [MAX_DIFFERING_FRACTION] — i.e. that the golden would actually catch it — rather than
-     * asserting that it would.
-     */
     /**
      * Whether the only thing that happened at one pixel is a ground shadow falling on it.
      *
@@ -428,11 +382,10 @@ object SceneGolden {
      * paint, whose colour has nothing to do with what was underneath.
      *
      * Measurements of the form "how tall is this vehicle" sweep a column for pixels that differ
-     * from an empty frame, and they have to skip this. Until the shadow was put on the road it did
-     * not matter: it was drawn 37 units up, inside the body's own outline, so a sweep of the whole
-     * column returned the vehicle's height anyway. On the road the oval straddles the wheel contact
-     * and reaches four units below it, and the same sweep returns the vehicle plus half a shadow --
-     * which is what `VehicleOccupantScaleTest` and `VehicleScalePixelTest` started measuring.
+     * from an empty frame, and they have to skip this: the oval sits on the road, straddling the
+     * wheel contact and reaching four units below it, so a sweep of the whole column would return
+     * the vehicle plus half a shadow, and `VehicleOccupantScaleTest` and `VehicleScalePixelTest`
+     * would measure that.
      *
      * Recognised by its shape rather than by its position: a uniform darkening of what was there,
      * by no more than the shadow's own alpha. Partial coverage along the oval's edge darkens less
@@ -461,6 +414,13 @@ object SceneGolden {
     /** What `drawGroundShadow`'s 0x2E000000 multiplies the background by. */
     private const val SHADOW_FACTOR = (255f - 0x2E) / 255f
 
+    /**
+     * The share of the whole frame on which two renders disagree, by the same rule a golden uses.
+     *
+     * Exposed so `TrafficGoldenTest` can show that a plausible traffic regression moves more than
+     * [MAX_DIFFERING_FRACTION] — i.e. that the golden would actually catch it — rather than
+     * asserting that it would.
+     */
     fun differingFraction(expected: Bitmap, actual: Bitmap): Double =
         countDiffering(expected, actual, 0, 0, WIDTH, HEIGHT) / (WIDTH * HEIGHT).toDouble()
 
@@ -471,8 +431,8 @@ object SceneGolden {
      * [countDiffering]'s tolerance exists for a comparison across Skia builds and Android
      * versions; [assertReproducesOverTime] compares two frames drawn by one process on one device
      * seconds apart, where there is nothing for anti-aliasing to differ about and a single
-     * greyscale level of difference is already a leak. The v5.4G defect would have failed either
-     * way -- it moved whole pixels -- but a clock read that only tinted something would not.
+     * greyscale level of difference is already a leak. A clock read that moves whole pixels fails
+     * either way; one that only tints something fails only here.
      */
     private fun countDifferingExactly(a: Bitmap, b: Bitmap): Int {
         val row = IntArray(WIDTH)
@@ -521,7 +481,7 @@ object SceneGolden {
         return diff
     }
 
-    /** V430_DUMP: with `-e dumpFrames true`, every rendered frame is written out for attribution. */
+    /** With `-e dumpFrames true`, every rendered frame is written out for attribution. */
     private fun dumpIfAsked(name: String, bitmap: Bitmap) {
         val args = androidx.test.platform.app.InstrumentationRegistry.getArguments()
         if (args.getString("dumpFrames") != "true") return
@@ -542,16 +502,17 @@ object SceneGolden {
     }
 
     /**
-     * Also emits a regenerated frame to logcat, base64 in chunks (**v3.8**).
+     * Also emits a regenerated frame to logcat, base64 in chunks.
      *
      * **Because the file on the device is not retrievable.** The frames are written to the app's
      * external files directory, which since Android 11 the `shell` user cannot read — and AGP
      * uninstalls the app after `connectedAndroidTest` anyway, taking the directory with it. A
-     * regenerated golden that nobody can fetch is the same failure the v3.4 diagnostics artefact
-     * had, and `AI_PROJECT_RULES.md` 10.13 is about exactly that: evidence that cannot be
-     * retrieved is not evidence.
+     * diagnostics step exists only to be read: a regenerated golden that nobody can fetch is
+     * evidence that cannot be retrieved, which is not evidence.
      *
-     * Only ever runs under `-e updateGoldens true`, so a normal run pays nothing.
+     * Runs for every frame [write] writes: under `-e updateGoldens true` or `-e dumpFrames true`, and for
+     * a golden that is missing, fails or does not reproduce. A run whose goldens all pass, with neither
+     * argument, pays nothing.
      */
     private fun emitToLogcat(bitmap: Bitmap, name: String) {
         val bytes = java.io.ByteArrayOutputStream()

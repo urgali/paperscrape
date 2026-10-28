@@ -8,8 +8,7 @@ import org.junit.Test
 /**
  * One fire engine, one patrol car, one taxi. Never two.
  *
- * Items 11 and 14 of `BACKLOG_v4_19.md` -- the same defect recorded twice, once from the code and
- * once from a photograph. `pickCarType` rolled each of the ten candidates independently at a tenth
+ * `pickCarType` rolled each of the ten candidates independently at a tenth
  * per special type, and nothing looked at what the other nine had come up as, so a theme could
  * carry two fire engines as easily as one. It was not a corner case: **eight of the twelve shipped
  * themes carried a duplicated special type**, eleven vehicles in total (five patrol cars, three

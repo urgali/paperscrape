@@ -22,26 +22,25 @@ data class LiveWeatherSnapshot(
 /**
  * The one place a [WeatherObservation] becomes something the scene can draw.
  *
- * **Measurements first, summary code second**, which is v2.13's rule and is preserved exactly:
+ * **Measurements first, summary code second**:
  *
  * 1. `snowfall > 0` -> snow;
  * 2. `rain > 0 || showers > 0` -> rain;
  * 3. something is measurably falling but no field said which kind: the code picks between snow and
  *    rain, defaulting to rain;
  * 4. **every measurement the provider reported is zero: nothing is falling.** The code does not get
- *    a vote here, and that is the whole of the v2.14 fix -- see below;
+ *    a vote here -- see below;
  * 5. the provider reported no measurements at all: only then does the code decide whether anything
  *    falls.
  *
  * The principle is one sentence: **a measurement, where one exists, is the answer.** A code is an
- * interpretation and millimetres are an observation. They disagree in both directions and each
- * direction has been shipped as a bug:
+ * interpretation and millimetres are an observation. They disagree in both directions:
  *
- * - v2.12 read only the code, so a shower that had just stopped -- millimetres still above zero
- *   under an overcast code -- drew a dry, fully clouded sky. Steps 1-3 are that fix.
- * - v2.13 added the measurements but left the code as an *unconditional* fallback, so the reverse
- *   became possible and was measured on a clean emulator at 13:15 on 2026-08-21 for Florence
- *   (43.77925, 11.24626): Open-Meteo returned `weather_code: 80` ("slight rain showers") with
+ * - read alone, the code makes a shower that has just stopped -- millimetres still above zero
+ *   under an overcast code -- a dry, fully clouded sky. Steps 1-3 prevent it.
+ * - kept as an *unconditional* fallback, the code rains over measurements that say nothing falls,
+ *   measured at 13:15 on 2026-08-21 for Florence (43.77925, 11.24626): Open-Meteo returned
+ *   `weather_code: 80` ("slight rain showers") with
  *   `precipitation: 0.00, rain: 0.00, showers: 0.00, snowfall: 0.00` and `cloud_cover: 100`. Four
  *   measurements said nothing was falling, the code outvoted all four, and the wallpaper rained.
  *   Fifteen minutes earlier the same coordinates had returned `weather_code: 3` with the same four
@@ -123,14 +122,13 @@ object WeatherSnapshotMapper {
             // **A storm the scene draws is a storm something is falling out of.**
             //
             // This field is the renderer's vocabulary, not the observation's: it asks "should the
-            // sky flash", and the answer has to survive the same test every other effect does.
-            // `isThunderstorm` used to be the condition alone, so a thunderstorm code with every
-            // measurement reading zero -- the exact code-flapping shape documented above, where
-            // Open-Meteo alternated 3 and 80 over a dry Florence hour -- would have flashed
-            // lightning over a sky with no rain in it, on a code nobody can vouch for. (The theme's
-            // own storm toggle is another matter: it asks for Rain chosen and Show Rain/Snow on, not
-            // for drops, and flashes at 0 % intensity too -- a dry thunderstorm the maintainer kept
-            // on 2026-10-04, inventory I-292. This comment used to say it required rain to fall.)
+            // sky flash", and the answer has to survive the same test every other effect does. On the
+            // condition alone, a thunderstorm code with every measurement reading zero -- the
+            // code-flapping shape documented above, where Open-Meteo alternated 3 and 80 over a dry
+            // Florence hour -- would flash lightning over a sky with no rain in it, on a code nobody
+            // can vouch for. (The theme's own storm toggle is another matter: it asks for Rain chosen
+            // and Show Rain/Snow on, not for drops, and flashes at 0 % intensity too: a dry
+            // thunderstorm, `DESIGN_NOTES.md` §12, decision 44.)
             isThunderstorm = observation.condition == WeatherCondition.THUNDERSTORM &&
                 precipitationType != null,
             fetchedAtMillis = observation.observedAtMillis,

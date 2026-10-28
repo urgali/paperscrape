@@ -66,8 +66,7 @@ class BackgroundLocationManifestTest {
      * back it.
      *
      * If this fails, one of two things happened. Either somebody added the permission -- in which
-     * case the runtime evidence in `RELEASE_HISTORY.md` under v4.6 says it was not needed on
-     * Android 17, and the diff should say what changed. Or a dependency started merging it in, in
+     * case the diff should say why: it was measured not to be needed on Android 17. Or a dependency started merging it in, in
      * which case it needs a `tools:node="remove"`, because a permission the app never checks still
      * shows the user a prompt and still needs a Play declaration.
      */

@@ -1,17 +1,17 @@
-"""Santa's sleigh (v5.15): `sleigh/build_sleigh.py` draws it and declares it, from one geometry.
+"""Santa's sleigh: `sleigh/build_sleigh.py` draws it and declares it, from one geometry.
 
-The maintainer chose the sleigh B with its side raised (2026-10-19) and a size in proportion to the people. These hold
+The sleigh is `DESIGN_NOTES.md` §12, decision 73: its side raised, and a size in proportion to the people. These hold
 that every file the generator writes -- the five SVG sources, the five PNGs the pipeline renders of them and
 `SantaSleighTable.kt` -- is its output today; that no piece of any colour of the group as the renderer draws it -- its
 pieces and its cords, in the order `SantaSleighDrawer.draw` draws them, at every moment of a stride (Rudolph in each of his
 four poses, the second reindeer half a stride behind, both bobbing, the sleigh swaying) -- is under 2 px everywhere at the
-BV6600's size: each holds a square of 2 px somewhere (until v5.15C2 the composition left the cords out, and the reins,
-drawn over everything, cut 62 pieces under 2 px); that the buckle's four bars and its hole are 2 px or more where they
-show, not only somewhere (its lower bar was 1.66 px until v5.15C2); that the cords are 2 px or more; that the points the
+BV6600's size: each holds a square of 2 px somewhere (the cords are in the composition: a cord cuts the papers it
+crosses); that the buckle's four bars and its hole are 2 px or more where they show, not only somewhere (a thin bar
+joined to the frame's thick sides passes the rule "somewhere"); that the cords are 2 px or more; that the points the
 renderer hangs the cords on -- the collars, their fronts, the girths and Santa's fist --, the nose and the gifts from lie
 on the paper they belong to, and that the traces reach the sleigh (their end, a quarter to half a unit off the sleigh's
-edge, is within the trace's round end of it: since v5.15D); that Rudolph's red nose covers his brown one; and that the
-Santa the size is measured on is the Santa drawn.
+edge, is within the trace's round end of it); that Rudolph's red nose covers his brown one; and that the Santa the size
+is measured on is the Santa drawn.
 
 Run from `tools/assets/`: python3 -m unittest discover -s tests
 """
@@ -33,7 +33,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(TOOL_ROOT / "sleigh"))
 
 import build_sleigh  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 PX = 3
 
@@ -121,7 +121,7 @@ class SleighTest(unittest.TestCase):
         for path, data in self.out.items():
             with self.subTest(file=path.name):
                 self.assertTrue(path.exists(), f"{path} is missing")
-                self.assertEqual(data, path.read_bytes(), f"{path.name} is not what sleigh/build_sleigh.py writes: run it with --res")
+                self.assertTrue(same_output(path, data), f"{path.name} is not what sleigh/build_sleigh.py writes: run it with --res")
 
     def composed(self, pose: int, crisp: bool = False, lead_bob: float = 0.0, sleigh_bob: float = 0.0,
                  only: tuple[str, ...] | None = None) -> Image.Image:
@@ -223,8 +223,8 @@ class SleighTest(unittest.TestCase):
 
     def test_the_group_is_composed_in_the_renderers_order_with_its_cords(self):
         """The composition above is the renderer's: the traces behind everything, the reins over the sleigh and behind
-        the reindeer (v5.15C2; until then the reins were drawn last, over the details they crossed), and the cords are in
-        it -- a composition without them passed while the phone showed 62 pieces under 2 px."""
+        the reindeer (drawn last, the reins would cut the details they cross), and the cords are in it -- a cord cuts the
+        papers it crosses, so a composition without the cords passes pieces under 2 px that the phone shows."""
         self.assertEqual(["traces", "sleigh", "reins", "reindeer", "nose"], drawing_order())
         bare = np.array(self.composed(0, crisp=True, only=("sleigh", "reindeer", "nose")))
         whole = np.array(self.composed(0, crisp=True))
@@ -238,7 +238,7 @@ class SleighTest(unittest.TestCase):
         """The gold frame round the black hole, measured band by band on the sleigh as drawn (crisp, the rim over it):
         the top bar and the bottom bar above and below the hole along its columns, the side bars beside it along its rows,
         and the hole itself -- each 2 px on the BV6600 or more, everywhere it shows. The rule above holds a piece 2 px
-        *somewhere*, which a thin bar joined to the frame's thick sides passed (the lower bar, 1.66 px until v5.15C2)."""
+        *somewhere*, which a thin bar joined to the frame's thick sides passes (a lower bar of 1.66 px, say)."""
         need = math.ceil(2.0 / build_sleigh.px_per_unit_on_the_bv6600() * PX)
         a = np.array(self.crisp["santa_sleigh"]).astype(int)
         def is_(colour):
@@ -294,7 +294,7 @@ class SleighTest(unittest.TestCase):
     def test_the_traces_reach_the_sleigh(self):
         """Where the traces end on the sleigh ([FRONT], `SantaSleighDrawer` draws them there before the sleigh): not on the
         sleigh's paper -- a quarter to half a unit off its edge --, but no farther from it than the trace's round end
-        reaches, half the trace's width, so no sky shows between a trace and the sleigh (v5.15D: no test looked at it)."""
+        reaches, half the trace's width, so no sky shows between a trace and the sleigh."""
         a = np.array(self.images["santa_sleigh"])[:, :, 3]
         sl = self.table["sleigh"]
         x, y = self.table["front"]
@@ -306,7 +306,7 @@ class SleighTest(unittest.TestCase):
 
     def test_rudolphs_nose_covers_the_reindeers_own(self):
         """Where the renderer puts it, in every pose: not one pixel of the brown nose is left around Rudolph's red one
-        (until v5.15C2 only the radii were compared, so a nose drawn on the eye passed)."""
+        (comparing the radii alone passes a nose drawn on the eye)."""
         self.assertGreaterEqual(build_sleigh.RUDOLPH_NOSE_RADIUS, build_sleigh.DEER_NOSE_RADIUS + 0.3)
         brown = np.array([int(build_sleigh.DEER["nose"][i:i + 2], 16) for i in (1, 3, 5)])
         for pose in range(4):

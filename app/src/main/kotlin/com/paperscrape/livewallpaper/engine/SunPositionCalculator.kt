@@ -1,6 +1,5 @@
 package com.paperscrape.livewallpaper.engine
 
-import java.util.TimeZone
 import kotlin.math.PI
 import kotlin.math.acos
 import kotlin.math.sin
@@ -32,7 +31,7 @@ object SunPositionCalculator {
         /**
          * The clock hour this phase was computed for, wrapped onto 0..24.
          *
-         * Carried so that anything scheduled on the clock -- the business hours are the first --
+         * Carried so that anything scheduled on the clock -- the business hours among them --
          * reads **the hour that moved the sun**, whether that came from the real clock or from
          * the user's `fixedHour`. Reading a clock of its own is exactly the defect this field
          * exists to make unnecessary: a scene frozen at 23:00 whose shops keep daytime hours
@@ -44,25 +43,25 @@ object SunPositionCalculator {
          *
          * Carried for exactly the reason [hour24] is, and it is the same defect one field over:
          * **anything the scene draws must arrive as an input to the frame, not be fetched from a
-         * clock while the frame is being painted.** Until v5.4G `PaperRenderer.drawMoonWithPhase`
-         * called [moonPhase] itself, with its `System.currentTimeMillis()` default, so a scene
-         * whose hour, theme, customisation and scene clock were all pinned still drew a moon
-         * chosen by the phone. Rendered three hours apart on one build, `night` moved by 17
-         * pixels and `shops-closed-night` by 39: the two goldens that had been green at 19:02
-         * were red at 22:25, because the phase had crossed a sprite boundary and the code had
-         * not changed at all.
+         * clock while the frame is being painted.** A `PaperRenderer.drawMoonWithPhase` that
+         * called [moonPhase] itself, with its `System.currentTimeMillis()` default, would draw a
+         * moon chosen by the phone in a scene whose hour, theme, customisation and scene clock
+         * are all pinned. Rendered three hours apart on one build, `night` would move by 17
+         * pixels and `shops-closed-night` by 39: two goldens green at 19:02 would be red at
+         * 22:25, because the phase crosses a sprite boundary while the code does not change at
+         * all.
          *
          * The live wallpaper passes the real phase every frame (see [PaperWallpaperService]); a
          * caller that does not name one gets [FIXED_MOON_PHASE], so its frame is a function of
          * what it wrote down.
          *
-         * **A `var`, and only for [DayPhaseCache]** (v5.10B). The engine keeps one phase and
+         * **A `var`, and only for [DayPhaseCache]**. The engine keeps one phase and
          * recomputes it when the hour or the sun's times change -- once a minute -- but the moon's
          * phase, as a `Float`, moves several times a second, and near a new moon every frame; a new
-         * object each time was an allocation a frame on the render thread. The cache writes the new
+         * object each time would be an allocation a frame on the render thread. The cache writes the new
          * value into its own instance before the frame is drawn, so the frame still receives the
-         * moon as an input. Nothing else writes it but the night by day's own copy (`PaperRenderer.nightOverDay`, v5.16),
-         * which takes the frame's value the same way.
+         * moon as an input. Nothing else writes it but the night by day's own copy (`PaperRenderer.nightOverDay`)
+         * and the still moon's (`PaperRenderer.stillMoon`), which take the frame's value the same way.
          */
         var moonPhase: Float,
     )
@@ -70,10 +69,10 @@ object SunPositionCalculator {
     /**
      * How long the light lasts, given the two clock times that bound it.
      *
-     * **A day is an arc on a circle, not an interval on a line**, and that is the whole of the
-     * v3.2 fix. `sunset - sunrise` is only the day length when the two happen to fall on the same
-     * civil date; where they do not, it is a negative number that used to propagate straight into
-     * the arc arithmetic. Sunset after midnight is not exotic — [approximateSunriseSunset] puts
+     * **A day is an arc on a circle, not an interval on a line.** `sunset - sunrise` is only the
+     * day length when the two happen to fall on the same civil date; where they do not, it is a
+     * negative number, which would propagate straight into the arc arithmetic if it were used as
+     * the length. Sunset after midnight is not exotic — [approximateSunriseSunset] puts
      * solar noon at `12 - longitude/15 + utcOffset`, so anywhere sitting west inside its timezone
      * with a long summer day produces it, Iceland and northern Alaska among them.
      *
@@ -106,14 +105,31 @@ object SunPositionCalculator {
         moonPhase: Float = FIXED_MOON_PHASE,
     ): DayPhase {
         val lightHours = dayLengthHours(sunriseHour, sunsetHour)
-        val dayLength = lightHours.coerceAtLeast(1f)
-        val nightLength = (24f - lightHours).coerceAtLeast(1f)
+        // **A day or a night shorter than [MIN_ARC_HOURS] is drawn as one that long**, near the polar circles: it
+        // starts when it really starts and lasts the hour, and the other arc gives up the difference at its own
+        // start. The sun or the moon then crosses its whole arc and the sky meets the other arc's half-light at both
+        // ends, as on any other day. Drawn on its true length over an hour's arc, a day of 35 minutes would leave the sky
+        // at full day and the sun near the zenith at its sunset, and the next frame would be half-light with the moon rising.
+        // The two poles keep their meaning: polar night ([lightHours] 0) is night all day, polar day (24) day.
+        var rise = sunriseHour
+        var set = sunsetHour
+        var light = lightHours
+        if (lightHours > 0f && lightHours < MIN_ARC_HOURS) {
+            set = wrap24(sunriseHour + MIN_ARC_HOURS)
+            light = MIN_ARC_HOURS
+        } else if (lightHours < 24f && lightHours > 24f - MIN_ARC_HOURS) {
+            rise = wrap24(sunsetHour + MIN_ARC_HOURS)
+            light = 24f - MIN_ARC_HOURS
+        }
+        // Only the poles still reach these floors: a night of no length under polar day, a day of none in polar night.
+        val dayLength = light.coerceAtLeast(MIN_ARC_HOURS)
+        val nightLength = (24f - light).coerceAtLeast(MIN_ARC_HOURS)
 
         // Both offsets are measured *around the clock* from their own boundary, so neither cares
         // whether the boundary and `hour24` fall on the same civil date. For a window that does
-        // not wrap this is arithmetically identical to the subtraction it replaces.
-        val sinceSunrise = wrap24(hour24 - sunriseHour)
-        val isDay = sinceSunrise <= lightHours
+        // not wrap this is arithmetically identical to a plain subtraction.
+        val sinceSunrise = wrap24(hour24 - rise)
+        val isDay = light > 0f && sinceSunrise <= light
         val progress: Float
         val dayBlend: Float
         val arcT: Float // 0..1 across the visible arc (day or night)
@@ -126,7 +142,7 @@ object SunPositionCalculator {
             // night. See TERMINATOR_BLEND.
             dayBlend = TERMINATOR_BLEND + (1f - TERMINATOR_BLEND) * smoothEdge(arcT)
         } else {
-            arcT = wrap24(hour24 - sunsetHour) / nightLength
+            arcT = wrap24(hour24 - set) / nightLength
             progress = (0.75f + arcT * 0.5f) % 1f
             dayBlend = TERMINATOR_BLEND - TERMINATOR_BLEND * smoothEdge(arcT)
         }
@@ -158,33 +174,34 @@ object SunPositionCalculator {
      * (`0.02`), so it is not near a boundary that a later change to those thresholds could push
      * it over.
      *
-     * It is also the moon the committed goldens were authored under, which is why fixing the
-     * defect this constant exists for moved **no** golden: see the v5.4G report.
+     * It is also the moon the committed goldens are authored under, so a golden that names no
+     * phase draws the moon it always drew.
      */
     const val FIXED_MOON_PHASE = 0.125f
 
     /**
      * The blend at sunrise and at sunset -- half day, half night, from both sides.
      *
-     * This is what makes the two arcs meet. The night arc used to be `1f - smoothEdge(arcT)`,
-     * which is 0 in the middle of the night (correct) but **1 at both of its ends**: the instant
-     * after sunset the sky was painted with full daytime colours, and it then took 12% of the
-     * night -- over an hour in summer -- to darken. The day arc ended at 0 at that same instant,
-     * so the blend jumped from full night to full day across the terminator and slid back down,
-     * with the moon already climbing. That is the "the moon rises while it is still daylight"
-     * report from the Pixel 9, and it was never about the moon's timing: the moon appears exactly
-     * at sunset, which is right, into a sky that had been told it was noon.
+     * This is what makes the two arcs meet. A night arc of `1f - smoothEdge(arcT)` would be 0 in
+     * the middle of the night (correct) but **1 at both of its ends**: the instant after sunset
+     * the sky would be painted with full daytime colours, and it would then take 12% of the
+     * night -- over an hour in summer -- to darken. With the day arc ending at 0 at that same
+     * instant, the blend would jump from full night to full day across the terminator and slide
+     * back down, with the moon already climbing: "the moon rises while it is still daylight",
+     * which is never about the moon's timing -- the moon appears exactly at sunset, which is
+     * right, into a sky told it is noon.
      *
      * With both arcs anchored here the blend is continuous: full day, easing to half at sunset,
      * easing on down to full night, and symmetrically at dawn. The sun's and the moon's own
-     * timings are untouched -- [isSunVisible] still flips exactly at sunrise and sunset.
+     * timings are untouched -- [isSunVisible] still flips exactly at sunrise and sunset, but for a day
+     * or a night shorter than [MIN_ARC_HOURS], which ends when its hour does.
      */
     private const val TERMINATOR_BLEND = 0.5f
 
     /**
      * Eases the first/last [TWILIGHT_EDGE_FRACTION] of the arc so twilight fades smoothly
-     * instead of snapping. **The** twilight of this scene; the opening hours borrowed it until v5.14,
-     * and keep a step at the minute since ([BusinessHours]).
+     * instead of snapping. **The** twilight of this scene; the opening hours do not use it, and keep
+     * a step at the minute ([BusinessHours]).
      */
     internal fun smoothEdge(t: Float): Float {
         val edge = TWILIGHT_EDGE_FRACTION
@@ -199,58 +216,10 @@ object SunPositionCalculator {
     internal const val TWILIGHT_EDGE_FRACTION = 0.12f
 
     /**
-     * The local civil hour as a decimal, quantised to the minute -- `HOUR_OF_DAY + MINUTE / 60`.
-     *
-     * Called once per frame by the render loop, which is why it does not use `Calendar`. Both
-     * `Calendar.getInstance(zone)` and the `TimeZone.getDefault()` that fed it allocate -- the
-     * latter hands back a defensive clone -- so at roughly 30 frames a second this was two
-     * objects a frame produced for a value that only changes 1,440 times a day.
-     *
-     * The result is cached for the minute it belongs to and recomputed when the minute rolls
-     * over, so the zone is still re-read every minute and a DST transition or a change of device
-     * time zone is picked up as promptly as it was before. `TimeZone.getOffset(instant)` -- not
-     * `rawOffset` -- is what makes that true, for the same reason the sunrise/sunset caller
-     * documents.
-     *
-     * Synchronised because the two cache fields are only meaningful together. The GPU renderer
-     * gave each wallpaper engine its own render thread, and a process can host two engines at
-     * once, so this is genuinely called from more than one thread; an interleaved read could
-     * otherwise pair one caller's stamp with another's hour and hold a stale time for a whole
-     * minute. It runs once per frame, so the monitor is uncontended in every realistic case.
+     * The shortest day and the shortest night [compute] draws, in hours: a shorter one is drawn this long, so its
+     * twilight ramps take 12 % of an hour each and the sky moves at most 0.07 of its blend in a minute.
      */
-    @Synchronized
-    fun currentHour24(): Float {
-        val nowMillis = System.currentTimeMillis()
-        // Offsets are a whole number of minutes, so a UTC minute boundary is a local one too and
-        // this stamp changes exactly when the returned value can.
-        val minuteStamp = Math.floorDiv(nowMillis, MILLIS_PER_MINUTE)
-        if (minuteStamp != cachedMinuteStamp) {
-            cachedHour24 = hourAt(nowMillis, TimeZone.getDefault())
-            cachedMinuteStamp = minuteStamp
-        }
-        return cachedHour24
-    }
-
-    /**
-     * The same value [currentHour24] returns, for an explicit instant and zone and with no cache.
-     *
-     * Split out so the arithmetic can be tested directly against `Calendar`, which is the
-     * property that matters: this replaced a `Calendar` and has to agree with it exactly, at
-     * every instant, in every zone, across DST transitions.
-     */
-    fun hourAt(epochMillis: Long, timeZone: TimeZone): Float {
-        val localMillis = epochMillis + timeZone.getOffset(epochMillis)
-        val minuteOfDay = Math.floorMod(Math.floorDiv(localMillis, MILLIS_PER_MINUTE), MINUTES_PER_DAY).toInt()
-        // Kept as `hour + minute / 60f`, the exact expression the Calendar version returned, so
-        // the float result is bit-identical rather than merely close.
-        return minuteOfDay / 60 + (minuteOfDay % 60) / 60f
-    }
-
-    private const val MILLIS_PER_MINUTE = 60_000L
-    private const val MINUTES_PER_DAY = 1_440L
-
-    private var cachedMinuteStamp = Long.MIN_VALUE
-    private var cachedHour24 = 0f
+    internal const val MIN_ARC_HOURS = 1f
 
     /**
      * Approximate sunrise/sunset hour (local civil clock, decimal) for a given
@@ -280,8 +249,8 @@ object SunPositionCalculator {
         // day (sun always up) and clamps to -1 -> acos(-1) = pi = a full 24h day arc; very
         // positive (> 1) is polar night (sun never rises) and clamps to +1 -> acos(1) = 0 = a
         // zero-length day arc. Both are then answered explicitly just below, before any clock
-        // arithmetic: polar day as the literal (0, 24), polar night as (noon, noon), whose
-        // zero-length day [compute] floors to one hour.
+        // arithmetic: polar day as the literal (0, 24), polar night as (noon, noon), a day of no
+        // length, which [compute] draws as night all day.
         val clamped = cosHourAngle.coerceIn(-1.0, 1.0)
         val hourAngle = acos(clamped) // radians
 
@@ -299,17 +268,17 @@ object SunPositionCalculator {
         // runs ahead of UTC by longitudeDeg/15 hours (east positive), and civil time runs ahead
         // of UTC by utcOffsetHours -- so civil clock time lags solar time by exactly the
         // difference between the two. This is what actually uses longitude and utcOffsetHours;
-        // the previous `- utcOffsetHours * 0.0` discarded the offset entirely and pinned every
-        // location to a fixed 12:00 solar noon regardless of where in its timezone it sits.
+        // a `- utcOffsetHours * 0.0` would discard the offset entirely and pin every location to
+        // a fixed 12:00 solar noon regardless of where in its timezone it sits.
         val solarNoon = 12.0 - longitudeDeg / 15.0 + utcOffsetHours
         // **Wrapped onto the clock, not clamped into it.** These are civil clock times, and a
         // civil clock is a circle: a day whose light begins at 02:00 and ends at 00:40 is an
-        // ordinary Icelandic June, not an error to be squashed. The `coerceIn(0.0, 23.98)` /
-        // `coerceIn(0.02, 24.0)` this replaces did not move such a day back inside the clock -- it
-        // deleted whichever end did not fit, and reported sunset "at midnight" for a sun that sets
+        // ordinary Icelandic June, not an error to be squashed. A `coerceIn(0.0, 23.98)` /
+        // `coerceIn(0.02, 24.0)` would not move such a day back inside the clock -- it would
+        // delete whichever end did not fit, and report sunset "at midnight" for a sun that sets
         // forty minutes later. `solarNoon` itself can also fall outside 0..24 (Kiritimati keeps
-        // UTC+14 at 157W, which puts its solar noon near 36:30), and the same clamp turned that
-        // into a zero-length day at midnight on the equator.
+        // UTC+14 at 157W, which puts its solar noon near 36:30), and the same clamp would turn
+        // that into a zero-length day at midnight on the equator.
         //
         // Because `0 < hourAngleHours < 12` here -- both poles returned above -- the two results
         // are always distinct, and `dayLengthHours` recovers exactly `2 * hourAngleHours` from
@@ -330,10 +299,10 @@ object SunPositionCalculator {
      * 1 = new moon again. Good to within a few hours, which is more than enough for a wallpaper.
      *
      * **This function is a clock, and only the wallpaper service may call it.** The default
-     * argument is the whole of the v5.4G defect: the renderer used to reach in here while
-     * painting, which made the frame a function of when it was painted rather than of the scene
-     * it was handed. The phase now arrives in [DayPhase.moonPhase], and
-     * `RenderPathReadsNoWallClockTest` is what keeps it that way.
+     * argument reads the wall clock: a renderer reaching in here while painting would make the
+     * frame a function of when it was painted rather than of the scene it was handed. The phase
+     * arrives in [DayPhase.moonPhase], and `RenderPathReadsNoWallClockTest` is what keeps it
+     * that way.
      */
     fun moonPhase(epochMillis: Long = System.currentTimeMillis()): Float {
         val daysSinceReference = (epochMillis - REFERENCE_NEW_MOON_EPOCH_MILLIS) / 86_400_000.0

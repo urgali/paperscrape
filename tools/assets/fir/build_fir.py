@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""The Christmas fir (v5.14): drawn and declared, from one geometry.
+"""The Christmas fir: drawn and declared, from one geometry.
 
-The maintainer, 2026-10-14: *«alberi natalizi - voglio rifare il modello da 0»*; of three firs drawn from
-nothing and photographed on the BV6600 he chose *«A – a palchi (consigliato)»* the same day. This is A: four
-tiers whose hems are cut in a zigzag, each over a darker under-paper, a five-pointed star on the top, ten lights
-on the teeth of the hems, the snow of the winter palette on what is seen of each tier, three presents at the foot.
+The fir A (`DESIGN_NOTES.md` §12, decision 66): four tiers whose hems are cut in a zigzag, each over a darker
+under-paper, a five-pointed star on the top, ten lights on the teeth of the hems, the snow of the winter palette on
+what is seen of each tier, three presents at the foot.
 
 It writes, from one run, the five things that have to agree (and, with ``--res``, the three PNGs rendered from the SVGs):
 
 * ``sources/svg/tree_fir.svg`` -- the fir: the trunk, the under-papers and the tiers, fixed art, one flat colour a
-  card, cut with the scissors' small wobble (``DESIGN_NOTES.md`` §2, "Cut edges, not struck ones");
+  card, cut with the scissors' small wobble: an edge here is cut, not struck with a compass;
 * ``sources/svg/tree_fir_snow.svg`` -- the snow it wears under the winter palette, each tier's cap cut to what is
   seen of that tier (an SVG mask: the tier less the tiers above it, their under-papers and the star), so it rests
   on the shoulders the next tier leaves uncovered;
@@ -18,14 +17,14 @@ It writes, from one run, the five things that have to agree (and, with ``--res``
 * ``app/.../engine/FirTable.kt`` -- where each of the three blits (its origin, in units from the foot of the trunk),
   where the lights hang, where the presents stand and where the gallery card puts its three baubles;
 * the fir of the Christmas launcher icon, ``res/drawable/ic_launcher_christmas_foreground.xml``, between the two
-  comments that mark it there: the same cards scaled into the box the icon's fir has always had (the star's top at
-  51.9 dp, the trunk's foot at 66.2 dp, centred at 78.5), each tier's snow cut to it by a clip-path and covered by
-  the tiers drawn after it, as in the sprite; three baubles where the card hangs them; the paper shadow every object
-  of the icon carries, its silhouette 1.5 dp right and 2 dp down at a quarter of black; and **the star as large as
-  the icon's star had been** -- 3.8 dp across, its top at 51.9 dp -- where the fir's own, scaled with it, would be
-  1.7 dp across: the maintainer's *«si a tutte»* (2026-10-15) to the row that proposed it.
+  comments that mark it there: the same cards scaled into the icon's box for its fir (the star's top at 51.9 dp,
+  the trunk's foot at 66.2 dp, centred at 78.5), each tier's snow cut to it by a clip-path and covered by the tiers
+  drawn after it, as in the sprite; three baubles where the card hangs them; the paper shadow every object of the
+  icon carries, its silhouette 1.5 dp right and 2 dp down at a quarter of black; and **a star larger than the
+  fir's own** -- 3.8 dp across, its top at 51.9 dp (decision 66) -- where the fir's own, scaled with it, would be
+  1.7 dp across.
 
-Each SVG is trimmed to its content on the 3x grid (``DESIGN_NOTES.md`` §4, rule 3), so each carries an origin of
+Each SVG is trimmed to its content on the 3x grid every sprite is authored on, so each carries an origin of
 its own, derived here with the others. With ``--res`` the three are rendered with the pipeline's own rasteriser
 (``paperscrape_assets.raster``, the PNG ``render`` gives) into ``app/src/main/res/drawable-nodpi/``; with
 ``--check`` nothing is written and the run fails unless every committed output is what this draws
@@ -55,7 +54,7 @@ import io
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent
 sys.path.insert(0, str(ASSETS))
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 SVG_DIR = ASSETS / "sources" / "svg"
 REPO = ASSETS.parent.parent
@@ -94,8 +93,8 @@ LIGHT_RISE = 3.5
 #: Where the three presents stand at the foot, from the trunk, in units (`SceneObjectRenderer.drawFir`).
 GIFTS = (-17.0, -1.0, 14.0)
 #: The centres of the gallery card's three baubles (tinted `star_sparkle`s), from the trunk's foot, top first: on
-#: the hems of the three upper tiers, as the card of the fir A was photographed and chosen (2026-10-14).
-#: `tests/test_fir.py` holds each on the fir's paper.
+#: the hems of the three upper tiers (`DESIGN_NOTES.md` §12, decision 66). `tests/test_fir.py` holds each on the
+#: fir's paper.
 BAUBLES = ((0.0, -84.0), (14.0, -58.0), (-12.0, -32.0))
 
 
@@ -235,7 +234,7 @@ def svg(name, body, box) -> str:
     x, y, w, h = box
     return "\n".join([
         header(W, H, box),
-        f"  <!-- The Christmas fir (v5.14, the maintainer's «A – a palchi (consigliato)», 2026-10-14): {COMMENTS[name]}. "
+        f"  <!-- The Christmas fir (DESIGN_NOTES.md §12, decision 66): {COMMENTS[name]}. "
         f"Generated by tools/assets/fir/build_fir.py: edit that, not this. viewBox {x} {y} {w} {h} in the fir's {W}x{H}-unit "
         f"frame, so it blits at ({x - W // 2},{y - H}) from the trunk's foot (FirTable). -->",
         *body,
@@ -276,13 +275,13 @@ def build():
 
 # ------------------------------------------------------------------ the launcher icon's fir
 #: The box the icon's fir stands in, in dp of the 108-dp vector: the top of the fir's frame, the trunk's foot, the
-#: middle; and the star, as large as the icon's has been since v5.4: 3.8 dp across, its top on the frame's top.
+#: middle; and the star, 3.8 dp across (decision 66), its top on the frame's top.
 ICON_TOP, ICON_FOOT, ICON_CX = 51.9, 66.2, 78.5
 ICON_STAR_WIDTH = 3.8
 #: The paper shadow under every object of the icon: its silhouette moved by this much, at this alpha.
 ICON_SHADOW = (1.5, 2.0)
 ICON_SHADOW_ALPHA = "0.25"
-#: The icon's baubles: a gold and two red, the radius the icon's baubles have always had.
+#: The icon's baubles: a gold and two red, 0.75 dp in radius.
 ICON_BAUBLES = ("#FFF2C230", "#FFC1443B", "#FFC1443B")
 ICON_BAUBLE_RADIUS = 0.75
 ICON_BEGIN = "<!-- The fir: generated by tools/assets/fir/build_fir.py from the drawing of tree_fir; edit that, not this. -->"
@@ -355,7 +354,7 @@ def kotlin_table(origins, lights, baubles) -> str:
     return f'''package com.paperscrape.livewallpaper.engine
 
 /**
- * The Christmas fir (v5.14), in units from the foot of its trunk: where its three pieces blit, where its lights
+ * The Christmas fir, in units from the foot of its trunk: where its three pieces blit, where its lights
  * hang and its presents stand, and where the gallery card hangs its baubles. **Generated** by
  * `tools/assets/fir/build_fir.py` from the same geometry it draws the SVGs with; edit that script, not this file.
  * The fir stands {W} units wide and {H} tall, star included.
@@ -395,7 +394,7 @@ def main(argv) -> int:
     res, check = "--res" in argv, "--check" in argv
     out = build()
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

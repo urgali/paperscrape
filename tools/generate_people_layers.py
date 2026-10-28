@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes the people as **fixed art plus four region weight masks** (v4.30).
+"""Writes the people as **fixed art plus four region weight masks** (``DESIGN_NOTES.md`` §12, decision 27).
 
 Run from the repo root with the pinned venv:
 
@@ -26,7 +26,7 @@ A weight interpolates and a region index does not. The sprite is halved on the C
 and sampled bilinearly by the GPU, so it is averaged twice before it reaches the screen; halfway
 between "skin" and "shirt" is not a region, but halfway between two weights is a weight. Measured
 on the device's own draw path, a region index is out by dE 5-8 on 42% of the pixels and a weight by
-at most 1.5 with none over 2 (the layer investigation's report, §2.1-2.3).
+at most 1.5 with none over 2.
 
 And the mask is **summed**, not laid over. Two source-over layers split the pixel's coverage
 between them, and ``a + b(1-a)`` is not linear -- so once the engine halves each layer separately
@@ -53,8 +53,8 @@ resolves it -- and the alpha channel that comes back is the figure's, pixel for 
 A mask is **white with the weight in its alpha**: ``alpha = round(255 * W)``, ``rgb = 255``.
 ``BitmapFactory`` premultiplies on load, so what the texture carries is ``rgb * alpha / 255 = W``
 -- the product the engine multiplies the region's colour by -- through **one** quantisation
-instead of two. Splitting the weight between a grey and a coverage, as the investigation's
-prototype did, rounds twice for the same result.
+instead of two. Splitting the weight between a grey and a coverage would round twice for the
+same result.
 """
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ SUFFIX = {
     bpc.REGION_BOTTOM: "mb",
 }
 
-#: Shapes that are drawn by no path and are therefore not converted (`BACKLOG_v4_25.md` item 57).
+#: Shapes that are drawn by no path and are therefore not converted.
 #:
 #: Indoors the season index is 0 whatever the theme does -- *the hat belongs to the street, not to
 #: the room behind the pane* -- so a winter window bust cannot be selected. The four shapes are
@@ -109,9 +109,8 @@ def all_sprites() -> list:
     two paths that produced the PNGs in ``res``, so nothing here is a second drawing of the same
     figure.
 
-    **All four families carry since v5.4H.** ``bpc.KINDS`` rather than the two adults: the children
-    have a pose now, and writing the loop over the table's own family list is what keeps this from
-    being the place that remembers "adults only" after the artwork stopped agreeing.
+    **All four families carry.** The loop runs over ``bpc.KINDS``, the table's own family list, so
+    which families carry is decided by the artwork and is not remembered a second time here.
     """
     sprites = list(bpc.family(STYLE))
     bpc.trim_to_content(sprites, STYLE)
@@ -218,16 +217,15 @@ def build(write: bool = True) -> dict:
                 # **A layer that is byte for byte a layer already written is not written again.**
                 # The carrying pose is the walking pose with one arm redrawn, so its head mask and
                 # its trouser mask are the walker's -- twelve files that would otherwise ship twice
-                # and upload twice. This is the same move `personWalkDrawables` made when it
-                # pointed frame 3 at `walk1`, and `SpriteVariantTest` is what would have caught it
-                # had it not been made: two shipped sprites may not be the same bytes.
+                # and upload twice. Frame 3 names `walk1` for the same reason (`walk_rows`), and
+                # `SpriteVariantTest` holds both: two shipped sprites may not be the same bytes.
                 key = pixels.tobytes()
                 twin = seen.get(key)
                 if twin is not None:
                     alias[name] = twin
                     continue
                 seen[key] = name
-                Image.fromarray(pixels, "RGBA").save(RES / f"{name}.png", optimize=True)
+                (RES / f"{name}.png").write_bytes(raster.encode_png(Image.fromarray(pixels, "RGBA")))
                 report["files"] += 1
         report["shapes"] += 1
     report["alias"] = alias
@@ -270,8 +268,7 @@ def write_table(report: dict) -> None:
             seasons = []
             for season in ("summer", "winter"):
                 # Frame 3 names walk1 deliberately: a four-frame cycle of two poses, and the
-                # passing pose serves both passes -- the choice the retired `personWalkDrawables`
-                # table made (its removal is recorded in `SceneObjectRenderer.kt`).
+                # passing pose serves both passes, with no fourth drawing of the same pose.
                 frames = [f"person_{kind}_{season}_walk{f}" for f in (0, 1, 2, 1)]
                 seasons.append("arrayOf(\n" + "".join(
                     f"                {_slots(f, present[f], alias)},\n" for f in frames) + "            )")
@@ -317,8 +314,8 @@ def write_table(report: dict) -> None:
 import com.paperscrape.livewallpaper.R
 
 /**
- * Which drawables make up each person, now that a person is **drawn rather than shipped in every
- * colour** (v4.30).
+ * Which drawables make up each person, who is **drawn rather than shipped in every colour**
+ * (`DESIGN_NOTES.md` §12, decision 27).
  *
  * A shape is `[fixed, skin, head, top, bottom]`: the fixed art, then one weight mask per
  * colourable region, `0` where the shape has no such region. The engine draws the fixed layer and
@@ -350,12 +347,11 @@ internal object PeopleLayerTable {{
     )
 
     /**
-     * The carrying pose: `[kind][season][frame]`, **all four families since v5.4H**.
+     * The carrying pose: `[kind][season][frame]`, **all four families**.
      *
-     * It was two families, and `PedestrianCarry.canHold` is written to read this array's own length
-     * rather than a copy of the number -- so the children started carrying the moment the artwork
-     * landed here, with no second edit and no rule to change. That was the arrangement v5.4E left
-     * behind on purpose.
+     * `PedestrianCarry.canHold` reads this array's own length rather than a copy of the number, so
+     * which families carry is decided by the artwork written here, with no second edit and no rule
+     * to change.
      */
     val CARRY = arrayOf(
 {carry_rows()}
@@ -364,10 +360,9 @@ internal object PeopleLayerTable {{
     /**
      * The window busts: `[kind]`, **summer only**.
      *
-     * There is no season axis any more, and its absence is the closure of `BACKLOG_v4_25.md` item
-     * 57. Indoors the season index was always 0 -- *the hat belongs to the street, not to the room
-     * behind the pane* -- so the winter column named twelve recolours no draw path could reach.
-     * They are retired, and so is the column that pretended otherwise.
+     * No season axis: a person at their window is indoors -- *the hat belongs to the street, not to
+     * the room behind the pane* -- so a window bust wears the same clothes in every theme, and the
+     * winter busts are not converted into layers (`RETIRED` in `tools/generate_people_layers.py`).
      */
     val WINDOW = arrayOf(
 {window_rows()}

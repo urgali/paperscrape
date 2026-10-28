@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Item 141 (v5.7F): a street saved before v5.6 is given the school it never had, once, on the way
+ * A street saved before v5.6 is given the school it never had, once, on the way
  * in -- and nothing it already had moves.
  *
  * ### Why it can only be an addition

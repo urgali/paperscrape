@@ -13,11 +13,9 @@ import org.junit.Test
  * When a change has to produce a request **now** rather than at the next hourly refresh, and what
  * the settings screen is told about the outcome.
  *
- * The guarantee: turning Live Weather on with a location already available must not wait. On the
- * device it does not -- measured on a Pixel 9, the preference write at 11:45:12.166 produced a
- * request at 11:45:12.183, 17 ms later -- and what this pins is the rule that makes it so, which
- * v2.13 had but stated as a comparison of two fields that a second provider and a second key have
- * since made incomplete.
+ * The guarantee: turning Live Weather on with a location already available must not wait for the
+ * hourly refresh. What this pins is the rule that makes it so, [LiveWeatherInputs.changed]: every
+ * setting that decides whether and where a request can be made, across every provider and key.
  */
 class LiveWeatherRefreshTest {
 
@@ -51,9 +49,9 @@ class LiveWeatherRefreshTest {
     }
 
     /**
-     * The regression this exists to prevent. v2.13 compared the toggle and Open-Meteo's key, which
-     * was complete then; entering the WeatherAPI.com key -- the one thing that turns "no requests
-     * are being made" into "requests can be made" -- would have been missed.
+     * Every provider's key counts: entering the WeatherAPI.com key is the one thing that turns "no
+     * requests are being made" into "requests can be made", and a rule that compares only the
+     * toggle and Open-Meteo's key misses it.
      */
     @Test
     fun `entering either provider's key forces a fetch`() {
@@ -79,9 +77,8 @@ class LiveWeatherRefreshTest {
     // -- location source ----------------------------------------------------------------------------
 
     /**
-     * The Custom -> Phone bug, as a rule. Measured on the Pixel 9: selecting Phone kept fetching
-     * the custom location's coordinates, because a fix was held and nothing recorded which source
-     * it belonged to.
+     * Each choice is its own source, so a held fix is known to belong to one: without it, selecting
+     * Phone after Custom keeps fetching the custom location's coordinates.
      */
     @Test
     fun `each location choice has its own source`() {
@@ -224,17 +221,12 @@ class LiveWeatherRefreshTest {
     }
 
     /**
-     * **The v3.9 fix.** A rejected key is not an unreachable service.
+     * **A rejected key is not an unreachable service.**
      *
-     * v3.8 folded every [WeatherFetchResult.Failed] into [LiveWeatherStatus.FAILED]/[STALE],
-     * whose banner says the provider "could not be reached" -- so an HTTP 401, which is a service
-     * that answered promptly and refused the credential, was reported as a connection problem.
-     * That is what "OpenWeather could not be reached" meant on the device: the request reached
-     * OpenWeather, OpenWeather returned 401, and the app blamed the network.
-     *
-     * Reproduced with a real key: the identical request that returns 200 for a valid key returns
-     * `401 {"cod":401, "message": "Invalid API key..."}` for an invalid one, and v3.8 rendered
-     * both failure kinds with the same sentence.
+     * The banner of [LiveWeatherStatus.FAILED] and [STALE] says the provider "could not be reached".
+     * An HTTP 401 is a service that answered promptly and refused the credential -- OpenWeather
+     * answers an invalid key with `401 {"cod":401, "message": "Invalid API key..."}` -- so folded into
+     * those states it would blame the network for a wrong key.
      */
     @Test
     fun `a rejected key is its own state, not an unreachable provider`() {
@@ -258,8 +250,7 @@ class LiveWeatherRefreshTest {
 
     /**
      * 403 is the same fact as 401 -- the key will not work -- so it must reach the same state, and
-     * it does because [WeatherHttp.statusToFailure] already maps both to
-     * [WeatherFailure.UNAUTHORIZED]. The classification existed in v3.8; nothing consumed it.
+     * it does because [WeatherHttp.statusToFailure] maps both to [WeatherFailure.UNAUTHORIZED].
      */
     @Test
     fun `both rejection statuses reach the rejected-key state`() {
@@ -274,14 +265,14 @@ class LiveWeatherRefreshTest {
     }
 
     /**
-     * The other failures keep v3.8's behaviour exactly. A rejected key is the only one that
-     * changed, because it is the only one where "could not be reached" was false.
+     * The failures where "could not be reached" is true stay stale or failed. A rejected key, a
+     * provider's limit and a refused request are the three where it is false: the provider answered
+     * (`ProviderLimitMessageTest`, `RefusedRequestStatusTest`).
      */
     @Test
     fun `every other failure still reports as a failure`() {
         val untouched = listOf(
             WeatherFailure.NETWORK,
-            WeatherFailure.RATE_LIMITED,
             WeatherFailure.HTTP_ERROR,
             WeatherFailure.MALFORMED_RESPONSE,
         )
@@ -347,8 +338,8 @@ class LiveWeatherRefreshTest {
 
     /**
      * The immediate fetch must not become a shorter polling interval. The hourly refresh is a
-     * separate mechanism and this batch does not touch it: what makes OFF -> ON prompt is that the
-     * cached timer is ignored once, not that the timer got smaller.
+     * separate mechanism: what makes OFF -> ON prompt is that the cached timer is ignored once, not
+     * that the timer is smaller.
      */
     @Test
     fun `forcing a fetch is a one-off, not a faster schedule`() {

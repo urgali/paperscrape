@@ -3,13 +3,13 @@ package com.paperscrape.livewallpaper.engine
 /**
  * How the sky gets from one cloud cover to the next **without the change being a single frame**.
  *
- * ### The report this exists for
+ * ### The jump it prevents
  *
- * > Waking the phone from deep sleep with Live Weather on, the clouds "reset": a small jump, clouds
- * > vanish or appear from nothing, then everything is smooth until the screen goes off and comes
- * > back several minutes later. (The report, translated.)
+ * Without it, when the phone wakes from deep sleep with Live Weather on, the clouds "reset": a small
+ * jump, clouds vanish or appear from nothing, then everything is smooth until the screen goes off
+ * and comes back several minutes later.
  *
- * The scene time was not the cause and the clouds do not move: measured on a BV6600, scene time is
+ * The scene time is not the cause and the clouds do not move: measured on a BV6600, scene time is
  * identical to the last bit across 62.8 s and 302.8 s of screen-off, because it is a per-frame
  * accumulator and `GlRenderThread.idle()` clears `lastFrameNanos` on the way into the park. What
  * actually happens is upstream of the renderer. The Live Weather loop **parks while the engine is
@@ -17,13 +17,14 @@ package com.paperscrape.livewallpaper.engine
  * that fell due behind a dark screen is fetched *at the instant the screen comes back*. A new
  * `cloudCoverFraction` lands, and because the candidate pool admits a cloud by the plain test
  * `CandidateThreshold.of(i) < density`, every candidate whose threshold lies between the old cover
- * and the new one is created or destroyed **in that one frame**. On the measured device a Milan
- * refresh moved 0.87 -> 0.42 and 19 clouds left the sky between two consecutive frames.
+ * and the new one is created or destroyed **in that one frame**. Measured on the BV6600 without
+ * these eases, a Milan refresh moved 0.87 -> 0.42 and 19 clouds left the sky between two
+ * consecutive frames.
  *
- * The fixed candidate pool was built so that a density change would not *relocate* the clouds
- * already in the sky (see `PaperRenderer.drawClouds`), and it does exactly that -- every cloud that
- * survives the change keeps its position to the pixel. It was never meant to govern how the ones
- * at the margin arrive and leave, and that is the half this class adds.
+ * The fixed candidate pool keeps a density change from *relocating* the clouds already in the
+ * sky (see `PaperRenderer.drawClouds`): every cloud that survives the
+ * change keeps its position to the pixel. It does not govern how the ones at the margin arrive
+ * and leave, and that is the half this class adds.
  *
  * ### Two eases, because there are two ways to notice the same event
  *
@@ -32,58 +33,65 @@ package com.paperscrape.livewallpaper.engine
  *  - **Each candidate's opacity** then eases over [FADE_SECONDS] rather than switching, so the one
  *    that does cross arrives as a cloud thickening rather than as a cloud appearing.
  *
- * Either alone leaves half the report standing: the ramp alone still pops each cloud, and the fade
+ * Either alone leaves half the jump standing: the ramp alone still pops each cloud, and the fade
  * alone dissolves the whole margin of the sky at once.
  *
  * ### Why both eases are linear, and why the first observation snaps
  *
  * **Linear, so they arrive.** An exponential ease is never finished, and "never finished" here
  * would mean the drawn cover is forever a hair off the reported one and every cloud forever a hair
- * off opaque -- a permanent, invisible, untestable difference from the scene that ships today. Both
+ * off opaque -- a permanent, invisible, untestable difference from the settled scene. Both
  * eases below reach their target exactly and then stop, so a settled scene is bit-identical to the
- * one this release started from. That is the property the instrumented crossfade test and the 33
- * goldens both rest on.
+ * same scene drawn with no ease at all. That is the property the instrumented crossfade test and
+ * the goldens both rest on.
  *
  * **The first observation snaps.** A fresh engine, and every golden, must draw the sky it was
  * handed on its very first frame rather than ease into it from nothing: easing there would mean a
- * wallpaper that boots to the wrong sky, and 33 goldens that depend on which frame they were
- * captured at. [UNSET] is what distinguishes "has never drawn" from "has drawn 0".
+ * wallpaper that boots to the wrong sky, and goldens that depend on which frame they were
+ * captured at. [UNSET] is what distinguishes "has never drawn" from "has drawn 0". **Only the
+ * first frame**: once a frame has drawn the sky with no cloud in it ([clearSkyDrawn]), a candidate seen for the first
+ * time -- clouds coming into a clear sky, from a forecast or from the theme -- fades in from nothing
+ * like every other.
  *
- * ### The expiry eases too (item 135, v5.7F)
+ * ### The expiry eases too
  *
  * The third way the sky could change in a frame. When the snapshot ages out --
  * `LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS` after the last good reading, with the retries
- * spent -- the scene falls back to the theme's own weather. Until v5.7F that went through
- * [coverToward]'s no-target branch, which resets the ramp: measured, the drawn cover went from 0.87 to
- * the theme's density **in one frame** where the same move as a forecast change takes 270, and
- * the next good reading then snapped again because the ramp had been reset. The maintainer's
- * decision of 2026-09-23 is that "we no longer know what sky it is" deserves the same dissolve as
- * "the sky has changed". [coverLapsingTo] is that path: the same ramp and the same rate, towards
+ * spent -- the scene falls back to the theme's own weather. Through [coverToward]'s no-target
+ * branch, which resets the ramp, the drawn cover would go from 0.87 to the theme's density
+ * **in one frame** where the same move as a forecast change takes 270, and the next good reading
+ * would then snap again because the ramp had been reset. "We no longer know what sky it is"
+ * deserves the same dissolve as "the sky has changed".
+ * [coverLapsingTo] is that path: the same ramp and the same rate, towards
  * the theme's cover instead of the forecast's, and the ramp is kept afterwards so the next reading
  * eases in from where the sky actually is.
  *
  * ### What it does not touch
  *
- * The theme's own sky, while nothing has lapsed. Handing [coverToward] no target (`NaN`) -- Live
+ * The theme's own cover, while nothing has lapsed. Handing [coverToward] no target (`NaN`) -- Live
  * Weather switched off, or off the whole time, or the location or the provider changed so it
  * cannot run -- resets the ramp and returns `NaN`, so the theme's own cloud switch and slider reach
- * `LiveWeatherSceneRules.cloudDensity` exactly as they do today. Those are deliberate acts with a
- * settings screen open in front of them, which is not the event that was reported, and a sky that
- * answers at once is how the user sees the switch worked. Once a lapse has settled the same is
- * true: the theme's slider is followed exactly, frame by frame.
+ * `LiveWeatherSceneRules.cloudDensity` at once: the cover does not ramp. Those are deliberate acts
+ * with a settings screen open in front of them, which is not the jump this smooths. Once a
+ * lapse has settled the same is true: the theme's slider is followed exactly, frame by frame. The
+ * second ease is everybody's: a cloud the switch or the slider adds or removes fades in or out over
+ * [FADE_SECONDS] like any other (`PaperRenderer.drawClouds` asks [opacityOf] of every candidate).
  *
- * Nor precipitation or the storm, on any path: they have never eased, a forecast that stops the
- * rain stops it in a frame, and giving the expiry a rain fade the forecast does not have would make
- * the rarer event the smoother one.
+ * Nor precipitation or the storm, on any path: they do not ease, a forecast that stops the rain
+ * stops it in a frame, and giving the expiry a rain fade the forecast does not have would make the
+ * rarer event the smoother one. **Where** the rain falls follows the clouds: under them while they
+ * are drawn, everywhere with none ([rainEverywhereToward] eases the one into the other over the
+ * clouds' own fade, so rain under the last clouds of a clearing sky spreads to all of it as they go,
+ * and narrows under the first clouds of a sky that clouds over as they come).
  *
  * No allocation and no new artwork: one float, one [FloatArray] sized to the pool, and an alpha
- * argument `SpriteBlitter.drawTinted` has always taken. "No cover" is `NaN`, not `null`, in and out
- * (v5.10B): a `Float?` crossing this API every frame was a boxed `Float` every frame. Neither sprite budget can move, because
+ * argument `SpriteBlitter.drawTinted` takes. "No cover" is `NaN`, not `null`, in and out:
+ * a `Float?` crossing this API every frame would be a boxed `Float` every frame. Neither sprite budget can move, because
  * both count the *set of PNGs* and this adds none -- `SpriteGeometryTest.decodedByteBudget` and
  * `SpriteDrawScaleTest.uploadedTexelBudget` are untouched by construction. **The two tests carry
  * their own ceilings and the measurements behind them; this paragraph deliberately does not
- * re-type either figure.** It used to, and both went stale the release after it was written --
- * the same rot `GlTextureAtlas` and `GlTextureCache` were rewritten to escape.
+ * re-type either figure.** A figure copied here goes stale with the next drawing that moves it,
+ * the same rot `GlTextureAtlas` and `GlTextureCache` are written to escape.
  */
 internal class CloudCoverFade(poolSize: Int) {
 
@@ -98,6 +106,12 @@ internal class CloudCoverFade(poolSize: Int) {
 
     /** Per-candidate opacity in `0..1`, or [UNSET] before that candidate's first frame. */
     private val opacity = FloatArray(poolSize) { UNSET }
+
+    /** Whether a frame has drawn the sky with no cloud ([clearSkyDrawn]): until then a candidate's first sight snaps. */
+    private var skyObserved = false
+
+    /** How much of the sky beyond the clouds the rain falls on, in `0..1`, or [UNSET] before the first frame. */
+    private var rainEverywhere: Float = UNSET
 
     /**
      * The cover to draw this frame, easing toward [target].
@@ -124,7 +138,7 @@ internal class CloudCoverFade(poolSize: Int) {
      *
      * @return the eased cover, to hand `LiveWeatherSceneRules.cloudDensity` exactly as a forecast
      * cover is handed -- or `NaN` once it has arrived, from which frame on the theme's own switch
-     * and slider draw the sky as they do with Live Weather off. Null straight away when nothing
+     * and slider draw the sky as they do with Live Weather off. `NaN` straight away when nothing
      * has ever been drawn from a forecast, because then there is no sky to ease from: that is the
      * first observation, and it snaps for the reason the class KDoc gives.
      */
@@ -148,14 +162,42 @@ internal class CloudCoverFade(poolSize: Int) {
      * The opacity to draw candidate [index] at, easing toward [present].
      *
      * Returns 0 for a candidate that is neither present nor still fading out; the caller skips it,
-     * which is what keeps a settled frame drawing exactly the candidates it draws today.
+     * which is what keeps a settled frame drawing exactly the candidates it would draw unfaded. A candidate
+     * never drawn takes [present] at once on the first frame, and eases in from 0 after it.
      */
     fun opacityOf(index: Int, present: Boolean, deltaSeconds: Float): Float {
         val wanted = if (present) 1f else 0f
         val now = opacity[index]
-        val settled = if (now == UNSET) wanted else approach(now, wanted, deltaSeconds / FADE_SECONDS)
+        val step = deltaSeconds / FADE_SECONDS
+        val settled = when {
+            now != UNSET -> approach(now, wanted, step)
+            skyObserved -> approach(0f, wanted, step)
+            else -> wanted
+        }
         opacity[index] = settled
         return settled
+    }
+
+    /**
+     * How much of the sky the rain falls on beyond the clouds' own field this frame, easing toward all of it while no
+     * cloud is placed ([nothingPlaced]: a clear forecast, the cloud switch off) and toward none while clouds are, at the
+     * clouds' own fade rate ([FADE_SECONDS]): it moves from the frame the clouds start to leave or to come, with them.
+     * The first frame takes its value at once. `CloudCoverage.setFloor` is handed it.
+     */
+    fun rainEverywhereToward(nothingPlaced: Boolean, deltaSeconds: Float): Float {
+        val wanted = if (nothingPlaced) 1f else 0f
+        val now = rainEverywhere
+        val settled = if (now == UNSET) wanted else approach(now, wanted, deltaSeconds / FADE_SECONDS)
+        rainEverywhere = settled
+        return settled
+    }
+
+    /**
+     * Called on a frame that places no cloud and shows none: from the next frame on, a candidate seen for the first time
+     * fades in. A frame that places clouds asks every candidate's opacity, so no candidate is left never seen after it.
+     */
+    fun clearSkyDrawn() {
+        skyObserved = true
     }
 
     /**
@@ -201,7 +243,7 @@ internal class CloudCoverFade(poolSize: Int) {
          * enough that at most a handful of the pool are part-drawn at once while the cover ramp is
          * moving. At [COVER_UNITS_PER_SECOND] the two together mean about three candidates in
          * flight at any instant of the widest step -- three extra sprite blits, against a frame
-         * that already draws up to 41 of them twice over for the tile either side.
+         * that already draws up to 41 of them, each candidate at most once on the screen.
          */
         const val FADE_SECONDS = 1.5f
     }

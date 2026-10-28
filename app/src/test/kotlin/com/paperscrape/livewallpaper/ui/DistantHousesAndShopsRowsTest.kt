@@ -9,10 +9,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The two rows v5.11 adds to World & scene, under `AI_PROJECT_RULES.md` 8.7 (a switch reads on only
+ * Two rows of World & scene, under `DESIGN_NOTES.md` §12, decision 40 (a switch reads on only
  * while the thing happens): *Distant houses* under *Mountains*, and the *Shops* colours beside
  * *Buildings*. The rules are [SettingsUiModel]'s; their use on the screens is pinned by reading the
- * source, as every screen rule here is (no composable runs on the JVM).
+ * source, as every screen rule here is (no composable runs on the JVM): whole lines with the comments
+ * taken off, a page's read in its own function.
  */
 class DistantHousesAndShopsRowsTest {
 
@@ -68,49 +69,51 @@ class DistantHousesAndShopsRowsTest {
 
     @Test
     fun `each group's line says which buildings it is, and with Buildings off why none stands and where`() {
-        val shops = SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, buildingsVisible = true)
+        val shops = SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, buildingsVisible = true, placesOnTheme = true)
         assertTrue(shops.startsWith("The restaurant, the bar and the shop."))
-        val publics = SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, buildingsVisible = true)
+        val publics = SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, buildingsVisible = true, placesOnTheme = true)
         assertTrue(publics.startsWith("The school, the fire station and the police station."))
-        // The street of v5.13: the six take turns in the places, which is what each page has to say -- with no
-        // number since v5.13B2: a built-in street has five, a street saved before it three, a random one its own.
+        // The street's six buildings take turns in the places, which is what each page has to say -- with no
+        // number: a built-in street has five, a street saved by an older version three, a random one its own.
         for (line in listOf(shops, publics)) assertTrue(line.contains("take turns in its places as the scenery scrolls"))
         for (group in StorefrontGroup.values()) {
-            val off = SettingsUiModel.storefrontGroupLine(group, buildingsVisible = false)
+            val off = SettingsUiModel.storefrontGroupLine(group, buildingsVisible = false, placesOnTheme = true)
             assertTrue(off.startsWith("Off"))
             assertTrue(off.contains("Show Buildings"))
             assertTrue("it says where that switch is", off.contains(SettingsUiModel.TOWERS_PAGE))
         }
     }
 
-    /** The screens use the rules, and say where the colours come from (the maintainer's request). */
+    /** The screens use the rules, and say where the colours come from. */
     @Test
     fun `the screens read the rules and name where the distant houses' colours come from`() {
-        val world = File(sourceRoot(), "ui/WorldSceneScreen.kt").readText()
-        val page = world.substring(world.indexOf("private fun DistantHousesSubScreen("))
-        assertTrue(page.contains("SettingsUiModel.distantHouses(config.visible, config.density, mountains)"))
-        assertTrue(page.contains("SettingsUiModel.distantHousesTap(wanted, config.visible, config.density, mountains)"))
-        assertTrue("the row that says the colours come from Houses", page.contains("title = \"Colours: from Houses\""))
-        assertTrue("and takes the user there", page.contains("onClick = onOpenHouses"))
-        assertTrue("the row sits under Mountains", world.indexOf("title = \"Mountains\"") < world.indexOf("title = \"Distant houses\""))
-        val towers = world.substring(world.indexOf("private fun TowersSubScreen("))
-        assertTrue(towers.contains("colourLine = BUILDINGS_COLOUR_LINE"))
-        val groups = world.substring(world.indexOf("private fun StorefrontGroupSubScreen("))
-        assertTrue(groups.contains("StorefrontGroupSection("))
-        assertTrue("the houses' row opens the houses' page", world.contains("onOpenHouses = { activeSection = \"houses\" }"))
+        val world = codeLines("ui/WorldSceneScreen.kt")
+        val page = functionLines(world, "private fun DistantHousesSubScreen(")
+        assertTrue(page.contains("val state = SettingsUiModel.distantHouses(config.visible, config.density, mountains)"))
+        assertTrue(page.contains("when (val tap = SettingsUiModel.distantHousesTap(wanted, config.visible, config.density, mountains)) {"))
+        assertTrue("the row that says the colours come from Houses", page.contains("title = \"Colours: from Houses\","))
+        assertTrue("and takes the user there", page.contains("onClick = onOpenHouses,"))
+        val mountains = world.indexOf("title = \"Mountains\",")
+        assertTrue("the row sits under Mountains", mountains >= 0 && mountains < world.indexOf("title = \"Distant houses\","))
+        assertTrue(functionLines(world, "private fun TowersSubScreen(").contains("colourLine = BUILDINGS_COLOUR_LINE,"))
+        assertTrue(functionLines(world, "private fun StorefrontGroupSubScreen(").contains("StorefrontGroupSection("))
+        assertTrue("the houses' row opens the houses' page", world.contains("onOpenHouses = { activeSection = \"houses\" },"))
         assertTrue(BUILDINGS_COLOUR_LINE.contains("towers' colours"))
         assertTrue(HOUSES_COLOUR_LINE.contains("distant houses"))
-        val sections = File(sourceRoot(), "ui/SceneCategorySections.kt").readText()
-        val shops = sections.substring(sections.indexOf("internal fun StorefrontGroupSection("))
-        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible)"))
-        assertTrue(shops.contains("Modifier.clickable(onClick = onGoToBuildings)"))
-        assertTrue(shops.contains("prefs.resetCategory(category, forThemeId)"))
+        val shops = functionLines(codeLines("ui/SceneCategorySections.kt"), "internal fun StorefrontGroupSection(")
+        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme),"))
+        assertTrue(
+            "the line leads to Buildings only where turning them on would bring the group",
+            shops.contains("modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,"),
+        )
+        assertTrue(shops.contains("val leadsToBuildings = placesOnTheme && !buildingsVisible"))
+        assertTrue(shops.contains("onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },"))
     }
 
     /**
      * **A mountain layer at 0 % draws no mountain** (`CandidateThreshold` keeps none of its pool), so
-     * its switch reads off there and the line says why (decision 40, inventory I-414, found by this
-     * round's review), the distant houses read "Off - needs Mountains", and the card draws neither.
+     * its switch reads off there and the line says why (decision 40), the distant houses read
+     * "Off - needs Mountains", and the card draws neither.
      */
     @Test
     fun `a mountain layer at 0 percent reads off, and so do the houses that would stand on it`() {
@@ -118,13 +121,14 @@ class DistantHousesAndShopsRowsTest {
         assertFalse(layer.copy(visible = true, density = 0f).drawsAny)
         assertFalse(layer.copy(visible = false, density = 1f).drawsAny)
         assertTrue(layer.copy(visible = true, density = 0.01f).drawsAny)
-        val world = File(sourceRoot(), "ui/WorldSceneScreen.kt").readText()
-        assertTrue(world.contains("c.mountainsFront.drawsAny || c.mountainsBack.drawsAny"))
-        val sections = File(sourceRoot(), "ui/SceneCategorySections.kt").readText()
-        val mountain = sections.substring(sections.indexOf("internal fun MountainLayerSection("))
+        assertTrue(
+            codeLines("ui/WorldSceneScreen.kt")
+                .contains("private fun mountainsShown(c: SceneCustomization): Boolean = c.mountainsFront.drawsAny || c.mountainsBack.drawsAny"),
+        )
+        val mountain = functionLines(codeLines("ui/SceneCategorySections.kt"), "internal fun MountainLayerSection(")
         assertTrue(mountain.contains("val shown = SettingsUiModel.amountSwitch(config.visible, config.density)"))
-        assertTrue(mountain.contains("checked = shown.shownOn"))
-        assertTrue(mountain.contains("SettingsUiModel.amountTap(wanted, config.density,"))
+        assertTrue(mountain.contains("checked = shown.shownOn,"))
+        assertTrue(mountain.contains("SettingsUiModel.amountTap(wanted, config.density, (if (front) d.mountainsFront else d.mountainsBack).density),"))
         val theme = com.paperscrape.livewallpaper.engine.ThemeCatalog.byId("autumn")
         val base = com.paperscrape.livewallpaper.engine.defaultCustomizationFor("autumn")
             .copy(distantHouses = DistantHousesConfig(visible = true, density = 1f))
@@ -134,6 +138,30 @@ class DistantHousesAndShopsRowsTest {
         )
         assertTrue("the card draws no mountain at 0 %", com.paperscrape.livewallpaper.engine.ThemePreviewScenes.forTheme(theme, atZero).peaks.isEmpty())
         assertTrue(com.paperscrape.livewallpaper.engine.ThemePreviewScenes.forTheme(theme, base).peaks.isNotEmpty())
+    }
+
+    /** The app's source file [path], its lines trimmed, without comments: a line comment cut off, a comment line dropped. */
+    private fun codeLines(path: String): List<String> =
+        File(sourceRoot(), path).readLines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
+
+    /**
+     * [lines] from the one that starts with [declaration] to the brace that closes the function's body: the first brace
+     * left open, a parameter's default `{}` closing on its own line.
+     */
+    private fun functionLines(lines: List<String>, declaration: String): List<String> {
+        val start = lines.indexOfFirst { it.startsWith(declaration) }
+        assertTrue("$declaration is gone", start >= 0)
+        var depth = 0
+        var opened = false
+        for (i in start until lines.size) {
+            depth += lines[i].split("{").size - lines[i].split("}").size
+            if (depth > 0) opened = true
+            if (opened && depth <= 0) return lines.subList(start, i + 1)
+        }
+        return lines.subList(start, lines.size)
     }
 
     private fun sourceRoot(): File {

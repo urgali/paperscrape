@@ -260,14 +260,10 @@ class SceneSpaceTest {
             SceneSpace.SceneVariant.BUNNY,
             SceneSpace.SceneVariant.EASTER_EGG,
             SceneSpace.SceneVariant.PARASOL,
-            // **v5.4, item 113: the two shops moved down this list and swapped with each other.**
-            // They declared 7.7 m and 8.2 m for a two-storey facade the v5.0 redraw replaced with
-            // a single-storey pavilion; measured off the pieces they actually blit, at the metre
-            // the whole table is argued in, the restaurant is **4.78 m** and the bar 4.53 or
-            // **6.24 m**. So a shop is shorter than a large house and the corner bar is the taller
-            // of the two, which is the opposite of what this chain said while it read the stale
-            // numbers. See [SceneSpace.SceneVariant.RESTAURANT] for why the declaration moved and
-            // not the drawing, and for the v2.7 decision the drawing has not satisfied since v5.0.
+            // **The two shops stand where their drawn heights put them**: measured off the pieces
+            // they blit, at the metre the whole table is argued in, the restaurant is **4.78 m** and
+            // the bar 4.53 or **6.24 m** -- shorter than a large house, the corner bar the taller of
+            // the two. See [SceneSpace.SceneVariant.RESTAURANT].
             SceneSpace.SceneVariant.RESTAURANT,
             SceneSpace.SceneVariant.HOUSE_SMALL,
             SceneSpace.SceneVariant.BAR,

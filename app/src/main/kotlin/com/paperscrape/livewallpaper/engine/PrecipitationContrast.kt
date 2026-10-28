@@ -6,9 +6,8 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### Why this is here and not in the renderer
  *
- * It was a private function of `PaperRenderer` until v5.9C (inventory row I-46), and the test
- * measured a **copy** of it, because the renderer needs a `Context` and cannot be built on the JVM
- * (`ROADMAP.md` B5). A copy is a second definition of the rule: a change to the renderer's would
+ * The renderer needs a `Context` and cannot be built on the JVM, so a test of a function private
+ * to it would measure a **copy** of it. A copy is a second definition of the rule: a change to the renderer's would
  * leave every assertion in the test passing about the old one. The function never needed the
  * renderer -- it is arithmetic on four numbers and a colour -- so it lives where both can call it,
  * and the blend is [SceneColour.blendArgb], which is `ColorUtils.blendARGB` channel for channel and

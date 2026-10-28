@@ -13,7 +13,7 @@ package com.paperscrape.livewallpaper.engine
  *   so the opening hours of the shops and the people at the windows keep the clock's, real or fixed.
  *
  * It darkens nothing that the night does not already darken: the fixed art and the people stay as drawn at every hour
- * (item 123, the maintainer's *«le persone e la scena mi piacciono così come sono»*, 2026-09-15). Pure: the renderer keeps
+ * (the maintainer's *«le persone e la scena mi piacciono così come sono»*, 2026-09-15). Pure: the renderer keeps
  * one instance a phase it is given.
  */
 internal object NightOverDay {

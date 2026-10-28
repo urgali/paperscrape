@@ -20,8 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * The line under a *Show X* switch whose amount is at 0 %, where nothing is drawn (v5.10C, row 8:
- * the maintainer's table said it in these words, «None at 0% density»). See
+ * The line under a *Show X* switch whose amount is at 0 %, where nothing is drawn: the switch reads off
+ * there, and this line says why (decision 40). See
  * [SettingsUiModel.amountSwitch]; the tap that brings them back is [applyAmountTap].
  */
 internal const val NONE_AT_ZERO_LINE = "None at 0% density - tap to bring them back"
@@ -30,6 +30,7 @@ internal const val NONE_AT_ZERO_LINE = "None at 0% density - tap to bring them b
  * Writes what [SettingsUiModel.amountTap] decided: the switch's own flag, or -- turning it on at
  * 0 % -- the amount back to the theme's own and then the flag, so the thing appears instead of the
  * tap changing nothing. Two writes, in that order: in between, the scene is at most what it was.
+ * On a theme whose street has none of the category, nothing.
  */
 internal fun CoroutineScope.applyAmountTap(
     tap: AmountTap,
@@ -42,6 +43,7 @@ internal fun CoroutineScope.applyAmountTap(
             setAmount(tap.amount)
             setVisible(true)
         }
+        AmountTap.NoneOnThisTheme -> Unit
     }
 }
 
@@ -70,12 +72,11 @@ internal fun defaultDensityOf(category: ObjectCategory, forThemeId: String): Flo
 /**
  * Visibility, density, two day/night colour pairs and a reset for one object category.
  *
- * Unchanged from v2.8 in what it is for; since then it has gained the automatic day/night colour
- * modes and the optional switch, label and night-twin slot below. What changed is *where* it is
- * shown: the six seasonal categories used to be expanded inline, one after another, on the single
- * "Seasonal Decorations" screen -- about sixty controls in one scroll, with each category's own
- * season named in a heading far above it. Each one now lives behind its season, reached
- * deliberately, exactly like every Scene Objects category always has been.
+ * With the automatic day/night colour modes, and the optional switch, label and night-twin slot
+ * below. Each of the six seasonal categories shows it behind its season, reached deliberately,
+ * exactly like every Scene Objects category: expanded inline, one after another, on a single
+ * screen, they would be about sixty controls in one scroll, with each category's own season
+ * named in a heading far above it.
  */
 @Composable
 internal fun ObjectCategorySection(
@@ -93,40 +94,52 @@ internal fun ObjectCategorySection(
      *
      * The six seasonal decorations reach this block through `SeasonsScreen.DecorationRows`, which
      * puts the category's switch on the season's own screen and a "X options -- Density and
-     * colours" row directly under it. So the switch was rendered twice for one `config.visible`
-     * and one `setCategoryVisible`, one tap apart, and the second one contradicted the row that
-     * led to it. The World & scene categories have no such outer switch -- there the parent row
-     * only summarises -- so they keep it, and the default is `true`.
+     * colours" row directly under it. Drawn here too, the switch would be rendered twice for one
+     * `config.visible` and one `setCategoryVisible`, one tap apart, and the second one would
+     * contradict the row that led to it. The World & scene categories have no such outer switch --
+     * there the parent row only summarises -- so they keep it, and the default is `true`.
      */
     showVisibilitySwitch: Boolean = true,
     /** What the density slider calls itself -- "Day density" where a night twin sits beside it. */
     densityLabel: String = "Density",
     /**
      * How the density slider prints its value: the per cent, or the caller's words for an end that
-     * means something else -- the cars' "0% - one car" (v5.10E, inventory I-217).
+     * means something else -- the cars' "0% - one car".
      */
     densityValue: (Float) -> String = { "${(it * 100).toInt()}%" },
     /**
      * The line under *Show X* when it is not the 0 % one: "X can appear in every theme", or the
-     * caller's -- the cars', which take the road with them (v5.10E, inventory I-217).
+     * caller's -- the cars', which take the road with them.
      */
     switchSubtitle: String? = null,
     /**
      * Whether at 0 % density the wallpaper draws none of this category -- houses, trees, parasols, the
-     * six decorations -- so the switch reads off there and says so (v5.10C, row 8). Not the
+     * six decorations -- so the switch reads off there and says so (decision 40). Not the
      * buildings, whose places among the houses stay at 0 %, nor the cars, one of which does.
      */
     noneAtZero: Boolean = false,
+    /**
+     * Whether one of the category stands at its density on this theme ([StandingObjects]), for a [noneAtZero] category:
+     * above 0 % a theme's street can keep none, and the switch then reads off too and says so. Read by those alone: the
+     * other categories' switch is their flag.
+     */
+    stands: Boolean,
+    /**
+     * Whether the theme's street has one of the category at all ([StandingObjects.themeHasTrees] and the three like it; for
+     * the buildings, a tower or a place among the houses): where it has none, no amount brings one, so the switch reads
+     * off and locked, says the theme has none, and writes nothing. The slider stays as its switch's stored state makes it.
+     */
+    onTheme: Boolean,
     /** Rendered directly under the density slider -- the cars put their night twin here, so the
      * pair reads as a pair instead of being split by the colour section. */
     afterDensity: @Composable () -> Unit = {},
     /**
      * The line over the two colour pairs: what the colours are for. Buildings says they are the
-     * towers' since the shops have their own (v5.11), Houses that the distant houses wear them too.
+     * towers' since the shops have their own, Houses that the distant houses wear them too.
      */
     colourLine: String = "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
     /**
-     * Whether the category has colours of the user's: not the scarecrows (v5.16), whose drawing is fixed art -- as the
+     * Whether the category has colours of the user's: not the scarecrows, whose drawing is fixed art -- as the
      * people's, which World & scene draws without this block.
      */
     showColours: Boolean = true,
@@ -135,27 +148,36 @@ internal fun ObjectCategorySection(
         if (showTitle) SectionTitle(title)
 
         if (showVisibilitySwitch) {
-            val shown = SettingsUiModel.amountSwitch(config.visible, config.density)
+            val shown = SettingsUiModel.amountSwitch(config.visible, config.density, stands, onTheme)
             val atZero = noneAtZero && shown.noneAtZero
+            val noneOnTheme = shown.noneOnThisTheme
             SettingSwitchRow(
                 title = "Show $title",
-                subtitle = if (atZero) NONE_AT_ZERO_LINE else switchSubtitle ?: "$title can appear in every theme",
-                checked = if (noneAtZero) shown.shownOn else config.visible,
+                subtitle = when {
+                    noneOnTheme -> SettingsUiModel.noneOnThisThemeLine(title.lowercase())
+                    atZero -> NONE_AT_ZERO_LINE
+                    noneAtZero && shown.noneAtThisAmount -> SettingsUiModel.noneAtThisAmountLine(config.density)
+                    else -> switchSubtitle ?: "$title can appear in every theme"
+                },
+                checked = if (noneOnTheme) false else if (noneAtZero) shown.shownOn else config.visible,
+                enabled = !noneOnTheme,
+                // On a street with none of the category the switch is locked, and a tap writes nothing either way: the
+                // stored choice stays ([AmountTap.NoneOnThisTheme]).
                 onCheckedChange = { wanted ->
                     if (noneAtZero) {
                         scope.applyAmountTap(
-                            SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId)),
+                            SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId), stands, onTheme),
                             setVisible = { prefs.setCategoryVisible(category, it, forThemeId) },
                             setAmount = { prefs.setCategoryDensity(category, it, forThemeId) },
                         )
-                    } else {
+                    } else if (!noneOnTheme) {
                         scope.launch { prefs.setCategoryVisible(category, wanted, forThemeId) }
                     }
                 },
             )
         }
 
-        // **Locked while the switch is off** (v5.10E, inventory I-226): it moved and drew nothing. Not
+        // **Locked while the switch is off**: there it would move and draw nothing. Not
         // at 0 %, where the switch reads off because of it and it is how the amount comes back.
         val densityLive = SettingsUiModel.amountSliderEnabled(config.visible)
         PreferenceSlider(
@@ -197,7 +219,7 @@ internal fun ObjectCategorySection(
             )
         }
 
-        // Also the palms, on the Trees page (v5.10E, inventory I-294): `WallpaperPrefs.resetCategory`.
+        // Also the palms, on the Trees page: `WallpaperPrefs.resetCategory`.
         OutlinedButton(
             onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },
             modifier = Modifier.fillMaxWidth(),
@@ -208,16 +230,14 @@ internal fun ObjectCategorySection(
 }
 
 /**
- * The page of one group of the buildings among the houses (v5.13): the shops -- the restaurant, the bar
- * and the shop (v5.11, inventory I-403; the maintainer's *«voglio che i negozi abbiano colore a se,
- * aggiungiamolo»* of 2026-10-06) -- or the public buildings -- the school, the fire station and the
- * police station (v5.13, the maintainer's *«il resto accetto i consigliati»* of 2026-10-11 to the menu
- * G2: four rows in *Landscape*, each with its page).
+ * The page of one group of the buildings among the houses (`DESIGN_NOTES.md` §12, decisions 62 and 63:
+ * four rows in *Landscape*, each with its page): the shops -- the restaurant, the bar and the shop --
+ * or the public buildings -- the school, the fire station and the police station.
  *
  * **A line, the group's opening hours, its colours and a reset.** Whether the buildings stand is *Show
  * Buildings*' (one candidate pool, on the *Towers & offices* page), so there is no *Show* switch and no
  * amount here; with *Show Buildings* off the line says so and a tap on it goes to that page
- * ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying editable as every category's do
+ * ([onGoToBuildings], decision 40), the colours staying editable as every category's do
  * while its switch is off. "Reset Shops to default" and "Reset Public buildings to default" each put
  * back their own group's colours and hours ([WallpaperPrefs.resetCategory]).
  */
@@ -233,15 +253,22 @@ internal fun StorefrontGroupSection(
     onGoToBuildings: () -> Unit,
     /** The group's opening hours, between the line and the colours, as the towers' are on theirs. */
     openingHours: @Composable () -> Unit = {},
+    /**
+     * Whether the street has a place among the houses ([StandingObjects.themeHasPlaces]): with none, none of the group
+     * stands at any setting, the line says so, and it leads nowhere.
+     */
+    placesOnTheme: Boolean,
 ) {
     val category = if (group == StorefrontGroup.SHOPS) ObjectCategory.SHOPS else ObjectCategory.PUBLICS
     val title = storefrontGroupTitle(group)
+    // A tap goes to Show Buildings only where turning it on would bring the group.
+    val leadsToBuildings = placesOnTheme && !buildingsVisible
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            SettingsUiModel.storefrontGroupLine(group, buildingsVisible),
+            SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme),
             style = MaterialTheme.typography.bodySmall,
-            color = if (buildingsVisible) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-            modifier = if (buildingsVisible) Modifier else Modifier.clickable(onClick = onGoToBuildings),
+            color = if (leadsToBuildings) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,
         )
         openingHours()
         DayNightColorPair(
@@ -285,7 +312,7 @@ internal fun MountainLayerSection(
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // On only while the layer draws a mountain (v5.11, inventory I-414, decision 40): at 0 % it
+        // On only while the layer draws a mountain (decision 40): at 0 % it
         // draws none, so the switch reads off, the line says why, and a tap brings the theme's amount back.
         val shown = SettingsUiModel.amountSwitch(config.visible, config.density)
         SettingSwitchRow(
@@ -313,7 +340,7 @@ internal fun MountainLayerSection(
             value = config.density,
             onCommit = { committed -> scope.launch { prefs.setMountainDensity(front, committed, forThemeId) } },
             valueRange = 0f..1f,
-            // With the layer hidden it moved and drew nothing (v5.10E, inventory I-226).
+            // Locked with the layer hidden: there it would move and draw nothing.
             enabled = SettingsUiModel.amountSliderEnabled(config.visible),
         )
     }

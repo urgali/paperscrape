@@ -30,7 +30,7 @@ import kotlin.math.max
  * to be *no*. As a test of *yes* it is far too easy: the shipped adult grip hangs the canopy 59.5
  * units above the feet, and a child is 54 units tall, so **giving a child the adult's grip also
  * puts something above its head** -- floating in the air with the handle across its face, which is
- * the photograph in `V5_4E_REPORT.md` §1.1 and precisely the defect this pass exists to fix.
+ * precisely the defect this pass exists to fix.
  *
  * So each figure is asked **how far above its own head the addition starts** ([CANOPY_MAX_GAP]).
  * A canopy is carried, not hung: its lower edge overlaps the head it covers -- the adult's bottom

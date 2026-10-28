@@ -7,14 +7,17 @@ import com.paperscrape.livewallpaper.engine.BACKUP_SCHEMA_BEFORE_THE_FIELD
 import com.paperscrape.livewallpaper.engine.CUSTOM_THEME_SCHEMA_VERSION
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.UnreadableThemeEntry
 import com.paperscrape.livewallpaper.engine.customThemeEntryFromJson
 import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
+import com.paperscrape.livewallpaper.engine.seasonalCalendarFromJsonString
 import com.paperscrape.livewallpaper.engine.themeKnownAs
 import com.paperscrape.livewallpaper.engine.toJson
 import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
 
 /**
  * The app's whole user-owned state, as one versioned JSON document.
@@ -26,7 +29,8 @@ import org.json.JSONObject
  *
  *  - every global preference — theme, clock, location, weather provider and keys, updates, motion;
  *  - every theme's own customization, for built-ins and for saved themes alike;
- *  - every saved theme: built-in overrides and standalone custom themes, whole.
+ *  - every saved theme: built-in overrides and standalone custom themes, whole -- and the ones this
+ *    build cannot read (a newer build's), as the store keeps them, byte for byte.
  *
  * It deliberately does **not** carry the updater's state (a pending download is not a setting and
  * a restored one would point at a version this install may not want), the resolved GPS fix or its
@@ -40,10 +44,10 @@ import org.json.JSONObject
  * **custom location**. That is the point — a backup that dropped them would not restore a working
  * app — but it makes the file worth protecting, and the export UI says so before writing it. The
  * keys are never logged, never printed by a test, and never included in any diagnostic output.
- * [AppBackup] and [BackupSettings] are data classes, and until v5.8C their generated `toString`
- * printed all three keys, as did a `BackupRepository.ImportResult.Applied` holding one (v5.8B
- * comment audit: nothing printed one, but nothing stopped it). [BackupSettings] now writes its
- * own `toString`, which says how long each key is and never what it is; the others print through it.
+ * [AppBackup] and [BackupSettings] are data classes, whose generated `toString` would print all
+ * three keys, as would a `BackupRepository.ImportResult.Applied` holding one. Nothing prints one,
+ * and to keep anything from doing so [BackupSettings] writes its own `toString`, which says how
+ * long each key is and never what it is; the others print through it.
  *
  * ### Versioning
  *
@@ -135,6 +139,25 @@ data class AppBackup(
         /** What an export writes, and what an import will accept as its own kind of file. */
         const val DOCUMENT_KIND = "paperscrape-app-backup"
 
+        /**
+         * The longest holiday calendar an import keeps as it is written. Every window moved and Easter too is
+         * under a kilobyte; a longer document is read and written back as this build writes it
+         * ([readCalendar]), so a file padded to megabytes cannot reach the preferences, which are read again at
+         * every change of a setting.
+         */
+        const val MAX_CALENDAR_CHARS = 4_096
+
+        /**
+         * The longest place name and API key an import accepts; a longer one in a file leaves the setting as it was.
+         *
+         * The app's own limit too: the place's name and the three keys are kept to this many characters when they are
+         * written (`keptText`), so a backup gives back whatever the app kept. A ceiling far above anything typed or found
+         * there (a key is a few dozen characters; a place found by the search is its name and its country), and it keeps
+         * out a file padded to megabytes, whose text the preferences would read again at every change of a setting. It is
+         * the holiday calendar's ceiling too ([MAX_CALENDAR_CHARS]): the four texts add 16 384 characters at most.
+         */
+        const val MAX_TEXT_SETTING_CHARS = 4_096
+
         fun from(
             settings: WallpaperSettings,
             customThemeData: CustomThemeData,
@@ -174,6 +197,20 @@ data class AppBackup(
         )
     }
 
+    /**
+     * The saved themes a restore writes over [current], the phone's own: this backup's, **with the phone's saved themes
+     * this build cannot read kept** ([CustomThemeData.unreadable]), unless the backup carries the same bytes already.
+     *
+     * Nothing lists or draws those themes, so nothing the user chose in restoring can be about them, and a restore is
+     * a whole-document write: a backup taken by a build that did not carry them -- yesterday's, or another phone's --
+     * would otherwise delete the only copy, which the store keeps so that no write can lose it.
+     */
+    fun themesWrittenOver(current: CustomThemeData): CustomThemeData {
+        val carried = customThemeData.unreadable
+        val kept = current.unreadable.filter { it !in carried }
+        return if (kept.isEmpty()) customThemeData else customThemeData.copy(unreadable = carried + kept)
+    }
+
     /** A one-line, key-free summary for the confirmation dialog an import shows before applying. */
     fun summary(): String = buildString {
         append("${themeCustomizations.size} customised theme")
@@ -208,6 +245,12 @@ sealed interface BackupImportError {
 
     /** A field that must be present and well-formed is not. */
     data class Malformed(val what: String) : BackupImportError
+
+    /**
+     * This install's settings or saved themes cannot be read just now: what a failed write would be put back to, and what
+     * a backup's absent fields would be read against, is unknown, so nothing is applied.
+     */
+    data object Unreadable : BackupImportError
 }
 
 /** Either a document ready to apply, or the reason it was refused. Never a partial result. */
@@ -255,7 +298,7 @@ fun AppBackup.toJsonString(): String = JSONObject().apply {
         JSONObject().apply { for ((id, c) in themeCustomizations) put(id, c.toJson()) },
     )
     // The schema the embedded theme entries are written in, so a future app knows what it is
-    // reading them as. See migrateEmbeddedCustomThemes (BCK-07).
+    // reading them as. See migrateEmbeddedCustomThemes.
     put("customThemeSchemaVersion", CUSTOM_THEME_SCHEMA_VERSION)
     put(
         "overrides",
@@ -265,7 +308,16 @@ fun AppBackup.toJsonString(): String = JSONObject().apply {
         "customThemes",
         JSONArray().apply { for (e in customThemeData.customThemes) put(e.toJson()) },
     )
+    // The saved themes this build cannot read, each item as text (a JSON string), so its bytes come back exactly as
+    // the store keeps them: org.json would re-serialise a parsed object, and those bytes are the only copy. A build
+    // that does not know the key ignores it, as it ignores any other.
+    if (customThemeData.unreadable.isNotEmpty()) {
+        put(UNREADABLE_THEMES_KEY, JSONArray().apply { for (item in customThemeData.unreadable) put(item.itemJson) })
+    }
 }.toString(2)
+
+/** Where a backup carries [CustomThemeData.unreadable]. */
+private const val UNREADABLE_THEMES_KEY = "unreadableThemes"
 
 /**
  * Reads a backup document, or says why it will not.
@@ -295,8 +347,8 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
         ?: return BackupParseResult.Failed(BackupImportError.Malformed("settings"))
 
     val customizations = HashMap<String, SceneCustomization>()
-    // Read once the backup's own themes are, below: a customization written before v5.13 reads its public
-    // buildings' colours against the theme it belongs to (`publicsCarriedOver`), which may be one of them.
+    // Read once the backup's own themes are, below: a customization written without its public buildings'
+    // colours reads them against the theme it belongs to (`publicsCarriedOver`), which may be one of them.
     val customizationEntries = LinkedHashMap<String, JSONObject>()
     root.optJSONObject("themeCustomizations")?.let { obj ->
         for (id in obj.keys()) {
@@ -307,10 +359,10 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
 
     val overrides = HashMap<String, CustomThemeEntry>()
     // The embedded theme entries are in whatever schema the app that wrote this backup used. A
-    // backup written before the version was recorded came from an app at schema 3 (backups since
-    // v4.3, the field since v4.15, 3 -> 4 only in v4.20), so absent means 3: not the legacy 0,
-    // which would re-run 1 -> 2 and corrupt every object's scale, and not current, which until
-    // v5.8C skipped the 3 -> 4 repair and the 4 -> 5 school. See migrateEmbeddedCustomThemes.
+    // backup that records no version came from an app at schema 3 (every app that wrote backups
+    // without the field was at 3), so absent means 3: not the legacy 0, which would re-run
+    // 1 -> 2 and corrupt every object's scale, and not current, which would skip the 3 -> 4
+    // repair and the 4 -> 5 school. See migrateEmbeddedCustomThemes.
     migrateEmbeddedCustomThemes(
         root,
         root.optInt("customThemeSchemaVersion", BACKUP_SCHEMA_BEFORE_THE_FIELD),
@@ -337,16 +389,28 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
         }
     }
 
+    // Kept as the text they were written in; a later read of the store tries each again (`customThemeDataFromJsonString`).
+    // An item that is not a string was not written by an export, and is kept as the text it reads as. A string that is not
+    // a JSON object is no theme at all, and kept it would be pasted into the store's document and break every theme in it.
+    val unreadable = ArrayList<UnreadableThemeEntry>()
+    root.optJSONArray(UNREADABLE_THEMES_KEY)?.let { arr ->
+        for (i in 0 until arr.length()) {
+            when (val item = arr.opt(i)) {
+                is String -> if (isOneJsonObject(item)) unreadable += UnreadableThemeEntry(item)
+                is JSONObject -> unreadable += UnreadableThemeEntry(item.toString())
+                else -> Unit
+            }
+        }
+    }
+
     for ((id, entry) in customizationEntries) {
         val theme = overrides[id]?.theme ?: customThemes.firstOrNull { it.id == id }?.theme ?: themeKnownAs(id)
-        // `runCatching` for the same reason as the two blocks above, and it was missing here
-        // until v5.3 -- the one unguarded call in either parser, and it happened to be the one
-        // that reached the four `getInt`s of `objectVariantConfigFromJson`. Two independent
-        // oversights lining up is what turned a wrong colour into a closed settings screen
-        // (v5.3B audit, S2). The colours are `optInt` now; what it still catches today is a
+        // `runCatching` for the same reason as the two blocks above: no call in either parser is
+        // unguarded, because an exception thrown by a reader downstream would otherwise turn a
+        // wrong value in the file into a closed settings screen. What it catches is a
         // `birds.colors` entry that is not an object (`getJSONObject` in
-        // `sceneCustomizationFromJson`), and it is here so the next reader who adds a throwing
-        // accessor downstream gets a refused document instead of a vanished app.
+        // `sceneCustomizationFromJson`), and it is here so a throwing accessor added downstream
+        // gets a refused document instead of a vanished app.
         customizations[id] = runCatching { sceneCustomizationFromJson(entry, theme) }.getOrNull()
             ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
     }
@@ -362,18 +426,18 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 useLocationForSunTimes = s.optBoolean("useLocationForSunTimes", defaults.useLocationForSunTimes),
                 useCustomLocation = s.optBoolean("useCustomLocation", defaults.useCustomLocation),
                 deviceLocationKind = s.optString("deviceLocationKind", defaults.deviceLocationKind.storageId),
-                // The five numbers here go through `optFinite` like every number in the theme half
-                // (v5.8). They were read raw, so a "NaN" or a 1e300 was accepted and stored in the
-                // preferences, and from then on every "Export backup" failed with "Could not save
-                // the backup: Forbidden numeric value" -- `JSONObject.put` refuses non-finite values.
+                // The five numbers here go through `optFinite` like every number in the theme half.
+                // Read raw, a "NaN" or a 1e300 would be accepted and stored in the preferences, and
+                // from then on every "Export backup" would fail with "Could not save the backup:
+                // Forbidden numeric value" -- `JSONObject.put` refuses non-finite values.
                 customLocationLatitude = s.optFinite("customLocationLatitude", defaults.customLocationLatitude),
                 customLocationLongitude = s.optFinite("customLocationLongitude", defaults.customLocationLongitude),
-                customLocationLabel = s.optString("customLocationLabel", defaults.customLocationLabel),
+                customLocationLabel = s.optTextSetting("customLocationLabel", defaults.customLocationLabel),
                 liveWeatherEnabled = s.optBoolean("liveWeatherEnabled", defaults.liveWeatherEnabled),
-                liveWeatherApiKey = s.optString("liveWeatherApiKey", defaults.liveWeatherApiKey),
+                liveWeatherApiKey = s.optTextSetting("liveWeatherApiKey", defaults.liveWeatherApiKey),
                 weatherProviderId = s.optString("weatherProviderId", defaults.weatherProviderId),
-                weatherApiComApiKey = s.optString("weatherApiComApiKey", defaults.weatherApiComApiKey),
-                openWeatherApiKey = s.optString("openWeatherApiKey", defaults.openWeatherApiKey),
+                weatherApiComApiKey = s.optTextSetting("weatherApiComApiKey", defaults.weatherApiComApiKey),
+                openWeatherApiKey = s.optTextSetting("openWeatherApiKey", defaults.openWeatherApiKey),
                 automaticUpdateCheckEnabled = s.optBoolean("automaticUpdateCheckEnabled", defaults.automaticUpdateCheckEnabled),
                 updateNotificationsEnabled = s.optBoolean("updateNotificationsEnabled", defaults.updateNotificationsEnabled),
                 fixedHour = s.optFinite("fixedHour", defaults.fixedHour),
@@ -382,16 +446,45 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 swipeScroll = s.optBoolean("swipeScroll", defaults.swipeScroll),
                 scrollSpeed = s.optFinite("scrollSpeed", defaults.scrollSpeed),
                 autoThemeByDate = s.optBoolean("autoThemeByDate", defaults.autoThemeByDate),
-                // Absent means the factory calendar, which is also what a backup taken before this
-                // field existed means. Both read back as the empty string.
-                seasonalCalendarJson = s.optString("seasonalCalendar", ""),
+                // Absent means the factory calendar, which is also what a backup written without
+                // this field means. Both read back as the empty string.
+                seasonalCalendarJson = readCalendar(s.optString("seasonalCalendar", "")),
             ),
             themeCustomizations = customizations,
-            customThemeData = CustomThemeData(overrides = overrides, customThemes = customThemes),
+            customThemeData = CustomThemeData(overrides = overrides, customThemes = customThemes, unreadable = unreadable),
         ),
     )
 }
 
+/**
+ * The holiday calendar a backup carries, as the preferences may hold it: **the empty string for the factory
+ * calendar** -- only the windows the user moved are stored, so a document that moves none, however it is written,
+ * is no document -- and a document longer than [AppBackup.MAX_CALENDAR_CHARS] read and written back as this build
+ * writes one, which is under a kilobyte. Anything else is kept as it was written.
+ */
+private fun readCalendar(raw: String): String {
+    if (raw.isEmpty()) return ""
+    val calendar = seasonalCalendarFromJsonString(raw)
+    return when {
+        calendar.isFactory -> ""
+        raw.length > AppBackup.MAX_CALENDAR_CHARS -> calendar.toJsonString()
+        else -> raw
+    }
+}
+
+/** A text setting, or [default] when it is absent or longer than [AppBackup.MAX_TEXT_SETTING_CHARS]. */
+private fun JSONObject.optTextSetting(name: String, default: String): String =
+    optString(name, default).takeIf { it.length <= AppBackup.MAX_TEXT_SETTING_CHARS } ?: default
+
 /** The `DeviceLocationKind` a backup names, or the safe default if it names nothing known. */
 internal fun AppBackup.BackupSettings.locationKind(): DeviceLocationKind =
     DeviceLocationKind.fromStorageId(deviceLocationKind)
+
+/**
+ * Whether [text] is one JSON object and nothing after it. `JSONObject(String)` reads an object and ignores what follows it
+ * (`{}]` reads as `{}`), and an entry kept so would carry the rest into the saved-themes document.
+ */
+private fun isOneJsonObject(text: String): Boolean = runCatching {
+    val tokener = JSONTokener(text)
+    tokener.nextValue() is JSONObject && tokener.nextClean() == '\u0000'
+}.getOrDefault(false)

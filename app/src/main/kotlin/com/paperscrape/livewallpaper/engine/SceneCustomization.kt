@@ -1,24 +1,16 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * Reusable per-category settings: visibility, density, and 2 color variants (each with a
- * day/night version) -- the same customization "shape" applied uniformly to every object
- * category below rather than duplicated per type.
- *
- * Colors: each individual instance of the category is deterministically assigned variant 1 or 2
- * (stable, based on its position -- see `variantIndexFor` in this file), and blends
- * between that variant's day and night color exactly like the rest of the scene does.
+ * One object category's settings: visibility, density and 2 colour variants, each a day/night pair that blends
+ * like the rest of the scene. Each instance takes variant 1 or 2 by a stable coin of its position
+ * (`variantIndexFor`).
  */
 data class ObjectVariantConfig(
     val visible: Boolean,
     /**
-     * 0f..1f — how populated the category is.
-     *
-     * For static categories, the fraction of a theme's candidate slots that actually render
-     * (each slot keeps or drops itself by a stable per-slot hash — [keepCandidate]). For cars
-     * the same 0..1 maps onto an explicit **count** instead, 1 car at 0f and every slot at 1f,
-     * because ten candidates are too few for independent thresholds to approximate a density —
-     * see [CarSelection].
+     * 0f..1f: for static categories the fraction of candidate slots that render, each slot keeping itself by a stable
+     * hash ([keepCandidate]); for cars an explicit **count**, 1 car at 0f and every slot at 1f, since ten candidates
+     * are too few for independent thresholds to approximate a density ([CarSelection]).
      */
     val density: Float,
     val colorDay1: Int,
@@ -31,10 +23,8 @@ data class ObjectVariantConfig(
     val autoMode2: AutoColorMode = AutoColorMode.MANUAL,
 )
 
-/** Lighter-weight sibling of [ObjectVariantConfig] for background silhouette layers (mountains)
- * that want a single day/night color pair (like hills) rather than 2 color variants -- mountain
- * peaks all share one consistent silhouette tone, they don't need per-instance color variety the
- * way discrete objects like houses do. */
+/** A mountain layer's settings: one day/night colour pair, like the hills, since its peaks share one
+ * silhouette tone. */
 data class MountainLayerConfig(
     val visible: Boolean,
     val density: Float,
@@ -42,27 +32,16 @@ data class MountainLayerConfig(
     val colorNight: Int,
     val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 ) {
-    /**
-     * Whether the layer draws a mountain: switched on and above 0 %. At 0 % `CandidateThreshold` keeps
-     * no candidate of the pool, so the layer draws none (v5.11, inventory I-414: its switch read on
-     * there, and the gallery card drew it).
-     */
+    /** Whether the layer draws a mountain: switched on and above 0 % (at 0 % `CandidateThreshold` keeps none). */
     val drawsAny: Boolean get() = visible && density > 0f
 }
 
 /**
- * The distant houses: little houses standing on the mountains (v5.11, the maintainer's choice of
- * 2026-10-06 from the photographs: on the mountains, off as it ships, the switch on World & scene
- * under *Mountains*, every theme, 50 % when turned on, three drawings mixed).
- *
- * A switch and an amount, nothing else: their colours are the houses' own ([SceneCustomization.houses],
- * one coin per house), their snow is the winter palette's, their windows light at night as a
- * house's do -- see [DistantHouses]. They stand on the mountains, so with both mountain layers off
- * there is nothing to stand on and the switch says so (`SettingsUiModel.distantHouses`).
- *
- * **Off when absent.** Nothing written before v5.11 carries it, and a user who updates must not
- * find houses on the mountains they did not ask for: [OFF] is what every older payload, preference
- * store and backup reads as.
+ * The distant houses on the mountains (`DESIGN_NOTES.md` decision 52): a switch and an amount, nothing else. Their
+ * colours are the houses' own ([SceneCustomization.houses]), their snow the winter palette's, their windows lit as
+ * a house's ([DistantHouses]); with both mountain layers off there is nothing to stand on, and the switch says so
+ * (`SettingsUiModel.distantHouses`). **Off when absent**: a payload, store or backup without it reads [OFF], so
+ * nobody finds houses on the mountains they did not ask for.
  */
 data class DistantHousesConfig(
     val visible: Boolean,
@@ -76,14 +55,12 @@ data class DistantHousesConfig(
         /** Where the amount starts when the switch is first turned on, and what a tap at 0 % restores. */
         const val STARTING_DENSITY = 0.5f
 
-        /** What a theme ships with, and what data written before v5.11 reads as. */
+        /** What a theme ships with, and what data without the setting reads as. */
         val OFF = DistantHousesConfig(visible = false, density = STARTING_DENSITY)
     }
 }
 
-/** A body of water, drawn as its own independent backdrop band (not part of the hill/object
- * row-placement system, for the same safety reasons as [MountainLayerConfig]), plus two nested
- * decorations (sailboats, dolphins) that appear within it. */
+/** The lake: a backdrop band of its own, outside the hill/object placement, with the sailboats and dolphins on it. */
 data class LakeConfig(
     val visible: Boolean,
     val colorDay: Int,
@@ -97,42 +74,26 @@ data class LakeConfig(
     val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 ) {
     /**
-     * Whether there is any water: switched on, **and above 0 % height** (v5.10E, inventory I-293, the
-     * maintainer's *«2 - si»* of 2026-10-04). At 0 % the band was zero pixels tall and *Show Lake* still
-     * read on, and the sailboats and dolphins were still laid out on lanes of a band with no height; now
-     * 0 % is off, as every other amount at 0 is (v5.10C, row 8): the wallpaper draws no lake and nothing
-     * on it (`PaperRenderer.updateLakeBandY`), the gallery card none (`ThemePreviewScene`), and the
-     * switch says so, with a tap that puts the theme's own height back. The mountains stand where they
-     * did: on a band of no height their base was the water's top edge, which is the hills' own line --
-     * the one they take with the lake off -- to within a float's rounding.
+     * Whether there is any water: switched on **and above 0 % height**, 0 % being off (`DESIGN_NOTES.md` decision
+     * 45). Then the wallpaper draws no lake and nothing on it
+     * (`PaperRenderer.updateLakeBandY`), nor does the gallery card (`ThemePreviewScene`), and the switch says so. The
+     * mountains stand on the hills' own line, where a band of no height would put them too.
      */
     val drawsWater: Boolean get() = visible && height > 0f
 }
 
-/** One of a bird's 4 selectable colors, with a relative weight controlling how often it's picked
- * (not a uniform 1-in-4 -- the colour sliders under "Bird Colors" in the UI, which since v5.10E print each
- * colour's share of the flock rather than the weight). Weights don't need to sum to
- * anything in particular; a bird's color is picked by weighted-random draw across all 4 (see
- * [BirdsConfig.pickColor]). */
+/** One of a bird's 4 colours and its relative weight, which needs not sum to anything: a bird's colour is a weighted
+ * draw across all 4 ([BirdsConfig.pickColor]), and the "Bird Colors" sliders show each colour's share of the flock. */
 data class BirdColorWeight(val color: Int, val weight: Float)
 
-/** Stars: same show/hide + density shape as everything else, but no color -- stars have always
- * used a single fixed twinkle color per theme (see [SunConfig]/[MoonConfig] for the celestial
- * bodies, which *do* get their own color). */
+/** Stars: a switch and a density, no colour (a fixed twinkle colour per theme). */
 data class StarsConfig(val visible: Boolean, val density: Float)
 
 /**
- * The sky gradient's 6 color stops. Deliberately not the same shape as the old
- * `theme.skyDay`/`skyNight`/`skyDawn`/`skyDusk` (4 arrays of 2 colors each, blended with a
- * "twilight bump" near the terminator) -- that model doesn't map onto anything a user could
- * reasonably edit by hand. This is the simpler, user-facing version: a top ("High") and bottom
- * ("Low") color for day and for night, blended continuously by [SunPositionCalculator.DayPhase]'s
- * `dayBlend` the same way everything else in the scene already blends -- plus two *dedicated*
- * near-horizon colors (`colorSunriseLow`/`colorSunsetLow`) that briefly show through only near
- * their respective terminator, using the exact same twilight-weighting math the old 4-array model
- * used, just with these single colors instead of a whole separate palette. Only the bottom needs
- * dedicated sunrise/sunset colors -- the top of the sky doesn't change much during a
- * sunrise/sunset in reality, the warm glow is a near-horizon phenomenon.
+ * The sky gradient's 6 colour stops, the shape a user can edit: a top ("High") and bottom ("Low") colour for day and
+ * for night, blended by [SunPositionCalculator.DayPhase]'s `dayBlend` like the rest of the scene, and two
+ * near-horizon colours (`colorSunriseLow`/`colorSunsetLow`) that show through only near their terminator. Only the
+ * bottom has them: the warm glow is a near-horizon phenomenon.
  */
 data class SkyConfig(
     val colorDayHigh: Int,
@@ -142,25 +103,16 @@ data class SkyConfig(
     val colorSunriseLow: Int,
     val colorSunsetLow: Int,
     /**
-     * How high the sun and moon's arc rises, as a fraction of screen height, and with it how high
-     * the cloud band sits. Stored in scene terms, [SUN_CLOUD_HEIGHT_MIN]..[SUN_CLOUD_HEIGHT_MAX];
-     * the settings slider shows that range as a plain 0-100%.
-     *
-     * One value for both is deliberate and always was: the clouds belong to the same sky the sun
-     * crosses, and a scene whose sun peaks low while its clouds sit high reads as two skies. The
-     * v2.11 coupling was real but nearly invisible -- the whole slider moved the cloud band by
-     * about 7% of screen height -- which is why it was reported as "the slider doesn't move the
-     * clouds". See `PaperRenderer.cloudBandTop`.
+     * How high the sun and moon's arc rises, as a fraction of screen height, and with it how high the cloud band sits
+     * (`PaperRenderer.cloudBandTop`): one value, because a sun peaking low under high clouds reads as two skies.
+     * Stored in scene terms, [SUN_CLOUD_HEIGHT_MIN]..[SUN_CLOUD_HEIGHT_MAX]; the slider shows it as 0-100%.
      */
     val sunCloudHeight: Float,
     /** Who owns the High pair. The two sky bands are two colours, so they toggle separately. */
     val autoModeHigh: AutoColorMode = AutoColorMode.MANUAL,
     /**
-     * Who owns the Low pair.
-     *
-     * `colorSunriseLow`/`colorSunsetLow` deliberately have no mode: they are single colours with
-     * no day/night twin to derive from or for, and inventing one would mean inventing what "the
-     * night version of a sunrise" is.
+     * Who owns the Low pair. `colorSunriseLow`/`colorSunsetLow` have no mode: they are single colours with no
+     * day/night twin to derive from or for.
      */
     val autoModeLow: AutoColorMode = AutoColorMode.MANUAL,
 )
@@ -170,15 +122,12 @@ data class SunConfig(val visible: Boolean, val color: Int)
 data class MoonConfig(
     val visible: Boolean,
     val color: Int,
-    /** When false, always draws a plain full disc instead of the real astronomical phase
-     * (new/crescent/quarter/gibbous/full) -- some users may prefer a simple decorative moon over
-     * one that's occasionally a sliver or fully dark. */
+    /** When false, a plain full disc instead of the real astronomical phase. */
     val realisticPhases: Boolean,
 )
 
-/** Puffy clouds drifting slowly across the upper sky -- same independent-candidate-pool
- * philosophy as mountains/birds (own parallax, own density filter, no interaction with the
- * hill/object row-placement system). */
+/** Clouds drifting across the upper sky: their own candidate pool, parallax and density, outside the hill/object
+ * placement. */
 data class CloudsConfig(
     val visible: Boolean,
     val density: Float,
@@ -187,19 +136,15 @@ data class CloudsConfig(
     val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
-/** Which of the two mutually-exclusive precipitation looks [PrecipitationConfig] renders --
- * matches how real weather works (it's either raining or snowing, not both at once). */
+/** Which of the two precipitation looks [PrecipitationConfig] renders: rain or snow, never both. */
 enum class PrecipitationType { RAIN, SNOW }
 
-/** Falling rain or snow, drawn in front of the whole scene except the falling leaves and the
- * lightning flash (see [PaperRenderer.draw]'s call order) -- real precipitation reads as being
- * right in front of the "camera", in front of even houses and cars, not part of the backdrop the
- * way clouds/mountains are. [type] picks which of the two actually renders; both keep their own
- * independent color pair ([rainColorDay]/`Night` vs [snowColorDay]/`Night`) so switching types
- * doesn't force a user to re-pick colors that made sense for the other one. [thunderstorm] adds
- * occasional lightning flashes (see [PaperRenderer.drawLightningFlash]) -- kept as its own flag
- * rather than a third [type] value so toggling storms on/off doesn't lose the user's rain
- * settings, though it's only meaningful while [type] is [PrecipitationType.RAIN].
+/**
+ * Falling rain or snow, drawn in front of the whole scene but the falling leaves and the lightning flash
+ * ([PaperRenderer.draw]'s order): precipitation reads as right in front of the camera. Rain and snow each keep their
+ * own colour pair, so switching [type] does not lose the other's. [thunderstorm] adds lightning
+ * ([PaperRenderer.drawLightningFlash]), a flag of its own so switching storms keeps the rain's settings; it means
+ * something only with [PrecipitationType.RAIN].
  */
 data class PrecipitationConfig(
     val visible: Boolean,
@@ -216,32 +161,23 @@ data class PrecipitationConfig(
     val snowAutoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
-/** A decorative paper-cutout rainbow arc. Deliberately independent of [PrecipitationConfig] --
- * unlike real weather (which Phase 1d's Random/Live Weather will eventually simulate), this is a
- * manual per-theme toggle, so a user can put a rainbow on a sunny theme without needing rain
- * turned on first, the same freedom every other decorative category in this app already has.
- * Fades out toward night in [PaperRenderer.drawRainbow] (rainbows are a daylight phenomenon)
- * rather than a hard on/off cut. */
+/** A paper-cutout rainbow arc, a switch of its own independent of [PrecipitationConfig], so a sunny theme can have
+ * one; it fades out toward night ([PaperRenderer.drawRainbow]). */
 data class RainbowConfig(
     val visible: Boolean,
     /** 0f..1f — how vivid the bands render at full daylight. */
     val opacity: Float,
 )
 
-/** An ambient flock of birds crossing the sky, independent of the hill/object row-placement
- * system (birds fly, they don't stand on the ground). */
+/** A flock of birds crossing the sky, outside the hill/object placement. */
 data class BirdsConfig(    val visible: Boolean,
     val density: Float,
     val nightBirds: Boolean,
     val colors: List<BirdColorWeight>,
 ) {
-    /** Weighted-random pick among [colors] using [randomFraction] (caller-supplied so the same
-     * fraction can be reused deterministically for a given bird instance rather than re-rolling
-     * every frame). */
+    /** Weighted pick among [colors] by [randomFraction], which the caller keeps per bird so a bird keeps its colour. */
     fun pickColor(randomFraction: Float): Int {
-        // By index, twice: `sumOf` and a `for (c in colors)` each built an iterator, two objects per
-        // bird per frame on the draw path (v5.10A). The sum runs in the same order `sumOf` did, in
-        // `Double`, so it is the same number.
+        // By index: an iterator would allocate on the draw path, per bird and per frame. Summed in `Double`.
         var weights = 0.0
         for (i in colors.indices) weights += colors[i].weight.toDouble()
         val totalWeight = weights.toFloat()
@@ -256,27 +192,10 @@ data class BirdsConfig(    val visible: Boolean,
     }
 
     /**
-     * How present the flock is at this `dayBlend`, 1 while the sun is up and 0 once night is in.
-     *
-     * **This used to be `dayBlend` itself, and that was the bug.** `dayBlend` holds at 1 across the
-     * middle of the daylight arc -- `SunPositionCalculator.smoothEdge` only eases its first and
-     * last 12% -- and then slides down to `TERMINATOR_BLEND` (0.5) at the moment the sun sets. So
-     * multiplying the birds' alpha by it left them solid all day and then **bled them out through
-     * the whole of the golden hour**: with the default 06:00/20:00 arc, 90% opaque at 18:40, 80% at
-     * 19:00, and **half transparent exactly at sunset**, with the sky behind them showing through
-     * the whole time. Measured on a OnePlus 6T at a fixed 20:00: alpha 0.47-0.53 across six frames
-     * before this function existed, 1.00-1.02 after.
-     *
-     * That is dusk, which is when the flock is most visible against a bright sky and most worth
-     * looking at, and it is the one time of day the birds were least there. Nothing else in this
-     * scene is see-through as a *state*: windows crossfade their colour, precipitation fades only
-     * at the two ends of its fall. A paper cutout you can see the sky through is a rendering
-     * artefact, not a dusk.
-     *
-     * So the flock is fully opaque for the whole time the sun is above the horizon and leaves over
-     * the first half of the below-horizon range -- about 35 minutes on that same arc, done well
-     * before the moon is up. The intent -- no birds after dark unless [nightBirds] -- is unchanged;
-     * only the shape is.
+     * How present the flock is at this `dayBlend`: 1 while the sun is up, then leaving over the first half of the
+     * below-horizon range (about 35 minutes on a 06:00/20:00 arc), 0 after dark unless [nightBirds]. Not `dayBlend`
+     * itself, which slides to `TERMINATOR_BLEND` (0.5) through the golden hour and would leave the birds half
+     * transparent at sunset, when they are most worth seeing: a paper cutout the sky shows through is an artefact.
      */
     fun presenceAt(dayBlend: Float): Float {
         if (nightBirds) return 1f
@@ -284,11 +203,7 @@ data class BirdsConfig(    val visible: Boolean,
     }
 
     companion object {
-        /**
-         * `dayBlend` at sunrise and sunset. It is `SunPositionCalculator.TERMINATOR_BLEND`, which is
-         * private there; the value is restated rather than the field opened up, because what this
-         * needs is "the horizon", and the horizon is what that constant means.
-         */
+        /** `dayBlend` at sunrise and sunset: `SunPositionCalculator.TERMINATOR_BLEND`, private there, restated. */
         const val FULL_ABOVE = 0.5f
 
         /** Halfway down the below-horizon range: the flock is gone before full dark. */
@@ -297,124 +212,71 @@ data class BirdsConfig(    val visible: Boolean,
 }
 
 /**
- * Per-theme rendering settings -- every customizable object category plus the sky, hills, water,
- * weather and seasonal switches -- edited from the "World & scene" and "Seasons & decorations"
- * screens. These apply on top of whichever theme/custom theme is active:
- * a theme's [SceneObjectLayout] defines *candidate* slots (see [SceneObjectCatalog]), and this
- * config decides how many of them actually show up and what colors they use.
+ * Per-theme rendering settings -- every object category, the sky, hills, water, weather and seasonal switches --
+ * edited from "World & scene" and "Seasons & decorations". A theme's [SceneObjectLayout] holds *candidate* slots
+ * ([SceneObjectCatalog]); this decides how many of them show and in what colours.
  */
 data class SceneCustomization(
     val houses: ObjectVariantConfig,
     /**
-     * The Buildings category: whether the towers and the buildings among the houses stand, how many
-     * towers, the towers' opening hours ([towerHoursEnabled]; the shops' and the public buildings' are
-     * their own pages', [shopHoursEnabled], [publicHoursEnabled]) -- and, since v5.11, **the towers'
-     * colours only**. The shops wear [shops] and the public buildings [publics].
+     * The Buildings category: whether the towers and the buildings among the houses stand, how many towers, and **the
+     * towers' colours only** (the shops wear [shops], the public buildings [publics]; `DESIGN_NOTES.md` decision 62).
      */
     val buildings: ObjectVariantConfig,
     /**
-     * The colours of the shops -- the restaurant, the bar and, since v5.13, the shop (v5.11, the
-     * maintainer's *«voglio che i negozi abbiano colore a se, aggiungiamolo»* of 2026-10-06; the school
-     * wore them too until v5.13, when it became a public building and took [publics]).
-     *
-     * **Colours only.** Whether the shops stand is [buildings]' switch, as it always was: they are
-     * one candidate pool with the towers, and a second switch for the same objects would be two
-     * controls that can disagree. So [ObjectVariantConfig.visible] and [ObjectVariantConfig.density]
-     * here are read by nothing -- not by [keepCandidate], not by [staticStructurallyEquals] -- and
-     * the settings show no switch or slider for them.
-     *
-     * **Data written before v5.11 has no such field**, and the shops were drawn in the Buildings
-     * colours stored beside it: a saved theme, a theme's archive, a backup or a theme file is read
-     * with those (`sceneCustomizationFromJson`), and so is the live edit where it stored a Buildings
-     * colour (`WallpaperPrefs.readFlatCustomization`) -- a theme keeps the look it had.
+     * The colours of the shops -- the restaurant, the bar and the shop (`DESIGN_NOTES.md` decision 48). **Colours
+     * only**: whether they stand is [buildings]' switch, since they are one candidate pool with the towers and two
+     * switches for the same objects could disagree; [ObjectVariantConfig.visible] and [ObjectVariantConfig.density]
+     * here are read by nothing ([keepCandidate], [staticStructurallyEquals]) and have no control. Data without the
+     * field reads the Buildings colours stored beside it, which its shops wore (`sceneCustomizationFromJson`,
+     * `WallpaperPrefs.readFlatCustomization`), so a theme keeps its look.
      */
     val shops: ObjectVariantConfig,
     /**
      * The colours of the public buildings -- the school, the fire station and the police station
-     * (v5.13): a pair of each built-in theme's own ([builtInPublicColours]), chosen against the ground
-     * and apart from the shops' and the towers' colours, so the three groups tell apart.
-     *
-     * **Colours only**, like [shops]: whether they stand is [buildings]' switch.
-     *
-     * **Data written before v5.13 has no such field, and its school wore the shops' colours.** Whoever
-     * had changed the shops' colours by hand finds them on the school and the two stations too; whoever
-     * had not gets the theme's new pair -- in the live edit, in a theme's archive, a saved theme, a theme
-     * file and a backup alike (`publicsCarriedOver`, `sceneCustomizationFromJson`,
-     * `WallpaperPrefs.readFlatCustomization`): the maintainer's *«il resto accetto i consigliati»* of
-     * 2026-10-11 to the row that said so. Without a theme to compare against, a payload's publics are
-     * read as its shops, the look its school had. The default here is [shops], which is that reading.
+     * (`DESIGN_NOTES.md` decision 62): a pair of each built-in theme's own ([builtInPublicColours]), apart from the
+     * ground and from the other groups'. **Colours only**, like [shops]. Data without the field, whose school wore the
+     * shops' colours, gives shop colours changed by hand to the publics too and otherwise the theme's pair
+     * (`publicsCarriedOver`, `sceneCustomizationFromJson`, `WallpaperPrefs.readFlatCustomization`); with no theme to
+     * compare against, the shops' (this default).
      */
     val publics: ObjectVariantConfig = shops,
     val cars: ObjectVariantConfig,
     val parasols: ObjectVariantConfig,
     /**
-     * The pedestrians, as a category with visibility and density like any other.
-     *
-     * Only two of the eight fields mean anything here: the walk sprites are finished art in four
-     * kinds across two seasons, so there is nothing for a colour to reach. Which kind and which
-     * season a given pedestrian is stays exactly as it was -- density decides how many of the four
-     * candidates render, not which ones exist.
+     * The pedestrians: only visibility and density mean anything, the walk sprites being finished art. Density
+     * decides how many of the four candidates render, not which kinds exist.
      */
     val people: ObjectVariantConfig,
     /**
-     * How many pedestrians walk **after dark**, 0f..1f.
-     *
-     * [people]`.density` is the daytime figure; this is the same thing for the night side, and the
-     * renderer crossfades between them with the scene's own `dayBlend` rather than switching at a
-     * threshold -- a street that empties over the length of dusk, not one where four people vanish
-     * between two frames.
-     *
-     * Deliberately a field of its own rather than a second density on every
-     * [ObjectVariantConfig]: a night density only means something for a category whose population
-     * *moves* -- things that come and go, so that "fewer of them after dark" describes behaviour
-     * rather than redecorating. Pedestrians move; so does traffic, which is why cars carry the
-     * same pair since v4.22 ([carsNightDensity]) -- this comment used to say pedestrians were the
-     * only such category, and the traffic feature is exactly the counterexample. Houses and
-     * mountains stand still: giving them a night density would make buildings dissolve at dusk,
-     * a preference that cannot mean anything about a landscape. It governs the same pedestrians
-     * `people.density` always has -- drivers, passengers and the figures in lit windows are drawn
-     * elsewhere and are untouched.
+     * How many pedestrians walk **after dark**, 0f..1f: [people]`.density` is the daytime figure, and the renderer
+     * crossfades the two on the scene's `dayBlend`, so the street empties over dusk rather than between two frames. A
+     * field of its own, not a night density on every [ObjectVariantConfig]: it means something only for a population
+     * that comes and goes (the cars have [carsNightDensity]), while houses dissolving at dusk would not. Drivers,
+     * passengers and the figures in windows are drawn elsewhere.
      */
     val peopleNightDensity: Float = DEFAULT_PEOPLE_NIGHT_DENSITY,
     /**
-     * How much traffic drives **after dark**, 0f..1f.
-     *
-     * The cars' own half of the pair [peopleNightDensity] describes: [cars]`.density` is the
-     * daytime figure, this is the night one, and the count in force is the blend of the two on
-     * the scene's own `dayBlend` (`CarSelection.densityAt` -> `countFor`) -- the road fills and
-     * empties over the length of dusk, car by car and only off screen, never between two frames.
-     * The blended density feeds the same explicit count the day slider does; there is no second
-     * threshold and no parallel selection.
-     *
-     * Defaults equal to the daytime default, and resolves to the daytime *setting* for a user
-     * upgrading from a build that had one slider ([PeopleDensity.resolveNightDensity]), so the
-     * scene after the update is the scene before it until somebody moves the new control.
+     * How much traffic drives **after dark**, 0f..1f: the count in force is the blend of [cars]`.density` and this on
+     * the scene's `dayBlend` (`CarSelection.densityAt` -> `countFor`), so the road fills and empties over dusk, car by
+     * car and only off screen. Data with one slider reads its daytime setting here ([PeopleDensity.resolveNightDensity]),
+     * so its scene does not change until the user moves this.
      */
     val carsNightDensity: Float = DEFAULT_CARS_NIGHT_DENSITY,
     /**
-     * Whether the shops -- the restaurant, the bar and the shop (the school until v5.13, a public
-     * building since, [publicHoursEnabled]) -- keep opening hours at all.
-     *
-     * **Off by default, and off means bitwise-identical to before the feature existed**: every
-     * shop is as open as it always was -- its glass lit at night, its people at their windows -- and
-     * the two hours below are inert (the settings screen only lets them be edited while this is on). See [BusinessHours] for what
-     * "open" and "closed" do, and why the houses never keep hours.
-     *
-     * **One of three groups since v5.13** (two since the maintainer's *«vorrei inoltre aggiungere uno
-     * slide per orari solo grattacieli e solo negozi»*, 2026-10-09): the shops' hours here, the towers'
-     * in [towerHoursEnabled], the public buildings' in [publicHoursEnabled]. Which group a building
-     * follows is what it is -- the rule its colours follow ([opennessFor], [storefrontColours]). Data
-     * stored before v5.12 had one setting for all, and is read into every group (`WallpaperPrefs`,
+     * Whether the shops -- the restaurant, the bar and the shop -- keep opening hours. **Off by default, and off is
+     * every shop always open**, its glass lit at night and its people at their windows, the hours below inert (editable
+     * only while this is on). See [BusinessHours] for what open and closed do, and why the houses never keep hours.
+     * One of three groups (`DESIGN_NOTES.md` decision 62): the shops here, the towers [towerHoursEnabled], the public
+     * buildings [publicHoursEnabled]; a building follows its group, as its colours do ([opennessFor],
+     * [storefrontColours]). Data with one setting for all reads it into every group (`WallpaperPrefs`,
      * `sceneCustomizationFromJson`).
      */
     val shopHoursEnabled: Boolean = false,
     /**
-     * When the shops open, decimal hours 0..24.
-     *
-     * `open == close` means always open — "always closed" is the buildings' visibility switch,
-     * not an hour. The pair may wrap midnight (09:00–02:00 is a valid business day). The default
-     * pair is only a seed for the editors: it means nothing until [shopHoursEnabled] is on,
-     * and an ordinary shop day is the least surprising place for the sliders to start.
+     * When the shops open, decimal hours 0..24. `open == close` is always open ("always closed" is the buildings'
+     * switch, not an hour); the pair may wrap midnight (09:00-02:00). The default is where the sliders start, an
+     * ordinary shop day, and means nothing until [shopHoursEnabled] is on.
      */
     val shopOpenHour: Float = DEFAULT_BUSINESS_OPEN_HOUR,
     /** When the shops close — see [shopOpenHour] for the boundary rules. */
@@ -426,12 +288,9 @@ data class SceneCustomization(
     /** When the towers close, by [shopOpenHour]'s rules. */
     val towerCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
     /**
-     * Whether the public buildings keep opening hours -- the school's: the fire station and the police
-     * station never close ([Storefront.keepsHours], 2026-10-12): the third group (v5.13; *«il resto
-     * accetto i consigliati»* of 2026-10-11 to the row of three switches, off as they ship).
-     * Until v5.13 the school kept the shops' hours: data stored before reads the shops' hours here --
-     * whoever had them on finds them on in the shops and at the school, at the same hours
-     * (`WallpaperPrefs`, `sceneCustomizationFromJson`).
+     * Whether the public buildings keep opening hours, which are the school's: the fire station and the police station
+     * never close ([Storefront.keepsHours]; `DESIGN_NOTES.md` decision 62). Data without it reads the shops' setting
+     * and hours, the ones its school kept (`WallpaperPrefs`, `sceneCustomizationFromJson`).
      */
     val publicHoursEnabled: Boolean = false,
     /** When the public buildings open, by [shopOpenHour]'s rules. */
@@ -439,207 +298,111 @@ data class SceneCustomization(
     /** When the public buildings close, by [shopOpenHour]'s rules. */
     val publicCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
     val trees: ObjectVariantConfig,
-    // Fall Colors / Winter Colors: NOT their own placeable object category (no
-    // visibility/density/color-variant shape like the seasonal decorations below) -- they're a
-    // seasonal *palette override* applied on top of the existing `trees` category's own leaf
-    // rendering (see SceneObjectRenderer.drawTree). Deliberately toggled from the "Seasons &
-    // decorations" screen (its None/Autumn/Winter palette), not the Trees screen of "World &
-    // scene": aa's own framing is that the
-    // Trees show/density/color toggle is a *structural* scene-object setting (does this theme
-    // have trees at all, and what base color), while whether those trees currently look
-    // autumnal/snowy is a decoration a user can flip on for *any* theme at *any* time, exactly
-    // like turning pumpkins on for a non-Halloween theme. Mutually exclusive (a tree can't
-    // simultaneously be shedding red/orange leaves and be snow-dusted) -- enforced in
-    // WallpaperPrefs.setFallColorsEnabled/setWinterColorsEnabled by clearing the other flag in
-    // the same edit, the same pattern PrecipitationConfig.type already uses for Rain vs Snow.
-    // Off by default, like every other opt-in seasonal decoration in this class.
+    // Fall Colors / Winter Colors: a seasonal palette over the `trees` category's leaves (SceneObjectRenderer.drawTree),
+    // not a placeable category. On "Seasons & decorations", not the Trees page: whether a theme has trees is structure,
+    // whether they look autumnal or snowy a decoration for any theme. Mutually exclusive, enforced in
+    // WallpaperPrefs.setFallColorsEnabled/setWinterColorsEnabled by clearing the other flag in the same edit.
     val fallColorsEnabled: Boolean = false,
     val winterColorsEnabled: Boolean = false,
     /**
-     * *Lights on the buildings*, the first of the three Christmas switches (v5.16): the bulbs along every roof and the
-     * strings under the windowsills, a wreath on every front door, a star on every tower and three bulbs on every
-     * distant house (`SceneObjectRenderer.drawDecorations`, `drawWindowLights`, `PaperRenderer.drawDistantHouseLights`).
-     * Until v5.16 one switch, *Christmas lights*, did this, [christmasTreeLightsEnabled]'s and [christmasFirsEnabled]'s
-     * work together; the maintainer, 2026-10-21: *«interruttori per ogni cosa; lo stesso dobbiamo avere anche per
-     * natale»*. **It keeps that switch's stored name** (`christmasDecorationsEnabled` in every payload, the preference
-     * `christmas_decorations_enabled`), and the two new switches read it where they have no value of their own: a theme
-     * saved, archived, backed up or shared before v5.16 with *Christmas lights* on comes back with all three on.
-     *
-     * **Separate from [winterColorsEnabled], and deliberately so.** Christmas lights used to hang
-     * off the winter flag, which made the two words synonyms: a plain snowy January scene could
-     * not exist without fairy lights on every tree, and a Christmas scene could not exist without
-     * committing to a full winter presentation. They are different statements — one is a season,
-     * the other is a fortnight of decorations inside it — and every combination of the two is a
-     * scene somebody might want.
-     *
-     * Neither flag implies the other. Turning this on does not turn winter on.
-     *
-     * **Scope.** This governs the Christmas dressing that has no category of its own. Santa
-     * ([santaEnabled]) and the presents ([gifts]) keep their own switches, because they already
-     * had them and folding them in here would give one thing two controls that disagree. A theme's
-     * defaults set them together; a user can still take any of them separately. And the Christmas
-     * decorations and the Halloween ones are never on together in a theme ([DecorationExclusion]).
+     * *Lights on the buildings*, one of the three Christmas switches (`DESIGN_NOTES.md` decision 76): bulbs along every
+     * roof and under the sills, a wreath on every front door, a star on every tower, three bulbs on every distant house
+     * (`SceneObjectRenderer.drawDecorations`, `drawWindowLights`, `PaperRenderer.drawDistantHouseLights`). **Stored under
+     * the one switch's name the three replace** (`christmasDecorationsEnabled`, `christmas_decorations_enabled`), which
+     * the other two read where they have no value. Neither this nor [winterColorsEnabled] implies the other; Santa
+     * ([santaEnabled]) and the presents ([gifts]) keep their own switches; never on with the Halloween decorations
+     * ([DecorationExclusion]).
      */
     val christmasBuildingLightsEnabled: Boolean = false,
     /**
-     * *Lights on the trees* (v5.16): the blinking lights on the leafy trees and the palms (`SceneObjectRenderer.drawTree`,
-     * `drawPalmTree`). Absent from data written before v5.16, where it reads as [christmasBuildingLightsEnabled] -- the
-     * one switch did both.
+     * *Lights on the trees*: the blinking lights on the leafy trees and the palms (`SceneObjectRenderer.drawTree`,
+     * `drawPalmTree`). Data without it reads [christmasBuildingLightsEnabled].
      */
     val christmasTreeLightsEnabled: Boolean = false,
     /**
-     * *Christmas firs* (v5.16): one tree in three standing as the fir A, with its ten lights, its star and three presents at
-     * its foot (`SceneObjectRenderer.standsAsFir`, decision 66). Absent from data written before v5.16, where it reads as
-     * [christmasBuildingLightsEnabled] -- the one switch did all three.
+     * *Christmas firs*: one tree in three standing as a fir, with its ten lights, its star and three presents at its
+     * foot (`SceneObjectRenderer.standsAsFir`, `DESIGN_NOTES.md` decision 66). Data without it reads
+     * [christmasBuildingLightsEnabled].
      */
     val christmasFirsEnabled: Boolean = false,
     /**
-     * Flowers on the open ground: on or off, and nothing else.
-     *
-     * **A plain boolean rather than an `ObjectVariantConfig`, on purpose.** Every other decoration
-     * in this class carries visibility, density and a day/night colour pair, and that is right for
-     * a snowman or a gift, which are objects a theme can restyle. A meadow is not: flowers whose
-     * colour follows a theme's building tint are a meadow of the wrong flowers. The artwork is
-     * fixed -- three kinds at three sizes on one canvas -- and the only decision left to make is
-     * whether they are there.
+     * Flowers on the open ground: on or off, and nothing else. A plain boolean, not an `ObjectVariantConfig`: the
+     * artwork is fixed (three kinds at three sizes), and flowers tinted by a theme are a meadow of the wrong flowers.
      */
     val flowersEnabled: Boolean = false,
     /**
-     * Palms on a layout that plants palms of its own (Beach, Desert, their saved copies, and
-     * shuffled themes that deal palms): on or off, and nothing else. **The other half of the one
-     * Palms switch is [palmsInsteadOfTrees]**, for every layout that plants none; which half a
-     * theme reads is decided by its layout, in [palmsShown].
-     *
-     * **What it actually switches is which tree the Beach and Desert layouts draw.** Those two
-     * themes map their tree slots to [SceneObjectType.PALM_TREE] (`SceneObjectCatalog`), and
-     * until v5.1 the only way to be rid of the palms was to turn the whole TREES category off,
-     * which left the shore bare. With this off those slots draw the ordinary broadleaf tree
-     * instead -- same positions, same depths, same density -- so the scene keeps its vegetation.
-     * The swap is made once, where the renderer builds its object list from the layout
-     * ([palmSpeciesApplied]), so a slot that has become a tree is a tree to every later
-     * question: its size, its occlusion box, its falling leaves, its preview.
-     *
-     * An oak on sand is a thing the maintainer chose with the objection in front of them. The
-     * alternative on the table was a bare beach, and a beach with the wrong tree on it is a
-     * scene; a beach with nothing on it is a gap.
-     *
-     * **A plain boolean rather than an `ObjectVariantConfig`, for the same reason
-     * [flowersEnabled] is one.** Density and visibility already belong to TREES and are not
-     * being duplicated here -- this is not a second population, it is which species the one
-     * population is drawn as -- and a palm's colours are fixed art with no tint for a colour
-     * pair to occupy.
-     *
-     * **On by default, unlike every other switch in this group, and the reason is upgrades.** A
-     * theme saved before v5.1 carries no `palmsEnabled` field, and
-     * [sceneCustomizationFromJson] fills an absent field from [SceneCustomization.DEFAULT]
-     * rather than from the theme's own defaults -- so a `false` here would silently fell the
-     * palms of every Beach and Desert theme a user had already saved. On every other built-in
-     * it is inert -- no other built-in layout places a palm -- while a saved copy of Beach or
-     * Desert, or a shuffled theme that deals palms, is governed by it exactly as they are (see
-     * [hasPalmSlots]).
-     *
-     * **Which is also why it cannot be the switch on the other themes** (v5.10C). Being on by
-     * default, it is `true` in every theme anyone has saved, edited or backed up on a theme
-     * without palms -- written there by the app, not chosen -- so reading it as "palms here" would
-     * have planted palms on every such Autumn and Christmas the day the switch started to work
-     * there. Those themes read [palmsInsteadOfTrees] instead, which no build before v5.10 wrote.
+     * Palms on a layout that plants palms of its own (Beach, Desert, their copies, shuffled themes that deal palms).
+     * **The other half of the one Palms switch is [palmsInsteadOfTrees]**; which half a theme reads is its layout's
+     * ([palmsShown]). Off, those slots draw the broadleaf tree in the same places, an oak on sand rather than a bare
+     * beach, swapped once as the renderer builds its list ([palmSpeciesApplied], `DESIGN_NOTES.md` decision 37).
+     * **On by default**: [sceneCustomizationFromJson] fills an absent field from [SceneCustomization.DEFAULT], and
+     * `false` would fell the palms of every Beach and Desert saved without it; so it is `true` in every theme ever
+     * written, and the themes without palms read [palmsInsteadOfTrees].
      */
     val palmsEnabled: Boolean = true,
     /**
-     * Palms in place of the trees, on a layout that plants no palm of its own: every ordinary tree
-     * slot of Autumn, Christmas, Winter and the rest drawn as a palm -- same places, same depths,
-     * same density, the swap [palmsEnabled] makes on Beach and Desert run the other way. The
-     * maintainer's decision of 2026-09-30, in his words *«le palme devono essere attivabili in
-     * qualsiasi tema: l'utente deve essere libero di avere anche natale con palme»*, with the
-     * switch starting off wherever there were no palms before. **A Christmas fir stays a fir**
-     * (v5.10C2, his words of 2026-10-03: *«gli abeti sono del tema e tali devono rimanere»*): the
-     * palms take the ordinary trees' places only -- see [palmSpeciesApplied].
-     *
-     * **A field of its own, off by default, and that is the whole of the upgrade.** The switch
-     * the user moves is one ([palmsShown]); it is stored in two fields because the old one,
-     * [palmsEnabled], is `true` on every theme the app has ever written -- see there. A payload,
-     * a preference store or a backup written before v5.10 carries no value here, so it reads as
-     * off: nobody who updates finds palms they did not ask for, and Beach, Desert and every
-     * layout that deals palms read [palmsEnabled] exactly as before. `WallpaperPrefs.setPalmsEnabled`
-     * writes both, so from the first move of the switch the two say the same thing.
+     * Palms in place of the trees, on a layout that plants no palm of its own: every ordinary tree slot drawn as a palm
+     * in the same place, [palmsEnabled]'s swap run the other way (`DESIGN_NOTES.md` decision 39). **A Christmas fir
+     * stays a fir** ([palmSpeciesApplied]). A field of its own, off by default, because [palmsEnabled] is `true` in
+     * every theme ever written: data without it reads off, so nobody finds palms they did not ask for.
+     * `WallpaperPrefs.setPalmsEnabled` writes both, so from the first move of the one switch ([palmsShown]) they agree.
      */
     val palmsInsteadOfTrees: Boolean = false,
     /**
-     * The Halloween presentation: a jack-o'-lantern moon, bare trees and palms, carved pumpkins.
-     *
-     * **A third independent statement, alongside [winterColorsEnabled] and
-     * the Christmas decorations ([christmasBuildingLightsEnabled] and, since v5.16, its two siblings), and it implies neither.** The lesson v2.0 recorded about
-     * winter and Christmas applies here in advance: a season and a decoration layer are different
-     * things, and folding one into the other is what made "winter" and "Christmas" synonyms for a
-     * whole release. Halloween is not a temperature and not a fortnight of fairy lights, so it
-     * gets its own flag rather than a shared one, and turning it on changes nothing about winter,
-     * Christmas, New Year or the fall palette.
-     *
-     * **Scope, deliberately narrow.** Four things follow from it: the moon becomes
-     * `moon_jack_o_lantern`, every broadleaf tree drops its canopy for `tree_dead_branches`, every
-     * palm wears `palmtree_fronds_dead`, and every pumpkin gets its carved `pumpkin_face`. Whether
-     * any pumpkin stands is still the pumpkins' own switch, for the same reason Santa keeps his --
-     * one thing with two controls that can disagree is worse than two things with one each.
-     *
-     * The sky is **not** part of this. See [horrorSkyEnabled].
+     * The Halloween presentation, a flag of its own that implies nothing about winter, Christmas or the fall palette
+     * (a season and a decoration are different statements). Four things follow from it: the moon becomes
+     * `moon_jack_o_lantern`, every broadleaf tree `tree_dead_branches`, every palm `palmtree_fronds_dead`, every pumpkin
+     * gets its carved `pumpkin_face`. Whether a pumpkin stands is the pumpkins' switch, so nothing has two controls;
+     * the sky is [horrorSkyEnabled]'s.
      */
     val halloweenEnabled: Boolean = false,
     /**
-     * The horror sky: near-black overhead, a hard orange band at the horizon.
-     *
-     * **Separate from [halloweenEnabled] on purpose, and all four combinations are reachable.** A
-     * scene can be a bare-tree, lantern-moon Halloween under an ordinary night sky, and an ordinary
-     * scene can sit under a lurid orange one -- neither reading is wrong, and tying them together
-     * would repeat exactly the mistake winter and Christmas were split to undo.
-     *
-     * It overrides the six user sky colours while it is on rather than editing them, so switching
-     * it off returns the palette the user chose, untouched.
+     * The horror sky: near-black overhead, a hard orange band at the horizon. Separate from [halloweenEnabled], all four
+     * combinations being scenes. It overrides the six sky colours while on rather than editing them, so switching it
+     * off returns the user's palette.
      */
     val horrorSkyEnabled: Boolean = false,
     /**
-     * *Laughing moon* (v5.16): now and then the Halloween moon throws its face open and laughs, shaking with it
-     * ([LaughingMoon]). It is the carved moon's, so it needs [halloweenEnabled] and *Moon* on; with either
-     * off the switch is greyed or reads off with the reason, and the stored choice comes back with them (decision 40,
+     * *Laughing moon*: now and then the Halloween moon throws its face open and laughs ([LaughingMoon],
+     * `DESIGN_NOTES.md` decision 81). It is the carved moon's, so it needs [halloweenEnabled] and *Moon*; without them
+     * the switch reads off with the reason and the stored choice comes back with them (decision 40,
      * `SettingsUiModel.laughingMoon`).
      */
     val laughingMoonEnabled: Boolean = false,
     /**
-     * *Night sky by day* (v5.16, the maintainer's mode 3 of v5.16A): with the Halloween moon up, the whole scene is night
-     * at every hour -- the sky, the landscape and the town -- the moon full on the sun's path in its place; the shops
-     * and the windows keep the real hour (`PaperRenderer.nightOverDay`). It needs [halloweenEnabled] and *Moon*, as
-     * [laughingMoonEnabled] does. On as the Halloween theme ships: *«luna e cielo notte anche di giorno: va bene 3 ma deve
-     * diventare il nuovo default del tema halloween»* (2026-10-21).
+     * *Night sky by day* (`DESIGN_NOTES.md` decision 82): with the Halloween moon up, the sky, the landscape and the town
+     * are night at every hour, the moon full on the sun's path; the shops and the windows keep the real hour
+     * (`PaperRenderer.nightOverDay`). It needs [halloweenEnabled] and *Moon*. On as the Halloween theme ships.
      */
     val nightSkyByDayEnabled: Boolean = false,
     /**
-     * *Halloween decorations* (v5.16, the set C of v5.16A): a cobweb at each end of the roof, a light violet bat every
-     * three points of it, and a jack-o'-lantern by the front door, lit at night -- on the houses and the three shops,
-     * open or shut (`SceneObjectRenderer.drawHalloweenDecorations`). Never on together with the Christmas decorations
-     * of a theme ([DecorationExclusion]).
+     * *Moon stays in place* (`DESIGN_NOTES.md` decision 86): the Halloween moon stands still mid-sky, low over the roofs
+     * under the clouds, instead of crossing it -- at every hour with the night by day, otherwise from after sunset to
+     * before sunrise, coming out and fading where it stands (`PaperRenderer.stillMoon`). It needs [halloweenEnabled]
+     * and *Moon*. On as the Halloween theme ships, off on every other.
+     */
+    val stillMoonEnabled: Boolean = false,
+    /**
+     * *Halloween decorations* (`DESIGN_NOTES.md` decisions 83 and 85): a cobweb in a corner of the roof and a
+     * jack-o'-lantern by the front door, lit at night, on the houses and the three shops, open or shut
+     * (`SceneObjectRenderer.drawHalloweenDecorations`). Never on together with a theme's Christmas decorations
+     * ([DecorationExclusion]).
      */
     val halloweenDecorationsEnabled: Boolean = false,
     /**
-     * *Blood rain* (v5.16, the proposal 2 of v5.16A): while it rains -- the theme's rain or the forecast's -- the drops
-     * are red ([PaperRenderer.BLOOD_RAIN_NIGHT], [PaperRenderer.BLOOD_RAIN_DAY]) and twice as thick; the user's rain
-     * colours stay stored and come back with the switch off, as the sky's do under [horrorSkyEnabled]. Snow stays snow.
+     * *Blood rain* (`DESIGN_NOTES.md` decision 78): while it rains, the theme's rain or the forecast's, the drops are red
+     * ([PaperRenderer.BLOOD_RAIN_NIGHT], [PaperRenderer.BLOOD_RAIN_DAY]) and twice as thick; the user's rain colours stay
+     * stored and come back with the switch off. Snow stays snow.
      */
     val bloodRainEnabled: Boolean = false,
     /**
-     * *Headless Horseman* (v5.16, the drawing B of v5.16A): he gallops across the upper sky about once a minute, as Santa
-     * does, and pumpkins on fire fall from him (`HeadlessHorsemanEffect`). A plain per-theme switch, as [santaEnabled].
+     * *Headless Horseman* (`DESIGN_NOTES.md` decisions 79 and 84): he gallops across the upper sky about once a minute,
+     * throwing pumpkins on fire from his hand (`HeadlessHorsemanEffect`). A per-theme switch, as [santaEnabled] is.
      */
     val headlessHorsemanEnabled: Boolean = false,
-    // Previously hardcoded per-theme via SceneTheme.hasSantaSleigh with no user control at all --
-    // aa asked for an actual toggle. Kept as a per-theme customization (not a global setting)
-    // specifically so it fits the same defaultCustomizationFor() pattern every other per-theme
-    // toggle already follows: its default seeds from theme.hasSantaSleigh (true only for the
-    // Christmas theme) so nothing changes for a user who's never touched this setting, but it can
-    // now be flipped independently per theme just like Fall Colors/Winter Colors above.
+    // Santa's sleigh, a per-theme switch whose default is the theme's `hasSantaSleigh` (defaultCustomizationFor).
     val santaEnabled: Boolean = false,
-    // Seasonal decorations -- opt-in extras, off by default (see "Seasons & decorations"),
-    // placeable on any theme regardless of "traditional" season. Same ObjectVariantConfig shape
-    // as everything above, just defaulting to visible=false since these are meant to be
-    // deliberately turned on, not part of a theme's base look.
+    // The seasonal decorations, any of them on any theme ("Seasons & decorations").
     val snowmen: ObjectVariantConfig,
     val gifts: ObjectVariantConfig,
     val penguins: ObjectVariantConfig,
@@ -647,60 +410,36 @@ data class SceneCustomization(
     val easterEggs: ObjectVariantConfig,
     val pumpkins: ObjectVariantConfig,
     /**
-     * The scarecrows (v5.16, the drawing B of v5.16A): a scarecrow on its pole with a pointed black hat, an old patched
-     * coat and a carved pumpkin for a head, lit at night -- the maintainer's «wickedmen», *«spaventapasseri con cappello e
-     * vestiti vecchi e testa a forma di jack o lantern»* (2026-10-21) --, **in the snowmen's places**: the candidates
-     * `SceneObjectCatalog` lays for them are the snowmen's own, the same x and depth ([SceneObjectType.SCARECROW]),
-     * kept by a coin of their own ([keepCandidate]), and where a snowman is kept in the same place both stand, the
-     * scarecrow a little to one side.
-     *
-     * **Visibility and density only**, as [people]: the drawing is fixed art, so the four colours here are read by
-     * nothing and the settings show none. On in the Halloween theme as it ships, at 50 %, and off on every other; data
-     * written before v5.16 has none and reads as its theme's own (`sceneCustomizationFromJson`, `WallpaperPrefs`): on in the
-     * Halloween theme, off on every other and where the theme is not known.
+     * The scarecrows (`DESIGN_NOTES.md` decision 80): on a pole, a pointed black hat, an old patched coat and a carved
+     * pumpkin for a head, lit at night, **in the snowmen's places** (the same x and depth, [SceneObjectType.SCARECROW]),
+     * kept by a coin of their own ([keepCandidate]); where a snowman is kept in the same place, the scarecrow stands to
+     * one side. **Visibility and density only**, as [people]: the drawing is fixed art. On at 50 % as the Halloween
+     * theme ships, off on every other; data without it reads its theme's (`sceneCustomizationFromJson`,
+     * `WallpaperPrefs`), off where the theme is not known.
      */
     val scarecrows: ObjectVariantConfig = SCARECROWS_OFF,
-    // Not an "object" category (no visibility/density/color-variant shape) -- a single
-    // theme-scoped float for how wavy the hill silhouette is. Reuses the exact same per-theme
-    // pendingCustomization/save-to-theme machinery as everything else in this class, since it's
-    // a piece of a *theme's* look just like everything above, not a global rendering preference
-    // (see PaperRenderer.buildBaseHillPath's own doc comment for how it's applied safely).
+    // How wavy the hill silhouette is: part of a theme's look, saved with it (PaperRenderer.buildBaseHillPath).
     val hillsVariation: Float = 1f,
 
     /**
-     * How much settled snow lies about, 0..1, and only while [winterColorsEnabled] is on.
-     *
-     * A slider rather than a switch because "some" is the interesting answer: a hard 0 is the
-     * default, so a scene nobody has touched is exactly the scene v4.16 drew, and 1 is as much as
-     * the ground can carry before it stops reading as drifts and starts reading as a white floor.
-     *
-     * Gated on winter for the same reason `tree_canopy_snowcap` is: snow on the ground of a summer
-     * theme is not a decoration, it is a mistake. Christmas inherits it, because Christmas turns
-     * winter colours on.
+     * How much settled snow lies about, 0..1 (0 by default; 1 is as much as the ground carries before it reads as a
+     * white floor), only while [winterColorsEnabled] is on: snow on a summer theme's ground is a mistake, not a
+     * decoration.
      */
     val snowPiles: Float = 0f,
 
     /**
-     * The autumn counterpart, 0..1, and only while [fallColorsEnabled] is on.
-     *
-     * **Separate from the falling leaves.** `drawFallingLeaves` animates leaves coming off the
-     * crowns whenever [fallColorsEnabled] is on, with no switch of its own; this lies heaps on the
-     * ground, and 0 here leaves the falling leaves as they are.
+     * The autumn counterpart, 0..1, only while [fallColorsEnabled] is on: heaps on the ground. The falling leaves
+     * (`drawFallingLeaves`) follow [fallColorsEnabled] alone.
      */
     val leafPiles: Float = 0f,
-    // Same idea, two more theme-scoped plain fields for the hills' base color (day and night) --
-    // the hills are a single layer now, drawn in this one color (PaperRenderer's hillLayerColor()
-    // is a pass-through), matching how every other customizable category in this app exposes
-    // exactly one color pair, not one per depth layer.
+    // The hills' colour pair: one layer, one pair (PaperRenderer's hillLayerColor() passes it through).
     val hillsColorDay: Int = 0xFFF2A65A.toInt(),
     val hillsColorNight: Int = 0xFF2E2A55.toInt(),
     /** Who owns the hills pair. Lives here because the hills colours do, not inside a config. */
     val hillsAutoMode: AutoColorMode = AutoColorMode.MANUAL,
-    // Mountains: two independent background silhouette layers, drawn behind the hills with a
-    // slower parallax than even the farthest hill layer -- entirely separate from the hill/object
-    // row-placement system (SceneSpace's own depth band) on purpose, to avoid any risk
-    // to that already-tuned safety geometry. Visible by default (unlike seasonal decorations --
-    // these read as a normal part of the landscape, not an opt-in extra).
+    // Mountains: two background layers behind the hills, with a slower parallax, outside SceneSpace's depth band so
+    // they cannot disturb its geometry. Visible by default, as part of the landscape.
     val mountainsFront: MountainLayerConfig = MountainLayerConfig(
         visible = true, density = 0.5f, colorDay = 0xFF4CAF7C.toInt(), colorNight = 0xFFA9C2B8.toInt(),
     ),
@@ -709,8 +448,7 @@ data class SceneCustomization(
     ),
     /** The little houses on the mountains, off as every theme ships: see [DistantHousesConfig]. */
     val distantHouses: DistantHousesConfig = DistantHousesConfig.OFF,
-    // Off by default -- unlike mountains, not every theme's landscape should have a lake
-    // appearing in it unless the user actually wants one.
+    // Off by default: a lake is not every landscape's.
     val lake: LakeConfig = LakeConfig(
         visible = false,
         colorDay = 0xFF2FA8D8.toInt(),
@@ -721,8 +459,7 @@ data class SceneCustomization(
         dolphinsVisible = true,
         dolphinsDensity = 0.3f,
     ),
-    // Visible by default with a modest density -- a light scattering of birds reads as a normal
-    // part of an outdoor scene, the same way houses/trees do, not an opt-in extra.
+    // Visible by default, at a modest density.
     val birds: BirdsConfig = BirdsConfig(
         visible = true,
         density = 0.5f,
@@ -735,9 +472,7 @@ data class SceneCustomization(
         ),
     ),
     val stars: StarsConfig = StarsConfig(visible = true, density = 1f),
-    // Sky/sun/moon defaults below are generic placeholders -- defaultCustomizationFor() always
-    // overrides them per-theme (derived from that theme's own existing skyDay/skyNight/sunColor/
-    // moonColor), so these only matter as a fallback for unknown/custom theme ids.
+    // Placeholders: defaultCustomizationFor() derives the sky, sun and moon from each theme; these serve unknown ids.
     val sky: SkyConfig = SkyConfig(
         colorDayHigh = 0xFF6EC6FF.toInt(),
         colorDayLow = 0xFFCDEFFF.toInt(),
@@ -752,8 +487,7 @@ data class SceneCustomization(
     val clouds: CloudsConfig = CloudsConfig(
         visible = true, density = 0.4f, colorDay = 0xFFFFFFFF.toInt(), colorNight = 0xFF4A5568.toInt(),
     ),
-    // Off by default -- like the lake, this is weather a user opts into rather than something
-    // that should permanently rain/snow on every theme out of the box.
+    // Off by default: weather a user opts into.
     val precipitation: PrecipitationConfig = PrecipitationConfig(
         visible = false,
         type = PrecipitationType.RAIN,
@@ -768,14 +502,12 @@ data class SceneCustomization(
 ) {
     companion object {
         /**
-         * The scarecrows as every theme but Halloween ships them, and as data written before v5.16 reads there (and where
-         * its theme is not known): off, at the 50 % a tap starts them at (the snowmen's default). The colours are never read
-         * ([scarecrows]).
+         * The scarecrows as every theme but Halloween ships them, and as data without them reads there: off, at the 50 % a
+         * tap starts them at. The colours are never read ([scarecrows]).
          *
-         * **Here, and before [DEFAULT], not a value of the file** (v5.16B, `FirstClassTouchedTest`): the constructor reads
-         * it for its default, and a value of the file is initialised with the file, whose own values read [DEFAULT] -- so
-         * the engine, touching this class first, built [DEFAULT], asked the file, and the file read the [DEFAULT] still
-         * being built: the build crashed on the BV6600 at the engine's first frame after an `install -r`.
+         * **In the companion, before [DEFAULT], not a value of the file**: the constructor reads it for its default, and a
+         * value of the file is initialised with the file, whose own values read [DEFAULT]; the engine, touching this class
+         * first, would read the [DEFAULT] still being built and crash (`FirstClassTouchedTest`).
          */
         val SCARECROWS_OFF = ObjectVariantConfig(
             visible = false,
@@ -786,13 +518,8 @@ data class SceneCustomization(
         val DEFAULT = SceneCustomization(
             houses = ObjectVariantConfig(
                 visible = true,
-                // Houses, buildings, parasols and trees all defaulted to density=1f (every one
-                // of CANDIDATES_PER_CATEGORY's 10 slots shown), stacking across every depth band
-                // at once, and the placement band read as too crowded. Lowered to a more open
-                // 0.65 -- still user-adjustable via each category's own density slider in either
-                // direction, this only changes what a *fresh, untouched* theme looks like.
+                // 0.65, not every slot: all ten in every depth band at once read as crowded.
                 density = 0.65f,
-                // Matches the wall color PaperScrape always used before this became configurable.
                 colorDay1 = 0xFFF3E6D0.toInt(),
                 colorNight1 = 0xFF6B5F52.toInt(),
                 colorDay2 = 0xFFE9D6C7.toInt(),
@@ -800,22 +527,16 @@ data class SceneCustomization(
             ),
             buildings = ObjectVariantConfig(
                 visible = true,
-                density = 0.65f, // see houses' own comment on this same default-density change
-                // Matches the wall color PaperScrape always used before this became configurable.
-                // **Not a built-in theme's towers any more** (v5.11): each of the twelve starts from a
-                // pair of its own ([builtInTowerColours]). This stays the slate it always was, as
-                // the value a payload without a Buildings block reads and the colour every theme's
-                // towers had until v5.11 (a theme nobody built in starts since then from
-                // [withStartingBuildingColours]).
+                density = 0.65f, // as the houses'
+                // The slate a payload without a Buildings block reads; the twelve built-ins start from a pair of
+                // their own ([builtInTowerColours]), any other theme from [withStartingBuildingColours].
                 colorDay1 = 0xFF454B57.toInt(),
                 colorNight1 = 0xFF262A31.toInt(),
                 colorDay2 = 0xFF5C6A78.toInt(),
                 colorNight2 = 0xFF303842.toInt(),
             ),
-            // The shops' own colours since v5.11. Here the Buildings slate, because that is what the
-            // shops of a theme nobody built in were drawn in, and what a payload with neither block
-            // reads; the twelve built-ins start from their own ([builtInShopColours]). Visibility
-            // and density are inert -- see [SceneCustomization.shops].
+            // The Buildings slate, what a payload with neither block reads; the twelve built-ins start from their own
+            // ([builtInShopColours]). Visibility and density are inert ([SceneCustomization.shops]).
             shops = ObjectVariantConfig(
                 visible = true,
                 density = 1f,
@@ -824,8 +545,7 @@ data class SceneCustomization(
                 colorDay2 = 0xFF5C6A78.toInt(),
                 colorNight2 = 0xFF303842.toInt(),
             ),
-            // The public buildings' own colours since v5.13: here the shops', because that is what the
-            // school of a theme nobody built in was drawn in. The twelve built-ins start from their own
+            // The shops', which a school without colours of its own wore; the twelve built-ins start from their own
             // ([builtInPublicColours]), any other theme by their rule ([withStartingBuildingColours]).
             publics = ObjectVariantConfig(
                 visible = true,
@@ -852,8 +572,7 @@ data class SceneCustomization(
             carsNightDensity = DEFAULT_CARS_NIGHT_DENSITY,
             parasols = ObjectVariantConfig(
                 visible = true,
-                density = 0.65f, // see houses' own comment on this same default-density change
-                // Matches the fixed colors PaperScrape always used before this became configurable.
+                density = 0.65f, // as the houses'
                 colorDay1 = 0xFFFF7043.toInt(),
                 colorNight1 = 0xFFB5502E.toInt(),
                 colorDay2 = 0xFFF7FAFC.toInt(),
@@ -861,8 +580,7 @@ data class SceneCustomization(
             ),
             trees = ObjectVariantConfig(
                 visible = true,
-                density = 0.65f, // see houses' own comment on this same default-density change
-                // Matches the fixed foliage color PaperScrape always used before this became configurable.
+                density = 0.65f, // as the houses'
                 colorDay1 = 0xFF8AA25C.toInt(),
                 colorNight1 = 0xFF3F4A2A.toInt(),
                 colorDay2 = 0xFF3F9E6B.toInt(),
@@ -871,7 +589,6 @@ data class SceneCustomization(
             snowmen = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
-                // Matches the fixed snow color previously hardcoded in drawSnowman.
                 colorDay1 = 0xFFF7FAFC.toInt(),
                 colorNight1 = 0xFFAEB4B8.toInt(),
                 colorDay2 = 0xFFEAF3FA.toInt(),
@@ -880,7 +597,6 @@ data class SceneCustomization(
             gifts = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
-                // Matches 2 of the fixed colors previously hardcoded in giftColors.
                 colorDay1 = 0xFFC1443B.toInt(),
                 colorNight1 = 0xFF7A2B26.toInt(),
                 colorDay2 = 0xFF4F8FBF.toInt(),
@@ -889,7 +605,6 @@ data class SceneCustomization(
             penguins = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
-                // Matches the fixed body color previously hardcoded in penguinBodyColor.
                 colorDay1 = 0xFF2E3138.toInt(),
                 colorNight1 = 0xFF1A1C20.toInt(),
                 colorDay2 = 0xFF3A3E47.toInt(),
@@ -898,7 +613,6 @@ data class SceneCustomization(
             bunnies = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
-                // Matches the fixed body color previously hardcoded in bunnyBodyColor.
                 colorDay1 = 0xFFF7EFE6.toInt(),
                 colorNight1 = 0xFFAFA79C.toInt(),
                 colorDay2 = 0xFFE8D5C4.toInt(),
@@ -907,7 +621,6 @@ data class SceneCustomization(
             easterEggs = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
-                // Matches 2 of the fixed colors previously hardcoded in easterEggColors.
                 colorDay1 = 0xFFE8A6C4.toInt(),
                 colorNight1 = 0xFF9C6A82.toInt(),
                 colorDay2 = 0xFFA6D8E8.toInt(),
@@ -925,127 +638,169 @@ data class SceneCustomization(
     }
 }
 
-/**
- * The night-time pedestrian density a fresh install starts with.
- *
- * Equal to the daytime default, so v2.12 looks exactly like v2.11 until the user moves one of the
- * two sliders. Splitting a setting in two is not a licence to change what it does.
- */
+/** The night-time pedestrian density a fresh install starts with: the daytime default, so the night changes only when
+ * the user moves its slider. */
 const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 
-/**
- * The night-time car density a fresh install starts with. Equal to the cars' daytime default for
- * the same reason [DEFAULT_PEOPLE_NIGHT_DENSITY] equals the pedestrians': until the user moves
- * the new slider, v4.22 nights look exactly like v4.21 nights.
- */
+/** The night-time car density a fresh install starts with: the cars' daytime default, as [DEFAULT_PEOPLE_NIGHT_DENSITY]. */
 const val DEFAULT_CARS_NIGHT_DENSITY = 1f
 
 /**
- * Whether the night by day is in force (v5.16): *Night sky by day* on, with what it is drawn with -- the Halloween moon,
- * so *Halloween* and *Moon* on. The renderer draws by it (`PaperRenderer.nightOverDay`) and the settings say so by it
+ * Whether the night by day is in force: *Night sky by day* on, with the Halloween moon it is drawn with (*Halloween* and
+ * *Moon* on). The renderer draws by it (`PaperRenderer.nightOverDay`) and the settings say so by it
  * (`SettingsUiModel.nightSkyByDay`, and *Show Sun*, *Show Birds* and *Show Rainbow*, which it stops by day).
  */
 fun SceneCustomization.nightOverDayActive(): Boolean = nightSkyByDayEnabled && halloweenEnabled && moon.visible
 
-/**
- * The three switches *Christmas lights* became in v5.16, all [on] or all off: what *Christmas lights* on or off was, and
- * what data written before v5.16 reads as.
- */
+/** The three Christmas switches all [on] or all off: what data with the one *Christmas lights* switch reads as. */
 fun SceneCustomization.withChristmasLights(on: Boolean): SceneCustomization =
     copy(christmasBuildingLightsEnabled = on, christmasTreeLightsEnabled = on, christmasFirsEnabled = on)
 
-/** Whether the Halloween moon laughs (v5.16): *Laughing moon* on, with the carved moon up -- *Halloween* and *Moon* on. */
+/** Whether the Halloween moon laughs: *Laughing moon* on, with the carved moon up -- *Halloween* and *Moon* on. */
 fun SceneCustomization.laughingMoonActive(): Boolean = laughingMoonEnabled && halloweenEnabled && moon.visible
 
+/** Whether the Halloween moon stands still: *Moon stays in place* on, with the carved moon -- *Halloween* and *Moon* on. */
+fun SceneCustomization.stillMoonActive(): Boolean = stillMoonEnabled && halloweenEnabled && moon.visible
+
 /**
- * **The Halloween decorations and the Christmas ones are never on together in a theme** (v5.16): the maintainer,
- * 2026-10-21, *«addobbi visibili: solo halloween o natale; vince il primo scelto e il secondo deve avere il toggle non
- * attivabile con errore "è già acceso natale" o "è già acceso halloween"»*. The one statement of the rule, read by the
- * settings (the switch of the side that is not on is greyed and says why: `SettingsUiModel`), by the stores' setters
- * (a switch of one side is not turned on while the other's is: `WallpaperPrefs`), and by every reader of stored data
- * ([resolved]: data that holds both on -- a theme file written by hand -- is read with one of them off).
- *
- * The Christmas side is the three switches *Christmas lights* became -- the lights on the buildings, the lights on the
- * trees and the firs ([christmasOn]); the Halloween side, *Halloween decorations* ([halloweenOn]). **Each counts only while
- * it has something to hang on** -- the trees' two while trees stand ([treesStand]), the buildings' lights while a house, a
- * building or a house on the mountains does ([buildingLightsHang]), the Halloween decorations while a house or a shop does
- * ([halloweenDecorationsHang]): with nothing there a switch reads off and locked (decision 40; the maintainer's *«A: grigi
- * con la frase, come le palme (consigliata)»* and *«A: grigi con la frase, come gli abeti (consigliata)»*, 2026-10-22), so
- * a switch that reads off holds the other side off neither; with them back, data that then holds both is read as any that
- * does ([resolved]).
+ * **The Halloween decorations and the Christmas ones are never on together in a theme** (`DESIGN_NOTES.md` decision 77:
+ * the first turned on wins): the one statement of the rule, for the settings (`SettingsUiModel`), the stores' setters
+ * (`WallpaperPrefs`) and every reader of stored data ([resolved]). The Christmas side is the three Christmas switches
+ * ([christmasOn]), the Halloween side *Halloween decorations* ([halloweenOn]). **Each counts only while it has something
+ * to hang on** ([treesStand], [buildingLightsHang], [halloweenDecorationsHang]): with nothing there a switch reads off
+ * and locked (decision 40) and holds the other side off neither. Whether a tree or a house stands is the theme's
+ * street's ([standsAny]: a category above 0 % can keep none); without the layout, the amount above 0 % stands for it.
  */
 object DecorationExclusion {
 
     /** Whether any of the Christmas decorations the rule covers is on in [c], each only where it has something to hang on. */
-    fun christmasOn(c: SceneCustomization): Boolean =
-        (buildingLightsHang(c) && c.christmasBuildingLightsEnabled) ||
-            (treesStand(c) && (c.christmasTreeLightsEnabled || c.christmasFirsEnabled))
+    fun christmasOn(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        (buildingLightsHang(c, layout) && c.christmasBuildingLightsEnabled) ||
+            (treesStand(c, layout) && (c.christmasTreeLightsEnabled || (c.christmasFirsEnabled && firsCanStand(c, layout))))
 
     /**
-     * Whether any tree stands to carry the Christmas lights of the trees or to become a fir: *Show Trees* on and above 0 %
-     * (the palms are the trees' too, `SceneCustomization.configFor`).
+     * Whether a Christmas fir can stand on [layout]: a fir takes a leafy tree's place only (`SceneObjectRenderer.standsAsFir`),
+     * and on a street that plants palms of its own its palm slots stay palms while the Palms switch is on
+     * ([palmSpeciesApplied]), so a street of palms alone grows no fir then, at any amount. Without the layout, one can.
      */
-    fun treesStand(c: SceneCustomization): Boolean = c.trees.visible && c.trees.density > 0f
+    fun firsCanStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        layout == null || !(c.palmsEnabled && layout.hasPalmSlots()) || layout.staticObjects.any { it.type == SceneObjectType.TREE }
+
+    /**
+     * Whether any tree stands to carry the Christmas lights of the trees or to become a fir: one of [layout]'s trees or
+     * palms kept ([standsAny]; the palms are the trees' too, `SceneCustomization.configFor`), or without the layout *Show
+     * Trees* on and above 0 %.
+     */
+    fun treesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        if (layout == null) c.trees.visible && c.trees.density > 0f else c.standsAny(layout, TREE_TYPES)
 
     /** Whether the Halloween decorations are on in [c], while a house or a shop stands to carry them. */
-    fun halloweenOn(c: SceneCustomization): Boolean = halloweenDecorationsHang(c) && c.halloweenDecorationsEnabled
+    fun halloweenOn(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        halloweenDecorationsHang(c, layout) && c.halloweenDecorationsEnabled
 
     /**
      * Whether a house or one of the three shops stands to carry the Halloween decorations (`HalloweenDecorations.decorates`):
-     * the houses on and above 0 %, or *Show Buildings* on -- the shops stand while it is, whatever the towers' amount.
+     * a house standing ([housesStand]), or the places among the houses, where the shops take turns ([placesStand]).
      */
-    fun halloweenDecorationsHang(c: SceneCustomization): Boolean =
-        (c.houses.visible && c.houses.density > 0f) || c.buildings.visible
+    fun halloweenDecorationsHang(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        housesStand(c, layout) || placesStand(c, layout)
 
     /**
-     * Whether anything stands to carry the lights on the buildings: a house or a building, as [halloweenDecorationsHang], or a
-     * house on the mountains (its three bulbs: on, above 0 %, and a mountain to stand on).
+     * Whether the places among the houses stand, where the six buildings take turns: *Show Buildings* on -- they stand while
+     * it is, whatever the towers' amount -- on a street that has one ([StorefrontStreet.isPlace]). A random theme or a
+     * saved one can have none; without the layout, *Show Buildings* stands for it.
      */
-    fun buildingLightsHang(c: SceneCustomization): Boolean =
-        halloweenDecorationsHang(c) || (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))
+    fun placesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        c.buildings.visible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
+
+    /** Whether a house stands: one of [layout]'s kept ([standsAny]), or without the layout the houses on and above 0 %. */
+    fun housesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        if (layout == null) c.houses.visible && c.houses.density > 0f else c.standsAny(layout, HOUSE_TYPES)
+
+    /**
+     * Whether anything stands to carry the lights on the buildings: a house or a place, as [halloweenDecorationsHang], a tower
+     * kept (the star on its roof, [standsAny]), or a house on the mountains (its three bulbs: on, above 0 %, and a mountain
+     * to stand on).
+     */
+    fun buildingLightsHang(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        halloweenDecorationsHang(c, layout) || (layout != null && c.standsAny(layout, setOf(SceneObjectType.SKYSCRAPER))) ||
+            (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))
 
     /** Whether the Halloween decorations' switch can be turned on in [c]: not while a Christmas one is on. */
-    fun halloweenAllowed(c: SceneCustomization): Boolean = !christmasOn(c)
+    fun halloweenAllowed(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean = !christmasOn(c, layout)
 
     /** Whether a Christmas decoration's switch can be turned on in [c]: not while the Halloween decorations are on. */
-    fun christmasAllowed(c: SceneCustomization): Boolean = !halloweenOn(c)
+    fun christmasAllowed(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean = !halloweenOn(c, layout)
 
     /**
-     * [c] with at most one side on. Data the app writes never holds both (the setters refuse the second), so this
-     * changes nothing it reads -- only a payload written by hand, imported or restored, can hold both, and then the side
-     * the theme turns on as it ships stays on ([themeDefaults]: Halloween on the Halloween theme), and on every other
-     * theme the Christmas side, which is the older of the two.
+     * [c] with at most one side on, by what stands on [layout] (the amounts without it). Data holds both only where one had
+     * nothing to hang on when the other was turned on, or a payload was written by hand.
+     *
+     * **Whether a side goes is read with *Show Buildings* on standing for the places, whatever the street has**
+     * ([christmasDrawn], [halloweenDrawn]): the gallery card draws its three shops while *Show Buildings* is on, on any
+     * street (`ThemePreviewScene`), so it would draw both sides there. **Which side stays is the one that hangs on the
+     * street** ([christmasOn], [halloweenOn], the settings' and the setters' rule), so a switch the settings let the user
+     * turn on reads on, and the other, which hangs on nothing there, reads off with its reason and holds nothing. When both
+     * hang, or neither, the side the theme ships on stays ([themeDefaults]: Halloween on the Halloween theme), and on
+     * every other theme the Christmas side.
      */
-    fun resolved(c: SceneCustomization, themeDefaults: SceneCustomization): SceneCustomization {
-        if (!christmasOn(c) || !halloweenOn(c)) return c
-        return if (halloweenOn(themeDefaults) && !christmasOn(themeDefaults)) {
+    fun resolved(c: SceneCustomization, themeDefaults: SceneCustomization, layout: SceneObjectLayout? = null): SceneCustomization {
+        if (!christmasDrawn(c, layout) || !halloweenDrawn(c, layout)) return c
+        val christmasHangs = christmasOn(c, layout)
+        val halloweenHangs = halloweenOn(c, layout)
+        val keepHalloween = if (christmasHangs != halloweenHangs) {
+            halloweenHangs
+        } else {
+            halloweenDrawn(themeDefaults, layout) && !christmasDrawn(themeDefaults, layout)
+        }
+        return if (keepHalloween) {
             c.copy(christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false)
         } else {
             c.copy(halloweenDecorationsEnabled = false)
         }
     }
+
+    /**
+     * [christmasOn] with *Show Buildings* on carrying the lights on any street, as on the gallery card. The firs count where
+     * one can stand ([firsCanStand]), as there: the gallery card draws the street's own species, so no fir among palms.
+     */
+    private fun christmasDrawn(c: SceneCustomization, layout: SceneObjectLayout?): Boolean =
+        ((housesStand(c, layout) || c.buildings.visible ||
+            (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))) && c.christmasBuildingLightsEnabled) ||
+            (treesStand(c, layout) && (c.christmasTreeLightsEnabled || (c.christmasFirsEnabled && firsCanStand(c, layout))))
+
+    /** [halloweenOn] with *Show Buildings* on carrying the decorations on any street, as on the gallery card. */
+    private fun halloweenDrawn(c: SceneCustomization, layout: SceneObjectLayout?): Boolean =
+        (housesStand(c, layout) || c.buildings.visible) && c.halloweenDecorationsEnabled
+
+    /**
+     * [resolved] on the street [themeId] draws ([streetOf]), worked out only where both sides read on by their amounts --
+     * the one case it can change anything, since a side that hangs on the street hangs by its amounts too.
+     */
+    fun resolvedOn(c: SceneCustomization, themeDefaults: SceneCustomization, themeId: String): SceneCustomization =
+        if (christmasOn(c) && halloweenOn(c)) resolved(c, themeDefaults, streetOf(themeId)) else c
+
+    /** The street [themeId] draws, the one its decorations hang on (`SceneObjectCatalog.layoutFor`). */
+    fun streetOf(themeId: String): SceneObjectLayout =
+        SceneObjectCatalog.layoutFor(themeId, ThemeCatalog.byId(themeId).accentColor)
+
+    /** The trees' category: the leafy trees and the palms. */
+    val TREE_TYPES: Set<SceneObjectType> = setOf(SceneObjectType.TREE, SceneObjectType.PALM_TREE)
+
+    /** The houses' category. */
+    val HOUSE_TYPES: Set<SceneObjectType> = setOf(SceneObjectType.HOUSE)
 }
 
 /**
- * Where the opening-hours editors start, the three groups' -- the towers', the shops' and the public buildings' --,
- * inert until their group's switch is on.
- *
- * Not derived, and not derivable: a default shop day is a seed for each group's two sliders nobody has moved,
- * behind switches that default to off. 09:00–20:00 is stated as "an ordinary shop day" and
- * carries no other meaning; with a group's switch off the rendered scene is identical whatever these
- * hold, which `BusinessHours.opennessAt` guarantees by returning 1 before reading them.
+ * Where the three groups' opening-hours editors start: an ordinary shop day, a seed and nothing more. With a group's
+ * switch off the scene is the same whatever these hold (`BusinessHours.opennessAt` returns 1 before reading them).
  */
 const val DEFAULT_BUSINESS_OPEN_HOUR = 9f
 const val DEFAULT_BUSINESS_CLOSE_HOUR = 20f
 
 /**
- * The arc-height range, in fractions of screen height.
- *
- * These are the bounds the renderer has always clamped to, now named once and shared with the
- * settings slider so the two cannot disagree. They are the reason the old slider looked wrong at
- * "60%": it displayed the stored value directly, so its 60% was `0.6` -- the *top* of the range,
- * not the middle of anything. The stored scale is unchanged, so no saved theme or preference
- * needs migrating; only what the slider prints on top of it changed.
+ * The arc-height range, in fractions of screen height: the bounds the renderer clamps to, shared with the settings
+ * slider, which shows them as 0-100% ([sunCloudHeightFraction]).
  */
 const val SUN_CLOUD_HEIGHT_MIN = 0.1f
 const val SUN_CLOUD_HEIGHT_MAX = 0.6f
@@ -1060,17 +815,13 @@ fun sunCloudHeightFraction(stored: Float): Float =
         (SUN_CLOUD_HEIGHT_MAX - SUN_CLOUD_HEIGHT_MIN))
 
 /**
- * A per-instance value derived purely from an object's fixed position (never from Random()), so
- * the same object always gets the same value -- across frames and across [SceneObjectRenderer]
+ * A per-instance value from an object's fixed position (never Random()), the same across frames and [SceneObjectRenderer]
  * rebuilds.
  *
- * **It is a grid, not a fraction in [0, 1)**, and that is item 134. The sum runs in `Float` and the
- * depth term reaches ~985 000 for a front-band object, where a `Float` holds 1/16 and nothing
- * finer: in front of the scene it takes sixteen values, behind it a few dozen, finer the farther
- * back. Read directly as a density threshold it kept 11 of 16 steps at 0.65 -- 81 houses of 120
- * where the slider asked for about 74. [densityFraction] is what the threshold reads now; this
- * stays, unchanged to the bit, as the part of it that says which step an object is on, and as the
- * whole of it for a saved theme written before v5.8C ([DENSITY_SCHEME_GRID]).
+ * **It is a grid, not a fraction in [0, 1)**: the sum runs in `Float`, and the depth term reaches ~985 000 for a
+ * front-band object, where a `Float` holds 1/16 and nothing finer, so it takes sixteen values in front and a few dozen
+ * behind. As a density threshold it keeps whole steps (11 of 16 at 0.65). [densityFraction] is what the threshold reads;
+ * this is the part of it that says which step an object is on, and the whole of it for [DENSITY_SCHEME_GRID].
  */
 private fun stableFraction(spec: StaticSceneObject, salt: Float): Float {
     val raw = spec.tileFractionX * 7919f + spec.depthFraction * 7919f * 131f + salt
@@ -1078,23 +829,14 @@ private fun stableFraction(spec: StaticSceneObject, salt: Float): Float {
 }
 
 /**
- * The value [keepCandidate] compares against the density: a real fraction in `[0, 1)` (v5.8C,
- * item 134, decided by the maintainer on 2026-09-25).
+ * The value [keepCandidate] compares against the density: a real fraction in `[0, 1)`, so the slider's number and the
+ * share of objects standing are the same number in front and behind alike.
  *
- * [stableFraction] says which step of its grid an object is on; the step's own width is the
- * `Float`'s spacing at that magnitude (`Math.ulp`), and a second draw -- an integer hash of both
- * coordinates at full precision, on a channel nothing else reads -- says where inside the step it
- * lies. So the value is uniform over `[0, 1)` at every depth, and a density of 0.65 keeps 65 % of
- * the candidates in front and behind alike, which is the re-derived mapping: the slider's number
- * and the fraction of objects standing are the same number.
- *
- * **Why refine rather than replace.** A fresh hash would re-deal every scene: different houses in
- * different places on every theme. Refining keeps the order the grid already gave -- an object on
- * a lower step is always below one on a higher step -- so at any density the objects standing now
- * are a **subset** of those that stood before: none appears, and the only ones that go are some of
- * those on the step the threshold cuts through, which the grid used to keep whole. At a density
- * that falls exactly on a step boundary nothing changes at all. Computed in `Double` so the value
- * cannot round up onto the next step's lower edge.
+ * [stableFraction] says which step of its grid an object is on; the step's width is the `Float`'s spacing there
+ * (`Math.ulp`), and a second draw -- an integer hash of both coordinates at full precision, on a channel nothing else
+ * reads -- says where inside the step it lies. **Refined, not replaced**: a fresh hash would re-deal every scene, while
+ * this keeps the grid's order, so the objects standing at a density are a subset of those [DENSITY_SCHEME_GRID] keeps.
+ * In `Double`, so the value cannot round up onto the next step's lower edge.
  */
 internal fun densityFraction(spec: StaticSceneObject): Double {
     val raw = spec.tileFractionX * 7919f + spec.depthFraction * 7919f * 131f + 0f
@@ -1107,37 +849,29 @@ internal fun densityFraction(spec: StaticSceneObject): Double {
 private const val DENSITY_REFINE_CHANNEL = 134
 
 /**
- * Which of the snowmen's places a scarecrow keeps (v5.16): **the prototype's own draw, the one photographed** -- the place's
- * fraction (`NeighbourhoodComposer.stableFraction`, the per-instance hash) shifted by [SCARECROW_SALT], the choice B of row 3
- * of v5.16A (*«il resto, si a tutte»*, 2026-10-21; its report: the place's fraction shifted by 0.618), so the scarecrows
- * of the build stand in the places of the photographs the maintainer chose from. At 50 % each the snowmen and the
- * scarecrows keep about half their places each, some of them both (where both stand, the scarecrow steps aside:
- * `SceneObjectRenderer`). A fixed number per place, compared with the density: a density moved adds or removes
- * scarecrows and moves none (`AI_PROJECT_RULES.md` 5.3).
+ * Which of the snowmen's places a scarecrow keeps: the place's fraction (`NeighbourhoodComposer.stableFraction`) shifted by
+ * [SCARECROW_SALT], the draw of the photographs the scarecrows were chosen from. At 50 % each, the snowmen and the
+ * scarecrows keep about half their places, some of them both. A fixed number per place compared with the density, so
+ * moving the density adds or removes scarecrows and moves none, where a draw from one shared stream would move them all.
  */
 internal fun scarecrowFraction(spec: StaticSceneObject): Float =
     NeighbourhoodComposer.stableFraction(spec.tileFractionX, spec.depthFraction, SCARECROW_SALT)
 
-/** The shift of [scarecrowFraction]: the one the prototype of v5.16A drew its scarecrows with. */
+/** The shift of [scarecrowFraction]: the photographed one. */
 private const val SCARECROW_SALT = 0.618f
 
 /**
- * Whether a kept scarecrow [spec] stands aside (v5.16): where the snowman of its place stands too -- the same x and depth,
- * the snowman's own keep -- both are drawn, the scarecrow a little to one side (`SceneObjectRenderer.SCARECROW_ASIDE_METRES`).
+ * Whether a kept scarecrow [spec] stands aside: where the snowman of its place stands too (the same x and depth, the
+ * snowman's own keep), both are drawn, the scarecrow to one side (`SceneObjectRenderer.SCARECROW_ASIDE_METRES`).
  */
 fun SceneCustomization.scarecrowStandsAside(spec: StaticSceneObject, scheme: Int = DENSITY_SCHEME_FRACTION): Boolean =
     spec.type == SceneObjectType.SCARECROW && keepCandidate(spec.copy(type = SceneObjectType.SNOWMAN), scheme)
 
 /**
- * How a layout's objects are thinned by density: [DENSITY_SCHEME_FRACTION] for every layout the
- * app generates and every theme saved since v5.8C, [DENSITY_SCHEME_GRID] for a saved theme written
- * before it.
- *
- * **A saved theme keeps what it looked like.** It stores the objects that were *standing* when it
- * was saved -- thinned by the grid -- and the renderer thins them again by the same rule on every
- * frame, which the grid passed idempotently. Thinned by the fraction instead, some of them would
- * drop out, so a theme the user saved last month would lose houses today. So a saved entry carries
- * the scheme it was thinned with, and one that carries none is a grid one.
+ * How a layout's objects are thinned by density: [DENSITY_SCHEME_FRACTION] ([densityFraction]) for every generated layout
+ * and every theme saved with it, [DENSITY_SCHEME_GRID] ([stableFraction]) for a saved theme that carries no scheme.
+ * **A saved theme keeps what it looked like**: it stores the objects standing, thinned by its rule, and the renderer
+ * thins them again by that rule; by the other rule some would drop out.
  */
 const val DENSITY_SCHEME_GRID = 1
 const val DENSITY_SCHEME_FRACTION = 2
@@ -1164,52 +898,27 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
 }
 
 /**
- * Whether the Palms switch is on for a theme whose layout does ([layoutPlantsPalms]) or does not
- * plant palms of its own -- [SceneObjectLayout.hasPalmSlots] of the layout the theme draws.
- *
- * The one reading of the switch, for the settings screen, the gallery card and the wallpaper alike
- * (v5.10C): [palmsEnabled] where the layout plants palms, as it always was; [palmsInsteadOfTrees]
- * where it plants none, so a `true` the app wrote there before v5.10, when the switch could do
- * nothing on such a theme, does not count. See [SceneCustomization.palmsInsteadOfTrees].
+ * Whether the Palms switch is on, for a theme whose layout does or does not plant palms ([layoutPlantsPalms],
+ * [SceneObjectLayout.hasPalmSlots]): [palmsEnabled] or [palmsInsteadOfTrees] (which says why two). The one reading
+ * of the switch, for the settings, the gallery card and the wallpaper alike.
  */
 fun SceneCustomization.palmsShown(layoutPlantsPalms: Boolean): Boolean =
     if (layoutPlantsPalms) palmsEnabled else palmsInsteadOfTrees
 
 /**
- * The species this slot is drawn as, given the current config and whether the layout it comes
- * from plants palms of its own ([layoutPlantsPalms], [SceneObjectLayout.hasPalmSlots]):
+ * The species this slot is drawn as, given whether its layout plants palms ([layoutPlantsPalms]):
+ *  - on a layout that plants palms, a palm slot is a palm while [palmsEnabled] is on and an ordinary tree while it is
+ *    off; its tree slots (a shuffled theme may deal both) stay trees;
+ *  - on a layout that plants none, a tree slot is a palm while [palmsInsteadOfTrees] is on -- **except a fir**: a slot
+ *    standing as a Christmas fir (`SceneObjectRenderer.standsAsFir`) stays a tree, and the drawing makes it the fir
+ *    (`DESIGN_NOTES.md` decision 39).
  *
- *  - on a layout that plants palms, a palm slot is a palm while [palmsEnabled] is on and an
- *    ordinary tree while it is off; its tree slots, if it has any (a shuffled theme may deal both),
- *    stay trees either way -- exactly the rule of v5.1 to v5.9;
- *  - on a layout that plants none, a tree slot is a palm while [palmsInsteadOfTrees] is on
- *    (v5.10C), and a tree otherwise -- **except a fir**: a slot that stands as a Christmas fir
- *    while *Christmas firs* is on (`SceneObjectRenderer.standsAsFir`) stays a tree, and the
- *    drawing makes it the fir it was (v5.10C2). The palms take the place of the ordinary trees
- *    only; the maintainer, 2026-10-03: *«le palme in natale devono sovrascrivere gli alberi
- *    normali, gli abeti sono del tema e tali devono rimanere»*. *Christmas firs* puts firs on
- *    any theme, so this holds wherever a fir stands, not on Christmas alone.
- *
- * Every other slot passes through untouched. On a layout that plants palms nothing about the firs
- * changes: its palm slots are palms whatever *Christmas firs* says, as they always were, and a
- * slot the switch turns back into a tree is a tree the drawing may make a fir, as it always did.
- *
- * **Applied once, on the way from the layout to the renderer's object list, rather than at the
- * blit.** Everything downstream of that list reads `spec.type` -- `SceneObjectRenderer.variantFor`
- * for the drawing, `SceneVariant.baseScale` and `spriteUnitsTall` for the size,
- * `SceneObjectCatalog.occluderBoxes` for what it hides, `recordLeafSource` for what falls off it
- * -- so making the swap here is what stops an oak being drawn at a palm's height inside a palm's
- * occlusion box. Deciding it per draw call would have meant repeating it in five places that each
- * ask the type a different question, which is the shape of the per-asset constants
- * `CLAUDE.md` forbids.
- *
- * The one thing it does **not** move is the shop-visibility pass, which runs at layout generation
- * where no customization exists (`SceneObjectCatalog.layoutFor`). A tree is wider than a palm, so
- * turning palms off can leave a shop front more covered than the pass allowed for. That is the
- * behaviour every density and visibility setting already has -- the layout is dealt once and the
- * user's switches are read after it -- and it is not made worse here by being said out loud. The
- * other way round, palms in the tree slots of a street laid out for trees, is measured by
- * `ShopFrontVisibilityTest` on all twelve built-ins: a palm's crown reaches less far than an oak's.
+ * **Applied once, on the way from the layout to the renderer's object list, not at the blit**: everything downstream
+ * reads `spec.type` (`SceneObjectRenderer.variantFor`, `SceneVariant.baseScale`, `spriteUnitsTall`,
+ * `SceneObjectCatalog.occluderBoxes`, `recordLeafSource`), so an oak is never drawn at a palm's height inside a palm's
+ * box. The shop-visibility pass runs before any customization exists, so a tree, wider than a palm, can cover a shop
+ * front more than the pass allowed, as any density setting can; palms in a street laid out for trees, whose crowns
+ * reach less far, are measured by `ShopFrontVisibilityTest`.
  */
 fun SceneCustomization.palmSpeciesApplied(spec: StaticSceneObject, layoutPlantsPalms: Boolean): StaticSceneObject =
     when {
@@ -1222,29 +931,19 @@ fun SceneCustomization.palmSpeciesApplied(spec: StaticSceneObject, layoutPlantsP
     }
 
 /**
- * Whether this layout plants any palm of its own -- which decides which of the two fields behind
- * the Palms switch the theme drawn from it reads: [SceneCustomization.palmsEnabled] if it does,
- * [SceneCustomization.palmsInsteadOfTrees] if it does not ([palmsShown]).
- *
- * Asked of the layout, not of the theme's id. Beach and Desert are the two built-ins whose tree
- * slots are palms, but a theme saved from either keeps those slots under a `custom:` id, and a
- * shuffled theme may deal palms too; a list of names would say "no palms" about both while the
- * wallpaper draws them. The layout is the one before the switch is applied -- what the theme plants,
- * not what the user turned it into.
+ * Whether this layout plants any palm of its own, which decides the field behind the Palms switch its theme reads
+ * ([palmsShown]). Asked of the layout as planted, not of the theme's id: a theme saved from Beach or Desert keeps its
+ * palm slots under a `custom:` id, and a shuffled theme may deal palms.
  */
 fun SceneObjectLayout.hasPalmSlots(): Boolean =
     staticObjects.any { it.type == SceneObjectType.PALM_TREE }
 
 /**
- * Whether, with the Palms switch on, every tree this layout keeps under [c] would still stand as a
- * Christmas fir -- so the switch would put no palm anywhere (v5.10C2). The firs stay firs among the
- * palms ([palmSpeciesApplied]), and a wood thinned far enough under *Christmas firs* can keep only
- * fir slots: Christmas at 20 % keeps two trees, and both are firs. The settings ask this so the switch
- * does not read on over a scene with no palm in it (`AI_PROJECT_RULES.md` 8.7).
- *
- * False when the layout keeps no tree at all: that is the trees' own reason (*Show Trees* off or at 0 %),
- * said by the switch in its own words. Read through [keepCandidate] and [palmSpeciesApplied] with the
- * switch on, the two functions the renderer builds its list with, so it cannot drift from the scene.
+ * Whether, with the Palms switch on, every tree this layout keeps under [c] would still stand as a Christmas fir, so the
+ * switch would put no palm anywhere: a wood thinned far enough under *Christmas firs* can keep only firs (Christmas at
+ * 20 % keeps two trees, both firs). The settings ask it so the switch does not read on over a scene with no palm
+ * (`DESIGN_NOTES.md` decision 40). False when no tree is kept at all, the trees' own reason. Read through [keepCandidate]
+ * and [palmSpeciesApplied], as the renderer builds its list, so it cannot drift from the scene.
  */
 fun SceneObjectLayout.keepsOnlyFirsUnderPalms(c: SceneCustomization): Boolean {
     val on = c.copy(palmsEnabled = true, palmsInsteadOfTrees = true)
@@ -1259,16 +958,12 @@ fun SceneObjectLayout.keepsOnlyFirsUnderPalms(c: SceneCustomization): Boolean {
     return trees > 0
 }
 
-/** Whether this candidate slot should actually render, given the current config. Types with no
- * customization category (e.g. CAR, whose membership is a distributed count -- see [keptCars]
- * and [CarSelection]) are always kept.
+/** Whether this candidate slot renders under the current config. Types with no category (CAR, whose membership is a
+ * count: [keptCars], [CarSelection]) are always kept.
  *
- * The places among the houses are exempt from density thinning (not from the category's visibility
- * toggle): a built-in street has five a tile since v5.13B2 (`SceneObjectCatalog.buildingCandidates`;
- * one restaurant and one bar a tile from rc3, and the school from v5.6), the stages of the six buildings,
- * so they are compositional anchors -- a fractional density over them is a coin flip that on Sunset's
- * layout removed the entire commercial street at the default setting. The buildings density slider
- * governs the towers, which are the category's crowd. */
+ * The places among the houses are exempt from density thinning, not from the category's switch: five a tile where the
+ * six buildings take turns (`SceneObjectCatalog.buildingCandidates`), they anchor the street, and a coin over them can
+ * remove the whole commercial street at the default. The buildings' density governs the towers. */
 fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENSITY_SCHEME_FRACTION): Boolean {
     val config = configFor(spec.type) ?: return true
     if (!config.visible) return false
@@ -1277,10 +972,10 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENS
     ) {
         return true
     }
-    // The scarecrows stand in the snowmen's places, so by the snowmen's own fraction they would keep exactly the places
-    // the snowmen keep: a coin of their own decides which (v5.16, [scarecrowFraction]).
+    // The scarecrows stand in the snowmen's places, so by the snowmen's fraction they would keep exactly the snowmen's:
+    // a coin of their own decides ([scarecrowFraction]).
     if (spec.type == SceneObjectType.SCARECROW) return scarecrowFraction(spec) < config.density
-    // See [densityFraction] (v5.8C) and, for a theme saved before it, [DENSITY_SCHEME_GRID].
+    // See [densityFraction] and [DENSITY_SCHEME_GRID].
     return if (scheme == DENSITY_SCHEME_GRID) {
         stableFraction(spec, salt = 0f) < config.density
     } else {
@@ -1289,61 +984,42 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENS
 }
 
 /**
- * The car selection every release **before v4.22** shipped: an independent threshold on a stable
- * per-candidate fraction.
- *
- * **Frozen, and not a render-time path.** Rendering selects cars by explicit count since v4.22 —
- * see [CarSelection] and [keptCars] for why a threshold over ten candidates deals a fixed hand
- * rather than a distribution. This expression survives for exactly one caller:
- * `oldSaveWouldHaveWritten` in `CustomThemeData.kt` reconstructs, byte for byte, the car list the
- * pre-v4.3 save path wrote into a damaged override, and that save path filtered with *this*
- * predicate. The reconstruction is the repair's proof of authorship, so it must keep reproducing
- * the historical algorithm however the live selection evolves. Changing this function breaks the
- * repair of every install damaged before v4.3.
+ * **Whether [layout] stands at least one of its objects of [types]** under this customization: [keepCandidate], the
+ * wallpaper's own rule, over the layout's candidates. Not the amount alone: a candidate's fraction is spread over `[0, 1)`
+ * with no minimum, unlike the effects' (`CandidateThreshold.fallbackIndexFor`), so a category above 0 % can keep none --
+ * ten trees at 4 % keep none on most themes. The places among the houses, which stand at every amount, are not counted:
+ * for the buildings' category this asks after the towers.
+ */
+fun SceneCustomization.standsAny(layout: SceneObjectLayout, types: Set<SceneObjectType>): Boolean =
+    layout.staticObjects.any { it.type in types && !StorefrontStreet.isPlace(it) && keepCandidate(it, layout.densityScheme) }
+
+/**
+ * A car selection by an independent threshold on a stable per-candidate fraction, the predicate an older save path
+ * filtered with. **Frozen, and not a render-time path** (rendering selects cars by count: [CarSelection], [keptCars]):
+ * its one caller, `oldSaveWouldHaveWritten` in `CustomThemeData.kt`, reconstructs byte for byte the car list that save
+ * path wrote into a damaged override, the repair's proof of authorship. Changing it breaks that repair.
  */
 internal fun SceneCustomization.legacyKeepCar(spec: CarObject): Boolean =
     cars.visible && stableFraction(spec, salt = 0f) < cars.density
 
 /**
- * Which of the category's two colours (0 = Color 1, 1 = Color 2) this instance wears.
+ * Which of the category's two colours (0 = Color 1, 1 = Color 2) this instance wears: *"Each one randomly uses Color 1
+ * or Color 2"*, as the menu says.
  *
- * ### A coin of its own since v5.7F (item 134)
+ * **A coin of its own**: an integer hash of both coordinates at full precision ([CandidateNoise.value] over their raw
+ * bits), unrelated to the density's fraction by construction. A coin taken from that fraction (a salt only shifts it)
+ * would follow which objects stand, and the survivors, whose number is low, would wear one colour far more often. It
+ * decides the colour and nothing else: [keepCandidate] does not read it.
  *
- * The menu promises *"Each one randomly uses Color 1 or Color 2"*, and until v5.7F this was
- * `stableFraction(spec, salt = 17.3f) < 0.5f` under a comment claiming the salt kept it from
- * correlating with [keepCandidate]'s threshold. It did the opposite. Adding a constant to a value
- * and taking the fractional part only shifts it, so the colour was a fixed function of the very
- * number that decides which objects stand -- and the survivors are the objects whose number is
- * *low*, so they wore Color 2 far more often than Color 1. Measured on the twelve built-ins at
- * their defaults: **94 to 206** over every object that wears the pair (houses alone 21 to 60),
- * and **16 to 68** on the plain cars. Carrying the sum in `Double` does not help, because the
- * cause is the correlation and not the precision (v5.7E: 24 to 57).
- *
- * This is an integer hash of both coordinates at full precision ([CandidateNoise.value] over
- * their raw bits), so it has no relation to the density's fraction by construction. **It changes
- * which colour an object wears and nothing else**: [keepCandidate] is untouched, so the same
- * objects stand in every scene of every theme, and the density slider behaves exactly as before.
- * Measured with it: **151 to 149** over the same objects, and 40 to 44 on the plain cars.
- *
- * ### Why this channel
- *
- * [COLOUR_COIN_CHANNEL] is the one number here that is a choice, and the choice is stated so it
- * can be checked. The gallery card asks this function about seven fixed positions
- * (`ThemePreviewScenes.PreviewIdentity`, the same on all twelve cards), which were picked so each
- * row of the card shows both of the user's colours -- and the cards and those positions are
- * approved and not to be touched. Of channels 1..400, exactly **three** (111, 118, 262) give the
- * same answer as the old coin at all seven, so all twelve cards stay pixel-identical; of those,
- * 118 is the one whose split on the twelve shipped scenes is nearest half-and-half in every
- * category (houses 38/43, buildings 52/46, trees 32/35). `ColourCoinTest` pins the seven answers,
- * because nothing else would notice a card changing colour. It is a fair coin, not a balanced deal: a scene of twenty
- * objects can still come out twelve to eight, which is what a coin does.
+ * [COLOUR_COIN_CHANNEL] is the one number here that is a choice. The gallery card asks this about seven fixed positions
+ * (`ThemePreviewScenes.PreviewIdentity`), picked so each row of the approved cards shows both colours; of channels
+ * 1..400, three (111, 118, 262) give the cards' answers at all seven, and 118 splits the twelve shipped scenes nearest
+ * half-and-half in every category. `ColourCoinTest` pins the seven answers. A fair coin, not a balanced deal: twenty
+ * objects can come out twelve to eight.
  */
 private fun variantIndexFor(spec: StaticSceneObject): Int = colourCoin(spec.tileFractionX, spec.depthFraction)
 
-/**
- * [spec]'s colour coin, for the plan of the places (v5.13B2, `SceneObjectCatalog`): a tree or a parasol the
- * plan moves stands where it keeps the colour it had.
- */
+/** [spec]'s colour coin, for the plan of the places (`SceneObjectCatalog`): a tree or a parasol it moves keeps its colour. */
 internal fun colourCoinOf(spec: StaticSceneObject): Int = variantIndexFor(spec)
 
 /** The same coin for a car, over the two numbers that identify it on the road. */
@@ -1358,23 +1034,16 @@ private const val COLOUR_COIN_CHANNEL = 118
 private fun blend(config: ObjectVariantConfig, variant: Int, dayBlend: Float): Int {
     val day = if (variant == 0) config.colorDay1 else config.colorDay2
     val night = if (variant == 0) config.colorNight1 else config.colorNight2
-    // [SceneColour.blendArgb] rather than `ColorUtils.blendARGB`: the same arithmetic, without a
-    // call into `android.graphics.Color`, so which colour a building wears is a question the JVM
-    // suite can answer. See that object.
+    // [SceneColour.blendArgb], not `ColorUtils.blendARGB`: the same arithmetic without `android.graphics.Color`, so
+    // the JVM suite can answer which colour a building wears.
     return SceneColour.blendArgb(night, day, dayBlend.coerceIn(0f, 1f))
 }
 
 /**
- * The pair a house or a tower drawn as [variant] wears: the houses', or the towers' (the Buildings
- * category). Null for anything else -- the buildings among the houses included: which of the six
- * stands in a place is the street's ([StorefrontStreet]), and each wears its own group's pair,
- * [storefrontColours].
- *
- * Asked by the drawing, not by the object's type: one candidate pool holds the towers and the
- * buildings among the houses ([SceneObjectType.SKYSCRAPER] both), and which of the two a building is
- * follows from its depth in the scene (`SceneObjectRenderer.variantFor`) -- or from its row on the
- * gallery card, which stands towers at depths the scene keeps for the street's places
- * (`ThemePreviewScenes.PreviewIdentity`).
+ * The pair a house or a tower drawn as [variant] wears: the houses', or the towers' (Buildings). Null for anything else,
+ * the buildings among the houses included, which wear their own group's pair ([storefrontColours]). Asked by the
+ * drawing, not by the type: towers and places are one candidate pool ([SceneObjectType.SKYSCRAPER]), told apart by
+ * depth (`SceneObjectRenderer.variantFor`) or, on the gallery card, by row (`ThemePreviewScenes.PreviewIdentity`).
  */
 fun SceneCustomization.buildingColoursFor(variant: SceneSpace.SceneVariant): ObjectVariantConfig? = when (variant) {
     SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE -> houses
@@ -1383,9 +1052,8 @@ fun SceneCustomization.buildingColoursFor(variant: SceneSpace.SceneVariant): Obj
 }
 
 /**
- * The pair a building among the houses wears (v5.13): the shops' for the restaurant, the bar and the
- * shop, the public buildings' for the school, the fire station and the police station -- by what it
- * is, in whichever place it stands.
+ * The pair a building among the houses wears, by what it is in whichever place it stands: the shops' for the
+ * restaurant, the bar and the shop, the public buildings' for the school and the two stations.
  */
 fun SceneCustomization.storefrontColours(storefront: Storefront): ObjectVariantConfig = when (storefront.group) {
     StorefrontGroup.SHOPS -> shops
@@ -1399,10 +1067,9 @@ fun SceneCustomization.groupColours(group: StorefrontGroup): ObjectVariantConfig
 }
 
 /**
- * Whether [other] keeps the same opening hours as this -- all three groups' switches and hours (v5.12B2, the
- * third group v5.13). A change of them is a cut for the people at the windows (`WindowWalk.Doorway.advance`):
- * switched on at night, a shop's glass goes dark at once and its people, walked out, would walk behind it. Any
- * other change of the settings leaves whoever is walking out or in to go on.
+ * Whether [other] keeps the same opening hours as this, all three groups' switches and hours. A change of them is a cut
+ * for the people at the windows (`WindowWalk.Doorway.advance`): switched on at night, a shop's glass goes dark at once
+ * and its people would walk out behind it. Any other change leaves whoever is walking to go on.
  */
 fun SceneCustomization.sameOpeningHours(other: SceneCustomization): Boolean =
     shopHoursEnabled == other.shopHoursEnabled && shopOpenHour == other.shopOpenHour && shopCloseHour == other.shopCloseHour &&
@@ -1411,12 +1078,10 @@ fun SceneCustomization.sameOpeningHours(other: SceneCustomization): Boolean =
         publicCloseHour == other.publicCloseHour
 
 /**
- * Whether a house or a tower drawn as [variant] is open at [hour24], 1 (open) or 0 (shut): the towers by
- * the towers' hours, a house always 1 -- houses keep no hours ([BusinessHours]). The buildings among
- * the houses keep their group's, [opennessFor] of a [Storefront]. The same rule as their colours, by
- * what the building is, so a building's hours and its colours are always the same group's, on the
- * wallpaper and on the gallery card. What the glass is going to: the doorway eases it over two seconds
- * (`WindowWalk.Doorway.glassAt`).
+ * Whether a house or a tower drawn as [variant] is open at [hour24], 1 or 0: a tower by the towers' hours, a house
+ * always ([BusinessHours]). The buildings among the houses keep their group's ([opennessFor] of a [Storefront]): hours
+ * and colours follow one rule, on the wallpaper and on the card. The doorway eases the glass toward this over two
+ * seconds (`WindowWalk.Doorway.glassAt`).
  */
 fun SceneCustomization.opennessFor(variant: SceneSpace.SceneVariant, hour24: Float): Float = when (variant) {
     SceneSpace.SceneVariant.TOWER -> BusinessHours.opennessAt(towerHoursEnabled, towerOpenHour, towerCloseHour, hour24)
@@ -1424,10 +1089,9 @@ fun SceneCustomization.opennessFor(variant: SceneSpace.SceneVariant, hour24: Flo
 }
 
 /**
- * Whether a building among the houses is open at [hour24] (v5.13): the restaurant, the bar and the shop by
- * the shops' hours, the school by the public buildings'; **the fire station and the police station are
- * always open** ([Storefront.keepsHours], the maintainer's decision of 2026-10-12), whatever the public
- * buildings' hours say.
+ * Whether a building among the houses is open at [hour24]: the shops by the shops' hours, the school by the public
+ * buildings'; **the fire station and the police station are always open**
+ * ([Storefront.keepsHours], `DESIGN_NOTES.md` decision 62).
  */
 fun SceneCustomization.opennessFor(storefront: Storefront, hour24: Float): Float = when {
     !storefront.keepsHours -> 1f
@@ -1477,9 +1141,8 @@ fun SceneCustomization.wallColourFor(spec: StaticSceneObject, variant: SceneSpac
 }
 
 /**
- * The wall colour of [storefront] at [dayBlend] (v5.13): its group's pair ([storefrontColours]), by the
- * coin of its [identity] -- the object the building takes its identity from in every place it stands
- * ([StorefrontStreet.identities]), so a theme's fire station is Color 1 or Color 2 for good.
+ * The wall colour of [storefront] at [dayBlend]: its group's pair ([storefrontColours]), by the coin of its [identity],
+ * the object it takes its identity from in every place ([StorefrontStreet.identities]), so it keeps its colour.
  */
 fun SceneCustomization.storefrontWall(identity: StaticSceneObject, storefront: Storefront, dayBlend: Float): Int =
     blend(storefrontColours(storefront), variantIndexFor(identity), dayBlend)
@@ -1487,27 +1150,16 @@ fun SceneCustomization.storefrontWall(identity: StaticSceneObject, storefront: S
 fun SceneCustomization.colorFor(spec: CarObject, dayBlend: Float): Int = blend(cars, variantIndexFor(spec), dayBlend)
 
 /**
- * Colour [variant] of this category (0 = Color 1, 1 = Color 2) at [dayBlend]: exactly what
- * [colorFor] paints an instance whose coin picked that variant.
- *
- * For the gallery card, which stands a tree, a car or a decoration at a position no layout dealt
- * and so names the variant instead of tossing the coin (`ThemePreviewScenes`). Until v5.9G it
- * painted `colorDay1` / `colorDay2` whatever the card's hour, so on the two midnight cards and on
- * the World & scene strip's night the trees, the cars and the decorations kept their noon colours
- * while the wallpaper blends them toward night (inventory I-38).
+ * Colour [variant] of this category (0 = Color 1, 1 = Color 2) at [dayBlend], as [colorFor] paints an instance whose
+ * coin picked it: for the gallery card, which stands objects where no layout dealt them and names the variant
+ * (`ThemePreviewScenes`), at its own hour.
  */
 internal fun ObjectVariantConfig.colorAt(variant: Int, dayBlend: Float): Int = blend(this, variant, dayBlend)
 
 /**
- * How lit [spec]'s fixed art is at [dayBlend], as the neutral grey a blit multiplies by.
- *
- * The companion of [colorFor] for a sprite that has no tint to interpolate: same category, same
- * per-instance variant, same pair -- so a palm and the tree beside it lose their light together,
- * and two palms whose hashes picked different variants differ from each other exactly as two trees
- * would. See [SceneColour.neutralShade] for why it is a ratio and not a constant.
- *
- * A type with no category has no pair to read, and full daylight is the honest answer: the object
- * is drawn as authored, which is what it was doing before there was a shade at all.
+ * How lit [spec]'s fixed art is at [dayBlend], as the neutral grey a blit multiplies by: [colorFor]'s companion for a
+ * sprite with no tint, by the same category, variant and pair, so a palm and the tree beside it lose their light
+ * together ([SceneColour.neutralShade] says why a ratio). A type with no category is drawn as authored.
  */
 fun SceneCustomization.nightShadeFor(spec: StaticSceneObject, dayBlend: Float): Int {
     val config = configFor(spec.type) ?: return SpriteBlitter.UNTINTED
@@ -1515,9 +1167,8 @@ fun SceneCustomization.nightShadeFor(spec: StaticSceneObject, dayBlend: Float): 
 }
 
 /**
- * The shade of variant [variant] of this category at [dayBlend]: exactly what [nightShadeFor]
- * gives an instance whose coin picked that variant. The gallery card's palm and, since v5.14, its fir
- * read it for the reason [colorAt] gives.
+ * The shade of variant [variant] of this category at [dayBlend], as [nightShadeFor] gives it: the gallery card's palm
+ * and fir read it, for the reason [colorAt] gives.
  */
 internal fun ObjectVariantConfig.nightShadeAt(variant: Int, dayBlend: Float): Int {
     val day = if (variant == 0) colorDay1 else colorDay2
@@ -1531,18 +1182,11 @@ fun SceneCustomization.parasolStripeColor(wedgeIndex: Int, dayBlend: Float): Int
     blend(parasols, wedgeIndex % 2, dayBlend)
 
 /**
- * The starting-point [SceneCustomization] for a given theme -- what a user sees the *first* time
- * they open "World & scene" or "Seasons & decorations" for it, before they've changed anything
- * themselves. Every theme starts from [SceneCustomization.DEFAULT] with its own hill, sky, sun and
- * moon colours and its own Santa default -- and, on the twelve built-in themes since v5.11, its own
- * towers' and shops' starting colours ([builtInTowerColours], [builtInShopColours]) and since v5.13 its
- * public buildings' ([builtInPublicColours]); the themes listed below then adjust structural
- * categories (City's towers, the winter themes' parasols) and seasonal ones (Christmas's snowmen
- * and gifts, Easter's bunnies and eggs) alike. Nothing is locked in: the user can change any of it
- * and save the result as an override (from "Themes") or as a theme of their own (from "Advanced &
- * about"). Themes not listed here get that base unchanged -- except that a theme which is not built in
- * (a custom or random one) starts its towers, shops and public buildings from colours chosen against its
- * own ground ([withStartingBuildingColours]).
+ * The starting [SceneCustomization] for a theme, what its settings show before the user changes anything:
+ * [SceneCustomization.DEFAULT] with the theme's own hill, sky, sun and moon colours and Santa default, and on the twelve
+ * built-ins their own towers', shops' and public buildings' colours ([builtInTowerColours], [builtInShopColours],
+ * [builtInPublicColours]); the themes listed below then adjust structural and seasonal categories alike. A theme that is
+ * not built in starts its three groups from colours chosen against its own ground ([withStartingBuildingColours]).
  */
 fun defaultCustomizationFor(themeId: String): SceneCustomization = defaultCustomizationFor(themeId, ThemeCatalog.byId(themeId))
 
@@ -1551,9 +1195,7 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization = defaultCustom
  * theme beside it (a theme file, a saved theme, a backup's entry), whose id the catalogue may not know yet.
  */
 internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneCustomization {
-    // Derived from the theme's own existing (currently fixed, non-user-editable) farthest-layer
-    // hill color -- so switching a theme to "custom hills color" for the first time starts from
-    // that theme's own authored look, not an unrelated placeholder color.
+    // The theme's own hill, sky, sun and moon colours, so editing them starts from the theme's look.
     val base = SceneCustomization.DEFAULT.copy(
         hillsColorDay = theme.hillColorsDay.firstOrNull() ?: SceneCustomization.DEFAULT.hillsColorDay,
         hillsColorNight = theme.hillColorsNight.firstOrNull() ?: SceneCustomization.DEFAULT.hillsColorNight,
@@ -1574,14 +1216,9 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
     )
     return when (themeId) {
         "winter" -> base.copy(
-            // **The winter presentation itself.** It was off, which left the winter themes with
-            // green summer trees, bare roofs and people in shorts standing on snow. The three
-            // things it drives -- tree snow caps, roof snow, winter clothing -- are exactly what
-            // makes a winter scene a winter scene, and none of them had a switch of their own.
+            // The winter presentation: tree snow caps, roof snow, winter clothing.
             winterColorsEnabled = true,
-            // **Winter is not Christmas.** This theme is the plain season: snow, cold, no fairy
-            // lights and no presents. It is the combination the two flags were split apart to
-            // make expressible.
+            // Winter is not Christmas: the plain season, no fairy lights and no presents.
             christmasBuildingLightsEnabled = false,
             christmasTreeLightsEnabled = false,
             christmasFirsEnabled = false,
@@ -1590,15 +1227,12 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             snowmen = base.snowmen.copy(visible = true, density = 0.3f),
             mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
-            // **It snows, rather than merely having snowed.** Precipitation is opt-in everywhere
-            // else, on the same reasoning as the lake, and the two snow themes are the exception:
-            // a theme called Winter whose weather is off is a theme whose central subject the
-            // user has to go and find in a menu.
+            // It snows: precipitation is opt-in everywhere but the two snow themes, whose subject it is.
             precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 0.45f),
         )
         "christmas" -> base.copy(
             winterColorsEnabled = true,
-            // The three switches *Christmas lights* became in v5.16, all on: the theme shows what it showed.
+            // All three Christmas switches on.
             christmasBuildingLightsEnabled = true,
             christmasTreeLightsEnabled = true,
             christmasFirsEnabled = true,
@@ -1609,30 +1243,15 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
             // The same exception as Winter's -- see that block.
             precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 0.45f),
-            // **67 %, not the generic 65 %, and it is the whole of the repair for item 139.** The
-            // three-shop band of v5.6 took one slot off the tower catalogue (8 -> 7) and moved
-            // every rank in it, and on this seed the 65 % threshold then dropped exactly the three
-            // slots dealt a spire: Christmas stood four domes and no spire, where v5.5 had stood
-            // five towers wearing both crowns. The slot with the lowest threshold above 0.65 is a
-            // spire at 0.6602, and the next one above it sits at 0.6719, so 0.67 keeps that one
-            // tower and no other -- five towers again, both crowns, and not one house, tree or
-            // shop different, because this slider governs the towers alone (the places among the
-            // houses are exempt, see [keepCandidate]).
-            //
-            // Chosen over repairing the deal because every repair of the deal re-deals the
-            // towers of other themes too -- measured, the cheapest one changes the crown of 27
-            // towers across nine themes -- while this changes one theme and nothing else. It does
-            // not touch [SilhouetteDeal]: the deal is still a pure function of `(seed, slot)`,
-            // and moving this slider still removes slots without re-drawing any survivor.
-            // `RealThemeSilhouetteDistributionTest` is what fails if a later change to the
-            // layout breaks it again.
+            // **67 %, not the generic 65 %**: on this seed 65 % drops exactly the tower slots dealt a spire, leaving
+            // domes only. The lowest threshold above 0.65 is a spire's at 0.6602 and the next is 0.6719, so 0.67 keeps
+            // that one tower more and changes nothing else (this slider governs the towers alone, [keepCandidate]).
+            // Repairing the deal instead would re-deal other themes' towers. `RealThemeSilhouetteDistributionTest`
+            // fails if the layout breaks this.
             buildings = base.buildings.copy(density = 0.67f),
         )
-        // **Winter, but not Christmas, and not a second Christmas theme either.** New Year sits
-        // in the same season, so it gets the same snow-laden trees, roof snow and winter
-        // clothing -- but the tree lights, the presents and Santa belong to the fortnight that
-        // has just ended and stay in Christmas. What makes this theme itself is the night:
-        // fireworks, a dusk-purple ground, and no shade umbrellas at a party after dark.
+        // Winter, but not Christmas: the season's snow and clothing, without the lights, the presents and Santa;
+        // this theme is its night of fireworks, and no parasols.
         "new_year" -> base.copy(
             winterColorsEnabled = true,
             christmasBuildingLightsEnabled = false,
@@ -1647,61 +1266,41 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             christmasTreeLightsEnabled = false,
             christmasFirsEnabled = false,
             parasols = base.parasols.copy(visible = false),
-            // Tundra is where trees stop. Not removed outright -- with the winter presentation on
-            // they read as snow-laden conifers, and a treeless plain is emptier than it is
-            // evocative -- but thinned to a scattering rather than the woodland every other theme
-            // gets.
+            // Tundra is where trees stop: a snow-laden scattering, not a woodland, nor an empty plain.
             trees = base.trees.copy(density = 0.2f),
             snowmen = base.snowmen.copy(visible = true, density = 0.3f),
             penguins = base.penguins.copy(visible = true, density = 0.4f),
             mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
-            // The lake is meltwater at the edge of the ice. Sailboats and dolphins default to
-            // visible and were inherited unchanged, which put a yachting scene and a pod of
-            // dolphins in the Arctic.
+            // Meltwater at the edge of the ice: no sailboats, no dolphins.
             lake = base.lake.copy(
                 visible = true, colorDay = 0xFFBFE3EE.toInt(), colorNight = 0xFF2A4550.toInt(), height = 0.25f,
                 sailboatsVisible = false, dolphinsVisible = false,
             ),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
-        // **The one theme that presets the two Halloween flags.** Choosing it has to show the
-        // whole presentation at once -- carved moon, bare trees, black-and-orange sky -- because a
-        // theme called Halloween that needs two switches found in a menu before it looks like
-        // Halloween is a theme that does not work.
-        //
-        // Presetting is not coupling. Both flags stay exactly as independent as they were: the
-        // user can turn either off, or on, in any combination, and this block only seeds their
-        // starting value the same way every other theme seeds `winterColorsEnabled` or
-        // `parasols.visible`. Neither flag reads the other, here or anywhere else.
-        //
-        // The pumpkins come with it for the same reason Autumn's do: they are the season's own
-        // decoration, and leaving them to be discovered in a menu would ship a Halloween scene
-        // without the one object that says Halloween. Winter, Christmas and the fall palette are
-        // untouched -- bare branches are not autumn leaves, and this is not December.
+        // The one theme that presets the Halloween flags, so choosing it shows the whole presentation at once. A
+        // preset, not a coupling: the user can turn any of them off or on in any combination. Its pumpkins come with
+        // it, the season's own decoration; winter, Christmas and the fall palette are untouched.
         "halloween" -> base.copy(
             halloweenEnabled = true,
             horrorSkyEnabled = true,
             pumpkins = base.pumpkins.copy(visible = true, density = 0.5f),
             parasols = base.parasols.copy(visible = false),
-            // **Everything v5.16 added, on** (the maintainer's *«il resto, si a tutte»* to the table of v5.16A, with the
-            // night by day *«il nuovo default del tema halloween»*, 2026-10-21): the laughing moon, the night sky by day --
-            // so this theme is night at every hour --, the decorations, the blood rain, the Horseman and the scarecrows at
-            // the snowmen's 50 %. Every other theme ships them off.
+            // Every switch of the Halloween page on, off in every other theme (`DESIGN_NOTES.md` decision 75): the
+            // laughing moon, the night sky by day, the still moon, the decorations, the blood rain, the Horseman and the
+            // scarecrows at the snowmen's 50 %.
             laughingMoonEnabled = true,
             nightSkyByDayEnabled = true,
+            stillMoonEnabled = true,
             halloweenDecorationsEnabled = true,
             bloodRainEnabled = true,
             headlessHorsemanEnabled = true,
             scarecrows = base.scarecrows.copy(visible = true, density = 0.5f),
         )
-        // Spring's own defaults, and they are mostly about what is *off*. No winter palette, no
-        // fall palette, no Christmas layer, no Halloween: the season is defined here by the
-        // absence of every other season's dressing plus a full, dense canopy, which is the one
-        // thing spring has that winter and autumn do not. Parasols stay away -- it is not warm
-        // yet -- and the lake comes up because meltwater is what early spring looks like.
+        // Spring: no other season's dressing, a dense canopy, no parasols yet, and the meltwater lake.
         "spring" -> base.copy(
-            // The one theme that starts with them on. Spring without flowers is a green summer.
+            // The one theme that starts with flowers: without them spring is a green summer.
             flowersEnabled = true,
             trees = base.trees.copy(visible = true, density = 0.7f),
             parasols = base.parasols.copy(visible = false),
@@ -1711,26 +1310,16 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             bunnies = base.bunnies.copy(visible = true, density = 0.3f),
             easterEggs = base.easterEggs.copy(visible = true, density = 0.5f),
         )
-        // Autumn had the palette of autumn and the vegetation of midsummer: `fallColorsEnabled`
-        // is what turns the leaves and starts them falling, and it was off. Pumpkins come with
-        // it -- they are the season's own decoration, and leaving them to be discovered in a
-        // menu meant the Autumn theme shipped without the one object that says autumn.
+        // Autumn: the leaves turn and fall (`fallColorsEnabled`), and the pumpkins, the season's decoration, stand.
         "autumn" -> base.copy(
             fallColorsEnabled = true,
             parasols = base.parasols.copy(visible = false),
             pumpkins = base.pumpkins.copy(visible = true, density = 0.35f),
         )
-        // Each theme's factory values: what a fresh install shows. They began as a quick first
-        // pass, just enough that the themes look different from each other instead of all sharing
-        // the exact same lake/mountain defaults; most have been reworked since, each with its
-        // reason written beside it, and they are kept as they stand now (decided 2026-09-28).
+        // Each theme's factory values, what a fresh install shows, kept as they stand.
         "beach" -> base.copy(
-            // **The ground was the sea's own teal.** `SceneTheme.hillColorsDay` is a three-entry
-            // array from the days of three hill layers; the scene has drawn one layer for some
-            // time, so only entry 0 is ever read and the two sand tones behind it were dead
-            // values. Beach's entry 0 is the water colour, so the shore rendered as a green-teal
-            // field. Stated here as the sand it is meant to be, which is the same value the
-            // array's second entry already held.
+            // Sand: the scene draws one hill layer and reads `SceneTheme.hillColorsDay`'s entry 0, which on Beach is
+            // the water's teal; this is the array's second entry.
             hillsColorDay = 0xFFEFD9A3.toInt(),
             hillsColorNight = 0xFF6E6353.toInt(),
             lake = base.lake.copy(
@@ -1751,38 +1340,23 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             mountainsFront = base.mountainsFront.copy(visible = false),
             mountainsBack = base.mountainsBack.copy(visible = false),
             birds = base.birds.copy(density = 0.2f),
-            // A city theme that draws as many cottages as offices is a village with a skyline
-            // behind it. Both categories shared the generic 0.65; here they are what the theme
-            // is named after.
+            // A city: towers over cottages, not a village with a skyline behind it.
             buildings = base.buildings.copy(density = 1f),
             houses = base.houses.copy(density = 0.3f),
         )
-        // Every other id: a theme of the user's own, a random one, an imported one -- whose towers and
-        // shops start from colours chosen against its own ground, by the twelve's rule (v5.11).
+        // Any other id (the user's own, random, imported): its groups start from colours chosen against its ground.
         else -> if (themeId in BUILT_IN_TOWER_COLOURS) base else base.withStartingBuildingColours(theme)
     }
 }
 
 /**
- * The towers' starting colours on a built-in theme, or null for any other id (v5.11, inventory
- * I-401; the maintainer's *«procedi con B ma che i colori non siano troppo uguali al terreno
- * altrimenti non si capisce niente»* of 2026-10-06).
- *
- * Until v5.11 every theme's towers were the one slate pair of [SceneCustomization.DEFAULT], and on
- * Big City they all but vanished against hills of the same grey (inventory I-410). Each theme now
- * starts from two colours of its own palette -- brick and ochre on Autumn, powder blue and lilac grey
- * on Winter, terracotta and whitewash on Desert, red and blue on Christmas, gold and lavender on New
- * Year's Eve, coral and sea green on Beach, steel and sand on Big City -- **and each passes the
- * ground rule**: CIE76 dE at least [BuildingGroundContrast.DAY_GATE] from the hills and from every
- * mountain layer the theme shows, by day, and [BuildingGroundContrast.NIGHT_GATE] by night
- * (`BuildingGroundContrastTest`, which also says where the two gates come from). The night colour
- * is the day colour carried 55 % of the way to the scene's ink, `#15161C`, written out so the user
- * edits it like any other.
- *
- * **Only the start.** Color 1 and Color 2 of *Buildings* are the user's to change as they always
- * were; a theme whose look is already stored -- edited and archived, saved in the gallery, restored
- * from a backup, imported -- keeps the colours stored with it until *Reset Buildings to default*.
- * The density and the switch are [SceneCustomization.DEFAULT]'s, which a theme below may change.
+ * The towers' starting colours on a built-in theme, or null for any other id (`DESIGN_NOTES.md` decision 46): two
+ * colours of the theme's own palette, **each passing the ground rule** -- CIE76 dE at least
+ * [BuildingGroundContrast.DAY_GATE] from the hills and every mountain layer the theme shows by day,
+ * [BuildingGroundContrast.NIGHT_GATE] by night (`BuildingGroundContrastTest`, which says where the gates come from).
+ * The night colour is the day colour carried 55 % of the way to the scene's ink, `#15161C`, written out so the user
+ * edits it like any other. **Only the start**: a theme whose look is stored keeps its colours until *Reset Buildings to
+ * default*. The density and the switch are [SceneCustomization.DEFAULT]'s.
  */
 internal fun builtInTowerColours(themeId: String): ObjectVariantConfig? {
     val pair = BUILT_IN_TOWER_COLOURS[themeId] ?: return null
@@ -1808,20 +1382,11 @@ private val BUILT_IN_TOWER_COLOURS: Map<String, IntArray> = mapOf(
 )
 
 /**
- * The shops' starting colours on a built-in theme, or null for any other id (v5.11, inventory I-403;
- * the maintainer's *«voglio che i negozi abbiano colore a se, aggiungiamolo»* of 2026-10-06).
- *
- * Until v5.11 the restaurant, the school and the bar wore the towers' slate and were the darkest
- * thing in the street. They start from **the houses' pair** -- the look the maintainer chose from the
- * photographs, the shops among the houses in the houses' paper -- except where that pair does not
- * pass the ground rule of [builtInTowerColours] against the hills a shop stands on
- * ([BuildingGroundContrast]): on the three snow themes the houses' cream is 15.7 to 16.8 from the
- * snow by day, so the shops take a warmer stone; on Beach the first cream is 17.7 from the sand by day
- * and its night 2.3 from the night sand, so the shops take a whiter paper and a darker night.
- * `BuildingGroundContrastTest` holds all twelve to it.
- *
- * **Only the start**, like the towers': Color 1 and Color 2 of *Shops* are the user's to change, and
- * a theme stored before v5.11 keeps the Buildings colours its shops were drawn in.
+ * The shops' starting colours on a built-in theme, or null for any other id (`DESIGN_NOTES.md` decision 48): **the
+ * houses' pair**, the shops in the houses' paper, except where it fails [builtInTowerColours]' ground rule against the
+ * hills a shop stands on ([BuildingGroundContrast]): on the three snow themes the houses' cream is 15.7 to 16.8 from the
+ * snow by day, so the shops take a warmer stone; on Beach it is 17.7 from the sand by day and 2.3 by night, so a whiter
+ * paper and a darker night. `BuildingGroundContrastTest` holds all twelve to it. **Only the start**, like the towers'.
  */
 internal fun builtInShopColours(themeId: String): ObjectVariantConfig? {
     if (themeId !in BUILT_IN_TOWER_COLOURS) return null
@@ -1839,22 +1404,13 @@ internal fun builtInShopColours(themeId: String): ObjectVariantConfig? {
 }
 
 /**
- * The public buildings' starting colours on a built-in theme -- the school, the fire station and the
- * police station -- or null for any other id (v5.13; the maintainer's *«il resto accetto i
- * consigliati»* of 2026-10-11 to the row that said: *a colour of their own for each theme (in Autumn
- * blue-grey and lavender), chosen to stand out from the grass and from the shops and the towers, so the
- * three groups can be told apart*).
- *
- * Two paper tones each, the first two of twelve -- sage, blue-grey, lavender, mint, sky, teal, ochre,
- * olive, rose, slate, moss, plum -- that pass the ground rule of [builtInTowerColours] against the
- * hills a building among the houses stands on, in any of the places (the ground behind each is
- * the hills, [BuildingGroundContrast.groundBehind]), and stand at least CIE76 dE 18 by day and 8 by
- * night from each of the theme's shop colours, and 15 and 6 from each of its towers'.
- * `BuildingGroundContrastTest` holds all twelve to it. Each night colour is its day colour carried 60 %
- * of the way to the scene's ink.
- *
- * **Only the start**, like the towers' and the shops': Color 1 and Color 2 of *Public buildings* are the
- * user's to change, and a theme stored before v5.13 takes them as `publicsCarriedOver` says.
+ * The public buildings' starting colours on a built-in theme, or null for any other id (`DESIGN_NOTES.md` decision 62):
+ * two paper tones each, the first two of twelve -- sage, blue-grey, lavender, mint, sky, teal, ochre, olive, rose,
+ * slate, moss, plum -- that pass [builtInTowerColours]' ground rule against the hills behind any place
+ * ([BuildingGroundContrast.groundBehind]) and stand at least CIE76 dE 18 by day and 8 by night from each of the
+ * theme's shop colours, 15 and 6 from its towers'. `BuildingGroundContrastTest` holds all twelve to it. Each night
+ * colour is its day colour carried 60 % of the way to the scene's ink. **Only the start**; data without them reads
+ * `publicsCarriedOver`.
  */
 internal fun builtInPublicColours(themeId: String): ObjectVariantConfig? {
     val pair = BUILT_IN_PUBLIC_COLOURS[themeId] ?: return null
@@ -1890,14 +1446,11 @@ private val BUILT_IN_PUBLIC_COLOURS: Map<String, IntArray> = mapOf(
 )
 
 /**
- * The public buildings' colours of data written before v5.13 -- a live edit, a theme's archive, a saved
- * theme, a theme file, a backup -- whose school wore the shops' colours: **whoever had changed the
- * shops' colours by hand finds them on the school and the two stations too, and whoever had not gets
- * the theme's new pair** (the maintainer's *«il resto accetto i consigliati»* of 2026-10-11 to the row
- * that said both). [shops] are the shops' colours as stored and [theme] the theme they belong to, null
- * when it is not known; a pair is "changed by hand" when any of its four colours or two automatic modes
- * is not that theme's starting one. Without a theme to compare against, the shops' -- the look the
- * school had.
+ * The public buildings' colours of data without them, whose school wore the shops' colours: **shop colours changed by
+ * hand go to the school and the two stations too, unchanged ones give way to the theme's own pair**
+ * (`DESIGN_NOTES.md` decision 62). [shops] are the shops' colours as stored and [theme] their theme, null when not
+ * known; a pair is changed by hand when any of its four colours or two modes is not the theme's starting one. Without
+ * a theme, the shops' colours, the look the school had.
  */
 internal fun publicsCarriedOver(shops: ObjectVariantConfig, theme: SceneTheme?): ObjectVariantConfig =
     if (theme == null) shops else publicsCarriedOver(shops, defaultCustomizationFor(theme.id, theme))
@@ -1928,33 +1481,12 @@ private val BEACH_SHOP_COLOURS =
     intArrayOf(0xFFF2EBE0.toInt(), 0xFF524440.toInt(), 0xFFF5E0D6.toInt(), 0xFF4E403B.toInt())
 
 /**
- * The towers', the shops' and the public buildings' starting colours on a theme that is **not built in**,
- * by the twelve's rule
- * (v5.11, inventory I-419; the maintainer's *«Ripararlo prima di pubblicare»* of 2026-10-07, asked with
- * the photographs of Big City's slate towers vanishing into its hills).
- *
- * Until then such a theme started from [SceneCustomization.DEFAULT]: the slate every tower had before
- * v5.11, and for the shops the same slate. On a random theme ("Shuffle a random theme") the slate towers
- * went under the night gate on about one hill colour in eight, and the shops were the darkest thing in
- * the street again; a theme of the user's own copied from Big City, after "Reset Buildings to default",
- * had the towers of inventory I-410 back, 3.8 from its hills by day.
- *
- * - **A copy of a built-in theme** -- what "Save current look as..." and a saved version write: the
- *   [SceneTheme] of the theme it was saved from, under a new id -- starts from that theme's pairs
- *   ([builtInTowerColours], [builtInShopColours], [builtInPublicColours]), recognised by its sky and hills, which a copy carries
- *   unchanged. A copy of Big City reset to default has Big City's steel and sand.
- * - **Any other theme** -- a random one ([RandomSceneGenerator]), or one imported from a file whose sky
- *   and hills are no built-in theme's -- takes the first pair that clears [BuildingGroundContrast]'s
- *   gates against its own ground ([clearestPair]): for the towers, among the twelve towers' pairs, Big
- *   City's first (the plainest of them); for the shops, the houses' pair, then the snow themes' stone,
- *   then Beach's paper, then the towers' pairs; for the public buildings (v5.13) the twelve's public pairs,
- *   Autumn's first, then the shops' candidates. The ground is this customization's: the theme's hills
- *   and, for a tower, the mountains it shows ([SceneCustomization.DEFAULT]'s, on such a theme).
- *
- * **Only the start**, as on the twelve: the colours stored with a theme -- saved, edited and archived,
- * restored, imported -- are its own and are read as stored; this is what "Reset Buildings to default",
- * "Reset Shops to default" and "Reset Public buildings to default" bring back on it. Only the colours: the switch and the amount stay this
- * customization's.
+ * The three groups' starting colours on a theme that is **not built in**, by the twelve's rule, so its towers do not
+ * vanish into its hills (`DESIGN_NOTES.md` decision 53). **A copy of a built-in**
+ * (the source's [SceneTheme] under a new id), recognised by its sky and hills, starts from that theme's pairs; **any
+ * other theme** takes the first candidate that clears [BuildingGroundContrast]'s gates against its own hills and, for a
+ * tower, mountains ([clearestPair] over [TOWER_CANDIDATES], [SHOP_CANDIDATES], [PUBLIC_CANDIDATES]). **Only the start**,
+ * what its *Reset ... to default* bring back; only the colours, not the switch or the amount.
  */
 internal fun SceneCustomization.withStartingBuildingColours(theme: SceneTheme): SceneCustomization {
     val copied = ThemeCatalog.ALL.firstOrNull { it.sharesPaletteWith(theme) }
@@ -2000,10 +1532,7 @@ private fun ObjectVariantConfig.withPair(pair: IntArray) =
 private val TOWER_CANDIDATES: List<IntArray> =
     listOf(BUILT_IN_TOWER_COLOURS.getValue("city")) + BUILT_IN_TOWER_COLOURS.filterKeys { it != "city" }.values
 
-/**
- * The public buildings' candidates for a theme that is not built in (v5.13): the pairs the twelve's
- * public buildings start from, Autumn's blue-grey and lavender first, then the shops' candidates.
- */
+/** The public buildings' candidates for a theme that is not built in: the twelve's public pairs, Autumn's first, then the shops'. */
 private val PUBLIC_CANDIDATES: List<IntArray> by lazy {
     listOf(BUILT_IN_PUBLIC_COLOURS.getValue("autumn")) +
         BUILT_IN_PUBLIC_COLOURS.values.distinctBy { it.toList() }.filterNot { it.contentEquals(BUILT_IN_PUBLIC_COLOURS.getValue("autumn")) } +
@@ -2023,34 +1552,13 @@ private val SHOP_CANDIDATES: List<IntArray> = run {
 // --- Structural vs cosmetic change detection -------------------------------------------------
 
 /**
- * Whether two configs would produce the *same set of rendered candidate slots* for static scene
- * objects.
- *
- * Only [ObjectVariantConfig.visible] and [ObjectVariantConfig.density] are read by
- * [keepCandidate], so those are the only fields that can change which objects exist -- plus
- * [SceneCustomization.palmsEnabled] and [SceneCustomization.palmsInsteadOfTrees], which change
- * which *species* a kept tree slot is, and, **while palms stand in the trees' places**, the
- * Christmas firs ([SceneCustomization.christmasFirsEnabled], the Christmas layer's until v5.16): there it decides
- * which tree slots stay trees to be drawn as firs (v5.10C2). Only there: with the palms off the fir is decided
- * at the draw, the list does not move, and a Christmas toggle rebuilds nothing, as before.
- * [palmSpeciesApplied] resolves it once, when the runtime list is built, so a palms change that
- * did not rebuild that list never reached a running wallpaper: the switch showed "off" and the
- * palms stayed until something else rebuilt the scene (measured on a device, assessment v5.7 M1).
- * Everything else in [SceneCustomization] -- every colour, the sky/stars/clouds/precipitation/
- * rainbow/mountain/lake/bird sections, hill variation, the seasonal palette flags -- is consumed
- * at draw time and changes only how the existing objects look.
- *
- * That distinction is what lets [SceneObjectRenderer] keep its runtime state across a colour
- * change instead of rebuilding the whole scene. Comparing whole [SceneCustomization] instances
- * would treat a colour tweak as structural and throw away running animation state for nothing.
- *
- * Deliberately field-by-field rather than a hash: a hash collision here would silently fail to
- * rebuild the scene, which is a visible bug, and the comparison must allocate nothing because it
- * sits on a per-frame path.
- *
- * **Adding a new [ObjectVariantConfig] category means adding it here.**
- * `SceneCustomizationStructureTest` fails if the count of such fields changes, so this cannot be
- * forgotten silently.
+ * Whether two configs would produce the *same set of rendered candidate slots* for static scene objects, so
+ * [SceneObjectRenderer] keeps its runtime state across any other change. [keepCandidate] reads only visibility and
+ * density; the palms' two fields decide a kept tree slot's species, resolved once as the runtime list is built
+ * ([palmSpeciesApplied]), and so, **while palms stand in the trees' places**, do the Christmas firs (otherwise a fir is
+ * decided at the draw). Everything else is read at draw time. Field by field, since a hash collision would silently
+ * skip a rebuild, and allocation-free on a per-frame path. **A new [ObjectVariantConfig] category goes here**:
+ * `SceneCustomizationStructureTest` fails if the count of such fields changes.
  */
 fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Boolean =
     houses.structurallyEquals(other.houses) &&
@@ -2070,16 +1578,10 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         (!palmsInsteadOfTrees || christmasFirsEnabled == other.christmasFirsEnabled)
 
 /**
- * Whether two configs would produce the same set of rendered cars **at every hour** -- the two
- * densities are two ends of the dusk crossfade, so the night one is as structural as the day one.
- * Separate from [staticStructurallyEquals] so that changing, say, house density touches nothing
- * about the traffic at all.
- *
- * The renderer no longer consults this to decide a rebuild: only a visibility flip rebuilds the
- * runtimes, and any density difference -- day or night -- is picked up by the per-frame count in
- * `SceneObjectRenderer.update`, applied per car and off screen (see [CarSelection]). What this
- * predicate still states, and what its test still pins, is which fields can change the picture's
- * *structure* at all: everything else on [cars] is consumed at draw time.
+ * Whether two configs would produce the same set of rendered cars **at every hour**: the two densities are the two ends
+ * of the dusk crossfade, so both are structural. Not what decides a rebuild (only a visibility flip rebuilds; a density
+ * is picked up per frame by `SceneObjectRenderer.update`, per car and off screen, [CarSelection]): it states, and its
+ * test pins, which fields of [cars] can change the picture's structure at all.
  */
 fun SceneCustomization.carsStructurallyEquals(other: SceneCustomization): Boolean =
     cars.structurallyEquals(other.cars) && carsNightDensity == other.carsNightDensity

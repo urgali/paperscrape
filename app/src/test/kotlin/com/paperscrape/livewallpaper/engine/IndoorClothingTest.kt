@@ -6,34 +6,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Winter clothing stops at the window, and since v4.30 it stops because the artwork stops.
+ * Winter clothing stops at the window, because the window artwork has no winter.
  *
- * A person leaning out of their own window is indoors. They are in a room, and the room is not
- * having weather. Until v4.2 they put on a hat whenever the scene turned wintry, because every call
- * site that read a person sprite picked its season column with the same
- * `if (customization.winterColorsEnabled) 1 else 0` — a rule about the *scene* applied to a figure
- * the scene's weather cannot reach.
+ * A person leaning out of their own window is indoors: they are in a room, and the room is not
+ * having weather. A season column chosen from the *scene*
+ * (`if (customization.winterColorsEnabled) 1 else 0`) would put a hat on a figure the scene's
+ * weather cannot reach.
  *
- * ### What v4.30 changed, and why the test changed with it
- *
- * The fix was an `Exposure` enum with an `INDOORS` case that resolved to the summer column. It
- * worked, and it hid something: indoors the answer was **always** 0, so the winter column of the
- * window table named twelve recolours no draw path could ever select, and the enum made that look
- * like a choice being made rather than a column that could not be reached. That is
- * `BACKLOG_v4_25.md` item 57, open from v4.25 to v4.30 and reported as a defect twice by two readers.
- *
- * v4.30 retired the four winter window shapes and the column with them: `PeopleLayerTable.WINDOW`
- * has one season, so the question is no longer asked of a window bust at all. What is left to
- * assert is therefore the *absence* -- that nothing reintroduces a season choice at a window -- plus
- * the half that is still a real choice: the street and the cars.
+ * `PeopleLayerTable.WINDOW` has one season, so a window bust has no season to choose. What this
+ * asserts is the *absence* -- nothing brings a season choice back to a window -- plus the half that
+ * is a real choice: the street and the cars read the outdoor column, through one function.
  *
  * ### Why this reads the source
  *
  * The thing being asserted is a **coupling between call sites**: the places that choose a season
  * column must all go through one function, and a window must not be one of them. A coupling between
- * call sites is what the source states and what a unit test on any one of them cannot see — the
+ * call sites is what the source states and what a unit test on any one of them cannot see -- the
  * same reasoning `SkyscraperWindowTest` and `InternetInventoryTest` are built on, and the same
- * reasoning `tools/assets`' `validate` uses for blit call sites.
+ * reasoning `tools/assets`' `validate` uses for blit call sites. The `Exposure` enum is asserted
+ * absent: indoors is not a column that exists.
  */
 class IndoorClothingTest {
 
@@ -61,8 +52,8 @@ class IndoorClothingTest {
     fun `the window occupant has no season to choose`() {
         val body = bodyOf("drawWindowOccupant")
         assertTrue(
-            "drawWindowOccupant must not choose a season column -- the window artwork has one " +
-                "season since v4.30 (BACKLOG_v4_25.md item 57):\n$body",
+            "drawWindowOccupant must not choose a season column -- a person at their window is " +
+                "indoors, and the window artwork has one season (PeopleLayerTable.WINDOW):\n$body",
             !body.contains("outdoorSeasonIndex") && !body.contains("winterColorsEnabled"),
         )
         assertTrue(

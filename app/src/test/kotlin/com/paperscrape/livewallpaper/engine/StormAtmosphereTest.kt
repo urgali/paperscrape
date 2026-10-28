@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * The weather's effect on the sky, the clouds and the sun.
  *
- * The property under test throughout is an *ordering*, not a set of numbers. What the brief asks
+ * The property under test throughout is an *ordering*, not a set of numbers. What is asked
  * for is that worse weather always looks worse and never looks like a different scene: a clear sky
  * is untouched, a storm is the darkest thing the scale can produce, everything between rises
  * smoothly, and none of it turns an afternoon into a night or a theme into a different theme.
@@ -205,7 +205,7 @@ class StormAtmosphereTest {
     }
 
     /**
-     * The line the brief draws: a storm must stay recognisably daytime. A scene with no light
+     * The line: a storm must stay recognisably daytime. A scene with no light
      * source at all reads as night, so the worst weather still leaves a sun on screen.
      */
     @Test

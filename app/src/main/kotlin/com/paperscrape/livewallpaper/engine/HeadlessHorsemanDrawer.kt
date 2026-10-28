@@ -36,17 +36,23 @@ internal object HeadlessHorsemanScale {
 /**
  * Draws the Headless Horseman (v5.16, the drawing B of v5.16A, "the rider of Sleepy Hollow") from its pieces: a
  * slate-black horse galloping in four poses, its legs drawn behind its body, the headless rider in a dark coat with a
- * high cream collar where his head should be, his black cape lined in red swinging about his shoulders, the carved
- * pumpkin lit and held up high, and the reins from his hand to the horse's bit. The pieces and where they stand are
- * [HorsemanTable], written by `tools/assets/horseman/build_horseman.py`; the flight, the fade and the flaming pumpkins
- * that fall are [HeadlessHorsemanEffect]'s.
+ * high cream collar where his head should be, his black cape lined in red swinging about his shoulders, his near arm
+ * holding the carved pumpkin lit and up high -- turned at the shoulder to throw it, v5.17 --, and the reins from his hand
+ * to the horse's bit. The pieces and where they stand are [HorsemanTable], written by
+ * `tools/assets/horseman/build_horseman.py`; the flight, the fade, the throw and the flaming pumpkins in the air are
+ * [HeadlessHorsemanEffect]'s.
  *
  * - **The gallop**: four poses, [POSES_PER_SECOND] -- the sleigh's reindeer's beat --; the horse rises and falls with
  *   its stride and the rider sits it the other way, half as far ([HORSE_BOB_UNITS], [RIDER_BOB_UNITS]); the cape swings
  *   [CAPE_SWING_DEGREES] either way about the shoulders on the same stride.
  * - **By night as by day**, as the sleigh (decision 73): no shade on the group.
- * - **The order** is the cape, the legs, the horse, the reins, the rider -- what `tools/assets/tests/test_horseman.py`
- *   reads off this function to compose the group as it is drawn, and holds to 2 px on the BV6600 in every pose.
+ * - **The throw** (v5.17): the rider is three pieces -- his body, his near arm and the pumpkin it holds -- and the arm
+ *   with the pumpkin turns about its pivot at the shoulder by the effect's angle ([HorsemanFlight.armDegrees]); the
+ *   pumpkin in his hand is drawn at the effect's scale of it ([HorsemanFlight.handPumpkinScale]): none just after a throw,
+ *   then a new one growing.
+ * - **The order** is the cape, the legs, the horse, the reins, the rider's body, his arm, the pumpkin -- what
+ *   `tools/assets/tests/test_horseman.py` reads off this function to compose the group as it is drawn, and holds to 2 px on
+ *   the BV6600 in every pose and at every degree of the throw.
  *
  * Nothing is allocated while drawing: the paint is built once, the table is read by index, the alpha is set with
  * [setAlphaWithoutAllocating] (`Paint.alpha =` allocates on Android 10).
@@ -64,9 +70,14 @@ internal class HeadlessHorsemanDrawer(private val sprites: SpriteBlitter) {
 
     /**
      * The group with its middle at ([x], [y]), facing [dir] (+1 to the left, the drawings' own way; -1 mirrored, to
-     * the right), at [alpha] (the edge fade), at [pxPerUnit] ([HeadlessHorsemanScale.pxPerUnit]).
+     * the right), at [alpha] (the edge fade), at [pxPerUnit] ([HeadlessHorsemanScale.pxPerUnit]), his near arm turned
+     * [armDegrees] (clockwise in the drawings' frame, towards the tail) and the pumpkin in his hand at [handPumpkin] of its
+     * size (0: his hand empty).
      */
-    fun draw(canvas: SceneCanvas, x: Float, y: Float, dir: Float, alpha: Float, t: SceneTime, pxPerUnit: Float) {
+    fun draw(
+        canvas: SceneCanvas, x: Float, y: Float, dir: Float, alpha: Float, t: SceneTime, pxPerUnit: Float,
+        armDegrees: Float, handPumpkin: Float,
+    ) {
         val sc = pxPerUnit
         val a = (alpha * 255).toInt().coerceIn(0, 255)
         val pose = pose(t)
@@ -93,9 +104,41 @@ internal class HeadlessHorsemanDrawer(private val sprites: SpriteBlitter) {
             px(x, HorsemanTable.BIT_X[pose], dir, sc), y + (HorsemanTable.BIT_Y[pose] + horseBob) * sc,
             rein,
         )
-        // 5. the rider, with his pumpkin
-        piece(canvas, x, y, dir, sc, a, HorsemanTable.RIDER_RES, seatX + HorsemanTable.RIDER_X, seatY + HorsemanTable.RIDER_Y)
+        // 5. the rider's body, 6. his near arm turned about its pivot at the shoulder, and 7. the pumpkin in its hand
+        piece(canvas, x, y, dir, sc, a, HorsemanTable.BODY_RES, seatX + HorsemanTable.BODY_X, seatY + HorsemanTable.BODY_Y)
+        canvas.save()
+        canvas.translate(px(x, seatX + HorsemanTable.ARM_PIVOT_X, dir, sc), y + (seatY + HorsemanTable.ARM_PIVOT_Y) * sc)
+        canvas.scale(dirScale(dir) * sc, sc)
+        canvas.rotate(armDegrees)
+        sprites.draw(canvas, HorsemanTable.ARM_RES, HorsemanTable.ARM_X, HorsemanTable.ARM_Y, SpriteScale.SCENE_UNITS, a)
+        if (handPumpkin > 0f) {
+            canvas.translate(HorsemanTable.PUMPKIN_X - HorsemanTable.ARM_PIVOT_X, HorsemanTable.PUMPKIN_Y - HorsemanTable.ARM_PIVOT_Y)
+            canvas.scale(handPumpkin, handPumpkin)
+            sprites.draw(canvas, HorsemanTable.PUMPKIN_RES, HorsemanTable.PUMPKIN_BLIT_X, HorsemanTable.PUMPKIN_BLIT_Y, SpriteScale.SCENE_UNITS, a)
+        }
+        canvas.restore()
     }
+
+    /**
+     * A pumpkin he has thrown, its middle at ([x], [y]), facing [dir] as the group did when he threw it, turned [degrees]
+     * (clockwise in the drawings' frame), at [alpha] 0..255, at [pxPerUnit]: the pumpkin of his hand, whole.
+     */
+    fun drawThrownPumpkin(canvas: SceneCanvas, x: Float, y: Float, dir: Float, degrees: Float, alpha: Int, pxPerUnit: Float) {
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.scale(dirScale(dir) * pxPerUnit, pxPerUnit)
+        canvas.rotate(degrees)
+        sprites.draw(canvas, HorsemanTable.PUMPKIN_RES, HorsemanTable.PUMPKIN_BLIT_X, HorsemanTable.PUMPKIN_BLIT_Y, SpriteScale.SCENE_UNITS, alpha)
+        canvas.restore()
+    }
+
+    /**
+     * Where he sits on the saddle at [t], in the group's units, as [draw] seats him: the pose's seat
+     * ([HorsemanTable.SEAT_X]) and its height with the rider sitting the stride the other way from the horse.
+     */
+    fun seatX(t: SceneTime): Float = HorsemanTable.SEAT_X[pose(t)]
+
+    fun seatY(t: SceneTime): Float = HorsemanTable.SEAT_Y[pose(t)] - t.sinAt(STRIDE_RATE) * RIDER_BOB_UNITS
 
     private fun piece(canvas: SceneCanvas, x: Float, y: Float, dir: Float, sc: Float, a: Int, res: Int, u: Float, v: Float) {
         canvas.save()

@@ -13,9 +13,9 @@ import android.view.SurfaceHolder
  *
  * ## Why a thread at all
  *
- * `Canvas` rendering ran on the main looper because `lockCanvas` allows it. A GL context is bound to
- * exactly one thread, so the render loop has to leave the main thread. That has a consequence the
- * rest of the engine has to respect: **scene state is now mutated from a different thread than it is
+ * `Canvas` rendering runs on the main looper because `lockCanvas` allows it. A GL context is bound to
+ * exactly one thread, so the GL render loop has to leave the main thread. That has a consequence the
+ * rest of the engine has to respect: **scene state is mutated from a different thread than it is
  * read from.** The answer here is not a lock around the renderer but [queueEvent]: preference,
  * theme, weather and offset changes arrive as runnables executed on this thread between frames, so
  * the scene is only ever touched by the thread that draws it. `SpriteCache` is the exception: it is
@@ -26,10 +26,10 @@ import android.view.SurfaceHolder
  *
  * Every frame starts on one of the display's refresh ticks, and the next one the same number of
  * ticks later: the loop sleeps to the tick [FramePacing.nextTick] predicts from the grid
- * [VsyncGrid] measures, about 30 frames a second. It used to sleep `33 ms - cost`, which is not
- * the display's clock, and every few frames it slid one tick late and that frame stayed on screen
- * half as long again -- see [FramePacing]. Until a grid has been measured (the first second, and
- * the first second after the loop parked) it paces that old way. It deliberately does **not**
+ * [VsyncGrid] measures, about 30 frames a second. A sleep of `33 ms - cost` is not
+ * the display's clock: every few frames it slides one tick late and that frame stays on screen
+ * half as long again -- see [FramePacing]. Only until a grid has been measured (the first second, and
+ * the first second after the loop parked) does it pace that way. It deliberately does **not**
  * free-run at the display's refresh rate, which would render at 60, 90 or 120 Hz and do two to
  * four times the work for motion this slow.
  *
@@ -41,7 +41,9 @@ import android.view.SurfaceHolder
  * ## Failure
  *
  * A failed frame is first answered by rebuilding the EGL state -- up to
- * [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS] times, and only if a frame has ever been drawn -- and a
+ * [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS] times, a count given back once
+ * [GlLifecyclePolicy.FRAMES_THAT_RESTORE_THE_BUDGET] frames have been swapped since the last rebuild, and only if a frame
+ * has ever been drawn -- and a
  * failed swap rebuilds or drops the surface; only when [GlLifecyclePolicy.shouldRebuildContext] says
  * no does the thread report [Callbacks.onGlUnavailable], exactly once, and park. The engine then
  * falls back to the `Canvas` path, so a device that cannot give this process a GL context still
@@ -74,19 +76,24 @@ internal class GlRenderThread(
     @Volatile private var holder: SurfaceHolder? = null
     @Volatile private var visible = false
     @Volatile private var exitRequested = false
-    @Volatile private var pendingWidth = 0
-    @Volatile private var pendingHeight = 0
+
+    /**
+     * The surface's size, width and height in one value ([GlLifecyclePolicy.surfaceSize]): written in one volatile write
+     * and read once a frame, so a frame never pairs the new width with the old height. As two fields, the main thread's
+     * second write could fall between the loop's two reads, and a frame be drawn at a size that never existed.
+     */
+    @Volatile private var pendingSize = 0L
     @Volatile private var unavailableReported = false
 
     /**
      * A memory trim asked for from the main thread, consumed on the render thread **after** the
      * context is current.
      *
-     * It used to be a queued Runnable, and [drainEvents] runs at the top of the loop -- before
+     * Not a queued Runnable: [drainEvents] runs at the top of the loop -- before
      * `prepareFrame` makes the context current, and in the surface-gone branch after
      * [destroyEglSurface] has explicitly unbound it. `glDeleteTextures` with no current context is
      * a silent no-op that still forgets the handles, and re-packing the atlas' white pixel fails,
-     * so the target was left believing it was usable with no white pixel to draw flat fills with.
+     * so the target would be left believing it is usable with no white pixel to draw flat fills with.
      * A flag cannot run at the wrong moment; a queued GL call could.
      */
     @Volatile private var trimRequested = false
@@ -108,11 +115,13 @@ internal class GlRenderThread(
     /**
      * Whether a frame has ever been prepared successfully on this thread.
      *
-     * The difference between "this device cannot do EGL" and "EGL was working a moment ago" -- the
-     * two cases the old code could not tell apart, so both ended the engine's GL for good.
+     * The difference between "this device cannot do EGL" and "EGL was working a moment ago": without
+     * it the two cases cannot be told apart, and both would end the engine's GL for good.
      */
     private var hadWorkingContext = false
-    private var contextRebuilds = 0
+
+    /** How many rebuilds this thread may still try, given back after a stretch of frames drawn ([GlLifecyclePolicy.RebuildBudget]). */
+    private val rebuildBudget = GlLifecyclePolicy.RebuildBudget()
 
     private var currentWidth = 0
     private var currentHeight = 0
@@ -128,14 +137,19 @@ internal class GlRenderThread(
 
     // --- Calls from the main thread ----------------------------------------------------------
 
-    fun onSurfaceCreated(holder: SurfaceHolder) {
+    /**
+     * A surface arrives, with its size when the caller knows it: the size is written before the holder, so the render
+     * thread that sees the new surface sees its size too and does not draw a first frame at the old one. Without a size
+     * (0) the next [onSurfaceChanged] brings it.
+     */
+    fun onSurfaceCreated(holder: SurfaceHolder, width: Int = 0, height: Int = 0) {
+        if (width > 0 && height > 0) pendingSize = GlLifecyclePolicy.surfaceSize(width, height)
         this.holder = holder
         wake()
     }
 
     fun onSurfaceChanged(width: Int, height: Int) {
-        pendingWidth = width
-        pendingHeight = height
+        pendingSize = GlLifecyclePolicy.surfaceSize(width, height)
         wake()
     }
 
@@ -203,8 +217,8 @@ internal class GlRenderThread(
      * thread and then announced with [wake]. The loop reads [WakeLatch.generation] first and its
      * inputs after, and parks only if no wake has come in between ([idle]), so it can wait with no
      * deadline and without holding the lock across the whole state check -- which would put a
-     * main-thread callback behind a frame. Until v5.10B the wait had a 200 ms timeout instead, and a
-     * hidden wallpaper woke five times a second to look (v5.10A).
+     * main-thread callback behind a frame. A wait on a short timeout instead (200 ms) would wake a
+     * hidden wallpaper five times a second to look.
      */
     private fun loop() {
         while (!exitRequested) {
@@ -219,57 +233,62 @@ internal class GlRenderThread(
                 //
                 // A trim asked for in this state is deliberately left pending: there is no context
                 // to honour it with (destroyEglSurface unbinds the one there was), and this is the
-                // branch in which the old queued-Runnable trim did its damage.
+                // branch in which a trim queued as a Runnable would do its damage.
                 if (GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = false)) {
                     trimRequested = false
-                    target.trimTextures()
+                    applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = false))
                 }
                 destroyEglSurface()
                 idle(seen)
                 continue
             }
             if (!visible || unavailableReported) {
-                // A trim asked for while hidden is honoured now, not on the next visible frame
-                // (v5.8C). Memory pressure arrives exactly while nothing is drawing -- screen off,
-                // an app in front -- and until then the atlas page and every standalone texture
-                // stayed allocated for as long as the process was a kill candidate, to be dropped
-                // on the first visible frame, where the re-upload is the one cost nobody wanted
-                // (v5.8B comment audit). The context is made current on the surface it already
+                // A trim asked for while hidden is honoured now, not on the next visible frame.
+                // Memory pressure arrives exactly while nothing is drawing -- screen off,
+                // an app in front -- and a trim left for later keeps the atlas page and every standalone
+                // texture allocated for as long as the process is a kill candidate, to be dropped
+                // on the first visible frame, where the re-upload is the one cost nobody wants.
+                // The context is made current on the surface it already
                 // has; nothing is created for the purpose.
                 //
-                // The white pixel is not packed back here (v5.10B): packing it re-creates the whole
-                // atlas page, and the trim then gave back nothing. It is owed to the next prepared
+                // The white pixel is not packed back here: packing it re-creates the whole
+                // atlas page, and the trim would then give back nothing. It is owed to the next prepared
                 // frame instead -- see GlSceneTarget.trimTexturesWhileHidden.
                 if (!unavailableReported && trimRequested && makeCurrentWhileHidden(currentHolder) &&
                     GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = true)
                 ) {
                     trimRequested = false
-                    target.trimTexturesWhileHidden()
+                    applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = false))
                 }
                 idle(seen)
                 continue
             }
             // Drained again now that the loop has seen it may draw: an event queued before the
             // engine made the thread visible -- the user's settings, ahead of the first frame
-            // (v5.10B, `FirstFrameGate`) -- may have landed after the drain at the top of this pass,
+            // (`FirstFrameGate`) -- may have landed after the drain at the top of this pass,
             // and must reach the scene before the frame it was queued for. Nothing to do otherwise.
             drainEvents()
             if (exitRequested) return
 
             val frameStart = System.nanoTime()
-            if (!prepareFrame(currentHolder, pendingWidth, pendingHeight)) {
+            val size = pendingSize
+            if (!prepareFrame(currentHolder, GlLifecyclePolicy.surfaceWidth(size), GlLifecyclePolicy.surfaceHeight(size))) {
                 if (holder == null) continue
                 if (!recoverFromFrameFailure()) reportUnavailable()
                 continue
             }
             // From here the context is current, which is the only point in this loop where GL work
-            // asked for from another thread may run -- see GlLifecyclePolicy.mayApplyTrim.
+            // asked for from another thread may run -- see GlLifecyclePolicy.mayApplyTrim. The wallpaper is
+            // drawing, so its atlas stays: the next line draws from it.
             if (GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = true)) {
                 trimRequested = false
-                target.trimTextures()
+                applyTrim(MemoryPressurePolicy.gpuTrimFor(engineDrawing = true))
             }
             hadWorkingContext = true
-            drawFrame(if (anchorTickNanos != 0L) anchorTickNanos else frameStart, anchorTickNanos)
+            // Only a frame swapped to the surface counts toward giving the rebuild budget back: a swap
+            // that failed showed nothing, and a GPU failing at every swap must not earn its rebuilds back.
+            val frameTime = if (anchorTickNanos != 0L) anchorTickNanos else frameStart
+            if (drawFrame(frameTime, anchorTickNanos)) rebuildBudget.frameDrawn()
             pace(frameStart)
         }
     }
@@ -292,7 +311,7 @@ internal class GlRenderThread(
      * pass (then it goes round again at once). [IDLE_WAIT_MS] is a backstop, not the mechanism.
      */
     private fun idle(seen: Int) {
-        // Time no longer accumulates while parked, so the first frame after resuming must not be
+        // Time does not accumulate while parked, so the first frame after resuming must not be
         // handed the whole idle period as its delta -- nor start on a tick from before it parked.
         lastFrameNanos = 0L
         anchorTickNanos = 0L
@@ -332,7 +351,8 @@ internal class GlRenderThread(
         return currentWidth > 0 && currentHeight > 0
     }
 
-    private fun drawFrame(frameTimeNanos: Long, frameTickNanos: Long) {
+    /** Draws one frame and swaps it to the surface: true when the swap went through, false when it failed. */
+    private fun drawFrame(frameTimeNanos: Long, frameTickNanos: Long): Boolean {
         val delta = if (lastFrameNanos == 0L) 0f else ((frameTimeNanos - lastFrameNanos) / 1_000_000_000f)
         lastFrameNanos = frameTimeNanos
         target.beginFrame()
@@ -345,28 +365,30 @@ internal class GlRenderThread(
                 eglDisplay, eglSurface, FramePacing.presentAt(vsync.current(System.nanoTime()), frameTickNanos),
             )
         }
-        if (!EGL14.eglSwapBuffers(eglDisplay, eglSurface)) {
-            when (EGL14.eglGetError()) {
-                EGL14.EGL_CONTEXT_LOST -> {
-                    // The context and everything in it is gone. Drop the handles without GL calls,
-                    // then rebuild from scratch on the next pass.
-                    target.onContextLost()
-                    releaseEgl()
-                }
-                EGL14.EGL_BAD_NATIVE_WINDOW, EGL14.EGL_BAD_SURFACE -> destroyEglSurface()
+        if (EGL14.eglSwapBuffers(eglDisplay, eglSurface)) return true
+        when (EGL14.eglGetError()) {
+            EGL14.EGL_CONTEXT_LOST -> {
+                // The context and everything in it is gone. Drop the handles without GL calls,
+                // then rebuild from scratch on the next pass -- a rebuild the budget counts, as one after a
+                // failed `prepareFrame` is: a GPU that loses its context at every swap ends on the Canvas.
+                target.onContextLost()
+                releaseEgl()
+                if (!rebuildBudget.rebuildAfterFailure(hadWorkingContext)) reportUnavailable()
             }
+            EGL14.EGL_BAD_NATIVE_WINDOW, EGL14.EGL_BAD_SURFACE -> destroyEglSurface()
         }
+        return false
     }
 
     /**
      * Sleeps to the tick the next frame starts on, or -- with no grid measured yet -- for what is
-     * left of [FramePacing.FALLBACK_INTERVAL_MS] after this frame's cost, as the loop always did.
+     * left of [FramePacing.FALLBACK_INTERVAL_MS] after this frame's cost.
      */
     private fun pace(frameStartNanos: Long) {
         val now = System.nanoTime()
         val next = FramePacing.nextAnchorTick(vsync.current(now), anchorTickNanos, frameStartNanos, now)
         // On a grid, sleep to the tick itself (the clock has moved while planning); without one,
-        // the old `33 ms - cost`, unchanged.
+        // `33 ms - cost`.
         sleepNanos(if (next != 0L) next - System.nanoTime() else FramePacing.fallbackSleepNanos(frameStartNanos, now))
         anchorTickNanos = next
     }
@@ -391,17 +413,26 @@ internal class GlRenderThread(
      * rather than demote the engine to software for the rest of its life.
      *
      * Bounded by [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS]: a GPU that is not coming back must not
-     * keep a render thread spinning on a live wallpaper.
+     * keep a render thread spinning on a live wallpaper. The bound is given back after
+     * [GlLifecyclePolicy.FRAMES_THAT_RESTORE_THE_BUDGET] frames swapped since the last rebuild, so incidents days apart in
+     * the life of one engine do not add up to the end of GL.
      */
     private fun recoverFromFrameFailure(): Boolean {
-        if (!GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext, contextRebuilds)) return false
-        contextRebuilds++
+        if (!rebuildBudget.rebuildAfterFailure(hadWorkingContext)) return false
         // The same teardown the context-lost path at swap time uses: the target forgets its handles
         // without touching GL, because there is no context to touch it with.
         target.onContextLost()
         destroyEglSurface()
         releaseEglContextOnly()
         return true
+    }
+
+    /** A memory trim, with the context current: the atlas stays while the wallpaper draws, everything goes while it is hidden. */
+    private fun applyTrim(trim: GpuTrim) {
+        when (trim) {
+            GpuTrim.STANDALONE_TEXTURES -> target.trimTextures()
+            GpuTrim.EVERYTHING -> target.trimTexturesWhileHidden()
+        }
     }
 
     private fun reportUnavailable() {
@@ -555,8 +586,8 @@ internal class GlRenderThread(
          * The longest an idle render thread parks without a wake before it looks at its inputs again.
          *
          * A backstop only: every input announces itself with [wake], and [WakeLatch] makes sure no
-         * announcement is lost, so the loop does not rely on this to notice anything. It was 200 ms,
-         * and it was the mechanism, until v5.10B.
+         * announcement is lost, so the loop does not rely on this to notice anything. As the mechanism, a
+         * timeout short enough to notice an input would wake a hidden wallpaper several times a second.
          */
         const val IDLE_WAIT_MS = 10_000L
         const val MSAA_SAMPLES = 4

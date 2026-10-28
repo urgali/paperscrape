@@ -24,17 +24,22 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * "Rename" against the real store (v5.9B, inventory row I-01): the name the user types is the name
- * every screen reads back, and it is the name in the file.
+ * "Rename" against the real store: the name the user types is the name every screen reads back, and
+ * it is the name in the file.
  *
  * `SavedThemeNameTest` holds the reading rule on the JVM. This drives the real
  * `CustomThemeStore.renameCustomTheme` through DataStore and Android's own `org.json`, then reads
  * the answer the two ways a screen does -- the entry's theme (the gallery card) and
  * `ThemeCatalog.byId` (the settings preview, the Theme row, Seasons, World & scene) -- and off the
- * file itself. Red on v5.9A, where the rename wrote `name` alone.
+ * file itself. A rename that wrote `name` alone would leave the theme's `displayName`, which the
+ * screens read, on the old name.
  */
 @RunWith(AndroidJUnit4::class)
 class SavedThemeRenameStoreTest {
+
+    // Restores the phone's real saved themes around every test: [wipe] empties them. See RealPrefsGuard.
+    @get:org.junit.Rule
+    val realSavedThemes = RealPrefsGuard(CUSTOM_THEME_STORE_NAME)
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val store get() = CustomThemeStore(context)
@@ -66,7 +71,7 @@ class SavedThemeRenameStoreTest {
         assertFalse("the old name is still in the theme on disk", onDisk.contains("\"displayName\":\"Night walk\""))
     }
 
-    /** A theme renamed by an earlier build, as it sits on the phone today: read with its new name. */
+    /** A theme whose rename wrote `name` alone, as an earlier build left it on disk: shown with the name the user wrote. */
     @Test
     fun aThemeRenamedByAnEarlierBuildIsShownWithTheNameTheUserWrote() = runBlocking {
         val renamedBefore = entry("custom:1002", "Night walk").toJson().apply { put("name", "Night walk 2") }

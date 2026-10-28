@@ -7,21 +7,23 @@ import kotlin.math.abs
 import kotlin.math.floor
 
 /**
- * **The density slider's number is the share of objects standing** (item 134, v5.8C).
+ * **The density slider's number is the share of objects standing**.
  *
- * `stableFraction` was a grid -- sixteen values in front of the scene, a few dozen behind -- and
- * [keepCandidate] compared it with the density, so 0.65 kept whole steps: 11 of 16 in front, 68.75 %
- * where the slider said 65 %, and 81 houses of 120 on the twelve defaults where the densities ask
- * for about 74. [densityFraction] refines each step with a second draw, so the value is a real
- * fraction in `[0, 1)` at every depth.
+ * `stableFraction` alone is a grid -- sixteen values in front of the scene, a few dozen behind --
+ * so a density compared with it keeps whole steps: 0.65 keeps 11 of 16 in front, 68.75 % where the
+ * slider says 65 %. [densityFraction] refines each step with a second draw, so the value
+ * [keepCandidate] compares is a real fraction in `[0, 1)` at every depth.
  *
- * What this pins, in the order the maintainer's condition asks for it:
+ * What this pins:
  *  1. the mapping, re-derived: over many positions in each band, the share kept is the density;
- *  2. **nothing appears**: at the shipped defaults every object standing now stood before, and every
- *     one that went was on the step the threshold cuts through -- the only kind the grid kept whole;
- *  3. a theme saved before v5.8C keeps every object it stored ([DENSITY_SCHEME_GRID]);
- *  4. the numbers, theme by theme and category by category, printed on every run so the report
- *     reads them from here rather than from a hand count.
+ *  2. **nothing appears**: at the shipped defaults every object the fraction stands, the grid stands
+ *     too, and every one the grid stands and the fraction does not is on the step the threshold cuts
+ *     through -- the only kind the grid keeps whole;
+ *  3. a layout saved without a scheme key loads on the grid and keeps every object it stored
+ *     ([DENSITY_SCHEME_GRID]);
+ *  4. the numbers, theme by theme and category by category, printed on every run so a report reads
+ *     them from here rather than from a hand count -- and held to the counts the tests above pin, so
+ *     the table cannot print one thing while the renderer stands another.
  */
 class DensityResolutionTest {
 
@@ -80,12 +82,11 @@ class DensityResolutionTest {
 
     /**
      * **And the renderer's threshold is the fraction** -- the one this whole file is about. Without
-     * this, [keepCandidate] could go back to the grid and every test above would still pass, since
-     * they read [densityFraction] directly: mutation M4 of v5.8C did exactly that and stayed green.
-     * Pinned twice: object for object against the fraction, and as the count it gives at the
-     * twelve defaults (324 on the grid, 319 on the fraction, measured v5.8C; 326 since v5.13B2, which put
-     * two more places on each street -- 24, never thinned -- where 17 towers stood, and moved trees and
-     * parasols only where each still stands at its theme's density as it did).
+     * this, [keepCandidate] could read the grid and every test above would still pass, since they
+     * read [densityFraction] directly. Pinned twice: object for object against the fraction, and as
+     * the count it gives at the twelve defaults, [STANDING_AT_DEFAULTS]. The buildings among the
+     * houses -- a `SKYSCRAPER` at or past `BUILDING_TOWER_MAX_DEPTH` -- are never thinned, so they are
+     * counted and not compared.
      */
     @Test
     fun `keepCandidate reads the fraction, and the defaults stand 326 objects`() {
@@ -101,7 +102,7 @@ class DensityResolutionTest {
                 assertEquals("${theme.id}: $spec", densityFraction(spec) < configDensity(c, spec.type).toDouble(), kept)
             }
         }
-        assertEquals("objects standing at the twelve defaults", 326, standing)
+        assertEquals("objects standing at the twelve defaults", STANDING_AT_DEFAULTS, standing)
     }
 
     @Test
@@ -109,7 +110,7 @@ class DensityResolutionTest {
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
             val raw = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
-            // What a save before v5.8C stored: the grid's survivors, and no scheme key.
+            // A layout saved on the grid: the grid's survivors, and no scheme key.
             val stored = raw.copy(staticObjects = raw.staticObjects.filter { c.keepCandidate(it, DENSITY_SCHEME_GRID) })
             val json = stored.toJson().apply { remove("densityScheme") }
             val loaded = sceneObjectLayoutFromJson(json)
@@ -119,7 +120,7 @@ class DensityResolutionTest {
                 loaded.staticObjects,
                 loaded.staticObjects.filter { c.keepCandidate(it, loaded.densityScheme) },
             )
-            // And a save made now round-trips on the fraction, every stored object standing too.
+            // A layout saved on the fraction round-trips on it, every stored object standing too.
             val now = raw.copy(staticObjects = raw.staticObjects.filter { c.keepCandidate(it) })
             val back = sceneObjectLayoutFromJson(now.toJson())
             assertEquals(DENSITY_SCHEME_FRACTION, back.densityScheme)
@@ -127,6 +128,11 @@ class DensityResolutionTest {
         }
     }
 
+    /**
+     * The table, printed on every run, and held to what the tests above pin: on the fraction the twelve defaults stand
+     * [STANDING_AT_DEFAULTS] objects, the count `keepCandidate` gives, and no theme stands more of a category than on the
+     * grid ([DENSITY_SCHEME_GRID]) -- a cell `b>a`, grid then fraction, with `a` above `b` is an object that appeared.
+     */
     @Test
     fun `the count, theme by theme, before and after`() {
         val header = "theme       " + categories.joinToString(" ") { it.name.take(9).padStart(9) }
@@ -143,12 +149,14 @@ class DensityResolutionTest {
                 val a = of.count { c.keepCandidate(it, DENSITY_SCHEME_FRACTION) }
                 val visible = configVisible(c, type)
                 val nominal = if (visible) thinned.size * configDensity(c, type) + (of.size - thinned.size) else 0f
+                assertTrue("${theme.id}, ${type.name}: $a standing after the repair, $b before", a <= b)
                 totals[0] += b; totals[1] += a; totals[2] += (nominal * 100).toInt()
                 if (of.isEmpty()) "-".padStart(9) else "$b>$a".padStart(9)
             }
             println(theme.id.padEnd(12) + cells.joinToString(" "))
         }
         println("total: ${totals[0]} -> ${totals[1]} (nominal ${"%.1f".format(totals[2] / 100.0)})")
+        assertEquals("the table's total after the repair", STANDING_AT_DEFAULTS, totals[1])
     }
 
     private fun configDensity(c: SceneCustomization, type: SceneObjectType): Float = when (type) {
@@ -177,5 +185,10 @@ class DensityResolutionTest {
         SceneObjectType.EASTER_EGG -> c.easterEggs.visible
         SceneObjectType.PUMPKIN -> c.pumpkins.visible
         else -> true
+    }
+
+    private companion object {
+        /** Objects standing at the twelve themes' defaults, on the fraction: the count `keepCandidate` gives and the table totals. */
+        const val STANDING_AT_DEFAULTS = 326
     }
 }

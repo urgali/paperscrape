@@ -15,7 +15,11 @@ data class WeatherObservation(
     val temperatureCelsius: Double? = null,
     /** 0..100. Null when not reported. */
     val cloudCoverPercent: Int? = null,
-    /** Total precipitation in millimetres, however it is made up. Null when not reported. */
+    /**
+     * Total precipitation in millimetres **an hour**, however it is made up: a provider that reports a shorter
+     * period gives its amount scaled to the hour (Open-Meteo's fifteen minutes, `OpenMeteoProvider.perHourFactor`).
+     * The same unit for [rainMm], [showersMm] and [snowfallCm]. Null when not reported.
+     */
     val precipitationMm: Double? = null,
     /** The rain part of [precipitationMm], where the provider splits it out. */
     val rainMm: Double? = null,
@@ -27,7 +31,7 @@ data class WeatherObservation(
      * Florence downpour render as a dry hour before v2.13, so the distinction is load-bearing.
      */
     val showersMm: Double? = null,
-    /** Snowfall in centimetres. Null when not reported. */
+    /** Snowfall in centimetres an hour. Null when not reported. */
     val snowfallCm: Double? = null,
     /** The provider's own summary of conditions, normalised. */
     val condition: WeatherCondition = WeatherCondition.UNKNOWN,

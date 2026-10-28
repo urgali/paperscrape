@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 /**
  * **What the shipped lightning actually does, measured rather than argued.**
  *
- * `BACKLOG_v4_31.md` item 112 is closed by giving the golden harness a way to switch the strike
+ * The golden harness has a way to switch the strike
  * timer off for the one scene that warms up through a storm ([GoldenScene.pinLightning]). The
  * maintainer's condition on that fix is that **the lightning the wallpaper draws does not change**:
  * same frequency, same look, still rolled from the unseeded `Random` and still off the scene clock.
@@ -54,7 +54,7 @@ class LightningCadenceTest {
         const val DELTA = 0.25f
 
         /**
-         * Half of the predicted lift of a strike frame (item 112 measured 21.9 of 255), which is
+         * Half of the predicted lift of a strike frame (21.9 of 255, measured), which is
          * far above anything the scene itself moves the whole-frame mean by between two frames.
          */
         const val FLASH_LIFT_THRESHOLD = 10.0

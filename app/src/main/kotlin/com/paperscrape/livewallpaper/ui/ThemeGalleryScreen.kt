@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Event
+import com.paperscrape.livewallpaper.ui.icons.filled.Event
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -51,8 +51,11 @@ import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.paperscrape.livewallpaper.prefs.uniqueThemeName
+import com.paperscrape.livewallpaper.prefs.cutToName
 import com.paperscrape.livewallpaper.prefs.toJsonString
 import com.paperscrape.livewallpaper.prefs.parseThemeShare
 import com.paperscrape.livewallpaper.prefs.ThemeShare
@@ -61,23 +64,18 @@ import com.paperscrape.livewallpaper.prefs.ThemeImportError
 import com.paperscrape.livewallpaper.prefs.BoundedImport
 import com.paperscrape.livewallpaper.BuildConfig
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.outlined.FileOpen
+import com.paperscrape.livewallpaper.ui.icons.outlined.FileOpen
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import android.net.Uri
 
 /**
- * Every theme, built-in and saved, as a grid of previews.
+ * Every theme, built-in and saved, as a grid of previews, reached from the home screen's Theme row.
  *
- * Reached from the home screen's Theme row, which is where a user looks for it -- not from
- * Advanced, where only the maintenance actions live. Two things are new here and both are about
- * making the calendar comprehensible rather than changing it:
- *
- * - the automatic switch is repeated at the top of this screen, because this is where the choice
- *   it overrides is being made. It is the same preference as the home screen's row, not a copy;
- * - a card is badged "Today" when it is the theme showing right now (the calendar's pick, or the
- *   user's own when the calendar is not choosing) and outlined when it is the user's own
- *   selection, so "selected" and "showing right now" stop being the same word.
+ * The automatic switch (the home screen row's own preference) is repeated at the top, because this is
+ * where the choice it overrides is made. A card is badged "Today" when it is the theme showing now (the
+ * calendar's pick, or the user's own when the calendar is not choosing) and outlined when it is the
+ * user's own selection: "selected" and "showing now" are two things.
  */
 @Composable
 internal fun ThemeGalleryScreen(
@@ -93,11 +91,7 @@ internal fun ThemeGalleryScreen(
     var renameTarget by remember { mutableStateOf<CustomThemeEntry?>(null) }
     var confirmReset by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf<CustomThemeEntry?>(null) }
-    /**
-     * "Replace with current" waiting for its answer (v5.10E, inventory I-215): the card's theme, its
-     * name, and the write that replaces it. Until v5.10E the tap copied the theme showing now onto the
-     * card's at once, with nothing to say which was which.
-     */
+    /** "Replace with current" waiting for its answer: the card's theme, its name, and the write that replaces it. */
     var confirmReplace by remember { mutableStateOf<PendingReplace?>(null) }
     // (themeId, displayName) of the theme the user asked to export, held until the file is chosen.
     var exportTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -105,9 +99,8 @@ internal fun ThemeGalleryScreen(
     var themeMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     /**
-     * A card tapped while the calendar is choosing another theme today, held until the user answers
-     * the question (v5.10C, row 9): picked silently, it was saved and not shown. See
-     * [CalendarPickQuestion].
+     * A card tapped while the calendar is choosing another theme today, held until the user answers the
+     * question: picked silently, it would be saved and not shown. See [CalendarPickQuestion].
      */
     var pendingPick by remember { mutableStateOf<String?>(null) }
     fun pick(themeId: String) {
@@ -133,11 +126,14 @@ internal fun ThemeGalleryScreen(
                     id, settings.pendingCustomization, settings.pendingCustomizationThemeId,
                     settings.themeCustomizations,
                 )
-                val text = ThemeShare
-                    .of(id, name, look, BuildConfig.VERSION_NAME, System.currentTimeMillis())
-                    .toJsonString()
-                context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
-                    ?: error("could not open the chosen file for writing")
+                // Off the main thread: the file is written through its provider, which for a file on Drive is the network.
+                withContext(Dispatchers.IO) {
+                    val text = ThemeShare
+                        .of(id, name, look, BuildConfig.VERSION_NAME, System.currentTimeMillis())
+                        .toJsonString()
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                        ?: error("could not open the chosen file for writing")
+                }
                 "Theme exported. The file contains only the look -- no settings, no location, no API keys."
             }.getOrElse { "Could not export the theme: ${it.message}" }
         }
@@ -148,9 +144,9 @@ internal fun ThemeGalleryScreen(
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            // Bounded: see BoundedImport for why an unbounded readText was a defect (BCK-04).
-            val raw = BoundedImport.readText(context, uri)
-            when (val parsed = parseThemeShare(raw)) {
+            // Bounded (BoundedImport), and read and parsed off the main thread: a file on Drive is downloaded inside the read.
+            val parsed = withContext(Dispatchers.IO) { parseThemeShare(BoundedImport.readText(context, uri)) }
+            when (parsed) {
                 is ThemeParseResult.Ok -> pendingThemeImport = uri to parsed.share
                 is ThemeParseResult.Failed -> themeMessage = describeTheme(parsed.error)
             }
@@ -173,11 +169,8 @@ internal fun ThemeGalleryScreen(
         }
         SettingsCaption(SettingsUiModel.autoThemeCaption(settings.seasonalCalendar))
 
-        // What each card shows is what the wallpaper would draw for that theme: the same
-        // resolution the engine makes (an edit in progress, then the theme's own edits, then a
-        // saved copy, then the defaults). The card used to take only the saved copy, so a theme
-        // edited from World & scene or Seasons looked untouched here while the wallpaper drew the
-        // edits.
+        // Each card shows what the wallpaper would draw for that theme: the engine's resolution (an edit in
+        // progress, then the theme's own edits, then a saved copy, then the defaults).
         fun cardCustomization(id: String) = CustomThemeRegistry.resolveActiveCustomization(
             id,
             settings.pendingCustomization,
@@ -220,7 +213,7 @@ internal fun ThemeGalleryScreen(
                 onExport = {
                     val name = overrideEntry?.name ?: builtin.displayName
                     exportTarget = builtin.id to name
-                    themeExportLauncher.launch(themeFileName(name))
+                    if (!themeExportLauncher.launchOrSay(themeFileName(name), context, MissingApp.FILE_SAVER)) exportTarget = null
                 },
             )
         }
@@ -232,7 +225,7 @@ internal fun ThemeGalleryScreen(
                 supporting = "Opens a theme file somebody shared and adds it here as a new theme of " +
                     "your own. Nothing you already have is replaced.",
                 icon = Icons.Outlined.FileOpen,
-                onClick = { themeImportLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                onClick = { themeImportLauncher.launchOrSay(arrayOf("application/json", "text/plain", "*/*"), context, MissingApp.FILE_PICKER) },
             )
         }
         if (customThemeData.customThemes.isNotEmpty()) {
@@ -263,7 +256,7 @@ internal fun ThemeGalleryScreen(
                     onDelete = { confirmDelete = entry },
                     onExport = {
                         exportTarget = entry.id to entry.name
-                        themeExportLauncher.launch(themeFileName(entry.name))
+                        if (!themeExportLauncher.launchOrSay(themeFileName(entry.name), context, MissingApp.FILE_SAVER)) exportTarget = null
                     },
                 )
             }
@@ -343,11 +336,8 @@ internal fun ThemeGalleryScreen(
     }
 
     confirmReset?.let { builtinId ->
-        // **"Restores the original", all of it** (v5.10E, inventory I-215). Until v5.10E this removed the
-        // saved version alone, and the edits made to the theme in World & scene and Seasons &
-        // decorations -- which win over a saved version (`CustomThemeRegistry.resolveActiveCustomization`)
-        // -- stayed on top: the card and the wallpaper went on showing them. Now both go, the edits by
-        // the same call as World & scene's own reset ([resetBuiltinToDefault]).
+        // The saved version and the theme's edits both go, the edits by World & scene's own reset
+        // ([resetBuiltinToDefault]): they win over a saved version, so left there they would still show.
         AlertDialog(
             onDismissRequest = { confirmReset = null },
             title = { Text("Reset to default?") },
@@ -421,7 +411,7 @@ private class PendingReplace(
 )
 
 /**
- * The gallery's "Reset to default" for a built-in theme (v5.10E, inventory I-215): the saved version
+ * The gallery's "Reset to default" for a built-in theme (`DESIGN_NOTES.md` §12, decision 42): the saved version
  * ([clearSavedVersion], `CustomThemeStore.clearOverride`) **and** the edits made to the theme in the
  * menus ([clearEdits], `WallpaperPrefs.resetAllCategories`, the call World & scene's reset makes), so
  * what the theme resolves to is its default. `ResetsDoWhatTheySayTest` resolves it on the app's own store.
@@ -436,11 +426,9 @@ internal suspend fun resetBuiltinToDefault(
 }
 
 /**
- * The gallery's "Replace with current" once asked (v5.10E, inventory I-215): [writeSavedVersion] saves the
- * look showing now as the card's theme, and -- when the card's theme is not the one showing -- the edits
- * made to it in the menus go ([clearEdits], `WallpaperPrefs.resetAllCategories`). They win over a saved
- * version (`CustomThemeRegistry.resolveActiveCustomization`), so left there they hid what was just saved,
- * and the theme did not look like the question said it would (the read-only review of this round, D1).
+ * The gallery's "Replace with current" once asked: [writeSavedVersion] saves the look showing now as the card's
+ * theme, and -- when the card's theme is not the one showing -- the edits made to it in the menus go ([clearEdits],
+ * `WallpaperPrefs.resetAllCategories`), because they win over a saved version and would hide what was just saved.
  * The theme showing now keeps its edits: they are what was saved.
  */
 internal suspend fun replaceWithCurrent(
@@ -453,9 +441,7 @@ internal suspend fun replaceWithCurrent(
     if (targetId != showingId) clearEdits(targetId)
 }
 
-/** Lays items out 2-per-row using plain Row/Column chunks (not LazyVerticalGrid) so this can
- * live inside an already-vertically-scrolling Column without nested-scroll conflicts -- the
- * theme count here is always small (tens at most), so the lack of lazy virtualization is fine. */
+/** Two items a row in plain Rows, not a LazyVerticalGrid, so it can sit in a scrolling Column; the themes are tens at most. */
 @Composable
 private fun <T> ThemeGrid(items: List<T>, content: @Composable (T) -> Unit) {
     Column(
@@ -595,7 +581,7 @@ internal fun NameInputDialog(
         text = {
             OutlinedTextField(
                 value = text,
-                onValueChange = { text = it },
+                onValueChange = { text = cutToName(it) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -621,9 +607,7 @@ internal fun snapshotEntry(
 ): CustomThemeEntry {
     val theme = ThemeCatalog.byId(sourceThemeId).copy(id = targetId, displayName = targetName)
     val rawLayout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor)
-    // Bake in whatever's currently live for sourceThemeId (density/visibility filtering + the
-    // exact colors), so "what you see is what you save" -- the saved theme keeps looking like
-    // this even if you later edit scene objects for some other theme.
+    // What is live for sourceThemeId now (amounts, switches, colours), so the saved theme looks as it does on screen.
     val activeCustomization = CustomThemeRegistry.resolveActiveCustomization(
         themeId = sourceThemeId,
         pendingCustomization = pendingCustomization,
@@ -631,37 +615,24 @@ internal fun snapshotEntry(
         themeCustomizations = themeCustomizations,
     )
     val layout = SceneObjectLayout(
-        // Thinned by the rule the source layout is drawn with, and saved with that rule (v5.8C):
-        // a generated layout is thinned by the density fraction, and a saved one keeps the rule it
-        // was saved with -- so what is saved is exactly what was standing on screen.
-        staticObjects = rawLayout.staticObjects.filter { activeCustomization.keepCandidate(it, rawLayout.densityScheme) },
+        // Thinned by the rule the source layout is drawn with, and saved with that rule, so what stood on screen is
+        // saved. The seasonal decorations' candidates are all saved, standing or not: by them the catalogue finds the
+        // theme they were dealt for, and the saved theme's sliders reach every one
+        // ([SceneObjectCatalog.isSeasonalDecorationCandidate]; `DESIGN_NOTES.md` §12, decision 89).
+        staticObjects = rawLayout.staticObjects.filter {
+            SceneObjectCatalog.isSeasonalDecorationCandidate(it) || activeCustomization.keepCandidate(it, rawLayout.densityScheme)
+        },
         densityScheme = rawLayout.densityScheme,
-        // **The cars are saved whole, and deliberately not filtered.** (v4.3)
-        //
-        // A layout is an *inventory*; a customization is the *view* of it. For every other
-        // category collapsing the two is harmless, because nothing but the objects themselves is
-        // derived from the list. For cars it is not: `SceneObjectRenderer.hasRoad` is
-        // `layout.cars.isNotEmpty()` and the road's own lane pair comes from `layout.cars`, so a
-        // theme saved while the traffic was thinned out froze that thinning into the terrain.
-        // Saved at 10% or with Cars switched off, the list came out empty, `hasRoad` was false,
-        // and the road and every car vanished **permanently** -- putting the density back to 100%
-        // afterwards filters a list that no longer has anything in it. Diagnosed on v4.2 from a
-        // report of exactly that on `beach`.
-        //
-        // `SceneSpace.roadEdgeMarginFraction` already states the rule this restores: *"the lane
-        // pair must come from the theme's whole car list, never from the cars a density setting
-        // happens to have kept... the road is terrain, and terrain does not depend on how much
-        // traffic is on it."* `drawRoad` obeyed it at frame time; this obeys it at save time.
-        //
-        // **The saved theme still looks the same.** The entry carries `activeCustomization`, and
-        // the car selection (`keptCars`) applies it at render time to the same full list, which
-        // reproduces exactly the traffic that was on screen when the user pressed save --
-        // `SavedThemeCarLayoutTest` pins that as an equality, not as an approximation.
+        // **The cars are saved whole, not filtered**: the road is terrain (`SceneObjectRenderer.hasRoad` is
+        // `layout.cars.isNotEmpty()`, and the lane pair comes from the whole list, `SceneSpace.roadEdgeMarginFraction`),
+        // so a list thinned at save would lose the road for good, at 10 % or with Cars off. The saved theme still shows
+        // the same traffic: `keptCars` applies `activeCustomization` to the full list at render time
+        // (`SavedThemeCarLayoutTest`).
         cars = rawLayout.cars,
-        // A place the loader moved on a saved street is saved where that theme stored it (v5.13B2): the copy
-        // keeps its buildings' colours and people, and its next load moves the place the same way.
+        // A place the loader moved on a saved street is saved where that theme stored it: the copy keeps its
+        // buildings' colours and people, and its next load moves the place the same way.
         placesAsSaved = rawLayout.placesAsSaved,
-    // Without the scarecrows, which the catalogue lays again when the theme is loaded (v5.16, [asSaved]).
+    // Only the scarecrows go ([asSaved]): the catalogue lays them again on the snowmen the layout carries.
     ).asSaved()
     return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)
 }

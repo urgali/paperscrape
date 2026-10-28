@@ -6,12 +6,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The opening hours (v4.22 Phase 4; at the minute since v5.14), as pure arithmetic.
+ * The opening hours, at the minute, as pure arithmetic.
  *
  * The claims pinned here are the maintainer's decisions, each in its own test: off means constantly open (and
- * therefore bitwise the pre-feature scene), `open == close` means always open, the span wraps midnight; and since
- * v5.14 (*«verificare orari negozi - ho l'impressione che non vengano rispettati»*, 2026-10-14, and *«si a tutte»*
- * to the way that recommended, 2026-10-15) **a building is open from its opening minute and shut at its closing
+ * therefore bitwise the scene without opening hours), `open == close` means always open, the span wraps midnight; and
+ * (`DESIGN_NOTES.md` §12, decision 68, 2026-10-14: *«verificare orari negozi - ho l'impressione che non vengano rispettati»*)
+ * **a building is open from its opening minute and shut at its closing
  * minute, and its people are out in the minute before** -- open 09:00-20:00: open at 09:00 with everybody in,
  * nobody in from 19:59, shut at 20:00. Everything runs on the hour the scene computed, which callers take from
  * `DayPhase.hour24` (`SunPositionCalculatorTest` covers that field; nothing here reads a clock). The two seconds
@@ -25,7 +25,7 @@ class BusinessHoursTest {
     private fun people(hour: Float, open: Float = 9f, close: Float = 20f, enabled: Boolean = true, n: Int = 3) =
         BusinessHours.peopleAt(n, enabled, open, close, hour)
 
-    /** [h] hours and [m] minutes, as `SunPositionCalculator.currentHour24` writes it. */
+    /** [h] hours and [m] minutes, as `SolarDaySchedule.sceneHour` writes it. */
     private fun hm(h: Int, m: Int): Float = h + m / 60f
 
     @Test
@@ -88,7 +88,7 @@ class BusinessHoursTest {
     }
 
     /**
-     * The four spans of the report's table: 09-20, 07-23, the school's 08-14 and a bar's 18-02 across midnight --
+     * Four spans: 09-20, 07-23, the school's 08-14 and a bar's 18-02 across midnight --
      * the first minute open, the last minute empty, the closing minute shut.
      */
     @Test

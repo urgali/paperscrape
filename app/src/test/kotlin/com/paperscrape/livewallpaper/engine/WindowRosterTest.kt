@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * **Half the windows of a house lit at night, and the lights and the people changing one at a time**
- * (v5.12, inventory I-506 and the maintainer's decisions of 2026-10-09; [WindowRoster]). Asked of every
+ * (`DESIGN_NOTES.md` §12, decision 55; [WindowRoster]). Asked of every
  * house of the twelve built-in streets and of the six buildings among the houses of each, as the renderer
  * builds their rosters.
  */
@@ -18,7 +18,7 @@ class WindowRosterTest {
 
     /**
      * Every house of the twelve streets with its roster, as `SceneObjectRenderer.giveRoster` makes one, and the
-     * six buildings among the houses of every street with theirs, as the renderer has made them since v5.13
+     * six buildings among the houses of every street with theirs, as the renderer makes them
      * (`SceneObjectRenderer.storefronts`: each from its identity, dealt by `dealStorefront`); a place itself
      * has no roster.
      */
@@ -152,7 +152,7 @@ class WindowRosterTest {
         val movers = buildings.count { it.plan.people in 1 until it.plan.windows }
         assertTrue("lights change in $housesWithChangingLights of $houseCandidates houses", housesWithChangingLights >= houseCandidates * 9 / 10)
         assertTrue("people move in $buildingsWithMovingPeople of $movers buildings", buildingsWithMovingPeople >= movers * 9 / 10)
-        // Every window of every piece that has windows, the new ones included, has somebody at it in
+        // Every window of every piece that has windows has somebody at it in
         // some state of some building: the people may stand at any of them.
         for ((piece, reached) in reachedByPiece) {
             if (piece.windows.isEmpty()) continue
@@ -192,7 +192,7 @@ class WindowRosterTest {
             assertTrue(b.plan.period >= WindowRoster.TICK_MIN_SECONDS && b.plan.period <= WindowRoster.TICK_MAX_SECONDS)
             assertTrue(b.plan.phase >= 0.0 && b.plan.phase < b.plan.period)
             // The rhythm itself, not the constants: no building changes more often than once a
-            // minute, none waits more than five ("every few minutes", DESIGN_NOTES.md §1's calm).
+            // minute, none waits more than five: nothing in the scene moves quickly.
             assertTrue("${b.theme}: a change every ${b.plan.period} s", b.plan.period in 60.0..300.0)
         }
         assertTrue(WindowRoster.FADE_SECONDS < WindowRoster.TICK_MIN_SECONDS)
@@ -218,8 +218,8 @@ class WindowRosterTest {
 
     /**
      * Who is in, before anybody has moved: open, every person, at the windows they stand at in the first state --
-     * exactly the windows the rule of before fills ([WindowOccupants.isOccupied]); shut, nobody (v5.14: the hours
-     * at the minute, [BusinessHours]). How they walk out and in, one at a time in the order of before, is
+     * exactly the windows [WindowOccupants.isOccupied] fills; shut, nobody (the hours kept to the minute,
+     * [BusinessHours]). How they walk out and in, one at a time in their windows' order, is
      * `WindowWalkTest`'s.
      */
     @Test

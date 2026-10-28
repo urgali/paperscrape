@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Item 18 against the real store (v5.9A): the saved theme that cannot be read stays on disk byte for
+ * Against the real store: the saved theme that cannot be read stays on disk byte for
  * byte while the user edits the others.
  *
  * `UnreadableSavedThemeTest` holds the same three properties on the JVM, with the reference
@@ -34,6 +34,10 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 class UnreadableSavedThemeStoreTest {
+
+    // Restores the phone's real saved themes around every test: [wipe] empties them. See RealPrefsGuard.
+    @get:org.junit.Rule
+    val realSavedThemes = RealPrefsGuard(CUSTOM_THEME_STORE_NAME)
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val store get() = CustomThemeStore(context)

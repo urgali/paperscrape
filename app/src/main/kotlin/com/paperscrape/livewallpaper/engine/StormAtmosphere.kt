@@ -5,20 +5,17 @@ import kotlin.math.pow
 /**
  * How much the weather darkens the scene, and what that darkening does to a colour.
  *
- * **The problem this exists to solve.** Before v2.15 the forecast reached exactly two things: how
- * many cloud sprites were placed, and how many raindrops fell. The sky's colour, the clouds' colour
- * and the sun's brightness came only from the theme's palette and the time of day, with no weather
- * input at all. A heavy thunderstorm at two in the afternoon therefore rendered as bright blue sky,
- * a full sun with its rays, a band of cloud, and heavy rain — four things that cannot all be true
- * at once. Rain was falling out of a summer afternoon.
+ * **The problem this solves.** If the forecast reached only how many cloud sprites are placed and
+ * how many raindrops fall, with the sky's colour, the clouds' colour and the sun's brightness taken
+ * only from the theme's palette and the time of day, a heavy thunderstorm at two in the afternoon
+ * would render as bright blue sky, a full sun with its rays, a band of cloud, and heavy rain — four
+ * things that cannot all be true at once: rain falling out of a summer afternoon.
  *
- * **Why this is not the old behaviour returning.** An earlier release had clouds darken toward
- * black as their density slider climbed, and that was removed on purpose: a cloud's colour is the
- * theme's day/night pair, and how many clouds there are is not what colour they are. What is
- * reinstated here is different in all three respects — it is driven by the *forecast* rather than
- * by a slider, it is a blend rather than a palette substitution, and it is derived from the theme's
- * own colour rather than from a fixed storm palette, so a theme keeps its identity while getting
- * visibly worse weather.
+ * **Not a darkening by density.** A cloud's colour is the theme's day/night pair, and how many
+ * clouds there are is not what colour they are, so clouds do not darken as their density slider
+ * climbs. This darkening is driven by the *forecast* rather than by a slider, it is a blend rather
+ * than a palette substitution, and it is derived from the theme's own colour rather than from a
+ * fixed storm palette, so a theme keeps its identity while getting visibly worse weather.
  *
  * Everything here is pure integer and float arithmetic returning primitives: no allocation, no
  * texture, no new draw call. The renderer calls [strength] once for each layer it weathers (up to
@@ -51,7 +48,7 @@ object StormAtmosphere {
      * What a fully overcast sky is worth on its own, with nothing falling.
      *
      * Small on purpose. An overcast day is flatter and greyer than a clear one, but it is still a
-     * day, and the brief asks for "normal or barely attenuated" here. It also keeps the scale
+     * day, and it stays "normal or barely attenuated" here. It also keeps the scale
      * continuous at the bottom: clear sky, overcast, light rain, rain and heavier all step up
      * without a gap appearing at the first drop.
      */
@@ -60,13 +57,12 @@ object StormAtmosphere {
     /**
      * The exponent the rain's intensity is raised to before it is scaled by [RAIN_SPAN].
      *
-     * **Measured, not chosen.** With the rain term linear, the six-level ramp was walked on a
-     * device and the bottom half of it did not read: light rain was indistinguishable from a dry
-     * overcast sky, and a rain the forecast calls moderate looked like a bright blue afternoon with
-     * some drops in it. The cause is upstream and out of scope to change -- `FULL_INTENSITY_MM` is
-     * 8 mm/h, a genuinely torrential rate, so the everyday 1-2 mm/h that most real forecasts report
-     * lands around 0.2 of the intensity range and, multiplied linearly, produced barely more
-     * darkening than cloud alone.
+     * **Measured, not chosen.** With the rain term linear, the bottom half of the six-level ramp
+     * does not read on a device: light rain is indistinguishable from a dry overcast sky, and a rain
+     * the forecast calls moderate looks like a bright blue afternoon with some drops in it. The
+     * cause is upstream and out of scope to change -- `FULL_INTENSITY_MM` is 8 mm/h, a genuinely
+     * torrential rate, so the everyday 1-2 mm/h that most real forecasts report lands around 0.2 of
+     * the intensity range and, multiplied linearly, gives barely more darkening than cloud alone.
      *
      * Bending the response fixes that where it belongs -- in how weather maps to *appearance*,
      * which is what this object is for -- without touching what the millimetres mean. Below 1 the
@@ -94,14 +90,12 @@ object StormAtmosphere {
      * | Heavy thunderstorm | 1.00 | 1.00 |
      *
      * The middle rows are what [RAIN_RESPONSE_EXPONENT] exists for: with a linear rain term they
-     * read 0.11, 0.17 and 0.30, and on a device the first two were indistinguishable from the dry
-     * overcast row above them.
+     * would read 0.11, 0.17 and 0.30, and on a device the first two are indistinguishable from the
+     * dry overcast row above them.
      *
-     * **Snow is deliberately not included in the precipitation term.** The snow path was verified
-     * on a device in this same release and this batch is scoped to rain, heavy rain and
-     * thunderstorm; darkening a snowfall would change a presentation that is known good and was
-     * not asked about. Snow still picks up the cloud term, because snow arrives under cloud, so a
-     * snowy scene is mildly flattened rather than untouched.
+     * **Snow is deliberately not included in the precipitation term**: darkening a snowfall would
+     * change a presentation that is known good on a device. Snow still picks up the cloud term,
+     * because snow arrives under cloud, so a snowy scene is mildly flattened rather than untouched.
      */
     fun strength(
         precipitationType: PrecipitationType?,
@@ -145,7 +139,7 @@ object StormAtmosphere {
      * what substituting a palette could not give.
      *
      * Alpha is carried through untouched. Returns the input unchanged at zero strength, so the
-     * clear-sky path is bit-for-bit what it was before this existed.
+     * clear-sky path is bit-for-bit the theme's own colour.
      */
     fun dim(color: Int, strength: Float, desaturation: Float, darkening: Float): Int {
         val s = strength.coerceIn(0f, 1f)
@@ -178,8 +172,8 @@ object StormAtmosphere {
      *
      * The sun keeps its position, its arc and its part in the day/night blend; only how strongly it
      * is painted changes. It never reaches zero: a sun that vanished would turn an overcast
-     * afternoon into a scene with no light source at all, which reads as night, and the brief is
-     * explicit that a storm must stay recognisably daytime.
+     * afternoon into a scene with no light source at all, which reads as night, and a storm
+     * must stay recognisably daytime.
      */
     const val MINIMUM_SUN_VISIBILITY = 0.18f
 

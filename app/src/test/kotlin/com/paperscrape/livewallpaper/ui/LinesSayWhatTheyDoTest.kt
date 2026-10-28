@@ -19,8 +19,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **Every line says what its control does** (v5.10E, inventory I-216…I-219, I-222, I-224…I-226: row 11
- * of the v5.10A table, the maintainer's *sì* of 2026-09-30 -- *«dopo ogni riga dice quello che fa»*).
+ * **Every line says what its control does** (`DESIGN_NOTES.md` §12, decision 45).
  *
  * Each line is held to the rule it describes, not to itself: the buildings' slider to
  * [keepCandidate], the cars' bottom to [CarSelection.countFor] and their switch to
@@ -30,7 +29,7 @@ import java.io.File
  */
 class LinesSayWhatTheyDoTest {
 
-    // ---------------------------------------------------------------- the buildings (I-216)
+    // ---------------------------------------------------------------- the buildings
 
     @Test
     fun `the buildings' slider thins the towers and the shops stay, as its words say`() {
@@ -51,7 +50,7 @@ class LinesSayWhatTheyDoTest {
         assertTrue(BUILDINGS_DENSITY_LINE.contains("while Show Buildings is on"))
     }
 
-    // ---------------------------------------------------------------- the cars (I-217)
+    // ---------------------------------------------------------------- the cars
 
     @Test
     fun `the cars' bottom says one car, because one car drives`() {
@@ -74,7 +73,7 @@ class LinesSayWhatTheyDoTest {
         assertTrue(world.contains("densityValue = ::carDensityValue,"))
     }
 
-    // ---------------------------------------------------------------- the birds (I-218)
+    // ---------------------------------------------------------------- the birds
 
     @Test
     fun `each bird colour shows its share of the flock, and the shares add up to 100`() {
@@ -106,7 +105,7 @@ class LinesSayWhatTheyDoTest {
         assertFalse(world.contains("""Text("Color ${'$'}{index + 1}: ${'$'}{(shown * 100).toInt()}""""))
     }
 
-    // ---------------------------------------------------------------- the banner (I-219)
+    // ---------------------------------------------------------------- the banner
 
     @Test
     fun `the banner says the changes stay with the theme, on both screens`() {
@@ -117,7 +116,7 @@ class LinesSayWhatTheyDoTest {
         assertTrue(source("ui/SeasonsScreen.kt").contains("SettingsBanner(SettingsUiModel.themeEditsBanner(themeName))"))
     }
 
-    // ---------------------------------------------------------------- Swipe scroll (I-222)
+    // ---------------------------------------------------------------- Swipe scroll
 
     @Test
     fun `Swipe scroll is on only once the home screen has moved the wallpaper with a swipe`() {
@@ -141,7 +140,7 @@ class LinesSayWhatTheyDoTest {
     }
 
     /**
-     * **No pages, no swipe** (the read-only review of v5.10E, D5): an offset moved by Android's own default
+     * **No pages, no swipe**: an offset moved by Android's own default
      * (a step of -1: the home screen never said it has pages) or by a relayout of one page is not a swipe.
      */
     @Test
@@ -160,7 +159,7 @@ class LinesSayWhatTheyDoTest {
     fun `the wallpaper records a swipe once, never from the picker's preview, and a backup does not carry it`() {
         val engine = source("engine/PaperWallpaperService.kt")
         assertTrue(engine.contains("if (!isPreview && swipeReport.moved(xOffset, xOffsetStep) && !settings.swipeReported &&"))
-        // Written by this engine once, and again only if that write failed (the review's D4).
+        // Written by this engine once, and again only if that write failed.
         assertTrue(engine.contains("runCatching { prefs.setSwipeReported() }.onFailure { swipeReportSent = false }"))
         assertEquals("written in one place", 1, Regex("""setSwipeReported\(""").findAll(engine).count())
         val backup = source("prefs/AppBackup.kt")
@@ -169,12 +168,11 @@ class LinesSayWhatTheyDoTest {
         assertEquals("read, and written by its one setter", 2, Regex("""Keys\.SWIPE_REPORTED""").findAll(prefs).count())
     }
 
-    // ---------------------------------------------------------------- the Christmas switches (I-224; v5.16)
+    // ---------------------------------------------------------------- the Christmas switches
 
     /**
-     * **One switch until v5.16, three since** (the maintainer, 2026-10-21: *«interruttori per ogni cosa; lo stesso dobbiamo
-     * avere anche per natale»*): each line says everything its own switch draws, and each switch is the one the renderer
-     * reads where it draws that.
+     * **Three switches** (`DESIGN_NOTES.md` §12, decision 76): each line says everything its own switch draws, and each
+     * switch is the one the renderer reads where it draws that.
      */
     @Test
     fun `each Christmas switch says what its own switch draws`() {
@@ -197,7 +195,7 @@ class LinesSayWhatTheyDoTest {
             assertTrue("the buildings' line does not say '$word'", CHRISTMAS_BUILDING_LIGHTS_LINE.contains(word))
         }
         // And what it does not: Halloween strips the leafy trees, and the wallpaper hangs no light on the bare branches
-        // (`SceneObjectRenderer.drawTree` returns before them; v5.16B's final review).
+        // (`SceneObjectRenderer.drawTree` returns before them).
         for (word in listOf("lights on the trees", "palms", "none on the bare branches halloween leaves")) {
             assertTrue("the trees' line does not say '$word'", CHRISTMAS_TREE_LIGHTS_LINE.lowercase().contains(word))
         }
@@ -216,11 +214,12 @@ class LinesSayWhatTheyDoTest {
         }
     }
 
-    // ---------------------------------------------------------------- the Halloween switches (v5.16)
+    // ---------------------------------------------------------------- the Halloween switches
 
     /**
-     * *Halloween* still does its four things and its line is the one approved on 2026-10-20; the six things v5.16 added --
-     * the scarecrows with their amount among them -- have a switch each (*«interruttori per ogni cosa»*, 2026-10-21), and each line says what the drawing does.
+     * *Halloween* does its four things under its own line; every other thing on the Halloween page -- the scarecrows with
+     * their amount among them, and *Moon stays in place*, its row just under *Night sky by day* -- has a switch of its own,
+     * and each line says what the drawing does (`DESIGN_NOTES.md` §12, decisions 75 and 86).
      */
     @Test
     fun `each Halloween switch says what its own switch draws`() {
@@ -232,23 +231,43 @@ class LinesSayWhatTheyDoTest {
         assertEquals("once a minute", 60.0, com.paperscrape.livewallpaper.engine.LaughingMoon.EVERY_SECONDS, 0.0)
         assertTrue(NIGHT_SKY_BY_DAY_LINE.contains("the Halloween moon takes the sun's place"))
         assertTrue(NIGHT_SKY_BY_DAY_LINE.contains("The shops keep their real opening hours"))
-        for (word in listOf("Cobwebs at the ends of the roofs", "purple bats", "jack-o'-lantern by every front door", "lit at night", "houses and the shops", "open or shut")) {
-            assertTrue("the decorations' line does not say '$word'", HALLOWEEN_DECORATIONS_LINE.contains(word))
-        }
+        // One cobweb a roof and no bat (`DESIGN_NOTES.md` §12, decision 85).
+        assertEquals(
+            "A cobweb in a corner of every roof and a jack-o'-lantern by every front door, lit at night, on the houses and the shops, open or shut",
+            HALLOWEEN_DECORATIONS_LINE,
+        )
+        assertFalse("no bat any more", HALLOWEEN_DECORATIONS_LINE.contains("bat"))
         val decorates = com.paperscrape.livewallpaper.engine.HalloweenDecorations::decorates
         assertTrue(decorates(com.paperscrape.livewallpaper.engine.WindowBuildingKind.HOUSE, null))
         for (shop in listOf(Storefront.RESTAURANT, Storefront.BAR, Storefront.SHOP)) assertTrue("$shop", decorates(shop.family.kind, shop))
         for (other in listOf(Storefront.SCHOOL, Storefront.FIRE_STATION, Storefront.POLICE_STATION)) assertFalse("$other", decorates(other.family.kind, other))
         assertFalse("no tower", decorates(com.paperscrape.livewallpaper.engine.WindowBuildingKind.SKYSCRAPER, null))
         assertTrue(SCARECROWS_LINE.contains("where the snowmen stand"))
-        assertTrue(HEADLESS_HORSEMAN_LINE.contains("about once a minute"))
-        assertTrue(HEADLESS_HORSEMAN_LINE.contains("pumpkins on fire"))
+        // Thrown from his hand (`DESIGN_NOTES.md` §12, decisions 79 and 84).
+        assertEquals(
+            "The Headless Horseman gallops across the sky about once a minute, throwing pumpkins on fire from his hand",
+            HEADLESS_HORSEMAN_LINE,
+        )
+        // The still moon, its row right under *Night sky by day*, its line all it does (`DESIGN_NOTES.md` §12, decision 86).
+        assertEquals(
+            "The Halloween moon stays still, low over the roofs under the clouds, instead of crossing the sky. " +
+                "Without Night sky by day it comes out after sunset and fades before sunrise, where it stands.",
+            STILL_MOON_LINE,
+        )
+        val seasons = source("ui/SeasonsScreen.kt")
+        val nightRow = seasons.indexOf("title = \"Night sky by day\",")
+        val stillRow = seasons.indexOf("title = \"Moon stays in place\",")
+        val horrorRow = seasons.indexOf("title = \"Horror sky\",")
+        assertTrue("the still moon's row right under the night by day's: $nightRow $stillRow $horrorRow", stillRow in nightRow..horrorRow)
+        assertFalse("another row between the night by day's and the still moon's", seasons.substring(nightRow + 1, stillRow).contains("title = \""))
+        assertTrue("greyed by the carved moon's rule", seasons.contains("supporting = halloweenMoonLine(STILL_MOON_LINE, stillMoon),"))
+        assertTrue(seasons.contains("onCheckedChange = { scope.launch { prefs.setStillMoonEnabled(it, forThemeId) } },"))
         assertTrue(BLOOD_RAIN_LINE.contains("twice as thick"))
         assertEquals(2f, com.paperscrape.livewallpaper.engine.PaperRenderer.BLOOD_RAIN_THICKER, 0f)
         assertTrue(BLOOD_RAIN_LINE.contains("snow stays snow"))
     }
 
-    // ---------------------------------------------------------------- Weather effects, the release page (I-225)
+    // ---------------------------------------------------------------- Weather effects, the release page
 
     @Test
     fun `Weather effects says where it goes, and the release page button is called what it opens`() {
@@ -263,12 +282,13 @@ class LinesSayWhatTheyDoTest {
         assertTrue(home.contains("worldOpenedFrom = SettingsDestination.WEATHER\n                destination = SettingsDestination.WORLD"))
     }
 
-    // ---------------------------------------------------------------- the dry thunderstorm (I-292)
+    // ---------------------------------------------------------------- the dry thunderstorm
 
     /**
-     * **Kept, and the comments say so** (the maintainer, 2026-10-04: *«nel mondo vero può esistere un
-     * temporale senza pioggia, quindi va bene»*). The theme's storm flashes with Rain chosen whatever the
-     * intensity -- `stormActive` takes none -- and two comments said it needed rain falling.
+     * **Meant, and the comments say so** (`DESIGN_NOTES.md` §12, decision 44: *«nel mondo vero può esistere
+     * un temporale senza pioggia, quindi va bene»*, 2026-10-04). The theme's storm flashes with Rain chosen
+     * whatever the intensity -- `stormActive` takes none -- and the comments of `LiveWeatherSceneRules` and
+     * `WeatherSnapshotMapper` say so, not that it needs rain falling.
      */
     @Test
     fun `the thunderstorm without rain is meant, and the comments no longer say otherwise`() {
@@ -282,16 +302,16 @@ class LinesSayWhatTheyDoTest {
         assertFalse(rules.contains("has always been gated on rain actually falling"))
         val mapper = source("weather/WeatherSnapshotMapper.kt")
         assertFalse(mapper.contains("own storm toggle has always\n            // required rain to be falling"))
-        assertTrue(mapper.contains("a dry thunderstorm the maintainer kept"))
+        assertTrue(mapper.contains("a dry\n            // thunderstorm, `DESIGN_NOTES.md` §12, decision 44."))
     }
 
-    // ---------------------------------------------------------------- the sliders that lock (I-226)
+    // ---------------------------------------------------------------- the sliders that lock
 
     /**
      * **Locked by the stored switch, never by the shown one**: at 0 % the switch reads off because of the
      * slider (`amountSwitch`), and the slider is how the amount comes back. So every slider that locks
      * asks [SettingsUiModel.amountSliderEnabled] of a stored flag -- a `.visible`, `Visible` -- and none of
-     * a shown state (the review's W1: a slider locked with `shown.shownOn` passed every test before).
+     * a shown state, which would lock it at its own 0 %.
      */
     @Test
     fun `an amount slider locks on its stored switch, so it stays live at zero`() {
@@ -322,9 +342,8 @@ class LinesSayWhatTheyDoTest {
     }
 
     /**
-     * **The census** (v5.10E): every slider on the scene's screens either follows a switch on its page
-     * (`enabled =`) or is one of the sliders that always act. A slider added later without either fails
-     * here, which is what keeps I-226 from coming back with a new name.
+     * **The census**: every slider on the scene's screens either follows a switch on its page
+     * (`enabled =`) or is one of the sliders that always act. A slider added without either fails here.
      */
     @Test
     fun `every slider of the scene's screens locks with its switch, or always acts`() {
@@ -359,29 +378,29 @@ class LinesSayWhatTheyDoTest {
         }
     }
 
-    // ---------------------------------------------------------------- Santa and Halloween (v5.15)
+    // ---------------------------------------------------------------- Santa and Halloween
 
     @Test
     fun `Santa's line says about once a minute, the rhythm the sleigh keeps`() {
-        // The maintainer, 2026-10-19: «Tieni il ritmo, cambia la scritta». The next flight sets off 25 to 60 s after
-        // the last one ends and a flight lasts 9 to 13 s: a pass every 34 to 73 s, about once a minute.
+        // The rhythm stays and the line says it (`DESIGN_NOTES.md` §12, decision 73). The next flight sets off 25 to 60 s
+        // after the last one ends and a flight lasts 9 to 13 s: a pass every 34 to 73 s, about once a minute.
         val effect = source("engine/SantaSleighEffect.kt")
-        assertTrue(effect.contains("timeUntilNextFlight = 25f + Random.nextFloat() * 35f"))
-        // And the flight's own length, the other half of "a pass every 34 to 73 s" (v5.15C2, inventory I-975).
-        assertTrue(effect.contains("flightDuration = 9f + Random.nextFloat() * 4f"))
+        assertTrue(effect.contains("timeUntilNextFlight = 25f + SceneRandom.source.nextFloat() * 35f"))
+        // And the flight's own length, the other half of "a pass every 34 to 73 s".
+        assertTrue(effect.contains("flightDuration = 9f + SceneRandom.source.nextFloat() * 4f"))
         assertTrue(source("ui/SeasonsScreen.kt").contains("supporting = \"Santa's sleigh flies across the sky about once a minute, dropping gifts\""))
     }
 
     @Test
     fun `Halloween's line names the four things its switch does`() {
-        // One switch, four changes (`DESIGN_NOTES.md` §16): the moon's carved face with its light, the bare trees,
-        // the withered palms, the carved pumpkins. Until v5.15 the line named the first two.
+        // One switch, four changes (`DESIGN_NOTES.md` §12, decision 75): the moon's carved face with its light,
+        // the bare trees, the withered palms, the carved pumpkins.
         val objects = source("engine/SceneObjectRenderer.kt")
         for (sprite in listOf("tree_dead_branches", "palmtree_fronds_dead", "pumpkin_face")) {
             assertTrue("the street no longer draws $sprite", objects.contains("R.drawable.$sprite"))
         }
         assertTrue(source("engine/PaperRenderer.kt").contains("R.drawable.moon_jack_o_lantern_light"))
-        // The row shows the line through its constant since v5.16 (the Halloween page names its lines there).
+        // The row shows the line through its constant, where the Halloween page names its lines.
         val seasons = source("ui/SeasonsScreen.kt")
         val row = seasons.substring(seasons.indexOf("title = \"Halloween\",")).substringBefore("checked =")
         assertTrue(row.contains("supporting = HALLOWEEN_LINE,"))

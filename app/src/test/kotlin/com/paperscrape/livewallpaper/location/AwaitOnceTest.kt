@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * is `currentTime == 0` and "gives up after its own 150 ms" is `currentTime == 150` -- exact, and
  * the same on an idle laptop and on a CI runner compiling something else. The tests used to
  * measure real elapsed time against generous bounds, and one of them still failed on a busy
- * machine: 5 337 ms against 3 000 (item 143). A bound on wall-clock time is a statement about the
+ * machine: 5 337 ms against 3 000. A bound on wall-clock time is a statement about the
  * host, not about the code. The one test left on `runBlocking` races real threads and measures
  * nothing.
  */

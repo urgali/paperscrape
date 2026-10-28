@@ -69,23 +69,17 @@ internal class GlTextureAtlas(
     /**
      * Whether [width] x [height] is a candidate for the atlas at all.
      *
-     * **This branch has never rejected a shipped sprite, and it is kept anyway.** v4.29 measured
-     * both halves of that sentence, because the comment that used to stand here justified the
-     * limit with a sprite that had not had those dimensions for several releases: it said "the
-     * sleigh alone is 1563x434", and the sleigh was 594 px wide then -- the crop recorded in
-     * `SANTA_CROP_REPORT.md`, which landed in v4.8 (since v5.15 the sleigh is five smaller pieces,
-     * `santa_sleigh` the widest at 243 px). The largest single dimension anywhere in the
-     * set is `cloud_body`, and **0 of the 421 sprites shipped at v5.8 exceed [maxEntryDimension] on
-     * either axis** (305 when v4.29 measured it). Over a twelve-theme walk at full density, 33 000
-     * frames and 314 entries, the dimension rejection fired **0 times**; what fired was the space
-     * rejection, and v4.29 fixed the packer that was causing it.
+     * **This branch has never rejected a shipped sprite, and it is kept anyway.** The largest single
+     * dimension anywhere in the set is `cloud_body`'s, under [maxEntryDimension]; over
+     * a twelve-theme walk at full density the dimension rejection fired **0 times**, and what fires when
+     * the atlas fills is the space rejection.
      *
      * The original reasoning still holds for a sprite that *did* exceed it, which is why the branch
      * stays. A single 1024-square entry is 4 MiB of texels — a quarter of the whole atlas — and
      * would push out many small sprites that repeat per frame, which is the opposite of what the
      * atlas is for. A sprite that large is also almost always drawn once per frame, so standing
      * outside the atlas costs it a single batch break. **It is a guard against a future sprite, not
-     * a description of this one**; `BACKLOG_v4_29.md` item 89 records the decision to keep it.
+     * a description of this one**.
      */
     fun accepts(width: Int, height: Int): Boolean =
         width <= maxEntryDimension && height <= maxEntryDimension && packer.fitsAtAll(width, height)
@@ -195,9 +189,8 @@ internal class GlTextureAtlas(
          *
          * So do not shrink this, and do not make it non-square either — [AtlasPacker] takes width
          * and height separately so 2048x1024 is one line away, and halving the height halves the
-         * rows the census shows being consumed. v4.29 recovered the room by fixing the packer
-         * instead, which is where the waste actually was; `BACKLOG_v4_29.md` item 88 carries the
-         * census and closes the resize question as measured and refused.
+         * rows the census shows being consumed. The room comes from the packer
+         * ([AtlasPacker]), which is where the waste was: a smaller atlas was measured and refused.
          */
         const val DEFAULT_SIZE = 2048
 

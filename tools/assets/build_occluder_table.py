@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
-"""v5.2 item 124 -- the occlusion geometry of a crown, measured off its own artwork.
+"""The occlusion geometry of a crown, measured off its own artwork.
 
 ### What this exists to remove
 
-An occlusion box is a claim: *behind this rectangle, nothing can be seen*. Until v5.2 the claim
-for a palm crown was its whole 56x48-unit canvas, and the drawing on that canvas is 51% ink and
-49% air -- so the layout pass moved a shop out from behind a fan the shop was plainly visible
-through. Correcting that is not the interesting part. The interesting part is that the same
-rectangle is written down **twice**: once in `SceneObjectCatalog.occluderBoxes`, which decides,
-and once in `ShopFrontVisibilityTest`, which checks -- deliberately, so that a bug in the pass and
-a bug in the measurement have to agree to hide a covered shop.
+An occlusion box is a claim: *behind this rectangle, nothing can be seen*. For a palm crown its
+whole 56x48-unit canvas would be a false claim: the drawing on that canvas is 51% ink and 49% air,
+so the layout pass would move a shop out from behind a fan the shop is plainly visible through.
+And the rectangle is written down **twice**: once in `SceneObjectCatalog.occluderBoxes`, which
+decides, and once in `ShopFrontVisibilityTest`, which checks -- deliberately, so that a bug in the
+pass and a bug in the measurement have to agree to hide a covered shop.
 
 Tighten one and the test goes red, correctly. Tighten both by hand and the test stops being an
 independent metre and becomes a check that two hand-copied numbers match. Neither is acceptable,
-so the number stops being hand-written on **either** side: it is measured here, from the shipped
-PNG, by the same pipeline that already measures every content box, and both sides read what this
-writes and derive their own rectangle from it.
+so the number is hand-written on **neither** side: it is measured here, from the shipped PNG, by
+the same pipeline that already measures every content box, and both sides read what this writes
+and derive their own rectangle from it.
 
 ### What it writes, and what it deliberately does not
 
 It writes the **artwork's own geometry** -- where the ink is and how much of the box it fills --
 in object units, and nothing about occlusion. The inset model (how a coverage becomes a smaller
 rectangle) lives in Kotlin and is written twice on purpose, once in the pass and once in the test:
-that is the half of the old independence worth keeping, because it is a judgement rather than a
-measurement. What this removes is the half that was only ever a transcription.
+that is the half of the independence worth keeping, because it is a judgement rather than a
+measurement. What this replaces is the half that would only be a transcription.
 
 `SpriteOccluderTableFreshnessTest` re-measures every figure below straight from the PNG, in
-Kotlin, without this script -- so the table cannot fall behind a redraw in silence, which is
-exactly what `reports/runtime-inventory.json` did for the whole of v5.1.
+Kotlin, without this script -- so the table cannot fall behind a redraw in silence, as a
+committed report nothing checks can.
 
 Run from `tools/assets/` with the asset venv:
 
@@ -57,12 +56,10 @@ PPU = 3.0
 #: know which one a given theme will pick and the box has to hold for all of them. The palm's three
 #: crowns share one origin and one canvas; the oak's two share `TreeSpriteLayout.CANOPY_*`.
 #:
-#: `tree_fir` is **not** here, and that stays: a fir stands in a leafy tree's place under the same
-#: `SceneVariant.TREE`, it is a whole tree rather than a crown on a trunk, and the shipped box has
-#: never described it (V5_2A_REPORT.md section 8 found it). Declaring it would move the box, and
-#: with it the shops of every theme; on Christmas, the one theme with firs by default, no shop
-#: front is hidden by one (3, 0 and 9 %, measured on the phone in v5.8F), and the maintainer decided
-#: on 2026-09-28 to leave it (inventory I-97).
+#: `tree_fir` is **not** here, on purpose: a fir stands in a leafy tree's place under the same
+#: `SceneVariant.TREE`, it is a whole tree rather than a crown on a trunk, and the box does not
+#: describe it. Declaring it would move the box, and with it the shops of every theme, Christmas
+#: (the one theme with firs by default) among them.
 FAMILIES = {
     "PALM_CROWN": {
         "sprites": ["palmtree_fronds", "palmtree_fronds_dead", "palmtree_fronds_frost"],
@@ -262,31 +259,28 @@ HEADER = '''package com.paperscrape.livewallpaper.engine
  *
  * ### Why a generated table and not two literals
  *
- * An occlusion box says *nothing behind this rectangle can be seen*, and for a palm crown that was
- * the whole 56x48-unit canvas of a drawing which is 51% ink -- so the layout pass moved a shop out
- * from behind a fan it was plainly visible through (`BACKLOG_v5_1.md` item 124, and the audit's
- * photograph of the desert bar). The rectangle was written down twice, here in the catalogue's
- * [SceneObjectCatalog] geometry and again in `ShopFrontVisibilityTest`, the second copy deliberate
- * so that a wrong number has to be typed twice to hide a covered shop.
+ * An occlusion box says *nothing behind this rectangle can be seen*, and for a palm crown the whole
+ * 56x48-unit canvas of a drawing which is 51% ink would say it falsely: the layout pass would move a
+ * shop out from behind a fan it is plainly visible through. The rectangle is derived twice, here in
+ * the catalogue's [SceneObjectCatalog] geometry and again in `ShopFrontVisibilityTest`, the second copy deliberate
+ * so that one wrong derivation cannot hide a covered shop.
  *
  * Tightening one of the two turns the test red, correctly. Tightening both by hand would make the
  * test a comparison of two transcriptions instead of an independent measurement. So the number is
- * no longer typed on either side: it is **measured off the artwork** and both sides read it and
+ * typed on neither side: it is **measured off the artwork** and both sides read it and
  * derive their own rectangle from it. What each side still writes for itself is the *model* -- how
  * a coverage becomes a smaller rectangle -- because that is a judgement and not a measurement, and
  * it is the half of the independence worth keeping.
  *
  * `SpriteOccluderTableFreshnessTest` re-measures every sprite figure below straight from the PNG,
  * in Kotlin, without the generator, and checks the parasol fan against its own geometry -- so
- * this table cannot fall behind a redraw in silence. That is
- * not a hypothetical: `tools/assets/reports/runtime-inventory.json` carried the pre-v5.1 palm for
- * the whole of v5.1 and nothing said so.
+ * this table cannot fall behind a redraw in silence.
  *
  * ### The units
  *
  * [contentLeft], [contentTop], [contentRight], [contentBottom] are the drawing's own ink bounding
  * box in **object units at the blit origin** -- the canvas's transparent guard margin excluded,
- * which is the first thing the old box got wrong. [InkBox.rowMax] and [InkBox.columnMax] are the
+ * which a box of the whole canvas would get wrong first. [InkBox.rowMax] and [InkBox.columnMax] are the
  * fullest row and column as shares of that box, counting a pixel as ink at any alpha above zero;
  * the box's overall coverage is only recorded in a comment beside it.
  */

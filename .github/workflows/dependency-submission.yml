@@ -3,9 +3,9 @@ name: Dependency Submission
 # Submits the *actually resolved* Gradle dependency graph (including transitive
 # dependencies, after version conflict resolution) to GitHub's Dependency Graph API. Once
 # submitted, GitHub's Dependabot automatically raises a security alert whenever a new CVE/OSV
-# advisory is published for anything in that graph -- this is what turns point 6 of the audit
-# ("scan dependencies for known vulnerabilities") into an ongoing, automated process instead of
-# a one-time check that goes stale the moment a new CVE is disclosed.
+# advisory is published for anything in that graph -- this is what keeps the scan of the
+# dependencies for known vulnerabilities an ongoing, automated process instead of a one-time
+# check that goes stale the moment a new CVE is disclosed.
 #
 # Requires "Dependabot alerts" to be enabled for this repository (Settings -> Code security ->
 # Dependabot alerts) -- on by default for public repos, but worth confirming.
@@ -26,6 +26,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # This workflow's token can write to the repository, and resolving the graph runs the
+          # project's Gradle build: the token is not left in .git/config for it. The submission
+          # step takes its own token from the action's input, not from git.
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0

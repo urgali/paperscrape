@@ -5,9 +5,9 @@ import com.paperscrape.livewallpaper.engine.WEATHER_REFRESH_INTERVAL_MS
 /**
  * What the live-weather loop should do next, and whether what it already has may draw.
  *
- * Extracted and made pure for the same reason [LiveWeatherInputs] was: these are the rules the
- * feature's correctness rests on, they lived inline in the service's `while (true)` where nothing
- * could reach them, and each of the three had rotted in a different direction.
+ * Pure and outside the service's `while (true)`, as [LiveWeatherInputs] is: these are the rules the
+ * feature's correctness rests on, and inline in the loop nothing could reach them, so each of the
+ * three could rot in a different direction unseen.
  *
  * ### The one rule
  *
@@ -16,21 +16,20 @@ import com.paperscrape.livewallpaper.engine.WEATHER_REFRESH_INTERVAL_MS
  *
  * > `status.isDrivingTheScene` is true **if and only if** `snapshotForScene` is non-null.
  *
- * Before this existed the two were computed in different places from different inputs. The status
- * came from [LiveWeatherStatus.of]; the renderer's override was whatever the last successful fetch
- * had left behind, and only the "Live Weather is off" branch ever cleared it. So turning location
- * off, or switching to a provider whose key is missing or rejected, published a status whose
- * [LiveWeatherStatus.isRunningOnThemeWeather] was true -- which unlocks the theme's own cloud and
- * precipitation controls -- while the fetched conditions carried on drawing. The controls the user
- * had just been handed did nothing, and the sky disagreed with the screen that described it.
+ * Computed in different places from different inputs, the two disagree: with the status from
+ * [LiveWeatherStatus.of], and the renderer's override whatever the last successful fetch left
+ * behind, cleared only when Live Weather is off, turning location off or switching to a
+ * provider whose key is missing or rejected publishes a status whose
+ * [LiveWeatherStatus.isRunningOnThemeWeather] is true -- which unlocks the theme's own cloud and
+ * precipitation controls -- while the fetched conditions carry on drawing. The controls the user
+ * has just been handed do nothing, and the sky disagrees with the screen that describes it.
  *
- * ### What this does not change
+ * ### Stale conditions, and their expiry
  *
- * The four location modes keep their meanings, the [LiveWeatherStatus] states keep theirs, and
- * **the deliberate [LiveWeatherStatus.STALE] design is preserved**: a dropped request still leaves
+ * **The deliberate [LiveWeatherStatus.STALE] design holds**: a dropped request leaves
  * the last known-good conditions on screen rather than flicking the scene back to the theme's
- * manual settings. What is new is that "last known-good" now has an expiry ([SNAPSHOT_MAX_AGE_MILLIS])
- * and that a status which says the theme is driving the scene now means it.
+ * manual settings. "Last known-good" has an expiry ([SNAPSHOT_MAX_AGE_MILLIS]),
+ * and a status which says the theme is driving the scene means it.
  */
 object LiveWeatherSchedule {
 
@@ -39,9 +38,9 @@ object LiveWeatherSchedule {
      *
      * Written as a multiple of [WEATHER_REFRESH_INTERVAL_MS] rather than as its own three-hour
      * literal, so the policy *is* the declaration and the two cannot drift apart: halving the
-     * refresh interval halves this, and no test or reviewer has to notice. (A test pinned the
-     * relationship before v4.9; a pinned relationship still lets a release ship an hour in which
-     * the two disagree, which is exactly the window worth closing.)
+     * refresh interval halves this, and no test or reviewer has to notice. (A test pinning the
+     * relationship would still let a release ship an hour in which the two disagree, which is
+     * exactly the window worth closing.)
      *
      * What derivation cannot check is whether the *result* is still a defensible duration, so a
      * test asserts the absolute value as well: change the refresh interval and the cap follows
@@ -52,7 +51,7 @@ object LiveWeatherSchedule {
      * moment its replacement is due, so any late refresh -- a device in Doze, a screen that has
      * been off, one dropped request -- would drop the scene back to theme weather and then pull it
      * forward again on the next success. That flicker is precisely what [LiveWeatherStatus.STALE]
-     * was introduced to avoid, and an age cap must not undo it.
+     * exists to avoid, and an age cap must not undo it.
      *
      * Three is the smallest multiple that tolerates a couple of missed cycles without flapping,
      * and it is also about as long as a drawn sky can be defended: cloud cover and precipitation
@@ -73,15 +72,16 @@ object LiveWeatherSchedule {
     /**
      * Whether this outcome is worth trying again sooner than the normal interval.
      *
-     * The vocabulary already existed -- [WeatherFailure] documents which reasons retrying helps --
-     * but nothing consumed it: every outcome, success or failure, stamped the same hourly timer, so
-     * a request dropped because the radio was not up yet cost a full hour of wrong weather. The
-     * most repeatable case is a boot: the wallpaper rebinds and fetches before connectivity exists.
+     * The vocabulary is [WeatherFailure]'s, which documents which reasons retrying helps, and this
+     * consumes it: with every outcome, success or failure, stamping the same hourly timer, a request
+     * dropped because the radio was not up yet would cost a full hour of wrong weather. The most
+     * repeatable case is a boot: the wallpaper rebinds and fetches before connectivity exists.
      *
-     * [WeatherFetchResult.MissingApiKey] is not transient and never was -- nothing is sent in that
-     * state, so there is nothing to retry until the user acts. [WeatherFailure.UNAUTHORIZED] and
-     * [WeatherFailure.RATE_LIMITED] are answers, not accidents: the service was reached and said
-     * no, and hammering it sooner neither helps the user nor is polite to the provider.
+     * [WeatherFetchResult.MissingApiKey] is not transient -- nothing is sent in that
+     * state, so there is nothing to retry until the user acts. [WeatherFailure.UNAUTHORIZED],
+     * [WeatherFailure.RATE_LIMITED] and [WeatherFailure.REQUEST_REFUSED] are answers, not accidents:
+     * the service was reached and said no, the same request gets the same no, and hammering it sooner
+     * neither helps the user nor is polite to the provider.
      */
     fun isTransient(result: WeatherFetchResult?): Boolean =
         result is WeatherFetchResult.Failed && when (result.reason) {
@@ -92,6 +92,7 @@ object LiveWeatherSchedule {
 
             WeatherFailure.UNAUTHORIZED,
             WeatherFailure.RATE_LIMITED,
+            WeatherFailure.REQUEST_REFUSED,
             -> false
         }
 
@@ -99,14 +100,14 @@ object LiveWeatherSchedule {
      * Whether enough time has passed since the last attempt, given a monotonic elapsed reading.
      *
      * Stated here rather than inlined at the three call sites because the *clock* is the rule.
-     * Until v4.14 the service compared `System.currentTimeMillis()` against a wall-clock stamp,
-     * and a clock moved backwards -- a timezone edit, an NTP correction, a user setting the date --
-     * made the difference negative, so nothing was ever due again until the wall clock caught back
+     * Compared against a wall-clock stamp with `System.currentTimeMillis()`, a clock moved
+     * backwards -- a timezone edit, an NTP correction, a user setting the date -- makes the
+     * difference negative, so nothing is ever due again until the wall clock catches back
      * up. `elapsedSince` must come from `SystemClock.elapsedRealtime()`, which counts since boot,
      * includes deep sleep, and cannot go backwards.
      *
-     * The negative case is still handled rather than assumed away, although nothing produces one
-     * today: the fresh-engine sentinel (`Long.MIN_VALUE / 4`) reads as "a long time ago" and is due
+     * The negative case is handled rather than assumed away, although nothing produces one:
+     * the fresh-engine sentinel (`Long.MIN_VALUE / 4`) reads as "a long time ago" and is due
      * through the ordinary comparison.
      */
     fun isAttemptDue(elapsedSinceLastMillis: Long, delayMillis: Long): Boolean =
@@ -148,9 +149,30 @@ object LiveWeatherSchedule {
      * Whether the loop fetches and draws live conditions at all: the switch is on **and** the scene
      * follows real time -- the rule the settings screen states (`LiveWeatherUiState.canBeTurnedOn`:
      * a fixed hour has no "now" to fetch for). One function so the engine and the screen cannot
-     * disagree about it again, as they did until v5.8C.
+     * disagree about it.
      */
     fun runs(enabled: Boolean, followRealTime: Boolean): Boolean = enabled && followRealTime
+
+    /**
+     * Whether a refresh that falls due would be **sent**: Live Weather [runs], and [provider] needs no key or has one
+     * in [apiKey]. A provider waiting for its key answers [WeatherFetchResult.MissingApiKey] without a request, so
+     * nothing it does is a reason to ask the phone where it is -- a search of up to 20 s an hour, for a sunrise that
+     * the position already held gives.
+     */
+    fun wouldFetch(runs: Boolean, provider: WeatherProviderId, apiKey: String): Boolean =
+        runs && (!WeatherRepository.providerFor(provider).requiresApiKey || apiKey.isNotBlank())
+
+    /**
+     * Whether [fix] is **another place** than [lastFetchFor], the position the last fetch was made for: farther than
+     * [SAME_PLACE_KM], or no fetch made for any. A fix a few metres from the last -- a try after a search that found
+     * nothing, another app's newer cached position, the saved position read back as a float -- is the same place to
+     * the weather, and its fetch waits for the hourly one: new conditions there arrive up to an hour later. Null
+     * [fix]: nowhere to fetch for.
+     */
+    fun movedToAnotherPlace(
+        fix: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
+        lastFetchFor: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
+    ): Boolean = fix != null && (lastFetchFor == null || !isSamePlace(fix, lastFetchFor))
 
     /**
      * How far apart two positions may be and still be **the same place** to the weather: about one
@@ -174,9 +196,9 @@ object LiveWeatherSchedule {
      *
      * A failed fetch keeps the last known-good conditions on screen ([LiveWeatherStatus.STALE]),
      * which is right while they are this place's. After the user moves the Custom location, or the
-     * phone reports a new town, they are not: until v5.8C a failed first fetch for the new place
-     * left the old place's weather drawing until a later fetch succeeded -- minutes for a
-     * transient failure, up to an hour otherwise (v5.8B comment audit). Now the old place's
+     * phone reports a new town, they are not: kept, after a failed first fetch for the new place
+     * the old place's weather would draw until a later fetch succeeded -- minutes for a
+     * transient failure, up to an hour otherwise. So the old place's
      * conditions are dropped and the scene shows the theme's own until this place's arrive.
      * [heldFor] is where [held] was fetched; returns the snapshot and where it is for.
      */
@@ -197,7 +219,7 @@ object LiveWeatherSchedule {
      * A negative age -- the wall clock moved backwards between the fetch and now -- counts as
      * usable: the data is not old, the clock is wrong, and expiring perfectly good conditions
      * because someone changed the time zone would be its own bug. (The attempt schedule is on
-     * `elapsedRealtime`, see [isAttemptDue]; only this expiry still reads the wall clock, because
+     * `elapsedRealtime`, see [isAttemptDue]; only this expiry reads the wall clock, because
      * the snapshot's stamp is one.)
      */
     fun snapshotIsUsable(snapshot: LiveWeatherSnapshot?, nowMillis: Long): Boolean {
@@ -235,11 +257,13 @@ object LiveWeatherSchedule {
         // A status carried forward from a pass when conditions *were* driving the scene has to
         // stop saying so once the last of them expires. Without this the loop could sit on OK or
         // STALE with nothing left to draw -- the same disagreement between the screen and the sky,
-        // arrived at by waiting instead of by switching something off.
-        val status = if (reported.isDrivingTheScene && usable == null) {
-            LiveWeatherStatus.FAILED
-        } else {
-            reported
+        // arrived at by waiting instead of by switching something off. A provider's limit, or its refusal, stays the
+        // reason it gives: only the conditions it was still showing are gone.
+        val status = when {
+            !reported.isDrivingTheScene || usable != null -> reported
+            reported == LiveWeatherStatus.RATE_LIMITED_STALE -> LiveWeatherStatus.RATE_LIMITED
+            reported == LiveWeatherStatus.REFUSED_STALE -> LiveWeatherStatus.REFUSED
+            else -> LiveWeatherStatus.FAILED
         }
         return LiveWeatherDecision(
             status = status,
@@ -254,8 +278,8 @@ object LiveWeatherSchedule {
 /**
  * One pass's answer: what the settings screen is told, and what the renderer is allowed to draw.
  *
- * They travel together so that no caller can apply one without the other -- which is how they came
- * apart in the first place.
+ * They travel together so that no caller can apply one without the other -- applied one at a time,
+ * they come apart.
  */
 data class LiveWeatherDecision(
     val status: LiveWeatherStatus,
@@ -265,13 +289,13 @@ data class LiveWeatherDecision(
      * out**, not because anybody switched anything: Live Weather is on, a snapshot is held, and it
      * is past [LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS].
      *
-     * The renderer eases the sky across this change and snaps it across every other one (item
-     * 135, v5.7F). The distinction is the one `CloudCoverFade` already drew: switching the
+     * The renderer eases the sky across this change and snaps it across every other one. The
+     * distinction is the one `CloudCoverFade` draws: switching the
      * feature off, turning location off or choosing a provider with no key are deliberate acts
      * made with the settings screen in front of the user, and the sky answering at once is the
      * sign that the switch worked. An expiry happens three hours after the last good reading,
      * with nobody looking at a setting -- the same event, for the person watching the wallpaper,
-     * as a forecast changing, and a forecast change has dissolved over nine seconds since v5.5B.
+     * as a forecast changing, and a forecast change dissolves over nine seconds.
      */
     val lapsed: Boolean = false,
 )

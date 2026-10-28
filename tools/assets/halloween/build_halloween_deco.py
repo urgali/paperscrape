@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
-"""The Halloween decorations of the houses and the shops (v5.16): cobwebs and bats, and a jack-o'-lantern by the door.
+"""The Halloween decorations of the houses and the shops: a cobweb in a corner of the roof, and a jack-o'-lantern by the
+door.
 
-The maintainer, 2026-10-21: *«durante halloween, decorazioni case e negozi»*; of the three sets drawn and photographed,
-*«C ragnatele e pipistrelli»*, the bats in the light violet of the photographs that read on a dark wall at night. The
-model is the Christmas decorations of the 5.14 (decision 67): every place one hangs from is one the buildings' generator
-already writes -- the roofline (`BuildingPiece.roofX`), the front door (`BuildingDoor`) -- so none is a number typed in the
-renderer (`HalloweenDecorations` lays them out, `SceneObjectRenderer.drawHalloweenDecorations` draws them). The pieces,
-fixed art and `SCENE_UNITS` (3 px a unit, drawn on the building's own piece units), each trimmed to its content on the
-3x grid:
+The set A1 (`DESIGN_NOTES.md` §12, decisions 83 and 85): no bat, **one small cobweb** in a corner of every roof, in a
+colour the building's walls choose, and a jack-o'-lantern about 1.2 m tall by the door. The model is the Christmas
+decorations (decision 67): every place one hangs from is one the buildings' generator already writes -- the roofline
+(`BuildingPiece.roofX`), the front door (`BuildingDoor`) -- so none is a number typed in the renderer (`HalloweenDecorations` lays them out, `SceneObjectRenderer.drawHalloweenDecorations` draws them). The pieces,
+`SCENE_UNITS` (3 px a unit, drawn on the building's own piece units), each trimmed to its content on the 3x grid:
 
 * ``deco_cobweb`` -- a spider's web in the left corner of a roof: its corner at (0, 0), three threads running along the
-  eave, down the wall and between them, and two arcs sagging between the threads; the renderer mirrors it at the right;
-* ``deco_bat`` -- a paper bat in light violet ([BAT]), hanging by its feet from (0, 0) under the eaves, wings spread;
+  eave, down the wall and between them, and one row of scallops sagging toward the corner between them; the renderer
+  mirrors it at the right. **A greyscale mask** in white, which the renderer tints: light on a dark wall, dark on a light
+  one (`HalloweenDecorations.webTintOn`, decision 85), the one turned into the other over the dusk and the dawn
+  (`HalloweenDecorations.webTintAt`);
 * ``deco_jack_o_lantern`` -- a small carved pumpkin standing on (0, 0), its bottom's middle, by a front door: by day its
-  cuts are the dark of a carved pumpkin;
-* ``deco_jack_o_lantern_light`` -- the candle's light in its cuts, the same cuts in a warm yellow, laid over them at night.
+  cuts are the dark of a carved pumpkin; fixed art;
+* ``deco_jack_o_lantern_light`` -- the candle's light in its cuts, the same cuts in a warm yellow, laid over them at night;
+  fixed art.
 
 **Every band 2 px or more on the BV6600 where a house or a shop stands farthest.** A piece unit of a building is
 `metres x 27 / the family's units` px at the reference line of the BV6600 (2.306 for both houses and for the restaurant,
@@ -23,20 +25,21 @@ twelve built-in streets stands 0.28 deep, at the smallest roll (0.92) 0.812 px a
 farthest place among the houses 0.356 deep, 0.884 px a unit (never under 0.833, `SceneObjectRenderer.placeScaleFloor`);
 the decorations hang on no tower (`HalloweenDecorations.decorates`), so a tower's half as large again
 (`ChristmasDecorations.scaleFor`) does not enter. Every band is drawn [MIN_BAND] units or more: 2 px there and a
-twentieth more -- the bat's two ears are points of its paper, not bands, under it (left so by the maintainer, 2026-10-22). What changed from the drawing first shown: the cobweb's threads are [MIN_BAND] wide, not 0.95 of it (2.46
-units, 1.99 px there), and the jack-o'-lantern's grin starts a band below its eyes, not 0.2 units nearer (the paper
-between them was 2.39 units, 1.94 px).
+twentieth more. So the cobweb's threads are [MIN_BAND] wide, the whole band, and the jack-o'-lantern's grin starts a
+band below its eyes: 0.2 units nearer, the paper between them would be 2.39 units, 1.94 px. The cobweb reaches 6.2 bands
+from its corner with one row of scallops: two rows over that reach would leave holes too small to read at the size it
+is drawn.
 
-It writes, from one run (and, with ``--res``, the four PNGs rendered from the SVGs):
+It writes, from one run (and, with ``--res``, the three PNGs rendered from the SVGs):
 
-* ``sources/svg/deco_cobweb.svg``, ``deco_bat.svg``, ``deco_jack_o_lantern.svg`` and ``deco_jack_o_lantern_light.svg``;
+* ``sources/svg/deco_cobweb.svg``, ``deco_jack_o_lantern.svg`` and ``deco_jack_o_lantern_light.svg``;
 * ``app/.../engine/HalloweenDecorationTable.kt`` -- where each blits from the point it hangs from or stands on, and the
   narrowest band.
 
 ``--check`` writes nothing and fails, naming every stale file, unless every file this writes is what it draws
 (``tests/test_halloween_decorations.py`` makes the same comparison); ``--two-px`` lists every piece of one colour of each
-piece -- the jack-o'-lantern by day and with its light at night --, rendered without antialiasing, that holds no square of
-2 px anywhere at the farthest house.
+piece -- the cobweb tinted light and dark, the jack-o'-lantern by day and with its light at night --, rendered without
+antialiasing, that holds no square of 2 px anywhere at the farthest house.
 
 Usage, from ``tools/assets`` with the venv's interpreter:
 
@@ -57,7 +60,7 @@ HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent
 sys.path.insert(0, str(ASSETS))
 from papercut import Sheet, content_box, cut, ellipse, polyline_band, render_body, svg_document  # noqa: E402
-from paperscrape_assets.raster import render_svg  # noqa: E402
+from paperscrape_assets.raster import render_svg, same_output  # noqa: E402
 
 REPO = ASSETS.parent.parent
 SVG_DIR = ASSETS / "sources" / "svg"
@@ -83,9 +86,13 @@ STEM = "#4E7A3A"
 #: A carved cut by day, and the candle's light in it at night.
 CUT = "#3A1E0E"
 LIGHT = "#FFC94A"
-#: The bat's light violet, the maintainer's of the photographs (2026-10-21): it reads on the walls by day and at night.
-BAT = "#8A5BB8"
-WEB = "#E8E6EE"
+#: The cobweb's paper: a mask, white, which the renderer tints -- [WEB_LIGHT] on a dark wall, [WEB_DARK] on a light one
+#: (`HalloweenDecorations.WEB_LIGHT`, `WEB_DARK`; `tests/test_halloween_decorations.py` holds the two sides together).
+WEB = "#FFFFFF"
+#: Its colour on a dark wall (`DESIGN_NOTES.md` §12, decision 85).
+WEB_LIGHT = "#E8E6EE"
+#: Its colour on a light wall (decision 85): the dark violet `#56516A` multiplied over [WEB_LIGHT], channel by channel.
+WEB_DARK = "#4E4963"
 
 
 def jack_o_lantern():
@@ -114,64 +121,71 @@ def jack_o_lantern():
     return s, light
 
 
-def bat():
-    """A paper bat hanging by its feet from (0, 0), wings spread, its ears pointing down (it hangs): one paper."""
-    s = Sheet()
-    M = MIN_BAND
-    wings = [(-M * 0.55, 0.0), (M * 0.55, 0.0), (M * 0.9, M * 0.9), (M * 2.0, M * 0.4), (M * 3.6, M * 0.2), (M * 3.2, M * 1.4), (M * 2.4, M * 1.2),
-             (M * 1.8, M * 2.0), (M * 1.0, M * 1.5), (M * 0.5, M * 2.4), (0.0, M * 2.1), (-M * 0.5, M * 2.4), (-M * 1.0, M * 1.5),
-             (-M * 1.8, M * 2.0), (-M * 2.4, M * 1.2), (-M * 3.2, M * 1.4), (-M * 3.6, M * 0.2), (-M * 2.0, M * 0.4), (-M * 0.9, M * 0.9)]
-    s.add(cut(wings, "hwbat", 0.06), BAT)
-    s.add(cut([(-M * 0.55, M * 2.0), (-M * 0.15, M * 2.0), (-M * 0.45, M * 2.9)], "hwbe1", 0.03), BAT)
-    s.add(cut([(M * 0.15, M * 2.0), (M * 0.55, M * 2.0), (M * 0.45, M * 2.9)], "hwbe2", 0.03), BAT)
-    return s
-
-
 #: The cobweb: its reach from the corner and how wide its threads are, in units.
-WEB_REACH = MIN_BAND * 7.0
+WEB_REACH = MIN_BAND * 6.2
 WEB_THREAD = MIN_BAND
+#: The row of scallops: at this share of the reach from the corner, each of its two runs between two threads sagging
+#: toward the corner by up to this share at its middle, cut at five points.
+SCALLOP_REACH = 0.9
+SCALLOP_SAG = 0.24
+SCALLOP_POINTS = 5
+
+
+def scallop_points(seg: int) -> list[tuple[float, float]]:
+    """The middle line of the run of scallops between the thread at [seg] x 45 degrees and the next."""
+    rr = WEB_REACH * SCALLOP_REACH
+    pts = []
+    for k in range(SCALLOP_POINTS):
+        a = math.radians(seg * 45.0 + 45.0 * k / (SCALLOP_POINTS - 1))
+        sag = 1.0 - SCALLOP_SAG * math.sin(math.pi * k / (SCALLOP_POINTS - 1))
+        pts.append((rr * sag * math.cos(a), rr * sag * math.sin(a)))
+    return pts
 
 
 def cobweb():
     """A spider's web in the left corner of a roof: its corner at (0, 0), three threads running right (along the eave),
-    down (along the wall) and between, and two arcs sagging between the threads, every thread [WEB_THREAD] wide."""
+    down (along the wall) and between, and one row of scallops sagging toward the corner between them, every thread
+    [WEB_THREAD] wide; one paper, white: a mask the renderer tints."""
     s = Sheet()
     for i, a in enumerate((0.0, 45.0, 90.0)):
         r = math.radians(a)
         s.add(cut(polyline_band([(0.0, 0.0), (WEB_REACH * math.cos(r), WEB_REACH * math.sin(r))], WEB_THREAD), f"hwwr{i}", 0.04), WEB)
-    for j, rr in enumerate((WEB_REACH * 0.48, WEB_REACH * 0.9)):
-        pts = []
-        for k in range(7):
-            a = math.radians(k * 15.0)
-            sag = 0.86 + 0.14 * abs(math.cos(math.radians(k * 15.0 * 4)))  # the arc sags between two threads
-            pts.append((rr * sag * math.cos(a), rr * sag * math.sin(a)))
-        s.add(cut(polyline_band(pts, WEB_THREAD), f"hwwa{j}", 0.04), WEB)
+    for seg in range(2):
+        s.add(cut(polyline_band(scallop_points(seg), WEB_THREAD), f"hwws{seg}", 0.04), WEB)
     return s
 
 
-NAMES = ["deco_cobweb", "deco_bat", "deco_jack_o_lantern", "deco_jack_o_lantern_light"]
+NAMES = ["deco_cobweb", "deco_jack_o_lantern", "deco_jack_o_lantern_light"]
 
 NOTES = {
     "deco_cobweb": "a spider's web in the left corner of a roof, its corner at (0,0); the renderer mirrors it at the right",
-    "deco_bat": "a paper bat in light violet hanging by its feet from (0,0) under the eaves",
     "deco_jack_o_lantern": "a small carved pumpkin standing on (0,0), its bottom's middle, by a front door; its cuts dark by day",
     "deco_jack_o_lantern_light": "the candle's light in the small carved pumpkin's cuts, laid over them at night, in its frame",
 }
+
+
+def comment(name: str) -> str:
+    """The source's header: what the piece is, and that this script generates it; the cobweb's says it is a white mask
+    the renderer tints, the jack-o'-lantern's and its light's that they are fixed art."""
+    if name == "deco_cobweb":
+        return (f"The Halloween decorations (DESIGN_NOTES.md §12, decision 85: one cobweb a roof, no bat): {NOTES[name]}. "
+                "A white mask the renderer tints, light on a dark wall and dark on a light one. Generated by "
+                "tools/assets/halloween/build_halloween_deco.py: edit that, not this.")
+    return (f"The Halloween decorations (DESIGN_NOTES.md §12, decision 83): {NOTES[name]}. Fixed "
+            "art. Generated by tools/assets/halloween/build_halloween_deco.py: edit that, not this.")
 
 
 def build():
     """Everything this writes, as {path: bytes}, and the table's numbers."""
     pumpkin, light = jack_o_lantern()
     out, t = {}, {}
-    for name, sheet, frame in (("deco_cobweb", cobweb(), (-10, -10, 40, 40)), ("deco_bat", bat(), (-20, -10, 40, 30)),
-                               ("deco_jack_o_lantern", pumpkin, (-20, -30, 40, 40)), ("deco_jack_o_lantern_light", light, (-20, -30, 40, 40))):
+    for name, sheet, frame in (("deco_cobweb", cobweb(), (-10, -10, 40, 40)), ("deco_jack_o_lantern", pumpkin, (-20, -30, 40, 40)),
+                               ("deco_jack_o_lantern_light", light, (-20, -30, 40, 40))):
         body = sheet.body()
         box = content_box(body, frame, PX, margin=2)
         fx, fy, fw, fh = frame
         assert fx - 2 < box[0] and fy - 2 < box[1] and box[0] + box[2] < fx + fw + 2 and box[1] + box[3] < fy + fh + 2, (name, box)
-        out[SVG_DIR / f"{name}.svg"] = svg_document(body, box, PX, f"The Halloween decorations (v5.16, the maintainer's «C ragnatele e "
-                                                    f"pipistrelli», 2026-10-21): {NOTES[name]}. Fixed art. Generated by "
-                                                    "tools/assets/halloween/build_halloween_deco.py: edit that, not this.").encode()
+        out[SVG_DIR / f"{name}.svg"] = svg_document(body, box, PX, comment(name)).encode()
         out[RES / f"{name}.png"] = render_body(body, box, PX)
         t[name] = dict(x=box[0], y=box[1], w=box[2], h=box[3])
     out[TABLE] = kotlin_table(t).encode()
@@ -183,27 +197,26 @@ def f(x: float) -> str:
 
 
 def kotlin_table(t) -> str:
-    web, bat_, pumpkin, light = (t[n] for n in NAMES)
+    web, pumpkin, light = (t[n] for n in NAMES)
     return f'''package com.paperscrape.livewallpaper.engine
 
 import com.paperscrape.livewallpaper.R
 
 /**
- * The Halloween decorations of the houses and the shops (v5.16), in the building's piece units: where each piece blits
- * from the point it hangs from or stands on ([HalloweenDecorations] says where those are). **Generated** by
+ * The Halloween decorations of the houses and the shops (one cobweb a roof, no bat), in the building's piece
+ * units: where each piece blits from the point it hangs from or stands on ([HalloweenDecorations] says where those are).
+ * **Generated** by
  * `tools/assets/halloween/build_halloween_deco.py` from the geometry it draws the SVGs with; edit that script, not this
  * file.
  */
 internal object HalloweenDecorationTable {{
-    /** The cobweb in the left corner of a roof, from the corner it hangs in (mirrored at the right corner). */
+    /**
+     * The cobweb in the left corner of a roof, from the corner it hangs in (mirrored in the right corner): a white mask,
+     * tinted as the walls choose ([HalloweenDecorations.webTintAt]; at rest, [HalloweenDecorations.webTintOn]).
+     */
     val WEB_RES = R.drawable.deco_cobweb
     const val WEB_X = {f(web["x"])}
     const val WEB_Y = {f(web["y"])}
-
-    /** The bat, from the point of the roofline it hangs from by its feet. */
-    val BAT_RES = R.drawable.deco_bat
-    const val BAT_X = {f(bat_["x"])}
-    const val BAT_Y = {f(bat_["y"])}
 
     /** The jack-o'-lantern by a front door, from its bottom's middle, where it stands. */
     val PUMPKIN_RES = R.drawable.deco_jack_o_lantern
@@ -227,14 +240,23 @@ def crisp(svg: str) -> Image.Image:
     return Image.open(io.BytesIO(render_svg(svg.replace("<svg ", '<svg shape-rendering="crispEdges" ', 1)).png_bytes)).convert("RGBA")
 
 
+def tinted(image: Image.Image, colour: str) -> Image.Image:
+    """[image] multiplied by [colour], channel by channel, as the renderer's tint draws a mask."""
+    a = np.array(image).astype(np.int64)
+    rgb = np.array([int(colour[i:i + 2], 16) for i in (1, 3, 5)])
+    a[:, :, :3] = (a[:, :, :3] * rgb + 127) // 255
+    return Image.fromarray(a.astype(np.uint8), "RGBA")
+
+
 def renders(out, t) -> dict[str, Image.Image]:
-    """Each piece rendered without antialiasing; the jack-o'-lantern by day and at night, its light laid over it."""
+    """Each piece rendered without antialiasing: the cobweb tinted light and dark, as the walls choose; the jack-o'-lantern
+    by day and at night, its light laid over it."""
     images = {n: crisp(out[SVG_DIR / f"{n}.svg"].decode()) for n in NAMES}
     p, q = t["deco_jack_o_lantern"], t["deco_jack_o_lantern_light"]
     night = images["deco_jack_o_lantern"].copy()
     night.alpha_composite(images["deco_jack_o_lantern_light"], (int(round((q["x"] - p["x"]) * PX)), int(round((q["y"] - p["y"]) * PX))))
-    return {"deco_cobweb": images["deco_cobweb"], "deco_bat": images["deco_bat"], "deco_jack_o_lantern by day": images["deco_jack_o_lantern"],
-            "deco_jack_o_lantern at night": night}
+    return {"deco_cobweb light": tinted(images["deco_cobweb"], WEB_LIGHT), "deco_cobweb dark": tinted(images["deco_cobweb"], WEB_DARK),
+            "deco_jack_o_lantern by day": images["deco_jack_o_lantern"], "deco_jack_o_lantern at night": night}
 
 
 def pieces(mask: np.ndarray) -> list[list[tuple[int, int]]]:
@@ -299,7 +321,7 @@ def main(argv) -> int:
         for line in two_px_report(out, t):
             print(line)
     if check:
-        stale = [p for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        stale = [p for p, data in out.items() if not same_output(p, data)]
         for p in stale:
             print(f"stale: {p.relative_to(REPO)}")
         return 1 if stale else 0

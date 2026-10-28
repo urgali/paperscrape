@@ -31,15 +31,14 @@ import org.junit.Test
  * Reading those two together is the whole method: **who is allowed to disturb whom is the depth
  * order.**
  *
- * ### The regression this caught
+ * ### The stability it also guards
  *
- * The first run of this measurement returned 153 disturbed pixels for a step whose only new figure
- * was the *farthest* on the street -- an apparent depth-order violation. It was not one. v4.1
- * staggered each pedestrian's walk frame by its index **in the depth-sorted list**, so inserting
- * one figure renumbered everybody behind it and stepped their legs to a different frame. Moving
- * the People slider by one notch re-animated the survivors, which is precisely the stability
- * `CandidateThreshold` exists to provide and which no test over the population could see. The
- * stagger now comes from a figure's own address; `aFartherFigureDisturbsNothing...` is the guard.
+ * A walk-frame stagger keyed to a pedestrian's index **in the depth-sorted list** would renumber
+ * everybody behind an inserted figure and step their legs to a different frame: one notch of the
+ * People slider would re-animate the survivors, which is precisely the stability
+ * `CandidateThreshold` exists to provide and which no test over the population can see. Here it
+ * shows as disturbed pixels on a step whose only new figure is the *farthest* on the street. The
+ * stagger comes from a figure's own address; `aFartherFigureDisturbsNothing...` is the guard.
  */
 class PeopleOcclusionTest {
 
@@ -123,8 +122,8 @@ class PeopleOcclusionTest {
      * Swept over every theme and every density step, and applied wherever the step's arrivals are
      * **all** farther than everybody already on the street: nothing they draw may reach a pixel an
      * existing figure had painted. On the shipped catalogue that binds on `winter` between 40% and
-     * 80%, where one figure arrives at depth 0.7862 behind five standing at 0.8075 and nearer --
-     * the case v4.1 failed with 153 disturbed pixels.
+     * 80%, where one figure arrives at depth 0.7862 behind five standing at 0.8075 and nearer -- a
+     * stagger keyed to the list index fails it there with 153 disturbed pixels.
      */
     @Test
     fun aFartherFigureDisturbsNothingAlreadyOnTheStreet() {
@@ -158,8 +157,8 @@ class PeopleOcclusionTest {
     /**
      * The members of one group really do overlap on the screen, and are ordered among themselves.
      *
-     * Without this the two tests above would be about groups only, and the brief for this release
-     * asks for the same guarantee *inside* a group -- which is where it is hardest, because a
+     * Without this the two tests above would be about groups only, and the same guarantee
+     * holds *inside* a group -- which is where it is hardest, because a
      * group's members stand within a fraction of a tile of each other and differ in depth only by
      * the row jitter. `city` at 20% is one group of three and nothing else on the street, so the
      * painted pixels are exactly those three figures: if they form fewer than three separate
@@ -192,7 +191,7 @@ class PeopleOcclusionTest {
     // ------------------------------------------------------------------- people behind traffic
 
     /**
-     * **A pedestrian never paints over a car** (v4.6, P1).
+     * **A pedestrian never paints over a car.**
      *
      * Same method as the two tests above, one layer up: the traffic is the thing already on the
      * street and the people are what arrive, so any pixel the traffic had painted that the people
@@ -200,10 +199,10 @@ class PeopleOcclusionTest {
      *
      * The geometry says it cannot be allowed. Every pavement row, jitter included, is above 0.819
      * of screen height and every lane is at 0.834 or 0.862 — `PeopleTrafficDepthTest` proves both
-     * halves — so a walking figure is always the farther object. Until v4.6 `drawPeople` ran after
-     * the vehicle loop anyway, and the deepest figure the generator produces sits 24 px of a
-     * 2400 px screen below a far-lane car's roof: whenever the two coincided in x, a pedestrian's
-     * shoes were painted across a car.
+     * halves — so a walking figure is always the farther object, and `drawPeople` runs before the
+     * vehicle loop. The deepest figure the generator produces sits 24 px of a 2400 px screen below
+     * a far-lane car's roof: drawn after the cars, a pedestrian's shoes would be painted across a
+     * car whenever the two coincide in x.
      *
      * The scene is warmed up so the cars have actually entered the frame — without that the road is
      * empty and the test passes on nothing, which is the trap `TrafficGoldenTest` exists to record.

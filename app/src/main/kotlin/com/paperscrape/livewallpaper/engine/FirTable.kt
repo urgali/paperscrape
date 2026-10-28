@@ -1,7 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * The Christmas fir (v5.14), in units from the foot of its trunk: where its three pieces blit, where its lights
+ * The Christmas fir, in units from the foot of its trunk: where its three pieces blit, where its lights
  * hang and its presents stand, and where the gallery card hangs its baubles. **Generated** by
  * `tools/assets/fir/build_fir.py` from the same geometry it draws the SVGs with; edit that script, not this file.
  * The fir stands 72 units wide and 126 tall, star included.

@@ -21,7 +21,7 @@ import org.junit.Test
  *  - the stars, by `PaperRenderer.starCountFor`, which the renderer and the settings screen both ask
  *    (none below 1/70, so *Show Stars* reads off there too); the rainbow and the theme's own rain, whose
  *    rule sits inside `PaperRenderer`, by its source: the rainbow returns when its visibility, which
- *    multiplies the opacity, is 0. The renderer cannot be built on the JVM (`ROADMAP.md` B5);
+ *    multiplies the opacity, is 0. The renderer cannot be built on the JVM;
  *  - the distant houses on the mountains (v5.11), switched on at 0 %: no place of any mountain stands
  *    one, the renderer returns before drawing, and the gallery card stands none either.
  *
@@ -116,10 +116,13 @@ class NothingAtZeroTest {
             "the rainbow's visibility must still multiply its opacity, and return at 0",
             rainbow.contains("* rainbow.opacity.coerceIn(0f, 1f)") && rainbow.contains("if (visibility <= 0f) return"),
         )
+        // Since v5.17 what falls is one pure rule, `PrecipitationLook`, and the renderer returns when it says nothing does.
         val precipitation = renderer.substring(renderer.indexOf("private fun drawPrecipitation("))
+        val look = source("engine/PrecipitationLook.kt")
         assertTrue(
             "the theme's own rain and snow must still return at 0 intensity",
-            precipitation.contains("if (!precip.visible || precip.intensity <= 0f) return"),
+            look.contains("if (!precip.visible || precip.intensity <= 0f) return NONE") &&
+                precipitation.contains("if (kind == PrecipitationLook.NONE) return"),
         )
     }
 

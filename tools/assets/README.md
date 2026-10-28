@@ -38,7 +38,7 @@ python3 -m paperscrape_assets probe  # must report matches_expected: true
 ```
 
 The toolchain those pins name: **resvg_py 0.4.0** (the rasteriser), **Pillow 13.0.0** and **numpy 2.4.4**, on the
-system's Python (3.14.8 on the machine of the 5.16). Add `-B` to every `python3` command of this file, the `probe`
+system's Python (3.14.8). Add `-B` to every `python3` command of this file, the `probe`
 above included (`python3 -B …`), so no `__pycache__` is left in the tree.
 
 There is no installed `paperscrape-assets` command: every command below is
@@ -87,7 +87,9 @@ python3 -m unittest discover -s tests
 ```
 requirements.txt          exact pins; ranges would let antialiasing drift
 paperscrape_assets/
-  raster.py               rasterisation and the toolchain probe
+  raster.py               rasterisation, the toolchain probe, and encode_png, which writes every PNG
+                          the tools write: rows unfiltered and zlib at 9, or Pillow's encoder where
+                          that is smaller (always for an RGB image with a colour marked transparent)
   callsites.py            resolves sprite blit call sites in the Kotlin sources
   normalize.py            the padding and grid normalisation rule and its plan
   inventory.py            measurement of the shipped PNGs (read-only)
@@ -103,13 +105,13 @@ reports/                  measurements, committed as evidence
 tests/                    tests that the fidelity criterion can fail
 build_occluder_table.py   writes engine/SpriteOccluderTable.kt (above)
 buildings/                the neighbourhood generator and its budget report
-fir/                      the Christmas fir's generator (v5.14)
-sleigh/                   Santa's sleigh and reindeer's generator (v5.15)
-moon/                     the Halloween moon's generator (v5.15) and its laughing face's (v5.16)
-notification/             the update notification's small icon's generator (v5.15)
-horseman/                 the Headless Horseman's generator (v5.16)
-scarecrow/                the Halloween scarecrow's generator (v5.16)
-halloween/                the Halloween decorations' generator: cobweb, bat, jack-o'-lantern (v5.16)
+fir/                      the Christmas fir's generator
+sleigh/                   Santa's sleigh and reindeer's generator
+moon/                     the Halloween moon's generator and its laughing face's
+notification/             the update notification's small icon's generator
+horseman/                 the Headless Horseman's generator
+scarecrow/                the Halloween scarecrow's generator
+halloween/                the Halloween decorations' generator: cobweb, jack-o'-lantern
 papercut.py               the paper-cutout geometry the sleigh's, the moon's and the Halloween generators share (cut edges, under-papers, the 3-px grid)
 concepts/                 the drawing scripts of the people, the lake and the sky, beside their proposals
 ```
@@ -122,7 +124,7 @@ notification's icon into `drawable`):
   (gitignored); `--res` copies them into the runtime directory and writes
   `engine/NeighbourhoodTable.kt`, `--registry` rewrites their entries in `sources/sprites.json`,
   and `--budget` writes `buildings/budget.json` and `budget.md`. `validate` checks the budget
-  against the shipped PNGs, so neither file is edited by hand. Since v5.14 the table also carries
+  against the shipped PNGs, so neither file is edited by hand. The table also carries
   where the Christmas decorations hang -- each top piece's roofline, its highest point, each piece's
   front door with the outline its card was cut to -- measured off what the generator draws
   (`core.roofline_and_top`, `vocab.door` / `glass_door`): a redraw moves them with it.
@@ -150,37 +152,44 @@ notification's icon into `drawable`):
   open, the moon's own nose -- as `moon_jack_o_lantern_laugh` (a mask) and `moon_jack_o_lantern_laugh_light` (fixed art,
   its orange rim the moon's own, trimmed to the face); it writes no table, and prints where the light blits from the moon's
   centre, `PaperRenderer.HALLOWEEN_LAUGH_LIGHT_ORIGIN_X`/`_Y`. Every cut and the paper between two cuts 11 px of the 240 or
-  more (2 px on the gallery card), and no cut leaving a piece of its own: the arches' ends are cut square (the drawing first
-  shown, in v5.16A, ended an arch in a point that left a cut of 1 px apart). `--check`; `tests/test_jack_moon_laugh.py` measures all of it,
+  more (2 px on the gallery card), and no cut leaving a piece of its own: the arches' ends are cut square (an arch ended in a
+  point leaves a cut of 1 px apart). `--check`; `tests/test_jack_moon_laugh.py` measures all of it,
   the rim and the light's origin against `PaperRenderer`'s.
 - **The Headless Horseman.** `python3 horseman/build_horseman.py --res` draws the horse without its legs and its legs, each
-  in the four poses of the gallop, the rider with the pumpkin he holds up, and his cape (`horseman_horse_0..3`,
-  `horseman_legs_0..3`, `horseman_rider`, `horseman_cape`, fixed art, `PART_LOCAL`), and writes `engine/HorsemanTable.kt`
-  (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders and pumpkin, the group's extent,
-  the rider's height and the size, and `HORSEMAN_BAND_UNITS`, the narrowest band).
+  in the four poses of the gallop, the rider in three pieces -- his body, the near arm that turns at the shoulder to throw,
+  and the carved pumpkin he holds up and throws --, and his cape (`horseman_horse_0..3`, `horseman_legs_0..3`,
+  `horseman_rider_body`, `horseman_rider_arm`, `horseman_rider_pumpkin`, `horseman_cape`, fixed art, `PART_LOCAL`), and
+  writes `engine/HorsemanTable.kt` (where each piece blits, the seat and the bit in each pose, the rider's hand, shoulders,
+  arm's pivot and pumpkin, the group's extent, the rider's height and the size, and `HORSEMAN_BAND_UNITS`, the narrowest
+  band). The near shoulder is a round of coat over the collar's end, drawn for the throw: without it the turned arm
+  uncovered slivers of the collar and the cape under 2 px.
   **Sized as Santa is**: the rider, from the top of his collar to the bottom of his boot, 1.3 pedestrians (about 49 px on
   the BV6600, 1.235 px a unit), so every band is drawn `round(2 / px a unit x 1.25, 2)` = 2.02 units or more and the reins
   2.5 px or more. `--check`; `--two-px` composes the group crisp in `HeadlessHorsemanDrawer`'s order -- the cape swung,
-  the horse and the rider bobbing against each other, the reins included -- at the moments of a stride and lists every
-  piece under 2 px; `--rider-to-pedestrian R --out DIR` (or `--group-to-pedestrian G`) writes the whole set drawn for
+  the horse and the rider bobbing against each other, the reins included, the arm turned to every degree of the throw read
+  off `HeadlessHorsemanEffect` -- at the moments of a stride and lists every piece under 2 px; `--rider-to-pedestrian R --out DIR` (or `--group-to-pedestrian G`) writes the whole set drawn for
   another size, its bands thickened for it, with its numbers and its 2 px report, into DIR and nothing into the tree.
-  `tests/test_horseman.py` reads the order and the motion off the drawer and holds every piece of every colour 2 px at
-  the moments of a stride that show every pose, bob and swing at its ends, the reins, the points the renderer hangs things on, the pumpkin's face and the rider's height.
+  `tests/test_horseman.py` reads the order and the motion off the drawer and the throw's angles off the flight, and holds
+  every piece of every colour 2 px at the moments of a stride that show every pose, bob and swing at its ends, with the arm
+  at every degree of the throw (a turned pumpkin's papers to a disc 2 px across), the reins, the points the renderer hangs
+  things on, the pumpkin's face, the pumpkin alone turned as it falls, and the rider's height.
 - **The Halloween scarecrow.** `python3 scarecrow/build_scarecrow.py --res` draws `scarecrow` (on its pole, the pole's foot
   its bottom centre, `CONTENT_BOTTOM_CENTRE` as the snowman's) and `scarecrow_light` (the candle in the face's cuts, laid
   over it at night), and writes `engine/ScarecrowTable.kt` (where both blit from the pole's foot, the drawing's height in
   units, the 2.4 m it reads as, and `SCARECROW_BAND_UNITS`). Every band 4.5 units, 2.2 px on the BV6600 where a scarecrow stands
   farthest (a snowman's place, 0.45 deep, at the smallest size roll: 27.4 px tall, 0.481 px a unit). `--check`,
   `--two-px` (by day and at night); `tests/test_scarecrow.py` reads that place off the Kotlin sources.
-- **The Halloween decorations.** `python3 halloween/build_halloween_deco.py --res` draws the set C of the houses and the
-  shops -- `deco_cobweb` (a roof's left corner; the renderer mirrors it at the right), `deco_bat` (light violet `#8A5BB8`),
-  `deco_jack_o_lantern` and `deco_jack_o_lantern_light` (its candle at night), fixed art on the buildings' piece units --
-  and writes `engine/HalloweenDecorationTable.kt` (where each blits from the point it hangs from or stands on, and
-  `DECORATION_BAND_UNITS`). Every band 2.59 units, 2.1 px on the BV6600 at the farthest house of the built-in streets (0.28 deep, the
-  smallest size roll: 0.812 px a piece unit; the farthest of the places among the houses draws at 0.884 px a piece unit, and the decorations hang on no
-  tower); the bat's two ears, points of its one paper, are narrower. `--check`, `--two-px`;
-  `tests/test_halloween_decorations.py` reads that house off the Kotlin sources and holds the cobweb's threads' width,
-  which a square test cannot see across the diagonal.
+- **The Halloween decorations.** `python3 halloween/build_halloween_deco.py --res` draws the decorations of the houses and
+  the shops on the buildings' piece units -- `deco_cobweb` (a roof's left corner, one a building; the renderer
+  mirrors it at the right), a white mask the renderer tints light on a dark wall and dark on a light one, the one turned
+  into the other over the dusk and the dawn (`HalloweenDecorations.webTintOn`, `webTintAt`); `deco_jack_o_lantern` and `deco_jack_o_lantern_light` (its candle at night), fixed
+  art -- and writes `engine/HalloweenDecorationTable.kt` (where each blits from the point it hangs from
+  or stands on, and `DECORATION_BAND_UNITS`). Every band 2.59 units, 2.1 px on the BV6600 at the farthest house of the
+  built-in streets (0.28 deep, the smallest size roll: 0.812 px a piece unit; the farthest of the places among the houses
+  draws at 0.884 px a piece unit, and the decorations hang on no tower). `--check`, `--two-px` (the cobweb in both of its
+  tints, the jack-o'-lantern by day and at night); `tests/test_halloween_decorations.py` reads that house off the Kotlin
+  sources, holds the cobweb's threads' width, which a square test cannot see across the diagonal, and its two tints against
+  the renderer's.
 - **The update notification's small icon.** `python3 notification/build_glyph.py` writes `res/drawable/ic_stat_update.xml`,
   a vector drawable -- not a PNG, so it has no entry in `sources/sprites.json` -- with every gap and band 2 px or more at
   17 and 24 dp on the BV6600 (density 2); `--check`, `--preview DIR`, `tests/test_glyph.py`.
@@ -193,8 +202,7 @@ notification's icon into `drawable`):
 `concepts/people/`, `concepts/skywater/` and `concepts/rainbird/` hold the scripts that drew the
 people; the dolphin, the sailboat and the cloud; and the bird, the umbrella and the wave, each
 beside the proposals it drew. An SVG in `sources/svg/` that one of them drew names it in its
-opening comment. The sun-and-moon proposals that stood in `concepts/a/`, `b/` and `c/` were
-removed in v5.10 and remain in the repository's git history.
+opening comment.
 
 ## The registry covers every sprite, and says where each one comes from
 
@@ -294,7 +302,7 @@ does with it, and it disagreed with the call sites twice. It declared
 `star_sparkle` `CANVAS_PIXELS`, which would draw the 180px sparkle three times too
 large; the registry keeps `SCENE_UNITS`, because a *convention* is a fact about the
 call site and `PaperRenderer.drawStars` is where it lives (the entry's `notes` say
-so). It declared `santa_sleigh_scene` (the sleigh until v5.15) `SCENE_UNITS` where the call site then said
+so). It declared `santa_sleigh_scene`, a sleigh that no longer ships, `SCENE_UNITS` where the call site then said
 `CANVAS_PIXELS`, and there the manifest was right — the sprite had been redrawn on
 the authoring grid — so the call site was changed to agree with it.
 
@@ -407,21 +415,21 @@ byte budget — where CI will actually run it.
 ## Proposal names
 
 The concepts under `concepts/` and the drawings they became carry the names they were chosen
-under. Until v5.9 those names were Italian, and older commits use them; the tooling and the
-code's comments use the English ones. The same drawing, under both names:
+under. The tooling and the code's comments use the English names; older commits use the Italian
+ones. The same drawing, under both names:
 
-| English (since v5.9) | Before v5.9 | What it is |
+| English | Italian, in older commits | What it is |
 |---|---|---|
-| Broad Oak | «Quercia larga» | the tree, v4.21 |
-| Scissors | «Forbici» | the sun, moon and star sprites, concept B, v4.23 |
-| Relief | «Rilievo» | the people (v4.25) and the boats and dolphins (v4.26), concept B |
-| Mirror | «Specchio» | the lake as a mirror of the sky, S1, v4.26 |
-| Puff | «Batuffolo» | the cloud, C1, v4.26 |
-| Dove | «Colomba» | the bird of v4.26, concept A |
-| Swallow | «Rondine» | the bird since v4.28, B1 |
-| Tube | «Tubo» | the storm wave, WA3, v4.28 |
-| Coconut | «Cocco» | the palm, concept A, v5.1 |
-| Cut-out | «Ritaglio» | the vehicles, D1, v5.6 |
+| Broad Oak | «Quercia larga» | the tree |
+| Scissors | «Forbici» | the sun, moon and star sprites, concept B |
+| Relief | «Rilievo» | the people and the boats and dolphins, concept B |
+| Mirror | «Specchio» | the lake as a mirror of the sky, S1 |
+| Puff | «Batuffolo» | the cloud, C1 |
+| Dove | «Colomba» | a bird that no longer ships, concept A |
+| Swallow | «Rondine» | the bird, B1 |
+| Tube | «Tubo» | the storm wave, WA3 |
+| Coconut | «Cocco» | the palm, concept A |
+| Cut-out | «Ritaglio» | the vehicles, D1 |
 | stencil, relief, doll, relief_eyes | `stampino`, `rilievo`, `bambola`, `rilievo_occhi` | the people concepts' folders and styles |
 | silhouette, relief, openwork | `sagoma`, `rilievo`, `agiorno` | the sky-and-water concepts' folders and styles |
 

@@ -7,10 +7,8 @@ import com.paperscrape.livewallpaper.R
  *
  * ### Why there are three
  *
- * v4.18 shipped one saloon that had been bent five times to satisfy criteria nobody derived, and
- * the v4.19 concept pass drew three replacements from a blank sheet. The maintainer kept all
- * three: the road reads better with variety than with one model repeated, and a plain car now
- * picks its body from this enum.
+ * The road reads better with variety than with one model repeated, so a plain car picks its body
+ * from this enum.
  *
  * ### What they share, and why that is the point
  *
@@ -28,12 +26,11 @@ import com.paperscrape.livewallpaper.R
  * Ground contact is [SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS] for all of them and the lamps are
  * the *same four sprites* on every body -- see [lampFrontXUnits].
  *
- * ### v5.6F: three cards, and the pane stops being the sprite
+ * ### Three cards, and the pane is not the sprite
  *
- * «Cut-out» builds a car the way the reference photograph does: a sheet of glass **behind** a
+ * A car is a cut-out, built the way the reference photograph does: a sheet of glass **behind** a
  * sheet of body paper with the panes cut out of it, and two whole discs glued **in front**. Two
- * consequences reach this file, and both are declarations that used to be one number and are now
- * two:
+ * consequences reach this file:
  *
  *  - **There are no wheel arches.** The disc is a complete circle lying on the paper, 46 % of it
  *    below the shell's floor, so nothing is cut away over a wheel and there is no air to keep
@@ -44,9 +41,7 @@ import com.paperscrape.livewallpaper.R
  *    another half unit of padding: `car_window_saloon` is 61 units wide for a 59-unit pane.
  *    [glassSpriteXUnits] is therefore where the sprite is *blitted* and [paneXUnits] /
  *    [paneWidthUnits] are the hole an occupant is actually seen through -- which is what every
- *    pillar-light and fill criterion has to measure against. The two were the same number until
- *    v5.5, and `VehiclePedestrianScaleTest` used to assert as much in a method called
- *    *"each pane is its own sprite, and the sprite is the pane"*.
+ *    pillar-light and fill criterion has to measure against.
  */
 internal enum class CarShell(
     val bodyRes: Int,
@@ -56,7 +51,7 @@ internal enum class CarShell(
     val bodyYUnits: Float,
     /** Roof to wheel contact. Drives this body's metres through [SceneSpace.CAR_UNIT_METRES]. */
     val unitsTall: Float,
-    /** Nose to tail of the painted shell, the dimension §2 of the v4.19 brief measures. */
+    /** Nose to tail of the painted shell, the dimension two cars' lengths are compared by. */
     val lengthUnits: Float,
     /** Blit origin of `car_window_*`: its SVG viewBox minimum, **not** the pane's own edge. */
     val glassSpriteXUnits: Float,
@@ -64,9 +59,9 @@ internal enum class CarShell(
      * The cabin hole cut in the body paper -- left edge and width, in local units.
      *
      * The estate's third window sits over the load bay and is **not** in this width: it is not
-     * cabin glazing, and counting it would flatter the pillar light and flatten the fill. That
-     * exclusion used to live in the two test files as `ESTATE_CABIN_PANE_WIDTH_UNITS`, which is a
-     * fact about the drawing kept in the things that measure it; it is declared here now.
+     * cabin glazing, and counting it would flatter the pillar light and flatten the fill. The
+     * exclusion is a fact about the drawing, so it is declared here and not in the tests that
+     * measure it.
      */
     val paneXUnits: Float,
     val paneWidthUnits: Float,
@@ -81,14 +76,12 @@ internal enum class CarShell(
      * bands the lower glass and shortens the pane it leaves: the same pair, two very different
      * cabins.
      *
-     * The percentages below were measured on the v4.19 cabins, which were narrower than
-     * «Cut-out»'s: the saloon's pane went from 59 units of sprite to a 59-unit hole with a unit
-     * of sheet behind each edge, and the compact's from 62 to 68. The offset is kept because the
-     * asymmetry it corrects is still there -- the police livery still bands the lower glass of the
-     * saloon and of no other body -- and because changing it would move the driver of every police
-     * car for a reason nobody measured.
+     * The percentages below are of narrower cabins than the cut-out's and are not re-measured on
+     * today's. The offset stays because the asymmetry it corrects is there -- the police livery
+     * bands the lower glass of the saloon and of no other body -- and because changing it would
+     * move the driver of every police car without a measurement that asks for it.
      *
-     * Derived rather than tuned, and **still load-bearing after the seat pitch was shortened**:
+     * Derived rather than tuned, and **load-bearing at the shorter seat pitch**:
      * at the 21.5-unit pitch the police saloon measures 8.0% with no offset and 18.0% with this
      * one, while the plain saloon reads 22.0% and 18.0% -- so the shift costs the body that does
      * not need it four points it has to spare and gives the body that does the ten it does not.
@@ -104,9 +97,9 @@ internal enum class CarShell(
     /**
      * Where the two shared lamp lenses land. Each body bakes its own housing a shade larger, and
      * `car_lamp_front`/`car_lamp_rear` are blitted into it -- one pair of sprites for three
-     * bodies and the fire engine, which is why replacing v4.18's two full-car-width overlays
-     * (282x18 px each, almost entirely transparent) with four small lenses paid for most of the
-     * memory the three bodies cost. See `BACKLOG_v4_19.md` item 7.
+     * bodies and the fire engine. Two full-car-width overlays in their place
+     * (282x18 px each, almost entirely transparent) would cost most of the memory the three
+     * bodies cost.
      */
     val lampFrontXUnits: Float,
     val lampFrontYUnits: Float,
@@ -116,9 +109,8 @@ internal enum class CarShell(
     /**
      * A — the Compact: 92 units, the shortest, cab-forward with a hatch tail.
      *
-     * It was "the shortest and the tallest" until v5.6F, and it is not any more: «Cut-out» is a
-     * low slab and all three bodies stand 53 units, roof -16 to the road at 37. The three heights
-     * that used to differ -- 57, 56, 57.8 -- were a difference nothing measured and nothing saw.
+     * It is not the tallest: the cut-out is a low slab and all three bodies stand 53 units, roof
+     * -16 to the road at 37.
      */
     COMPACT(
         bodyRes = R.drawable.car_body_compact, glassRes = R.drawable.car_window_compact,
@@ -144,11 +136,10 @@ internal enum class CarShell(
     /**
      * C — the Estate: 124 units, and the length is the requirement rather than a side effect.
      *
-     * The v4.19 concept pass drew it the same 108 units as the saloon, so the estate was not
-     * visibly the longer car it is supposed to be. §2 of the brief asked for the extra length in
-     * front **and** behind: the nose went -58 -> -66 and the tail 50 -> 58, which is 124 units
-     * against the saloon's 108 -- **14.81% longer**; `VehiclePedestrianScaleTest` asserts the
-     * declared lengths keep it at least 10 % longer.
+     * At the saloon's 108 units the estate would not be visibly the longer car it is supposed to
+     * be. The extra length is in front **and** behind, eight units each: 124 units against the
+     * saloon's 108 -- **14.81% longer**; `VehiclePedestrianScaleTest` asserts the declared lengths
+     * keep it at least 10 % longer.
      *
      * Its glass sprite spans three panes; [paneWidthUnits] spans **two**. The cabin runs
      * -30..28 and seats both occupants; the load bay's own window runs 33..57 and is not cabin
@@ -178,25 +169,22 @@ internal enum class CarShell(
          *
          * A car must not change model while it crosses the screen, while the home screen is
          * swiped, or when another car enters or leaves the frame. The way to fail that is to
-         * index a rotation by position in a list the visibility pass rebuilds -- which is exactly
-         * how v4.17's falling leaves picked their colour (`i % visibleCount` over a per-frame
-         * filter) and exactly what must not be repeated. So the body comes from
+         * index a rotation by position in a list the visibility pass rebuilds (`i % visibleCount`
+         * over a per-frame filter changes as the filter does). So the body comes from
          * [CarObject.laneYFraction] and [CarObject.startDelaySeconds], the two fields that are
          * fixed when the candidate is generated and never touched again, and `CarRuntime`
          * resolves it **once**, at construction, so nothing per-frame can reach it at all.
          *
-         * ### Why v4.19's hash was replaced by a table, and what the arithmetic actually allows
+         * ### Why a table, and what the arithmetic allows
          *
-         * v4.19 mixed those two fields through a 32-bit avalanche and took the result modulo
-         * three, on the reasoning that a plain multiply-and-modulo would deal the bodies out as a
-         * strict A/B/C cycle down a lane's queue. The reasoning was sound and the result was not:
-         * **the two fields carry exactly ten distinct values between them**, and a hash cannot
-         * make ten items land three-three-and-a-bit. A lane is one of two constants and a start
-         * delay is one of [SceneObjectCatalog.CAR_SLOTS_PER_LANE] points on an arithmetic
-         * progression, both fixed for every theme the app ships, so the hash was not sampling a
-         * distribution -- it was dealing one fixed hand, and it dealt
-         * **five saloons, three estates and two compacts**. Measured on the shipped catalogue:
-         * 43 / 26 / 16 over 85 civilian cars, which is 51 / 31 / 19, the same five-three-two.
+         * A plain multiply-and-modulo would deal the bodies out as a strict A/B/C cycle down a
+         * lane's queue, and a hash does no better: **the two fields carry exactly ten distinct
+         * values between them**, and a hash cannot make ten items land three-three-and-a-bit. A
+         * lane is one of two constants and a start delay is one of
+         * [SceneObjectCatalog.CAR_SLOTS_PER_LANE] points on an arithmetic progression, both fixed
+         * for every theme the app ships, so a hash does not sample a distribution -- it deals one
+         * fixed hand (a 32-bit avalanche modulo three deals **five saloons, three estates and two
+         * compacts**).
          *
          * So the choice is a **table**, because with ten slots the distribution is not a matter of
          * mixing quality but of arithmetic: 4 / 3 / 3 is the most even deal that exists, and the
@@ -214,7 +202,7 @@ internal enum class CarShell(
          * ### Why the order inside the table is not a cycle
          *
          * A balanced deal laid out as A/B/C repeating would be balanced and would read as a
-         * pattern, which is what v4.19 was avoiding. [DEAL] is ordered so that **no lane repeats a
+         * pattern. [DEAL] is ordered so that **no lane repeats a
          * body in consecutive queue positions**, **each lane carries all three bodies**, and **the
          * two lanes never hold the same body at the same queue position**. Those three properties
          * are asserted in `VehicleShellRotationTest` rather than trusted to the eye.

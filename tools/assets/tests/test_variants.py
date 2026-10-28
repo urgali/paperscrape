@@ -165,7 +165,7 @@ class VariantAgainstBytesTest(unittest.TestCase):
 #:
 #:  - `head_window`: the winter window busts were **retired**. Indoors the season index was always
 #:    0 -- the hat belongs to the street, not to the room behind the pane -- so twelve recolours
-#:    shipped that no draw path could select (`BACKLOG_v4_25.md` item 57, closed in v4.30);
+#:    shipped that no draw path could select;
 #:  - `_mh` on the boy: in winter what he has on his head is his own coat's hood, drawn in the
 #:    coat's paint, so it belongs to the shirt region and he has no head region at all;
 #:  - `_mb` on the woman and the girl: in summer they have no lower garment -- their legs are

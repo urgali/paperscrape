@@ -94,8 +94,8 @@ class ShippedCoverageTest(unittest.TestCase):
         # v4.19 added the one lawful exception, and it is a *declaration* rather than a
         # loosening. Four adult vehicle busts shipped a base drawing that was
         # pixel-identical to one of its own tone copies and that no draw path could
-        # reach -- 297 792 B of the decoded-sprite budget spent on duplicates (item 7 of
-        # BACKLOG_v4_19.md). Deleting them is only safe because the base's pixels
+        # reach -- 297 792 B of the decoded-sprite budget spent on duplicates. Deleting
+        # them is only safe because the base's pixels
         # survive under another name, so the registry has to say which name that is:
         # `retiredBases` maps the gone base to its heir, the heir must itself ship, and
         # the generator regenerates the other tones from the heir instead.

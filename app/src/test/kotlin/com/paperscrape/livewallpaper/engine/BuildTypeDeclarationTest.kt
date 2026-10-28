@@ -8,35 +8,26 @@ import org.junit.Test
 /**
  * **The build types this project declares, and what keeps the fourth one from becoming shippable.**
  *
- * `BACKLOG_v4_26.md` item 66: the `perf` build type — a release-like build, signed with the
- * committed debug keystore, that the item-32 CPU protocol is measured on — was rebuilt by hand
- * every session that needed it and deleted again afterwards, and in v4.25 the deletion did not
- * happen. Four lines of build configuration reached the delivery ZIP and the published tag. The
- * maintainer decided in v4.27 that it is committed instead, on the grounds that a rule enforced by
- * remembering fails on the session that forgets, and that two sessions measuring the same thing
- * should be measuring the same binary.
+ * The `perf` build type — a release-like build, signed with the committed debug keystore, that the
+ * CPU protocol is measured on — is committed: a rule to build it by hand and delete it afterwards
+ * fails on the session that forgets, and two sessions measuring the same thing should be measuring
+ * the same binary.
  *
- * **This file is the other half of that decision.** Committing it is only safe if it cannot quietly
- * turn into something a user could install, and if nothing in CI ever builds it. Both are checked
- * here rather than trusted:
+ * **Committing it is only safe if it cannot quietly turn into something a user could install, and if
+ * nothing in CI ever builds it.** Both are checked here rather than trusted:
  *
  * - the declared set of build types is pinned, so a fifth one cannot appear unnoticed;
  * - `perf` is pinned to the debug signing config and the `.debug` application id suffix, so it can
  *   never be signed with the release key nor install over a real installation;
  * - no workflow builds it, and the release workflow builds `assembleRelease`.
  *
- * The argument against committing it, recorded in item 66, was that `initWith(release)` plus a debug
- * signing config is a build that looks like a release and is not one. That argument is answered by
- * the last two assertions and not by this comment.
+ * `initWith(release)` plus a debug signing config is a build that looks like a release and is not
+ * one; what keeps it from ever being one is the last two assertions, not this comment.
  *
- * ### The limitation this class had, and why it is gone
- *
- * **What this class reads — `app/build.gradle.kts` and the workflow files — was invisible to
- * Gradle's up-to-date check for `testDebugUnitTest`**: the task's inputs were the compiled classes,
- * and editing a build script does not change them. Three mutations applied while writing it
- * appeared to be caught by nothing, because the task reported `UP-TO-DATE` without executing a line
- * of this file. v5.3 declared both as inputs of every `Test` task (the bottom of
- * `app/build.gradle.kts`), so an edit to either re-runs this class.
+ * **What this class reads — `app/build.gradle.kts` and the workflow files — is declared as an input
+ * of every `Test` task** at the bottom of `app/build.gradle.kts`: the task's other inputs are the
+ * compiled classes, which an edit to a build script does not change, so without that declaration
+ * `testDebugUnitTest` would report `UP-TO-DATE` without executing a line of this file.
  */
 class BuildTypeDeclarationTest {
 
@@ -61,7 +52,7 @@ class BuildTypeDeclarationTest {
     fun `the project declares exactly release, debug and perf`() {
         assertEquals(
             "a build type has appeared or been renamed. Every one of them is something a build can " +
-                "produce, so adding one is a decision: record it in the backlog and in this test, or " +
+                "produce, so adding one is a decision: make it in this test on purpose, or " +
                 "remove it",
             listOf("release", "debug", "perf"),
             declaredBuildTypes(),
@@ -73,7 +64,7 @@ class BuildTypeDeclarationTest {
         val block = buildFile.substringAfter("""create("perf") {""").substringBefore("\n        }")
         assertTrue(
             "perf no longer starts from release, so it is no longer the release-like build the " +
-                "item-32 protocol is measured on and every number taken on it is about something else",
+                "CPU protocol is measured on and every number taken on it is about something else",
             block.contains("""initWith(getByName("release"))"""),
         )
         assertTrue(
@@ -100,8 +91,8 @@ class BuildTypeDeclarationTest {
      *
      * The release job builds `assembleRelease`; the checks build `assembleDebug`, `test` and `lint`.
      * If a workflow ever names this build type, committing it stops being free and the decision has
-     * to be taken again. **Nor may a workflow run the aggregate `assemble`, `build` or `bundle`**
-     * (v5.14D): each builds every variant, `perf` among them, without naming it.
+     * to be taken again. **Nor may a workflow run the aggregate `assemble`, `build` or `bundle`**:
+     * each builds every variant, `perf` among them, without naming it.
      */
     @Test
     fun `no workflow builds perf, and the release workflow builds assembleRelease`() {
@@ -136,9 +127,9 @@ class BuildTypeDeclarationTest {
     }
 
     private fun repoRoot(): File {
-        // `dir` is declared nullable and walked to null rather than tested through `parentFile`:
-        // the older shape in this suite compiles with a "Java type mismatch: inferred type is
-        // 'File?'" warning on every copy of it, because `parentFile` is a platform type.
+        // `dir` is declared nullable and walked to null rather than tested through `parentFile`,
+        // a platform type: that shape compiles with a "Java type mismatch: inferred type is
+        // 'File?'" warning.
         var dir: File? = File(".").absoluteFile
         while (dir != null) {
             if (File(dir, "app/src/main/res/drawable-nodpi").isDirectory) return dir

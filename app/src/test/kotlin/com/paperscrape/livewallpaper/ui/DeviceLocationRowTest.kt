@@ -27,17 +27,15 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **The location from the phone looks at the phone** (v5.10D, the maintainer's *sì* of 2026-09-30 to
- * row 5 of the v5.10A table, inventory I-206 and the location half of I-223): "GPS - tap to allow",
- * whose tap goes where it is put right; refused for good, PaperScrape's page; an app backup restored on
- * a phone without the permission does not bring GPS back to work.
+ * **The location from the phone looks at the phone** (`DESIGN_NOTES.md` §12, decisions 40 and 41):
+ * "GPS - tap to allow", whose tap goes where it is put right; refused for good, PaperScrape's page; an
+ * app backup restored on a phone without the permission does not bring GPS back to work.
  *
  * The rules are pure functions of [SettingsUiModel], asserted here over every state the phone can be
  * in; that the Weather & time page draws from them is asserted on its source, as the project does for
- * Compose it cannot run on the JVM. **None of these states was produced on the phone**: they need a
- * permission taken away, the location switched off or an Android 12 dialog, and the phone's settings
- * are not changed by these rounds. The one the phone can show -- GPS chosen in the stored settings, no
- * permission ever given -- is photographed (`consegna_v5_10d/foto/`).
+ * Compose it cannot run on the JVM. **These states are proved here, not on the test phone**: they need
+ * a permission taken away, the location switched off or an Android 12 dialog, and the test phone's
+ * system settings are not changed.
  */
 class DeviceLocationRowTest {
 

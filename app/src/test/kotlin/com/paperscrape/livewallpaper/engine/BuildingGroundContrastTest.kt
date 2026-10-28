@@ -7,18 +7,16 @@ import org.junit.Test
 
 /**
  * The towers', the shops' and the public buildings' starting colours are not too like the ground behind
- * them (v5.11, v5.13; the maintainer's *«che i colori non siano troppo uguali al terreno altrimenti non si
- * capisce niente»* of 2026-10-06). The measure, the two gates and the cases they come from are
- * [BuildingGroundContrast]'s.
+ * them (`DESIGN_NOTES.md` §12, decisions 46 and 62). The measure, the two gates and the cases they come from
+ * are [BuildingGroundContrast]'s.
  *
- * Measured on the host, every theme at both ends of its day (`AI_PROJECT_RULES.md` 12.20); the phone
- * confirms it on the photographs of the round.
+ * Measured on the host, every theme at both ends of its day: it is arithmetic, which the host measures.
  */
 class BuildingGroundContrastTest {
 
     /**
-     * The three rows of the size table the places among the houses stand in (five places on a built-in street
-     * since v5.13B2, two in the restaurant's row and two in the bar's): any of the six buildings stands in any.
+     * The three rows of the size table the places among the houses stand in (five places on a built-in street,
+     * two in the restaurant's row and two in the bar's): any of the six buildings stands in any.
      */
     private val places = listOf(
         SceneSpace.SceneVariant.RESTAURANT,
@@ -27,11 +25,10 @@ class BuildingGroundContrastTest {
     )
 
     /**
-     * **A place fails when either of its groups melts into the ground** (v5.13): the shops' colours or the
+     * **A place fails when either of its groups melts into the ground**: the shops' colours or the
      * public buildings' the colour of the hills, and the place's check -- the one the random themes' starting
      * colours and the users' own resets are held to -- says so. Without this the check could answer "clear"
-     * for every place whatever the colours were, and the tests that lean on it would still pass (a mutation
-     * of v5.13B did exactly that).
+     * for every place whatever the colours were, and the tests that lean on it would still pass.
      */
     @Test
     fun `a place whose shops or public buildings wear the hills' colour does not pass`() {
@@ -75,7 +72,7 @@ class BuildingGroundContrastTest {
     }
 
     /**
-     * **The three groups tell apart** (v5.13): each built-in theme's public buildings' two colours stand
+     * **The three groups tell apart**: each built-in theme's public buildings' two colours stand
      * at least dE 18 by day and 8 by night from each of its shops' colours, and 15 and 6 from each of its
      * towers' -- the distances the pairs were chosen by ([builtInPublicColours]).
      */
@@ -99,9 +96,9 @@ class BuildingGroundContrastTest {
     }
 
     /**
-     * The gate bites on the case it was made for: the slate every theme's towers were until v5.11, on
-     * Big City's grey hills (inventory I-410), is 3.8 by day and fails -- and so does the first brick
-     * the proposals photographed on Autumn's orange hill (12.9).
+     * The gate bites on the colours that vanish into the ground: [SceneCustomization.DEFAULT]'s slate on
+     * Big City's grey hills is 3.8 by day and fails -- and so does a brick, `#B9714A`, on Autumn's orange
+     * hill (12.9).
      */
     @Test
     fun `the gate fails the colours that vanished into the ground`() {
@@ -116,7 +113,7 @@ class BuildingGroundContrastTest {
 
     /**
      * A tower is measured against the mountains it rises in front of, and only the ones shown: Desert's
-     * sandy mountains are what turned its first proposal, a sand tower, down (5.7 from them).
+     * sandy mountains turn a sand tower down (5.7 from them).
      */
     @Test
     fun `a tower is measured against the mountains shown, a shop against the hills alone`() {

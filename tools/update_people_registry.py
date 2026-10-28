@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Rewrites the **person** half of ``tools/assets/sources/sprites.json`` for v4.30.
+"""Rewrites the **person** half of ``tools/assets/sources/sprites.json`` from the artwork.
 
 Run from the repo root with the pinned venv, after ``tools/generate_people_layers.py``:
 
     /home/bober/.venvs/paperscrape-assets/bin/python tools/update_people_registry.py
 
-The registry is one entry per shipped PNG, and v4.30 replaced 168 skin-tone copies with 195 layer
-files. Rewriting those entries by hand is 363 edits, so it is done from the artwork instead -- the
-same reason `PeopleLayerTable` is generated rather than typed.
+The registry is one entry per shipped PNG, and every person shape ships as a fixed layer plus up to
+four masks (``DESIGN_NOTES.md`` §12, decision 27). Those entries are too many to keep in step by
+hand, so they are written from the artwork instead -- the same reason `PeopleLayerTable` is
+generated rather than typed.
 
 Only ``person_*`` entries are touched. Everything else in the registry, and every field this script
 does not set, is left exactly as it was.
@@ -51,24 +52,23 @@ MASK_NOTE = (
 )
 
 WINDOW_BASE_NOTE = (
-    "Shipped and blitted by nothing since v4.30, and declared rather than deleted. It is the "
+    "Shipped and blitted by nothing, and declared rather than deleted. The summer bust is the "
     "drawing tools/generate_people_layers.py decomposes into this shape's fixed layer and masks, "
-    "and the subject of SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's "
-    "canvas claim; the draw path reads the layers. Until v4.30 it was kept referenced by "
-    "SceneObjectRenderer.personWindowHeadDrawables, a table no draw path read -- BACKLOG_v4_25.md "
-    "item 58 -- and deleting that table is what made the orphan visible instead of hidden."
+    "which the draw path reads; the winter bust is not converted (RETIRED in that script: a "
+    "person at their window is indoors, so the window has one season). Both are the subject of "
+    "SpriteVariantTest's seasonal-pair check and SpriteMeasurementClaimTest's canvas claim. No "
+    "table in the code names it: a sprite table no draw path reads would hide the orphan from "
+    "SpriteReachabilityTest."
 )
 
 
 BOY_WALK_BASE_NOTE = (
-    "Shipped and blitted by nothing since v4.30, and declared rather than deleted. The walkers' "
+    "Shipped and blitted by nothing, and declared rather than deleted. The walkers' "
     "un-suffixed bases are the drawing tools/generate_people_layers.py decomposes, and "
     "ThemePreviewScene blits the other three families' directly for the gallery card -- but not "
-    "the boy's, which has never appeared on a preview. Until v4.30 he was kept referenced by "
-    "SceneObjectRenderer.personWalkDrawables, a table no draw path read; deleting it is "
-    "BACKLOG_v4_25.md item 58 closed, and this is the half of the consequence that has to be "
-    "declared rather than wired up. He is also the subject of SpriteVariantTest's frame-3 sharing "
-    "claim and of the 65% child proportion regenerated in v4.30."
+    "the boy's, which no preview draws. No table in the code names it: a sprite table no draw path "
+    "reads would hide the orphan from SpriteReachabilityTest. He is also the subject of "
+    "SpriteVariantTest's frame-3 sharing claim and of the 65% child proportion."
 )
 
 
@@ -111,7 +111,8 @@ def main() -> None:
             "contentBox": measured["contentBox"],
             "scale": "SCENE_UNITS",
             # A mask is a colourless weight multiplied by a colour at the blit, which is exactly
-            # what TINTABLE means since decision 25; the fixed layer carries its own colours.
+            # what TINTABLE means (`DESIGN_NOTES.md` §12, decision 25); the fixed layer carries its
+            # own colours.
             "tint": "FIXED_ART" if suffix == "_fx" else "TINTABLE",
             "usage": "referenced",
             "anchorRule": "CONTENT_BOTTOM_CENTRE",
@@ -140,7 +141,7 @@ def main() -> None:
         kept.append(entry)
         added += 1
 
-    # The un-suffixed bases no draw path reaches now that the tables naming them are gone.
+    # The un-suffixed bases no draw path reaches: no table in the code names them.
     orphans = [f"person_{k}_{s}_head_window" for k in ("man", "woman", "boy", "girl")
                for s in ("summer", "winter")]
     orphans += [f"person_boy_{s}_walk{f}" for s in ("summer", "winter") for f in range(3)]
@@ -151,9 +152,9 @@ def main() -> None:
         entry["usage"] = "orphan"
         entry["notes"] = BOY_WALK_BASE_NOTE if "_walk" in name else WINDOW_BASE_NOTE
 
-    # Every person entry's geometry is re-measured, not only the new ones: v4.30 redrew the twelve
-    # child walk frames inside their own canvas, and a content box left at its old value is a
-    # registry that describes a drawing that no longer exists.
+    # Every person entry's geometry is re-measured, not only the new ones: a redrawn frame keeps its
+    # name, and a content box left at its old value is a registry that describes a drawing that
+    # does not exist.
     for entry in kept:
         if not entry["name"].startswith("person_"):
             continue
@@ -169,14 +170,13 @@ def main() -> None:
     kept.sort(key=lambda e: e["name"])
     document["sprites"] = kept
 
-    # Variant groups and retired bases both spoke about the tone copies, which no longer exist.
+    # Variant groups and retired bases are kept only while every sprite they name ships.
     names = {e["name"] for e in kept}
     #
     # **The generated season pairs are dropped here and rebuilt below, and that is what makes this
-    # script safe to run twice.** It appends one group per layer file at the end; until v5.4H it did
-    # not first remove the ones a previous run had appended, so a second run over an unchanged tree
-    # doubled `variants` from 102 to 206 and `validate` stopped with `duplicate variant group id
-    # 'boy_head_car_fx'`. Nothing had run it twice since v4.30, so nothing had said so. A group is
+    # script safe to run twice.** It appends one group per layer file at the end; without first
+    # removing the ones a previous run appended, a second run over an unchanged tree would declare
+    # every pair twice and `validate` would stop with `duplicate variant group id`. A group is
     # this script's own if every member is a layer file; the hand-written ones name un-suffixed
     # sprites and are kept.
     document["variants"] = [
@@ -189,15 +189,14 @@ def main() -> None:
     }
 
     # Season pairs for the layer files. A sprite whose name carries a season is a variant by
-    # construction, and `tests/test_variants.py` fails any that is not declared -- the rule that
-    # caught v73's two identical head sprites. Generated for the same reason the table is: 195
-    # files is not a list anybody keeps in step by hand.
+    # construction, and `tests/test_variants.py` fails any that is not declared. Generated for the
+    # same reason the table is: the layer files are not a list anybody keeps in step by hand.
     for name in sorted(names):
         if "_summer_" not in name or layer_of(name)[0] is None:
             continue
         winter = name.replace("_summer_", "_winter_")
         if winter not in names:
-            continue          # the winter window busts were retired; see the test's own exception
+            continue          # the winter window busts are not converted (RETIRED); see the test's own exception
         document["variants"].append({
             "id": name.replace("person_", "").replace("_summer", ""),
             "axis": "season",

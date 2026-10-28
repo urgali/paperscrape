@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="294" height="114" viewBox="2 0 98 38">
   <!--
     v4.21: the snow lying on the broad top of the "Broad Oak". A layer ON TOP OF
-    the tree, never the tree tinted white - the reason DESIGN_NOTES gives for every
-    other cap.
+    the tree, never the tree tinted white, as every other cap: a white tint would
+    whiten the whole crown, not the snow lying on its top.
 
     **The upper edge is not drawn: it is cut out.** The clip mask
     below is the exact copy of the circles of `tree_canopy` (the low, middle and high bands and
@@ -20,10 +20,10 @@
     content (38 units against the crown's 66, 98 wide against 101);
     the 6-unit margin on the LEFT stays, and it is what carries the shared
     origin. Removing it would mean giving the cap a derived origin instead
-    of an equal one - it can be done, for 8 208 B less decoded memory (v5.9C),
-    and it was not done in v4.21 because the equality is a guard with a history:
-    it is the preview/renderer drift that v3.7 had to correct. Closed without
-    doing it on 2026-09-27 (ROADMAP A41).
+    of an equal one - it can be done, for 8 208 B less decoded memory, and it is
+    not done because the equality is a guard: it keeps the preview and the
+    renderer from drifting apart. Left so by the maintainer's decision of
+    2026-09-27.
 
     If the crown is redrawn, this mask has to be copied again from the new crown
     in the same pass: the two are re-derived together, never one alone.

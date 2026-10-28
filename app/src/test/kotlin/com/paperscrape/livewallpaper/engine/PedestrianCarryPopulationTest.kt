@@ -19,9 +19,6 @@ import org.junit.Test
  * that forbade it has been turned around rather than deleted: `every walking figure carries` below
  * is the same sweep over the same twelve themes and five densities, asserting the opposite.
  *
- * The share's own measurements are gone with it. They are kept in one place only -- `V5_4E_REPORT.md`
- * -- because a table of what two thirds gave on each theme is now history and not a contract.
- *
  * ### Why the host, and what it cannot say
  *
  * Who carries is arithmetic over the population, so every theme at every density costs milliseconds

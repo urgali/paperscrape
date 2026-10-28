@@ -114,7 +114,7 @@ class SceneShapeFanContractTest {
      * `drawShape(hill...)` and `drawShape(baseHill...)` and require zero -- but the renderer names
      * the hill shape `path` (`val path = baseHillShapes[layer]`), so the pattern matched nothing
      * whatever the code did, and the hill's shadow, which did reach the fan, passed. v5.8B read the
-     * variable's real name and pinned the shadow as the one known exception (`ROADMAP.md` A16);
+     * variable's real name and pinned the shadow as the one known exception;
      * v5.8C removed the shadow, whose only visible pixels were the fan's spill, so now **no**
      * `drawShape` in the hill loop may take the hill's shape.
      */

@@ -5,7 +5,7 @@ import org.json.JSONObject
 /**
  * Open-Meteo (https://open-meteo.com).
  *
- * The original Live Weather provider and still the default, because its free tier needs no key at
+ * The default Live Weather provider, because its free tier needs no key at
  * all for non-commercial use -- which is what makes "works out of the box, a key is an optional
  * upgrade" possible. A key routes to the higher-limit `customer-api.open-meteo.com` endpoint; no
  * key uses the free `api.open-meteo.com` one. Neither is a failure state.
@@ -23,12 +23,10 @@ object OpenMeteoProvider : WeatherProvider {
      * The user's key from Settings, or null for "use the free keyless endpoint" -- which is never
      * a hard failure for this provider.
      *
-     * **There is no longer a second source.** Until v5.3 a blank user key fell back to
-     * `BuildConfig.OPENMETEO_API_KEY`, the maintainer's own key baked in at build time; the v5.3B
-     * audit showed it shipped as a plain string in `classes.dex` of every published APK, and the
-     * maintainer chose to stop shipping it rather than proxy it (app/build.gradle.kts says the
-     * whole of why). A user who enters their own key still reaches the higher-limit endpoint on
-     * exactly the path they did before -- that half was never the problem and has not moved.
+     * **There is no second source.** A blank user key is the free endpoint, never a key baked in
+     * at build time: a key in the build ships as a plain string in `classes.dex` of every
+     * published APK, and the app neither ships one nor proxies one (app/build.gradle.kts says the
+     * whole of why). A user who enters their own key reaches the higher-limit endpoint.
      */
     internal fun resolveApiKey(userApiKey: String): String? =
         userApiKey.trim().ifBlank { null }
@@ -66,13 +64,14 @@ object OpenMeteoProvider : WeatherProvider {
         if (current == null) {
             null
         } else {
+            val perHour = perHourFactor(current)
             WeatherObservation(
                 temperatureCelsius = current.optionalDouble("temperature_2m"),
                 cloudCoverPercent = current.optionalInt("cloud_cover"),
-                precipitationMm = current.optionalDouble("precipitation"),
-                rainMm = current.optionalDouble("rain"),
-                showersMm = current.optionalDouble("showers"),
-                snowfallCm = current.optionalDouble("snowfall"),
+                precipitationMm = current.optionalDouble("precipitation")?.times(perHour),
+                rainMm = current.optionalDouble("rain")?.times(perHour),
+                showersMm = current.optionalDouble("showers")?.times(perHour),
+                snowfallCm = current.optionalDouble("snowfall")?.times(perHour),
                 condition = current.optionalInt("weather_code")
                     ?.let(::conditionForWmoCode)
                     ?: WeatherCondition.UNKNOWN,
@@ -83,6 +82,24 @@ object OpenMeteoProvider : WeatherProvider {
     } catch (_: Exception) {
         null
     }
+
+    /**
+     * What turns `current`'s amounts into **amounts per hour**, the unit [WeatherObservation] and
+     * [WeatherSnapshotMapper] read: 3600 over the block's `interval` in seconds.
+     *
+     * Open-Meteo's `current` block is 15-minutely, `"interval": 900`, and its `precipitation`, `rain`,
+     * `showers` and `snowfall` are the totals of those fifteen minutes (open-meteo.com/en/docs:
+     * *"aggregated metrics such as precipitation reflect the total from the previous 15 minutes"*), while
+     * WeatherAPI.com's `precip_mm` and OpenWeather's `rain.1h` are an hour's: read as an hour's, the same rain
+     * from Open-Meteo would draw about four times lighter. A block that states no interval, or one outside a
+     * second to an hour, is read as an hour's.
+     */
+    private fun perHourFactor(current: JSONObject): Double {
+        val seconds = current.optionalDouble("interval") ?: return 1.0
+        return if (seconds in 1.0..SECONDS_PER_HOUR) SECONDS_PER_HOUR / seconds else 1.0
+    }
+
+    private const val SECONDS_PER_HOUR = 3600.0
 
     /**
      * WMO weather-interpretation codes (https://open-meteo.com/en/docs) to [WeatherCondition].

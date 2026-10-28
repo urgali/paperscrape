@@ -58,7 +58,7 @@ find app/src/main -name '*.kt' -print0 | xargs -0 wc -l | sort -rn | sed -n '2,6
 ```
 
 The one thing that is a property rather than a count: **the shipped sprite set contains no
-byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
+pixel-identical pair** -- the same pixels, however compressed (`validate` and `SpriteVariantTest` both fail on one).
 
 ---
 
@@ -68,11 +68,11 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 
 | File | Responsibility |
 |---|---|
-| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location did; the tick comes sooner when a try for the phone's position falls due (`SolarDaySchedule.nextPassDelayMillis`). It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
+| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location moved to another place (farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 11 km, about a cell of the coarsest provider's grid); the tick comes sooner when a try for the phone's position falls due (`SolarDaySchedule.nextPassDelayMillis`). It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
 | `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper". Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
-| `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it, v5.11), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
-| `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. Since v5.11 a tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. Since v5.13 each place among the houses (five on a built-in street since v5.13B2) draws the building the street deals that copy of it (`StorefrontStreet`, by the copy's own number -- `SceneObjectRenderer.copyOf`: the place's representative copy plus `tileIndex`, the scroll's whole tiles, `scrollTileBias` taken out -- and the theme's seed, allocation-free), each of the six with a runtime of its own -- roster, windows, doorway, kept across rebuilds and advanced every frame on its group's hours -- and no place is drawn smaller than `placeScaleFloor`. Nothing about the street changes when the engine becomes visible again: a building changes only by scrolling (v5.14; from v5.13B a return dealt a new round). Since v5.14 a shut building draws its blinds and its door's shutter (`drawShut`, `DoorShutter`), and with *Christmas lights* on every building its decorations -- the roof string, the wreath, a tower's star, where the table says, through `ChristmasDecorations`, the sequence the gallery card draws them from too (`drawDecorations`) -- and one tree in three the fir A (`drawFir`, `FirTable`); bulbs are discs (`SpriteBlitter.drawDisc`), wreaths blits of the atlas. |
-| `Storefronts.kt` | The six buildings among the houses (v5.13): `Storefront` -- the restaurant, the bar and the shop (`StorefrontGroup.SHOPS`), the school, the fire station and the police station (`PUBLIC`) -- each with its group, the people at its windows and the place its identity is taken from (`home`); and `StorefrontStreet`, which building stands in which copy of which place: decks of the six dealt along the street's places in order, each a head of three -- the street's anchor, one of the six drawn by the theme's seed and the same in every deck, and two others -- and a tail of the other three, shuffled by the theme's seed (one street a theme: since v5.14 there are no rounds), the seam between two decks cleared by order alone from the deck's own shuffle and its two neighbours' (v5.13B2): never the same building in four places in a row and all six in every deck. The identities the six take their people, colour and figure from (`identities`: on a built-in street the ones v5.13B gave, a literal, and on a built-in theme saved since v5.13B2, recognised by its places, the same -- `builtInStreetOf`; on another saved street the places where the theme stores them, `SceneObjectLayout.placesAsSaved`); the gallery card's three, one place a row of the size table (`firstStretch`, `cardPlaceOf`). |
+| `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
+| `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. A tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. Each place among the houses (five on a built-in street) draws the building the street deals that copy of it (`StorefrontStreet`, by the copy's own number -- `SceneObjectRenderer.copyOf`: the place's representative copy plus `tileIndex`, the scroll's whole tiles, `scrollTileBias` taken out -- and the theme's seed, allocation-free), each of the six with a runtime of its own -- roster, windows, doorway, kept across rebuilds and advanced every frame on its group's hours -- and no place is drawn smaller than `placeScaleFloor`. Nothing about the street changes when the engine becomes visible again: a building changes only by scrolling. A shut building draws its blinds and its door's shutter (`drawShut`, `DoorShutter`); with *Lights on the buildings* on every building draws its decorations -- the roof string, the wreath, a tower's star, where the table says, through `ChristmasDecorations`, the sequence the gallery card draws them from too (`drawDecorations`) -- and with *Christmas firs* on one tree in three is the fir A (`drawFir`, `FirTable`); bulbs are discs (`SpriteBlitter.drawDisc`), wreaths blits of the atlas. |
+| `Storefronts.kt` | The six buildings among the houses: `Storefront` -- the restaurant, the bar and the shop (`StorefrontGroup.SHOPS`), the school, the fire station and the police station (`PUBLIC`) -- each with its group, the people at its windows and the place its identity is taken from (`home`); and `StorefrontStreet`, which building stands in which copy of which place: decks of the six dealt along the street's places in order, each a head of three -- the street's anchor, one of the six drawn by the theme's seed and the same in every deck, and two others -- and a tail of the other three, shuffled by the theme's seed (one street a theme), the seam between two decks cleared by order alone from the deck's own shuffle and its two neighbours': never the same building in four places in a row and all six in every deck. The identities the six take their people, colour and figure from (`identities`: on a built-in street fixed ones, a literal, and on a saved built-in theme whose places are today's, recognised by them, the same -- `builtInStreetOf`; on another saved street the places where the theme stores them, `SceneObjectLayout.placesAsSaved`); the gallery card's three, one place a row of the size table (`firstStretch`, `cardPlaceOf`). |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
 | `SceneCanvas.kt` | The drawing interface both renderers target, plus `SceneShape`, the closed polygon drawn in place of `Path`. |
 | `CanvasSceneTarget.kt` | `SceneCanvas` over `android.graphics.Canvas`: the settings preview and the EGL fallback. Owns a `GradientShaderCache`, so its three gradient entry points reuse shaders instead of building one per call. |
@@ -83,49 +83,50 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `AtlasPacker.kt` | Where each entry sits in the atlas, as pure testable arithmetic: a skyline packer. |
 | `GlRenderThread.kt` | EGL context and surface lifecycle, the render loop, and the cross-thread event queue. |
 | `SceneTransform.kt` | The `save`/`restore`/`translate`/`scale`/`rotate` arithmetic, as pure testable code. |
-| `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. Of a street's ten building candidates the six of the shop band are places among the houses but one, which stays the tower it was (`buildingCandidates`, v5.13B2: five places and five tower candidates, the towers' crowns dealt over the seven tower slots of before). The twelve built-in streets plan their five places together (`planStreets`): one in each fifth of the tile, each for the widest and the tallest of the six buildings that may stand in it, declared and on ink (`frontRects`: the 40 % rule and the trunks measured on every one of the six fronts, with both species of tree and each house as tall as it draws), never five on one screen, no spot under more than four themes' places of one row; a tree or a parasol in a place's way moves, keeping its density, its colour, its autumn tone and its kind (`relocated`). The plan is not computed when the app starts: `ShopPlanTable.kt` holds its answer. A saved street keeps its places, and on every load a place in which one of the six would be crossed or covered past the rule moves as little as it takes (`placesClearedOnSavedStreet`, called by `sceneObjectLayoutFromJson` in `CustomThemeData.kt`), and the layout remembers where the theme stored it (`SceneObjectLayout.placesAsSaved`): the six buildings take their identity from there and a save writes it back there; random themes are not planned. |
+| `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. Of a street's ten building candidates the six of the shop band are places among the houses but one, which stays the tower it was (`buildingCandidates`: five places and five tower candidates, the towers' crowns dealt over seven tower slots, so each tower keeps the crown it had when the street had seven). The twelve built-in streets plan their five places together (`planStreets`): one in each fifth of the tile, each for the widest and the tallest of the six buildings that may stand in it, declared and on ink (`frontRects`: the 40 % rule and the trunks measured on every one of the six fronts, with both species of tree and each house as tall as it draws), never five on one screen, no spot under more than four themes' places of one row; a tree or a parasol in a place's way moves, keeping its density, its colour, its autumn tone and its kind (`relocated`). The plan is not computed when the app starts: `ShopPlanTable.kt` holds its answer. A saved street keeps its places, and on every load a place in which one of the six would be crossed or covered past the rule moves as little as it takes (`placesClearedOnSavedStreet`, called by `sceneObjectLayoutFromJson` in `CustomThemeData.kt`), and the layout remembers where the theme stored it (`SceneObjectLayout.placesAsSaved`): the six buildings take their identity from there and a save writes it back there; random themes are not planned. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
-| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, distant houses, lake, birds config. Since v5.11 the shops have a colour pair of their own, `shops`, beside the towers' `buildings`, and since v5.13 the public buildings theirs, `publics`, with opening hours of their own (`publicHoursEnabled`, `publicOpenHour`, `publicCloseHour`); a house or a tower wears the pair `buildingColoursFor` gives its variant, a building among the houses its group's (`storefrontColours`, `storefrontWall`), and each built-in theme starts its towers, shops and public buildings from colours of its own (`builtInTowerColours`, `builtInShopColours`, `builtInPublicColours`). Since v5.16 the Christmas decorations are three switches (`christmasBuildingLightsEnabled`, stored where *Christmas lights* was, `christmasTreeLightsEnabled`, `christmasFirsEnabled`, the two new ones read from the old one where a payload has none), Halloween has five more beside `halloweenEnabled` (`laughingMoonEnabled`, `nightSkyByDayEnabled`, `halloweenDecorationsEnabled`, `bloodRainEnabled`, `headlessHorsemanEnabled`) and the scarecrows a config of their own, `scarecrows` (visibility and density, their candidates the snowmen's places, `SceneObjectType.SCARECROW`, kept by a coin of their own and never written into a saved layout); `DecorationExclusion` is the one statement of "the Halloween decorations and the Christmas ones are never on together", read by the settings, the setters and every reader of stored data; a switch counts there only while it has something to hang on (`treesStand`, `halloweenDecorationsHang`, `buildingLightsHang`, v5.16C), the same tests the settings grey a switch by. **A value the class's defaults read lives in its companion, before `DEFAULT`** (v5.16B, `SCARECROWS_OFF`): one of the file's own made a cycle with the file's values that read `DEFAULT`, and crashed the engine when it touched the class first (`FirstClassTouchedTest`). |
+| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, distant houses, lake, birds config. The shops have a colour pair of their own, `shops`, beside the towers' `buildings`, and the public buildings theirs, `publics`, with opening hours of their own (`publicHoursEnabled`, `publicOpenHour`, `publicCloseHour`); a house or a tower wears the pair `buildingColoursFor` gives its variant, a building among the houses its group's (`storefrontColours`, `storefrontWall`), and each built-in theme starts its towers, shops and public buildings from colours of its own (`builtInTowerColours`, `builtInShopColours`, `builtInPublicColours`). The Christmas decorations are three switches (`christmasBuildingLightsEnabled`, stored under the key of the single *Christmas lights* switch they replaced, `christmasTreeLightsEnabled`, `christmasFirsEnabled`, the other two read from that key where a payload has none of their own), Halloween has six more beside `halloweenEnabled` (`laughingMoonEnabled`, `nightSkyByDayEnabled`, `halloweenDecorationsEnabled`, `bloodRainEnabled`, `headlessHorsemanEnabled` and `stillMoonEnabled`, in force by `stillMoonActive()`) and the scarecrows a config of their own, `scarecrows` (visibility and density, their candidates the snowmen's places, `SceneObjectType.SCARECROW`, kept by a coin of their own and never written into a saved layout); `DecorationExclusion` is the one statement of "the Halloween decorations and the Christmas ones are never on together", read by the settings, the setters and every reader of stored data; a switch counts there only while it has something to hang on (`treesStand`; `firsCanStand`, false on a street of palms alone with *Palms* on, where no fir grows; `halloweenDecorationsHang` and `buildingLightsHang`, with `placesStand`: *Show Buildings* carries the shops only on a street with places among the houses), the same tests the settings grey a switch by. The reading of stored data (`resolved`) counts *Show Buildings* as the shops on every street, as the gallery card draws them on any, so what is drawn does not depend on the street's places. **A value the class's defaults read lives in its companion, before `DEFAULT`** (`SCARECROWS_OFF`): a top-level value of the file read by the defaults makes a cycle with the file's values that read `DEFAULT`, and crashes the engine when it touches the class first (`FirstClassTouchedTest`). |
 | `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds and the lightning flash. Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: rain from an empty sky, or a flash over a dry scene. Three layers, one rule. |
 | `StormAtmosphere.kt` | How much the weather darkens the scene, and what that darkening does to a colour. One pure `strength(...) -> 0..1` feeds sky darkening, cloud darkening and sun attenuation, so the three cannot disagree about how bad the weather is. `dim` pulls a colour toward its own Rec. 601 luminance and then down, which keeps the blend relative to the theme's palette rather than substituting a storm one. Applied *on top of* the day/night colour, so the two are orthogonal and combine. |
 | `CloudBand.kt` | Where the cloud band sits and what hangs off it: the clouds, the rain's fall origin, and the lightning's origin. Pure, and separate, so all three are derived from one function and cannot drift apart: a copy of the arithmetic at each call site would let the bolts be born above the band instead of inside it. |
 | `CustomThemeData.kt` | JSON (de)serialisation of custom themes and overrides. |
 | `CustomThemeRegistry.kt` | Synchronous in-memory cache of custom themes, with a `generation()` counter used to detect changes. |
-| `RandomSceneGenerator.kt` | Procedural theme/layout generation for the "Random" theme. Since v5.13B2 a random layout stands at most four places among the houses in a tile (`atMostFourPlaces`), the most the street's rule of four keeps apart on one screen. |
+| `RandomSceneGenerator.kt` | Procedural theme/layout generation for the "Random" theme. A random layout stands at most four places among the houses in a tile (`atMostFourPlaces`), the most the street's rule of four keeps apart on one screen. |
 | `SeasonalThemeRules.kt` | Date-based automatic theme selection (includes a Computus implementation for Easter). Reads its dates from `SeasonalCalendar` rather than holding them. |
 | `SeasonalCalendar.kt` | The calendar as data: the eight `CalendarWindow`s, their factory spans, and the user's edits to them. Stores **only the difference** from the factory, so an untouched install has no document at all. |
 | `SeasonalCalendarCoverage.kt` | Walks the year to find gaps and same-tier overlaps. One enumeration, shared by the settings screen's gate and by the tests. |
 | `SunPositionCalculator.kt` | Day phase, sun/moon arc position, moon phase, simplified sunrise/sunset. |
 | `FireworkEffect.kt`, `SantaSleighEffect.kt` | Self-contained timed effects. |
-| `HeadlessHorsemanEffect.kt`, `HeadlessHorsemanDrawer.kt`, `HorsemanTable.kt` | The Headless Horseman (v5.16), on the sleigh's pattern: `HorsemanFlight` (pure, JVM-tested) is the flight -- the sleigh's rhythm, the crossing, the fade; handed each frame how soon the sleigh flies (`SantaSleighEffect.secondsToFlight`, infinite with *Santa* off), it sets off only with the sky its own for the whole crossing, so the two are never in the sky together -- but for *Santa* turned on while he flies -- and his pumpkins on fire, which fall from a **fixed pool** of primitive arrays, a slot taken and given back, so a frame that lets one fall allocates nothing; the effect draws the pumpkins and hands the group to the drawer, which lays its pieces (the cape swinging about the shoulders, the legs, the horse in four poses, the reins, the rider with his pumpkin) at `HeadlessHorsemanScale.pxPerUnit` -- the rider as tall against a pedestrian as Santa -- from `HorsemanTable`, written by `tools/assets/horseman/build_horseman.py`. |
-| `SantaSleighDrawer.kt`, `SantaSleighTable.kt` | Santa's sleigh group (v5.15): the drawer lays its pieces -- the sleigh, two reindeer in four poses, the cords, Rudolph's nose -- at `SantaSleighScale.pxPerUnit`, in the order that keeps every detail whole: the traces behind everything, then the sleigh, the reins from the top of Santa's fist to the front of each collar, the reindeer over them, Rudolph's nose; the table, generated by `tools/assets/sleigh/build_sleigh.py`, is where each piece and each cord's end stands. |
+| `HeadlessHorsemanEffect.kt`, `HeadlessHorsemanDrawer.kt`, `HorsemanTable.kt` | The Headless Horseman, on the sleigh's pattern: `HorsemanFlight` (pure, JVM-tested) is the flight -- the sleigh's rhythm, the crossing, the fade; handed each frame how soon the sleigh flies (`SantaSleighEffect.secondsToFlight`, infinite with *Santa* off), it sets off only with the sky its own for the whole crossing, so the two are never in the sky together -- but for *Santa* turned on while he flies -- and his throw: the arm's angle for each pumpkin (wound back, swung forward, let go, back: `armDegrees`), the pumpkin in his hand gone and growing again (`handPumpkinScale`), and the pumpkin thrown from where his hand lets it go (`handX`/`handY`, from the seat as last drawn) with the group's speed and a push, up a few pixels and down to the pavement, from a **fixed pool** of primitive arrays, a slot taken and given back, so a frame that throws one allocates nothing; the effect hands the group to the drawer, then draws the pumpkins in the air in front of it -- their flames itself, the pumpkin through the drawer --; the drawer lays its pieces (the cape swinging about the shoulders, the legs, the horse in four poses, the reins, the rider's body, his near arm turned about the shoulder with the pumpkin in its hand) at `HeadlessHorsemanScale.pxPerUnit` -- the rider as tall against a pedestrian as Santa -- from `HorsemanTable`, written by `tools/assets/horseman/build_horseman.py`. |
+| `SantaSleighDrawer.kt`, `SantaSleighTable.kt` | Santa's sleigh group: the drawer lays its pieces -- the sleigh, two reindeer in four poses, the cords, Rudolph's nose -- at `SantaSleighScale.pxPerUnit`, in the order that keeps every detail whole: the traces behind everything, then the sleigh, the reins from the top of Santa's fist to the front of each collar, the reindeer over them, Rudolph's nose; the table, generated by `tools/assets/sleigh/build_sleigh.py`, is where each piece and each cord's end stands. |
 | `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
 | `SceneTime.kt` | Scene time as a `@JvmInline value class` over `Double`, with every read bounded at the point of use. A `Float` accumulator would stop advancing after ~12 days of visible uptime. |
 | `SwipeReport.kt` | Whether the home screen has moved the wallpaper with a swipe: the offset moving between pages (a step above 0) away from the first one an engine that is not a preview received. *Swipe scroll* reads on only after that (`WallpaperSettings.swipeReported`); many home screens never report a swipe, the BV6600's among them. Pure, JVM-tested. |
-| `SolarDaySchedule.kt` | When the wallpaper's loop works the sunrise and sunset out again (`onTick`): a stale day recomputed from the held position; the phone asked for its position when a weather refresh is due, while no position from it is held, and when a try after a search that found nothing is due, held position or not; a phone position forgotten the moment the phone stops allowing it; nothing asked at a fixed hour, where the scene draws the default 6:00 and 20:00 (`sceneDay`). Pure, JVM-tested. |
+| `SolarDaySchedule.kt` | When the wallpaper's loop works the sunrise and sunset out again (`onTick`): a stale day -- another day or another UTC offset than the times were worked out for -- recomputed from a Custom position, and asked of the phone for a position from it; the phone asked for its position when a weather refresh that would be sent is due (`LiveWeatherSchedule.wouldFetch`), while no position from it is held, and when a try after a search that found nothing is due, held position or not; a phone position forgotten the moment the phone stops allowing it; nothing asked at a fixed hour, where the scene draws the default 6:00 and 20:00 (`sceneDay`); and the scene's hour, read on the UTC offset the times held were worked out for (`sceneHour`), so the hour and the two times move together across a change of the clocks. Pure, JVM-tested. |
 | `SolarDay.kt` | Today's sunrise, sunset and whether they came from a real position, as one immutable value. Published through a single `@Volatile` reference on the engine so the render thread cannot read a sunrise from one location beside a sunset from another — which three separate fields, `@Volatile` or not, allow. |
 | `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. The waves sort in the same pass, and every kind is keyed by where its own drawing meets the water (`visibleWaterline`). |
 | `WaveTint.kt` | Where a wave's body and foam sit in luma, given the water under them. Pure arithmetic, so `WaveContrastTest` measures the same numbers the renderer draws: the cheaper carry for the direction, the foam always the lighter paper, and the gate that is a floor rather than a target. |
 | `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people (`nextCarrying`); the rule itself, `wantsUmbrella`: in the rain every walker who can hold an umbrella holds one, with no share and no deal; and the canopy palette. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
-| `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
+| `CloudCoverage.kt` | The coverage field the rain reads, refilled every frame from the clouds drawn (§4, "Precipitation reads a local density"), and which field a frame uses (`rainField`): under the clouds drawn, everywhere when none is placed (`placesNone`: the layer off or at 0 %, a clear forecast), or under the theme's clouds after a forecast's expiry; `setFloor` raises the whole field while the clouds come or go. |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
 | `CarSelection.kt` | Which cars a density means: an explicit count from 1 to every slot, filled in an order whose every prefix has the largest minimum loop gap, seeded per theme, applied per frame against each runtime's stored rank and only ever off screen. |
-| `BusinessHours.kt` | How open a business is at a scene hour, to the minute (v5.14): a switch that defaults to bitwise-off, `open == close` as always-open, wraparound spans; open from the opening minute, shut at the closing minute, its people out in the minute before (`peopleAt`) -- the glass's two seconds and the walks are the doorway's (`WindowWalk.Doorway`; until v5.14 a fade over 12 % of the opening span, `SunPositionCalculator.smoothEdge`'s twilight). Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. Three groups since v5.13 (two in v5.12), each with its switch and its hours: the towers, the shops (the restaurant, the bar, the shop) and the public buildings -- the school's hours, the fire station and the police station never closing (`Storefront.keepsHours`) -- a building by what it is (`SceneCustomization.opennessFor`, for a variant or for a `Storefront`). |
-| `WindowRoster.kt` | Who stands at a building's windows and, in a house, which are lit at night, at each moment of the scene's clock (v5.12): half a house's windows lit, theirs among them; the number of people the one each building had, each one the same person from window to window; one change at a time every couple of minutes -- a light that fades to another, or a person who moves -- walked forward through a building's own states and back. Worked out once per building when the scene's objects are built, read per frame without allocating. |
-| `HalloweenDecorations.kt`, `HalloweenDecorationTable.kt` | Where a house's or a shop's Halloween decorations hang (v5.16), the one sequence the wallpaper and the gallery card both draw: a cobweb at each end of the top piece's roofline (the right one mirrored), a bat every three of its points, a jack-o'-lantern by every front door -- the generator's points, as the Christmas ones; which buildings wear them (the houses and the three shops). The pieces' origins are `HalloweenDecorationTable`, written by `tools/assets/halloween/build_halloween_deco.py`. |
-| `NightOverDay.kt`, `LaughingMoon.kt` | Halloween's moon (v5.16), as arithmetic: the night by day -- the frame's phase made full night, the moon on the sun's path, the clock's hour kept for the opening hours -- and the laugh, once a minute of the scene's clock for two seconds, its shake and its hop. The renderer keeps one night phase a phase it is given, so a frame makes none. |
-| `ScarecrowTable.kt` | The scarecrow's drawing (v5.16), **generated** by `tools/assets/scarecrow/build_scarecrow.py`: where its two pieces blit -- the scarecrow on its pole, the light of its carved head -- and its size, 2.4 m and 56.94 units tall, which the size table's `SCARECROW` row reads. Its candidates are the snowmen's (`SceneObjectCatalog.scarecrowsAt`), kept by a draw of their own (`scarecrowFraction`), and never written into a saved layout (`SceneObjectLayout.asSaved`, `CustomThemeData.kt`): the catalogue lays them again from the theme's own snowmen at every load. |
-| `ChristmasDecorations.kt` | Where a building's Christmas decorations hang (v5.14, the sequence since v5.14C2): a bulb on every point of its top piece's roofline, a tower's star on its highest point, a wreath on every front door, the strings under its sills (all of them up to four, three in four above, by the building's seed) with their four bulbs, a distant house's three bulbs -- in its own piece units, from the generator's table. `inline`, so the wallpaper's draw path (`drawDecorations`, `drawWindowLights`, `drawDistantHouseLights`) allocates nothing; the gallery card lays out the same points (`ThemePreviewScenes.decorations`). |
-| `DoorShutter.kt` | The shutter of a shut building's front door, as geometry (v5.14): how far it has come down, the sequence of its bands (`forEachBand`: the shadow paper, the face, the box, the slats -- the one the wallpaper and the gallery card both draw) and a band of the door's own outline between two heights, written into arrays the caller owns. Pure; `DoorShutterTest` holds it on every door of the neighbourhood. |
-| `WindowWalk.kt` | How a person at a window walks out of it and into another (v5.12): a building's windows measured once, the walk's pace and path (a house's windows are rooms, a business's floor is one room), the lights in step with the walker, and each business's doorway, which walks its people out and in at the hours one at a time -- out in the minute before the closing, in at the opening minute (v5.14) -- lights its glass over two seconds and darkens it only once the last is out, and takes its number and its glass at once across a cut (the hour jumping, the opening hours changed). Fills a reused array of figures per building per frame, reading the roster's clock once for the building (its lights too); past the building's longest move since the roster's last change it does not look for a walker (v5.12C). |
-| `SpriteClip.kt` | The arithmetic of a sprite blit cut to a box on the GPU backend: the quad cut in the sprite's own coordinates and its texture rectangle in proportion ([`SceneCanvas.drawSpriteClipped`](#the-two-backends), v5.12). Pure, held on the JVM by `SpriteClipTest`. |
-| `ChimneySmoke.kt` | The smoke over a house's chimney as numbers (v5.12): four puffs born on the cap that rise, bend with the wind, grow and fade over eight seconds, each chimney on its own beat; light grey by day and a middle grey at night; and only where the autumn or the winter palette is on. |
+| `BusinessHours.kt` | How open a business is at a scene hour, to the minute: a switch that defaults to bitwise-off, `open == close` as always-open, wraparound spans; open from the opening minute, shut at the closing minute, its people out in the minute before (`peopleAt`) -- the glass's two seconds and the walks are the doorway's (`WindowWalk.Doorway`). Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. Three groups, each with its switch and its hours: the towers, the shops (the restaurant, the bar, the shop) and the public buildings -- the school's hours, the fire station and the police station never closing (`Storefront.keepsHours`) -- a building by what it is (`SceneCustomization.opennessFor`, for a variant or for a `Storefront`). |
+| `WindowRoster.kt` | Who stands at a building's windows and, in a house, which are lit at night, at each moment of the scene's clock: half a house's windows lit, theirs among them; the number of people the one each building had, each one the same person from window to window; one change at a time every couple of minutes -- a light that fades to another, or a person who moves -- walked forward through a building's own states and back. Worked out once per building when the scene's objects are built, read per frame without allocating. |
+| `HalloweenDecorations.kt`, `HalloweenDecorationTable.kt` | Where a house's or a shop's Halloween decorations hang, the one sequence the wallpaper and the gallery card both draw: one cobweb at an end of the top piece's roofline the drawing chooses (`cobwebCorner`, the right one mirrored), tinted by the building's walls (`webTintOn`: dark on a light wall, light on a dark one, at rest; `webTintAt`: across the dusk and the dawn the one turned into the other while the wall's luminance crosses 0.43 to 0.47, worked out from the walls' colours by day and at night and the frame's `dayBlend`, which the renderer and the card pass), and a jack-o'-lantern by every front door -- the generator's points, as the Christmas ones; which buildings wear them (the houses and the three shops). The pieces' origins are `HalloweenDecorationTable`, written by `tools/assets/halloween/build_halloween_deco.py`. |
+| `NightOverDay.kt`, `LaughingMoon.kt`, `StillMoon.kt` | Halloween's moon, as arithmetic: the night by day -- the frame's phase made full night, the moon on the sun's path, the clock's hour kept for the opening hours --, the laugh, once a minute of the scene's clock for two seconds, its shake and its hop, and the still moon -- the phase with the moon in the middle, under the cloud band, on the arc's own terms, and how much of it is out without the night by day. The renderer keeps one night phase and one still phase a phase it is given (`PaperRenderer.nightOverDay`, then `stillMoon` through `StillMoonFrame`, which holds how much of the moon is out too), so a frame makes none. |
+| `PrecipitationLook.kt` | What falls in a frame and how it looks, as arithmetic: the forecast's rain or snow while Live Weather drives the scene, else the theme's; the blood rain's red and its double thickness on rain of either; the colour before the contrast rule. `drawPrecipitation` draws by it; `BloodRainLiveWeatherTest` makes it rain from an answer in Open-Meteo's format. |
+| `ScarecrowTable.kt` | The scarecrow's drawing, **generated** by `tools/assets/scarecrow/build_scarecrow.py`: where its two pieces blit -- the scarecrow on its pole, the light of its carved head -- and its size, 2.4 m and 56.94 units tall, which the size table's `SCARECROW` row reads. Its candidates are the snowmen's (`SceneObjectCatalog.scarecrowsAt`), kept by a draw of their own (`scarecrowFraction`), and never written into a saved layout (`SceneObjectLayout.asSaved`, `CustomThemeData.kt`): the catalogue lays them again on the snowmen the street stands at every load (a saved copy's are those of the theme it was saved from: `SceneObjectCatalog.withSeasonalDecorations`). |
+| `ChristmasDecorations.kt` | Where a building's Christmas decorations hang: a bulb on every point of its top piece's roofline, a tower's star on its highest point, a wreath on every front door, the strings under its sills (all of them up to four, three in four above, by the building's seed) with their four bulbs, a distant house's three bulbs -- in its own piece units, from the generator's table. `inline`, so the wallpaper's draw path (`drawDecorations`, `drawWindowLights`, `drawDistantHouseLights`) allocates nothing; the gallery card lays out the same points (`ThemePreviewScenes.decorations`). |
+| `DoorShutter.kt` | The shutter of a shut building's front door, as geometry: how far it has come down, the sequence of its bands (`forEachBand`: the shadow paper, the face, the box, the slats -- the one the wallpaper and the gallery card both draw) and a band of the door's own outline between two heights, written into arrays the caller owns. Pure; `DoorShutterTest` holds it on every door of the neighbourhood. |
+| `WindowWalk.kt` | How a person at a window walks out of it and into another: a building's windows measured once, the walk's pace and path (a house's windows are rooms, a business's floor is one room), the lights in step with the walker, and each business's doorway, which walks its people out and in at the hours one at a time -- out in the minute before the closing, in at the opening minute -- lights its glass over two seconds and darkens it only once the last is out, and takes its number and its glass at once across a cut (the hour jumping, the opening hours changed). Fills a reused array of figures per building per frame, reading the roster's clock once for the building (its lights too); past the building's longest move since the roster's last change it does not look for a walker. |
+| `SpriteClip.kt` | The arithmetic of a sprite blit cut to a box on the GPU backend: the quad cut in the sprite's own coordinates and its texture rectangle in proportion ([`SceneCanvas.drawSpriteClipped`](#the-two-backends)). Pure, held on the JVM by `SpriteClipTest`. |
+| `ChimneySmoke.kt` | The smoke over a house's chimney as numbers: four puffs born on the cap that rise, bend with the wind, grow and fade over eight seconds, each chimney on its own beat; light grey by day and a middle grey at night; and only where the autumn or the winter palette is on. |
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview, which builds its objects from the same sprites at the same offsets; `PalmSpriteLayout.kt` does the same for a palm's two parts. |
-| `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the nine building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. `FAMILIES` maps the size table's rows to their families; `STOREFRONTS` (v5.13) the six buildings among the houses to theirs. Since v5.14 a piece also carries where the Christmas decorations hang, measured off what it draws -- its roofline every 6 units (`roofX`/`roofY`, written for the top pieces and the distant houses), its highest point (`topX`/`topY`) -- and its front door (`BuildingDoor`: the door's box, the outline its card was cut to and the relief of its shadow), which the wreath and a shut building's shutter use. |
-| `FirTable.kt` | **Generated** (`tools/assets/fir/build_fir.py`, v5.14): the fir A's frame (72 x 126 units), where its drawing, its snow and its star are blitted from the trunk's foot, where its ten lights and its three presents go, and the card's three baubles -- from the same geometry the script draws `tree_fir`, `tree_fir_snow`, `tree_fir_star` and the Christmas icon's fir with. |
+| `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the nine building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. `FAMILIES` maps the size table's rows to their families; `STOREFRONTS` the six buildings among the houses to theirs. A piece also carries where the Christmas decorations hang, measured off what it draws -- its roofline every 6 units (`roofX`/`roofY`, written for the top pieces and the distant houses), its highest point (`topX`/`topY`) -- and its front door (`BuildingDoor`: the door's box, the outline its card was cut to and the relief of its shadow), which the wreath and a shut building's shutter use. |
+| `FirTable.kt` | **Generated** (`tools/assets/fir/build_fir.py`): the fir A's frame (72 x 126 units), where its drawing, its snow and its star are blitted from the trunk's foot, where its ten lights and its three presents go, and the card's three baubles -- from the same geometry the script draws `tree_fir`, `tree_fir_snow`, `tree_fir_star` and the Christmas icon's fir with. |
 | `SpriteOccluderTable.kt` | **Generated** (`tools/assets/build_occluder_table.py`): where the ink is in every drawing an occlusion box has to speak for — the three palm crowns, the oak's two, the parasol's procedural fan — as a content box in object units plus the drawing's fullest row and fullest column. The layout pass and `ShopFrontVisibilityTest` both read this and build their own rectangle from it; `SpriteOccluderTableFreshnessTest` re-measures it straight from the PNG so it cannot fall behind a redraw. |
-| `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. A slot with `heights` (the tower's body, v5.11) gives each building one of its heights by a coin of its own (`heightIndex`), so the silhouette deal and the crowns are untouched. Read by **both** things that draw a building, the wallpaper and the gallery card, so there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
+| `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. A slot with `heights` (the tower's body) gives each building one of its heights by a coin of its own (`heightIndex`), so the silhouette deal and the crowns are untouched. Read by **both** things that draw a building, the wallpaper and the gallery card, so there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
 | `SceneColour.kt` | The one blend the colour rules are built from: `ColorUtils.blendARGB`'s arithmetic without the framework call, so `colorFor` and `windowGlassColor` run on the host and the JVM suite can evaluate them. `SceneColourBlendTest` (instrumented) proves the two identical over a sweep. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
 | `MemoryPressurePolicy.kt` | What an `onTrimMemory` level means for a wallpaper, as a pure decision. Notably `TRIM_MEMORY_UI_HIDDEN` is *not* treated as pressure, though its numeric value sits above `RUNNING_CRITICAL`: for a wallpaper it only means the settings screen closed. |
@@ -138,13 +139,13 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `DayPhaseCache.kt` | The engine's day phase, recomputed only when the hour or the sun's times change; the moon's phase is written into the one it holds. |
 | `FirstFrameGate.kt` | Holds an engine's first frame until its settings and saved themes have arrived, or 2 s. |
 | `ShopPlanTable.kt` | **Generated** (`ShopPlanTableTest`): where the twelve built-in streets' five places among the houses stand, and where each tree or parasol the plan moved stands -- the plan's answer computed when the table is written instead of at every start. |
-| `CloudCoverFade.kt` | How the sky gets from one cloud cover to the next without the change being a single frame: the cover itself moves at a fixed rate, and each cloud's opacity eases in or out. Both eases are linear, so they arrive and stop, and the first observation snaps, so a fresh engine and every golden draw the sky they were handed. |
-| `GlLifecyclePolicy.kt` | The GL backend's lifecycle rules as pure decisions: one render thread per engine rather than per surface, how many times a working context may be rebuilt before the engine falls back to `Canvas`, and when a memory trim may run (only with a context current); since v5.15 when the `Canvas` loop may run (`canvasLoopMayRun`), whether a fall-back to `Canvas` is taken (`mayFallBackToCanvas`) and what counts as visible (`countsAsVisible`). |
+| `CloudCoverFade.kt` | How the sky gets from one cloud cover to the next without the change being a single frame: the cover itself moves at a fixed rate, and each cloud's opacity eases in or out. Both eases are linear, so they arrive and stop, and the first frame snaps, so a fresh engine and every golden draw the sky they were handed; after a frame with no cloud placed or showing (`clearSkyDrawn`) a cloud seen for the first time fades in from nothing. A third ease moves where the rain falls: `rainEverywhereToward` spreads it beyond the clouds to the whole sky while the last ones leave, and narrows it under them while the first ones come, at their fade rate. |
+| `GlLifecyclePolicy.kt` | The GL backend's lifecycle rules as pure decisions: one render thread per engine rather than per surface, how many times a working context may be rebuilt before the engine falls back to `Canvas`, and when a memory trim may run (only with a context current); when the `Canvas` loop may run (`canvasLoopMayRun`), whether a fall-back to `Canvas` is taken (`mayFallBackToCanvas`) and what counts as visible (`countsAsVisible`). |
 | `PeopleColours.kt` | What colour each of a person's four regions wears, dealt afresh each time a walker crosses the scene and deterministic in theme, person and crossing. |
 | `PeopleLayerTable.kt` | **Generated** (`tools/generate_people_layers.py`, which also writes the artwork): which drawables make up each person, the fixed art and one weight mask per colourable region. |
 | `PrecipitationContrast.kt` | The rule that carries the rain's colour away from the sky it falls across (`standOffFromSky`), kept outside the renderer so the JVM test measures the function the renderer draws with. |
-| `DistantHouses.kt` | The distant houses on the mountains (v5.11): five places a mountain; how many stand at an amount -- the amount times five and a coin of the mountain's own, only adding as it rises -- and in which order they take the places, one side, the other, the top, the side a mountain starts from alternating from one to the next (v5.14: both sides); which of the three drawings, which of the houses' two colours, and whether its window lights at night (four in five) — each a coin of its own from the mountain's seed; and since v5.14C2 which places a mountain of the same layer drawn after it would cover (`hiddenPlaces`, the house's box against that mountain's parabola), which get no house, the side's other place standing for one (`standingMask`). Drawn by `PaperRenderer.drawDistantHouses`, the covered places worked out once per layer, screen and base line (`PaperRenderer.HiddenPlaces`), sized by `SceneSpace.distantHousePixelsTall`. |
-| `BuildingGroundContrast.kt` | The measure the towers', shops' and public buildings' starting colours are chosen by (v5.11, v5.13): CIE76 ΔE against the ground behind them, at least 20 by day and 10 by night. Read by the tests, and by `defaultCustomizationFor` for a theme that is not built in (`withStartingBuildingColours` in `SceneCustomization.kt`: a copy of a built-in theme takes that theme's pairs, any other theme the first approved pair that clears the gates against its own ground); never by the drawing: a colour the user picks is drawn whatever it measures. |
+| `DistantHouses.kt` | The distant houses on the mountains: five places a mountain; how many stand at an amount -- the amount times five and a coin of the mountain's own, only adding as it rises -- and in which order they take the places, one side, the other, the top, the side a mountain starts from alternating from one to the next; which of the three drawings, which of the houses' two colours, and whether its window lights at night (four in five) — each a coin of its own from the mountain's seed; and which places a mountain of the same layer drawn after it would cover (`hiddenPlaces`, the house's box against that mountain's parabola), which get no house, the side's other place standing for one (`standingMask`). Drawn by `PaperRenderer.drawDistantHouses`, the covered places worked out once per layer, screen and base line (`PaperRenderer.HiddenPlaces`), sized by `SceneSpace.distantHousePixelsTall`. |
+| `BuildingGroundContrast.kt` | The measure the towers', shops' and public buildings' starting colours are chosen by: CIE76 ΔE against the ground behind them, at least 20 by day and 10 by night. Read by the tests, and by `defaultCustomizationFor` for a theme that is not built in (`withStartingBuildingColours` in `SceneCustomization.kt`: a copy of a built-in theme takes that theme's pairs, any other theme the first approved pair that clears the gates against its own ground); never by the drawing: a colour the user picks is drawn whatever it measures. |
 | `SilhouetteDeal.kt` | Which of its category's silhouettes each building slot was dealt: a stratified deal over the slots (`SeededBalance.rankOf`) rather than a hash per slot, so a street shows a spread of silhouettes rather than a clump. |
 
 ### Other packages
@@ -156,16 +157,22 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   an icon are tied together, and `SeasonalIconRules.iconForDate`, which is pure and JVM-tested.
 - `icon/LauncherIconSwitch.kt` — the `PackageManager` side: reads the six components' enabled state
   and writes only what differs, always with `DONT_KILL_APP`.
-- `icon/SeasonalIconController.kt` — when it looks: wallpaper start, `ACTION_DATE_CHANGED` and its
-  two siblings through a code-registered receiver, and a settings change that moves the calendar.
-  All three arrive on the main thread and the work is binder calls, so it owns one single-thread
-  executor: off the wallpaper's main thread, and serialised rather than racing.
+- `icon/SeasonalIconController.kt` — when it looks: `ACTION_DATE_CHANGED` and its two siblings,
+  through the wallpaper service's one receiver for them (`PaperWallpaperService.dateReceiver`), a
+  settings change that moves the calendar, and an engine coming on screen. All three arrive on the
+  main thread and the work is binder calls, so it owns one single-thread executor: off the
+  wallpaper's main thread, and serialised rather than racing.
 - `prefs/WallpaperPrefs.kt` — main DataStore store, exposes `settingsFlow`. Each reset of the settings
   screen is one function and takes what its page shows: `resetCategory` (the Trees page's
   takes the palms too), `resetDecorations` (Seasons & decorations, the snow and leaf piles included,
   the palms not), `resetAllCategories` (the theme's whole scene; Motion is every theme's and stays).
-  An edit to a theme saved in the gallery starts from its saved look (`savedLookFor`).
-- `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides.
+  An edit to a theme saved in the gallery starts from its saved look (`savedLookFor`). `readSettings`
+  reads the store once and gives `null` when it cannot be read just now (an `IOException`), where
+  `settingsFlow` would serve a fresh install's settings: a backup, a restore and the settings' icon at
+  their opening read it. A place's name and the three API keys are kept up to
+  `AppBackup.MAX_TEXT_SETTING_CHARS` (4 096) characters (`keptText`), so a backup gives back each.
+- `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides; `readOnce`, the
+  saved themes read once, or `null` when the store cannot be read just now.
 - `prefs/PrefsRecovery.kt` — what every DataStore does when its file cannot be read: a corrupt file
   is rewritten empty, once, and only that store falls back to its defaults; a read that fails for an
   I/O reason serves defaults for that emission only and touches nothing; anything else is rethrown.
@@ -267,9 +274,12 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   - `WeatherRepository.kt` — dispatches to the selected provider. **No silent fallback between
     providers:** a failure is reported as one and the selection stands.
   - `LiveWeatherStatus.kt` — what Live Weather is actually doing (`OFF`, `OK`, `NO_LOCATION`,
-    `MISSING_API_KEY`, `REJECTED_API_KEY`, `FAILED`, `STALE`), written by the service and read by
-    the settings screen. `REJECTED_API_KEY` means an HTTP 401/403: a provider that answered
-    and refused the credential, which is not the same fact as one that could not be reached, and
+    `MISSING_API_KEY`, `REJECTED_API_KEY`, `FAILED`, `STALE`, `RATE_LIMITED`, `RATE_LIMITED_STALE`,
+    `REFUSED`, `REFUSED_STALE`), written by the service and read by the settings screen. `RATE_LIMITED`
+    (`_STALE`: with the last conditions still driving the scene) is a provider that answered that its
+    limit is reached -- HTTP 429, or WeatherAPI.com's 403 with error code 2007. `REFUSED` (`_STALE`
+    likewise) is a provider that answered and refused the request itself (`WeatherFailure.REQUEST_REFUSED`). `REJECTED_API_KEY` means an HTTP 401, another
+    403, or Open-Meteo's 400 for a key it does not know: a provider that answered and refused the credential, which is not the same fact as one that could not be reached, and
     folding the two together would make a not-yet-active OpenWeather key report itself as a
     network failure. It sits before the "is a snapshot still in effect" question, like
     `MISSING_API_KEY`, because an old observation on screen does not change what the user must do.
@@ -282,7 +292,14 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   - `LiveWeatherInputs.kt` — which settings force an immediate fetch rather than waiting for the
     hourly refresh. Pure, so the list cannot quietly fall behind the settings.
   - `WeatherHttp.kt` — the one `HttpURLConnection` JSON GET every provider shares, and the pure
-    status → `WeatherFailure` mapping.
+    status → `WeatherFailure` mapping. A 400 whose body gives Open-Meteo's reason about the key
+    ("The supplied API key is invalid.") is a refused key (`UNAUTHORIZED`), as a 401 is. Any other
+    4xx but 403, 408 and 429 is `REQUEST_REFUSED`: the provider answered and refused the request itself,
+    and asked again it answers the same, so like a refused key or a provider's limit it waits for
+    the hourly refresh; a 408, a 5xx or a request that did not get through is tried again sooner
+    (2, 4, 8, 16, 32 minutes). On the settings screen a refused request has lines of its own
+    (`LiveWeatherStatus.REFUSED`, `REFUSED_STALE`): the provider refused the request, and PaperScrape asks
+    again about once an hour.
   - `LiveWeatherSchedule.kt` — what the Live Weather loop does next and whether what it holds may
     draw: `decide` returns the status and the snapshot together, so the settings screen and the
     renderer cannot disagree about whether the forecast drives the scene; also the retries after a
@@ -293,7 +310,7 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   kept for the installed version (`If-None-Match`; `SavedUpdateReply`, which `UpdatePrefs` keeps in a DataStore file of
   its own, `paperscrape_update_reply`), and a 304 with no body returns the kept answer; the notes are every newer
   release's, whole, read across the list's pages (30 releases each) until one names the installed version, at most
-  `MAX_PAGES`. **A refusal of GitHub is read as one** (since v5.15): a 429, or a 403 with `Retry-After` or with
+  `MAX_PAGES`. **A refusal of GitHub is read as one**: a 429, or a 403 with `Retry-After` or with
   `X-RateLimit-Remaining: 0` and `X-RateLimit-Reset` (`rateLimitedUntil`), is `Unreachable(RATE_LIMITED)` with the
   moment it ends when GitHub gives one (`Retry-After`, or `X-RateLimit-Reset`; a 403 with no requests left and no reset
   is the limit too, with no moment), kept in `UpdatePrefs`' own store (`paperscrape_update_prefs`,
@@ -301,22 +318,21 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   about* and a tap on the notification ask anyway, and the button's message gives the hour (or "Try again later" when
   GitHub gave none). Every call writes one line under the log tag `PaperScrapeUpdate` (`UpdateCheckLog`), in the release
   build too: the outcome, the last reply's HTTP code and the requests GitHub says are left -- `update check: up to date
-  (unchanged), HTTP 304, 52 requests left` -- and nothing else. **One request for one moment** (since v5.15): one check
+  (unchanged), HTTP 304, 52 requests left` -- and nothing else. **One request for one moment**: one check
   is on the network at a time in the process, and a check that finds another there waits for it and takes its answer,
   whoever asked; a check nobody asked for this instant (`takeRecentAnswer`: the settings screen opening, a run of the
   job) also takes an answer GitHub gave less than `RECENT_ANSWER_MILLIS` (a minute) ago. Neither makes a request, and
   the line says so: `update check: not made, answered by the check of 14:25:52`.
 - `update/UpdateNotificationPolicy.kt`, `update/UpdateNotifier.kt`, `update/UpdateCheckSchedule.kt`,
   `update/UpdateCheckJobService.kt` — the optional check every three hours and the notification it posts. **The check
-  is a periodic job of the phone's `JobScheduler`** (since v5.15; until then it rode the wallpaper engine's loop and
-  ran only while the wallpaper was on screen): `UpdateCheckJobService`, every `UpdateCheckSchedule.PERIOD_MILLIS`
+  is a periodic job of the phone's `JobScheduler`**, so it runs whether the wallpaper is on screen or not: `UpdateCheckJobService`, every `UpdateCheckSchedule.PERIOD_MILLIS`
   (3 h), with a network, kept across a restart of the phone (`setPersisted`, `RECEIVE_BOOT_COMPLETED`; a phone whose firmware
   force-stops the app at a restart, as the BV6600's does, cancels it there), backing off
   from two minutes when a check found nothing out, one run at a time (a `Mutex`), and after a refusal of GitHub one
   run (`ONE_RUN_JOB_ID`) just after the moment GitHub gave. The periodic job is due in the last quarter hour of each
   period (`setPeriodic(PERIOD_MILLIS, FLEX_MILLIS)`), so it is first due a period after it is scheduled: with
   `setPeriodic(interval)` alone its window is the whole period, open at once, and a caller that checks by itself and
-  puts the job back asked GitHub twice in one instant (until v5.15's round of correction). On Android 10 a run made
+  puts the job back would ask GitHub twice in one instant. On Android 10 a run made
   more than half an hour after its window counts for the next window too (`JobSchedulerService`'s rule for a window
   shorter than the period), so with the phone asleep for long the checks come further apart. `UpdateCheckJobs.reconcile`
   schedules it while both update switches are on and cancels it otherwise -- and leaves it as it is when the store
@@ -324,7 +340,8 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   call it, and so do the wallpaper service's `onCreate` and the settings screen when they start, because a force stop
   cancels every job of the package. **Each of those is one check at once, never two**: the job's own run when *Notify
   me* comes on or the wallpaper's service puts the job back, the settings screen's check when *Check for updates when
-  I open PaperScrape* comes on or the screen opens (`checkAtOnce` false: the screen checks by itself). A run of the job
+  I open PaperScrape* comes on or the screen opens (`checkAtOnce` false: the screen checks by itself; an opening is
+  `ui/SettingsOpenings.kt`'s, never a return from a page the settings started). A run of the job
   asks GitHub only while the phone would show its notification -- the permission on Android 13+, PaperScrape's
   notifications and the channel on in the phone's settings (`UpdateCheckSchedule.beforeCheck`) -- and tries again on
   the back-off when the switches could not be read. A tapped notification's check is not started again when the stored
@@ -339,13 +356,15 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   The small icon is `ic_stat_update`, in the app's colour. The policy also draws the *Notify me about new versions*
   row (`notifyRow`): on only when a notification can arrive -- the automatic check on and the phone letting
   PaperScrape post -- and otherwise off, with the line and the tap (the permission dialog, the phone's notification
-  or channel page from `UpdateNotifier`) for what is missing. Since v5.15 it asks for no wallpaper.
+  or channel page from `UpdateNotifier`) for what is missing. It asks for no wallpaper.
 - `update/ReleaseAssets.kt` — which attachment is the APK and which is its checksum (exact names),
   how a `sha256sum` file is read, and whether a downloaded package may be installed. All pure, all
   unit-tested: these are the parts that fail silently.
 - `update/ApkDownloader.kt` — streams the APK to `cache/updates` while hashing it in the same pass,
   and `ApkInstaller`, which hands the verified file to Android through a `FileProvider` URI scoped
-  to that one directory. No silent-install path exists. The file stays there through the handover
+  to that one directory. No silent-install path exists. The installer is started through
+  `startActivityOrSay` (`ui/MissingApp.kt`), as every page of another app the settings open: on a
+  phone without one a line says so for a few seconds, and the settings stay as they were. The file stays there through the handover
   (the installer reads it while its own screen is open); `pruneInstalled` deletes it at
   the next start of the wallpaper's engine or of the settings screen once the running version has
   reached it, and keeps one that is still newer (`ApkCachePruneTest`).
@@ -357,10 +376,33 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
   against a second run while one is under way, and runs the transfer in the settings screen's scope
   so it outlives the effect; `runDownload` restores an actionable state on cancellation.
 - `ui/` — the settings UI, one file per destination:
-  - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`.
-  - `SettingsScreen.kt` — the home screen and the routing between the six destinations.
+  - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`. Every
+    page of another app the settings start -- `startActivity` from the activity or a screen, and the
+    result launchers of the imports, the exports and the install permission -- goes through its
+    `startActivityForResult`, which marks the start for `SettingsOpenings`. Its manifest entry takes
+    every configuration change the phone can make around the user itself (`configChanges`: the
+    orientation and sizes, `uiMode`, density, font scale and weight, layout direction, locale, a
+    keyboard, navigation or touch screen, the colour mode, a SIM's `mcc`/`mnc`, the grammatical
+    gender, `assetsPaths`): none picks one of the app's resources, and Compose reads the new
+    configuration by itself, so a download under way is not cut by the activity being recreated.
+  - `SettingsOpenings.kt` — which of the activity's ON_STARTs is an opening, the moment *Check for
+    updates when I open PaperScrape* checks again. Not the first (the screen checks as it comes up),
+    not the return from a page the settings started, not the screen turned on again with the
+    settings in front (`PowerManager.isInteractive` at the ON_STOP); every other one -- the launcher
+    icon or the recent apps after Home, a return after another app came to the front by itself. A
+    page that only paused the settings (a chooser) leaves the next leaving an ordinary one. Leaving
+    such a page for Home and coming back by the icon is the same ON_START as Back, and is not an
+    opening. Pure, JVM-tested.
+  - `SettingsScreen.kt` — the home screen and the routing between the six destinations. It counts the
+    openings and reads the date at every ON_START and at midnight, and hands that date to the
+    destinations that show one (the Holiday calendar's window of today and its Easter dates). It draws
+    nothing until the stored settings and the saved themes have been read, or 2 s, as an engine's first
+    frame waits (`FirstFrameGate.WAIT_LIMIT_MS`); the logic under it starts from a fresh install's settings.
   - `WeatherTimeScreen.kt`, `SeasonsScreen.kt`, `WorldSceneScreen.kt`, `AdvancedScreen.kt`,
     `ThemeGalleryScreen.kt`, `HolidayCalendarScreen.kt` — one destination each, all drill-downs from home.
+  - `MissingApp.kt` — `startActivityOrSay`: a page of another app (a browser, the file picker, the place
+    to save, the installer, the install permission's page, the wallpaper picker) that no app on the
+    phone can open says so in a line, instead of closing the settings.
   - `SettingsComponents.kt` — the shared Material 3 vocabulary (section header, grouped
     container, row, switch row, navigation row, segmented choice, banner, caption, screen
     shells, slider, colour picker).
@@ -370,8 +412,11 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
     (a switch reads on only when what it names really happens): *Live Weather* (`liveWeather`, `liveWeatherTap` -- on only while real
     weather can drive the scene), the switches that need another one (`moonPhases`,
     `dependentSwitch`, `thunderstorm`, `palms` -- drawn on World & scene's Trees page),
-    the *Show X* switches at 0 % (`amountSwitch`,
-    `amountTap`), the home screen's decoration count (`decorationsOn`, which counts no palm) and the question a
+    the *Show X* switches at 0 % or at an amount the theme keeps none at (`amountSwitch`,
+    `amountTap`) and on a theme whose street has none of that kind at any amount (`StandingObjects`'
+    `themeHas*`, `noneOnThisTheme`, `AmountTap.NoneOnThisTheme`: off and greyed, a tap that writes
+    nothing, the line "This theme has no trees."; the decorations, the opening hours and the
+    buildings' rows and pages name only what the street has), the home screen's decoration count (`decorationsOn`, which counts no palm) and the question a
     theme pick asks while the calendar chooses (`pickNeedsCalendarQuestion`). It also holds the
     Location row under GPS and Network (`deviceLocationRow`: working only while the phone gives the
     position, otherwise "GPS - tap to allow" and the tap to the permission dialog, PaperScrape's page
@@ -393,7 +438,7 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
     content against the *display* while the window manager sizes the window to the space between
     the system bars, so the bottom of every screen would be laid out outside the window and clipped.
     The content is therefore given the height of the area
-    its window occupies: the display less the insets the **activity** measures, passed down
+    its window occupies: the activity's window less the insets the **activity** measures, passed down
     through `LocalSettingsTopInset`/`LocalSettingsBottomInset`. The scaffold inside reserves the
     dialog's *own* insets — zero exactly when the window already fits the bars — so a device whose
     dialog window is full-bleed instead is handled by the same code. The trailing spacer is a
@@ -412,8 +457,8 @@ as a fallback and for the settings preview. There is no external graphics librar
 The scene renderers do not know which backend they are drawing into. They draw
 onto `SceneCanvas`, an interface exposing the operation set they use — a transform
 stack, rects, lines, circles, ovals, stroked arcs, filled sectors, closed shapes,
-three explicit gradient forms, sprite blits, a sprite cut to a box and, since v5.14,
-discs. Two classes implement it:
+three explicit gradient forms, sprite blits, a sprite cut to a box and discs. Two
+classes implement it:
 
 | Implementation | Used by |
 |---|---|
@@ -423,10 +468,10 @@ discs. Two classes implement it:
 The interface is deliberately no wider than what both backends can draw as one
 picture. An interface admitting arbitrary `Path`s, clips or `Xfermode`s would be one
 the GPU backend could not honour, and a call site could then compile while producing
-a different picture on each backend; each operation added since (the cut sprite, the
-disc) has a test holding the two backends to one picture.
+a different picture on each backend; the cut sprite and the disc each have a test
+holding the two backends to one picture.
 
-**The one cut it admits is a box on a single sprite blit** (v5.12):
+**The one cut it admits is a box on a single sprite blit**:
 `drawSpriteClipped` draws only the part of a sprite inside a box given in the sprite's own
 coordinates, and nothing else is affected by it -- it is not clip state. It exists for the people at
 the windows, who walk out of a window and into another instead of appearing and vanishing
@@ -441,16 +486,16 @@ multisamples the cut -- the difference the edges of circles and lines already ha
 places from each side, plain and mirrored -- twenty cuts: inside the box within 2 levels of the whole
 bust on `Canvas` and 3 on GL, measured; outside it, nothing).
 
-**And one operation each backend draws its own lightest way: a disc** (v5.14, `drawDisc`). The small round dots the
+**And one operation each backend draws its own lightest way: a disc** (`drawDisc`). The small round dots the
 scene draws by the hundred -- every falling snowflake, every point star, every Christmas bulb -- are a centre, a radius,
 an opaque colour and an alpha. GL draws one quad of the atlas sampling `deco_bulb` (a white disc 8 units, 24 px, across,
 filling its box) at the detail level the drawn diameter asks for, with `drawSprite`'s numbers and no transform of its own:
-6 vertices, where `drawCircle`'s fan is 24 or more. `Canvas` draws the circle itself, the pixels the dots always were on
-it: a Canvas has no batch to fill, so on the settings preview, the Canvas goldens and the fallback the snow and the stars
-are unchanged to the bit, and the trees', palms' and sills' lights are the 5.13's circles. `DiscAgreementTest` holds the
-two to one dot on the device: measured (on the BV6600, v5.14B2, 2026-10-15/16), the same light within 1.6 % from 5 px of radius up (held to 3 %); below it, within
-the medium-precision texture coordinates' reach, 13.5 % under the circle over a dot's phases at the smallest stars, 1.3 px,
-where the old fan was within 1 % (held to 15 % over the phases and 22 % at one), and never more than 0.9 % brighter (held
+two triangles, 6 corners and 4 vertices written, where `drawCircle`'s fan is 24 corners or more. `Canvas` draws the
+circle itself: a Canvas has no batch to fill, so on the settings preview, the Canvas goldens and the fallback every dot is
+a circle. `DiscAgreementTest` holds the
+two to one dot on the device: measured (on the BV6600, 2026-10-15/16), the same light within 1.6 % from 5 px of radius up (held to 3 %); below it, within
+the medium-precision texture coordinates' reach, 13.5 % under the circle over a dot's phases at the smallest stars, 1.3 px
+(held to 15 % over the phases and 22 % at one), and never more than 0.9 % brighter (held
 to 3 % over the phases and 5 % at one, so a small disc drawn larger than it should fails); the centres within 0.16 px
 (held to 0.25 px). It also checks that the snow, the stars, the Christmas lights and the distant houses' bulbs draw discs
 and not one circle.
@@ -482,12 +527,12 @@ either path and the two cannot drift apart in how they treat a late or a first
 frame.
 
 **The Canvas loop runs only on an engine that has fallen back to Canvas, has a surface, has no GL thread and is not
-destroyed** (`GlLifecyclePolicy.canvasLoopMayRun`, since v5.15): every place that posts it asks, and `drawFrame` asks
-again, with the surface valid, before `lockCanvas` -- without one it neither locks nor posts itself again. Until v5.15 a
-preview engine of the system picker, left open on a package the firmware had stopped, was created without a surface
-when the package came back; with the screen on it was told it was visible, and its loop asked `lockCanvas` ten times a
-second, an error each time and the main thread inside the call almost all the time, for as long as the process lived
-(v5.15A). The GL thread's start takes a Canvas loop off the queue, and a fall-back
+destroyed** (`GlLifecyclePolicy.canvasLoopMayRun`): every place that posts it asks, and `drawFrame` asks
+again, with the surface valid, before `lockCanvas` -- without one it neither locks nor posts itself again. The case it
+stops: a preview engine of the system picker, left open on a package the firmware had stopped, is created without a
+surface when the package comes back and, with the screen on, is told it is visible; a loop on it would ask `lockCanvas`
+ten times a second, an error each time and the main thread inside the call almost all the time, for as long as the
+process lived. The GL thread's start takes a Canvas loop off the queue, and a fall-back
 that arrives after `onDestroy` is ignored. **An engine without a surface does not count as on screen**
 (`GlLifecyclePolicy.countsAsVisible`): it does not run the weather loop and it does not count among the visible
 engines the memory policy reads.
@@ -544,25 +589,32 @@ objects. Packing is what removes the batch breaks rather than reordering around
 them, which matters because draw order *is* depth order here and cannot be
 changed.
 
-**And a batch ends when it is full: 12 288 vertices** (`GlSceneTarget.MAX_VERTICES`). A sprite is 6, a fan of
-`drawCircle` 24 or more (eight slices at the least, `CircleTable.MIN_SEGMENTS`), so what filled a frame was its circles.
-The 5.13 drew its snowflakes, its point stars and every Christmas light as circles, and at the factory settings took
-Christmas at night past the batch at 16 of 60 positions along the street (13 956 vertices; measured on the BV6600 with
-the 5.13's own build, v5.14B). Since v5.14 every one of those dots is a disc (`drawDisc`, 6 vertices) and every wreath a
-blit of the atlas (`deco_wreath`): Christmas at night with everything on -- the people at their most, the distant
-houses, every building shut -- takes 9 738 vertices at most over the street and twelve moments, and with the snow
-falling at 100 %, every star and the distant houses at 100 % 10 992, one draw everywhere (where the 5.14 before the
-discs drew the first in two at 4 to 6 positions of 60 and the second in two at all 60). Those numbers are at the tests'
-360 x 800; a circle is a segment every 3 px of the screen, so the frame takes more on a larger one: for Christmas at its
-most 11 247 at the BV6600's 720 x 1440 and 11 631 at 1080 x 2340, one draw everywhere (every scene above, at those two
-sizes), and 11 988 at 1440 x 3200, under the batch; there, Autumn at its most takes 12 312 at one position of 60 and two
-draws (v5.14C; kept so by the maintainer, 2026-10-16). With Santa's sleigh in flight over Christmas at its most -- the
-reindeer through their four poses, the gifts falling -- about 12 000 at 360 x 800, one draw; at 720 x 1440 about 12 350
-and at 1080 x 2340 about 12 800, two draws at one and at three positions of 60 (on the BV6600: v5.15C2's sweep 12 009,
-12 351 and 12 810, 2026-10-20; on the final 78 / "5.15" APKs the same day 12 009 and, in `GlDrawCallTest`, 12 033 at 360
-x 800, 12 351 and 12 786 -- the gifts fall at random moments, a gift's few vertices from one run to the next -- and as
-many positions in two draws). `GlDrawCallTest` sweeps the street, because one frame does not see it: v5.14A measured the
-frame at scroll 0 and found 11 721.
+**The batch is drawn with an index** (`glDrawElements`, `GL_UNSIGNED_SHORT`): a point several triangles share -- the
+corners of a quad, the centre and the rim of a fan -- is written once and named by its index. The triangles, their order
+and their floats are the ones written corner by corner would be, so the picture is the same. `GlSceneTarget` counts the
+corners (`drawnVertices`) and the vertices written (`writtenVertices`).
+
+**And a batch ends when it is full: 12 288 triangle corners** (`GlSceneTarget.MAX_VERTICES`); the vertices written
+are never more, and the indices stay within an unsigned short. A sprite
+is 6 corners (4 vertices written), a fan of `drawCircle` 24 or more (eight slices at the least,
+`CircleTable.MIN_SEGMENTS`; the slices plus two written), so what fills a frame is its circles: that is why the
+snowflakes, the point stars and every Christmas light are discs (`drawDisc`) and every wreath a blit of the atlas
+(`deco_wreath`), and why a drop of rain has square ends (`Paint.Cap.SQUARE`): one quad, 6 corners and 4 vertices written,
+lengthened by half its width at each end along the line as the Canvas's square cap is, so the drop is as long as with
+round ends, where a round end would add a fan at each end (54 corners a drop); full rain (240 drops, 1 440 corners) does
+not fill a batch on its own. `drawLine` ends its quad at the two points for `BUTT` and `ROUND`, and adds the two fans for
+`ROUND`. Christmas at night with everything on -- the people at their most, the distant houses, every building
+shut -- takes 9 738 corners at most over the street and twelve moments, and with the snow falling at 100 %, every star
+and the distant houses at 100 % 10 992, one draw everywhere. Those numbers are at the tests' 360 x 800; a circle is a
+segment every 3 px of the screen, so the frame takes more on a larger one: for Christmas at its most 11 247 at the
+BV6600's 720 x 1440 and 11 631 at 1080 x 2340, one draw everywhere (every scene above, at those two sizes), and 11 988
+at 1440 x 3200, under the batch; there, Autumn at its most takes 12 312 at one position of 60 and two draws (kept so by
+the maintainer, 2026-10-16). With Santa's sleigh in flight over Christmas at its most -- the reindeer through their four
+poses, the gifts falling -- about 12 000 at 360 x 800, one draw; at 720 x 1440 about 12 350 and at 1080 x 2340 about
+12 800, two draws at one and at three positions of 60 (on the BV6600, 2026-10-20: in `GlDrawCallTest` 12 033 at 360 x
+800, 12 351 and 12 786 -- the gifts fall at random moments, a gift's few corners from one run to the next).
+`GlDrawCallTest` sweeps the street, because one frame does not see it, and holds the corners and the vertices written
+of each primitive and of a crowded frame.
 
 **A sprite is reduced, then cropped, then packed — and the order is the whole of it.**
 `GlTextureCache` uploads only the texels that carry ink: the transparent border is cut off *after*
@@ -614,9 +666,12 @@ shader works in premultiplied space and the blend function is
 The two halves of that pairing must move together; mixing the conventions is the
 classic cause of dark fringes on every soft sprite edge.
 
-**Tinting is the same operation as on `Canvas`.** The fragment shader computes
+**Tinting is the same operation as on `Canvas`, for an opaque tint.** The fragment shader computes
 `vec4(tex.rgb * v_Color.rgb, tex.a) * v_Color.a`, which is what
-`PorterDuffColorFilter(tint, MULTIPLY)` followed by `paint.alpha` produces. Baked-in
+`PorterDuffColorFilter(tint, MULTIPLY)` followed by `paint.alpha` produces. The GL path ignores the
+tint's own alpha, which the Canvas filter multiplies in: a day/night blend of `SceneColour.blendArgb`
+can come out at 254 between its ends, which `Canvas` then draws a level of 255 dimmer -- left so by the
+maintainer's decision of 2026-10-25, `TintOpacityTest` holding that no more than that one level is lost. Baked-in
 shading survives the tint here for the same reason it does there, and white remains
 the identity tint. `TintFilterCache` is consequently used only by the `Canvas`
 backend now — on the GPU the tint is four floats in a vertex.
@@ -628,7 +683,8 @@ rather than as a model-matrix uniform. A uniform would end the batch at every
 **Sprite pixels are pulled, not pushed.** `SceneCanvas.drawSprite` takes a
 `SpriteSource` rather than a decoded `Bitmap`, because the two backends need the
 pixels at wildly different rates: the `Canvas` backend needs them for every blit,
-the GPU backend once per sprite for the life of the context. `GlTextureCache`
+the GPU backend once per sprite and detail level, and again after a memory trim or a
+lost context. `GlTextureCache`
 records each sprite's pixel dimensions at upload time, so a steady-state blit
 resolves its size from the registry and never touches `SpriteCache` — which was
 otherwise a synchronised lookup with an LRU touch, once per sprite per frame, to
@@ -637,7 +693,8 @@ recover a width and a height that had not changed since the first one.
 Once a sprite is on the GPU the CPU copy is a duplicate, so the GPU backend calls
 `SpriteSource.onSpriteUploaded`, which releases it from `SpriteCache`. Re-decoding
 is always available — the same property that makes memory-pressure eviction safe —
-so being wrong costs one decode. The `Canvas` backend never reports an upload,
+so being wrong costs one decode -- which a second detail level of the same sprite
+does cost. The `Canvas` backend never reports an upload,
 because it holds no durable copy to justify releasing one.
 
 **A sprite blit can be summed instead of laid over.** `SceneCanvas.drawSprite` carries an
@@ -655,7 +712,7 @@ region is:
   is simply added. The flag travels in the **sign of the vertex alpha** — `step` zeroes the output
   alpha, `abs` puts the scale back — which is two instructions and, crucially, **no state change**:
   the batch survives, the vertex format is unchanged, and a figure in five layers is still one
-  `glDrawArrays`. `glBlendFunc(GL_ONE, GL_ONE)` would have been the obvious way and would have
+  `glDrawElements`. `glBlendFunc(GL_ONE, GL_ONE)` would have been the obvious way and would have
   ended the batch at every layer.
 - **Canvas** uses `PorterDuff.Mode.ADD`, which sums alpha as well as colour. That would be wrong
   over a transparent destination and this scene has none: the sky is painted opaque under
@@ -665,19 +722,19 @@ Because the colour is resolved by the *blend* rather than by the shader, the Can
 seeing the people exactly as the GPU draws them. Resolving it in the shader would have put every
 Canvas check of a person on a backend it cannot run.
 
-**A sprite cut to a box is a smaller quad, not a state** (v5.12, `drawSpriteClipped`). The content
+**A sprite cut to a box is a smaller quad, not a state** (`drawSpriteClipped`). The content
 quad is computed as for a whole sprite, then cut to the box in the sprite's own coordinates -- before
 the transform, where the quad and the box are both axis-aligned, so the cut is exact under the mirror
 a walking person is drawn with -- and the texture rectangle is cut in the same proportion
 (`SpriteClip`). A side the box does not cut keeps its coordinate and its texture coordinate to the
 bit, so a box round the whole sprite draws the whole sprite. No uniform, no scissor and no blend state
-change: the cut sprite is six vertices in the open batch, and `GlDrawCallTest` counts one draw call
-for a frame with somebody walking as for any other. A scissor rectangle would have been the obvious
-way and would have ended the batch at every walker. **`drawSprite` and `drawSpriteClipped` share no
-body** (v5.12C): the whole sprite is the call the frame makes most, and routed through one function with
-the cut's arguments it grew past what ART inlines into -- the transform's scale, `useTexture` and
-`ensureRoom` became calls of their own on every sprite, 5 to 21 % more cycles on the sprite path on the
-BV6600's `perf` build (`simpleperf`). The whole sprite's body is v5.12B's, to the character.
+change: the cut sprite is one more quad in the open batch (6 corners, 4 vertices written), and
+`GlDrawCallTest` counts one draw call for a frame with somebody walking as for any other. A scissor
+rectangle would have been the obvious way and would have ended the batch at every walker.
+**`drawSprite` and `drawSpriteClipped` share no body**: the whole sprite is the call the frame makes
+most, and routed through one function with the cut's arguments it grows past what ART inlines into --
+the transform's scale, `useTexture` and `ensureRoom` become calls of their own on every sprite, 5 to
+21 % more cycles on the sprite path on the BV6600's `perf` build (`simpleperf`).
 
 **Fully transparent draws are skipped.** Under premultiplied blending a zero-alpha
 primitive contributes exactly nothing, and the scene fades a lot of things through
@@ -688,7 +745,7 @@ count derived from their radius *in device pixels*, so a shape drawn inside a
 `scale(1/3)` sprite transform is not tessellated as though it were three times
 larger. The slices' cosines and sines come from `CircleTable`, built once with the
 loop's own expression; a point two triangles share is mapped through the
-transform once; and a hill column wholly off the surface is not emitted. Each is the
+transform and written once; and a hill column wholly off the surface is not emitted. Each is the
 same float, or no sample, so the frame is the same frame.
 
 Gradients are vertex colours. A two-stop ramp is linear, and so is interpolation
@@ -751,12 +808,16 @@ around the renderer: a lock would put every settings write in contention with th
 frame loop. On the `Canvas` fallback the main looper owns the scene and the same
 helper runs the update inline.
 
-Three process-wide objects are multi-threaded as a result, because a
+Two process-wide objects are multi-threaded as a result, because a
 process can host two engines (the picker's preview and the live wallpaper) and
-therefore two render threads. `SpriteCache`, `TintFilterCache` and
-`SunPositionCalculator.currentHour24()` are synchronised.
-The cost is an uncontended monitor on a cache hit — the expensive
-path is the decode, which happens once per sprite per process.
+therefore two render threads: `SpriteCache` and `TintFilterCache` are synchronised.
+The scene's hour is not shared: each engine reads its own, once a minute
+(`PaperWallpaperService.sceneHourNow`, on the offset its sunrise and sunset were worked
+out for). The cost is an uncontended monitor on a cache hit — the expensive
+path is the decode, whenever a sprite is asked for and its bitmap is not held: on the
+GPU path once per sprite and detail level (the bitmap is released after each upload),
+again after a memory trim, a lost context or the settings screen's clearing of the
+cache; never on a steady frame.
 
 ### EGL lifecycle
 
@@ -777,7 +838,7 @@ fallback. The scene draws circles, arcs and thin strokes that `Canvas` antialias
 analytically and GL does not, so MSAA is what keeps those edges comparable; a device
 that cannot supply it still gets a wallpaper.
 
-A failed frame first rebuilds the EGL state (`GlLifecyclePolicy`: at most three times, and only for a context that has drawn); after that the thread reports once and parks, and the engine switches to
+A failed frame first rebuilds the EGL state (`GlLifecyclePolicy`: only for a context that has drawn, and at most three times in a row -- the count is given back after 300 frames drawn and swapped since the last rebuild, `GlLifecyclePolicy.RebuildBudget`; a frame whose `eglSwapBuffers` failed does not count, and a context lost at the swap is a rebuild like any other, so a GPU that loses it at every swap reaches the end of the budget too); after that the thread reports once and parks, and the engine switches to
 the `Canvas` loop for the rest of its life. The scene is untouched by that switch:
 the same renderer keeps drawing, through the other backend.
 
@@ -785,26 +846,31 @@ Textures are derived data — every sprite can be decoded again from resources �
 memory pressure drops them too, costing a re-upload and never a missing sprite.
 Because a texture can only be deleted by the thread whose context owns it,
 `onTrimMemory` reaches each engine's render thread as a request it honours with its
-context current, rather than acting directly. The white pixel goes with the rest and
-is packed back first, both because flat geometry cannot be drawn without it and
-because being first is what keeps it inside the atlas. **While the wallpaper is
-hidden it is packed back only when the next frame is prepared**
-(`GlSceneTarget.trimTexturesWhileHidden`): packing even that one texel re-creates the
-whole 2048² page, which would give back nothing; owed to the next frame, a trim at
-screen-off gives back the page's 16 MB.
+context current, rather than acting directly. **An engine that is drawing keeps its
+atlas** and gives back only the textures the atlas would not take
+(`GlSceneTarget.trimTextures`, `MemoryPressurePolicy.gpuTrimFor`,
+`GlTextureCache.clearStandalone`): the atlas is what its next frame draws from, and
+dropping it would re-create the page at once for the white pixel and upload every
+sprite again -- nothing given back, and a frame of 700 ms on the BV6600. **A hidden
+engine gives back everything, the white pixel included, packed back only when the next
+frame is prepared** (`GlSceneTarget.trimTexturesWhileHidden`): packing even that one
+texel re-creates the whole 2048² page, which would give back nothing; owed to the next
+frame, a trim at screen-off gives back the page's 16 MB.
 
 ### Sprite memory
 
 | | |
 |---|---|
 | Whole sprite set, decoded | printed on every build by `SpriteGeometryTest` (`decodedByteBudget: … B of …`), and by `python -m paperscrape_assets inventory` |
-| Atlas texture | 2048² RGBA = 16 MB, allocated on first sprite, typically a fraction used |
+| Atlas texture | 2048² RGBA = 16 MiB, one page of a fixed size, allocated when the context is created and the white pixel is packed into it (`GlSceneTarget.onContextCreated`); a trim while the wallpaper is hidden gives it back, and the next frame allocates it again |
 | CPU bitmaps retained by the wallpaper | none, once uploaded. The settings screen's cards decode into the same `SpriteCache` in this process, and the screen clears it when it stops (`SettingsActivity.onStop`, unless an engine draws with `Canvas`) |
 
-The atlas is a rearrangement of the sprite budget rather than an addition to it: its
-upper bound is roughly what the same sprites would cost as individual textures. On the
-heap side it is a genuine reduction — decoded bitmaps are released once uploaded — and
-heap is what makes a process a preferred low-memory-killer victim.
+The atlas is an addition to the sprite budget, not a rearrangement of it: the page costs
+its 16 MiB however little of it a scene fills (§9, item 11). What the set uploads and
+decodes is printed by `SpriteDrawScaleTest.uploadedTexelBudget` and
+`SpriteGeometryTest.decodedByteBudget`. On the heap side it is a reduction — decoded
+bitmaps are released once uploaded — and heap is what makes a process a preferred
+low-memory-killer victim.
 
 ### Allocation on the frame path
 
@@ -845,12 +911,13 @@ reason at a different scale — see the sprite blitting and asset sections.
 Every sprite goes through `SpriteBlitter`: `draw` (baked-in colours), `drawTinted` and
 `drawTintedAdded` (summed, the people's region masks) over one private `blit`, and `drawClipped`,
 which puts a box through the same oversample for a sprite of which only a part is drawn (a person
-walking out of a window, v5.12); and `drawDisc` (v5.14), the small round dots, which names their drawing
+walking out of a window); and `drawDisc`, the small round dots, which names their drawing
 (`deco_bulb`) for `SceneCanvas.drawDisc`.
 The tint colour and the alpha are passed explicitly on every blit rather than left
 as paint state, so no blit inherits either from whatever was drawn before it. How
 they are applied is the backend's business: `CanvasSceneTarget` builds a
-`PorterDuffColorFilter`, `GlSceneTarget` puts the same numbers in the vertex colour.
+`PorterDuffColorFilter`, `GlSceneTarget` puts the same numbers in the vertex colour (the tint's
+alpha aside, which it ignores: see "Tinting is the same operation as on `Canvas`, for an opaque tint").
 `draw` is `drawTinted` with white, the `MULTIPLY` identity.
 
 Two scale conventions coexist. Each sprite's convention is declared in its
@@ -1030,8 +1097,8 @@ lanes, both pavement rows and every vehicle and pedestrian read the same
 function, so their relative sizes and speeds follow from their ground lines with
 nothing kept in step by hand.
 
-**The weather is sized the same way the buildings are.** Rain, snow and the
-lightning bolt declare a size in metres and convert it with
+**The weather is sized the same way the buildings are.** Rain (a line with square ends,
+on both backends), snow and the lightning bolt declare a size in metres and convert it with
 `SceneSpace.pixelsPerMetre`, exactly as every category in the size table does: a size in
 metres is checkable against a child, a head and the skyline, where a pixel count answers to nothing.
 
@@ -1107,7 +1174,7 @@ authored in is declared per sprite in `tools/assets/sources/sprites.json` and re
 `SceneObjectRenderer.variantFor` resolves which drawing a static object is
 (small or large house; tower; or a place among the houses, in the restaurant's, the school's or the bar's row of the size table) once, and both the size and the
 dispatch come from that one answer. A house takes its family from the silhouette it was
-dealt (`SilhouetteDeal`); towers and shops choose by depth rather than by a position hash, so towers sit on the skyline and shop fronts among the houses. The colour pair follows the same answer: a tower wears the Buildings colours, and a building among the houses -- which of the six stands in a place is the street's, `StorefrontStreet` (v5.13) -- its group's: the Shops colours for the restaurant, the bar and the shop, the Public buildings colours for the school and the two stations; so a building cannot be drawn as one and coloured as the other.
+dealt (`SilhouetteDeal`); towers and shops choose by depth rather than by a position hash, so towers sit on the skyline and shop fronts among the houses. The colour pair follows the same answer: a tower wears the Buildings colours, and a building among the houses -- which of the six stands in a place is the street's, `StorefrontStreet` -- its group's: the Shops colours for the restaurant, the bar and the shop, the Public buildings colours for the school and the two stations; so a building cannot be drawn as one and coloured as the other.
 
 **The variant chooses a family, not a picture.** All six dispatch to one
 `drawNeighbourhoodBuilding`, which builds the silhouette the building was dealt (from its position, for one nobody dealt): the
@@ -1130,7 +1197,7 @@ what an old custom theme can carry -- falls back to the canonical lane spacing.
 horizon where `perspectiveScaleAt` is at or near zero, so it has its own metric
 (21 px per metre) whose only job is keeping its inhabitants right relative to
 each other. Birds, fireworks and the celestial bodies are composed
-for legibility and read neither. The sleigh flies where the sky puts it, but since v5.15 its
+for legibility and read neither. The sleigh flies where the sky puts it, but its
 size is the projection's: Santa is 1.3 times an adult on the near pavement row
 (`SantaSleighScale`).
 
@@ -1246,8 +1313,14 @@ The kernel has a flat top: coverage is exactly 1 within a cloud's own silhouette
 and falls smoothly to 0 across a margin `RAIN_SPREAD_FACTOR` times wider,
 combining by maximum so an overcast sky saturates to exactly 1 and reproduces the
 full drop set. Coverage 0 means no precipitation, with no diffuse floor
-anywhere. When the cloud layer is switched off, the field is set uniform so that
-hiding clouds does not also hide rain.
+anywhere while the clouds are settled. When no cloud is placed -- the cloud layer off or at 0 %, a forecast
+that reports a clear sky -- the field is set uniform so that hiding clouds does not also hide rain.
+
+**Between the two the rain does not jump.** While the last clouds of a clearing sky fade out, or the first of a
+clouding one fade in, `CloudCoverFade.rainEverywhereToward` moves a floor at the clouds' own fade rate
+(`FADE_SECONDS`, 1.5 s), and `CloudCoverage.setFloor` raises the whole field to it: the rain spreads from under the
+clouds to the whole sky as they go, and narrows under them as they come. Under a cloud the field is 1 from the
+cloud's first frame whatever its opacity, so the rain under a cloud fading in falls at once.
 
 This depends on `drawClouds` running before `drawPrecipitation` in the frame,
 which it does unconditionally. Reversing that order would leave precipitation
@@ -1317,7 +1390,7 @@ Both keep the callers' own addressing, so they decide which value a
 slot receives and nothing about which slot is which. `PedestrianPopulation` deals
 the four person kinds, the three group sizes, the three skin tones, the two
 directions and the two pavement rows; `WindowOccupants` deals a building's
-occupant count, over the windows it had before v5.12, and their first windows across all of its own; `SilhouetteDeal` deals each building category's silhouettes. The stability contract is untouched:
+occupant count, over the windows its number of people was set on (`Deal.peopleWindows`), and their first windows across all of its own; `SilhouetteDeal` deals each building category's silhouettes. The stability contract is untouched:
 a slot's value is still a pure function of `(seed, slot)`, so lowering a density
 still removes particular slots and leaves the rest exactly as they were.
 
@@ -1349,9 +1422,9 @@ The archive uses `SceneCustomization.toJson`, the same serialisation `CustomThem
 saved themes with -- so a customised built-in and a saved theme are the same bytes in two places
 rather than two formats to keep in step, and the backup format gets both for free.
 
-**The shops' colours and what was stored before them (v5.11).** Until v5.11 the shops wore the
-Buildings colours. A JSON payload with no `shops` block -- a theme's archive, a saved theme, a
-backup's themes, a theme file -- is read with the Buildings colours it carries, modes included, so
+**The shops' colours and what was stored before them.** A JSON payload with no `shops` block --
+a theme's archive, a saved theme, a backup's themes, a theme file, written when the shops wore the
+Buildings colours -- is read with the Buildings colours it carries, modes included, so
 it keeps the look it had. The flat live edit is the one place that keeps only what the user touched:
 where it holds a Buildings colour, the shops and the towers are read as the pair the old build drew
 them in (that colour, the old slate for the rest); where it holds none, both start from the theme's
@@ -1361,8 +1434,8 @@ the theme's own colours -- on a theme that is not built in, the ones `withStarti
 chooses for it (a copy of a built-in theme, that theme's). The
 distant houses are absent from every older payload and read off.
 
-**The public buildings' colours and hours, and what was stored before them (v5.13).** Until v5.13 the
-school wore the shops' colours and kept the shops' hours. A JSON payload with no `publics` block is
+**The public buildings' colours and hours, and what was stored before them.** A JSON payload with no
+`publics` block -- written when the school wore the shops' colours and kept the shops' hours -- is
 read against the theme it belongs to (`sceneCustomizationFromJson(json, theme)`; a backup's and a theme
 file's entries know theirs, an archive its id, `themeKnownAs`): shops' colours that differ from that
 theme's starting ones were changed by hand and are carried to the public buildings, otherwise the theme's
@@ -1384,6 +1457,19 @@ Both parse into a whole document or an error, never a partial one, so validation
 are separate steps. `prefs/BackupRepository.kt` supplies what DataStore cannot: the two stores have
 no shared transaction, so an import snapshots the current state, writes both, and writes the
 snapshot back if the second write fails.
+
+**Both stores are read as they are, or not at all.** A backup and a restore read the settings
+(`WallpaperPrefs.readSettings`) and the saved themes (`CustomThemeStore.readOnce`) once; where either
+cannot be read just now (an `IOException`), the flows would serve a fresh install's values, so
+`export` gives nothing and writes nothing, and `import` is refused (`BackupImportError.Unreadable`)
+before it writes: no backup holds a fresh install's settings, and no rollback writes them back. The
+screen says so (*Advanced & about*, Backup).
+
+**Two lengths are bounded.** A text setting -- a place's name, an API key -- comes back from a backup up
+to `AppBackup.MAX_TEXT_SETTING_CHARS` (4 096 characters), as many as the app keeps (`keptText`); a
+longer one leaves the setting as it was. A theme's name is at most `ThemeShare.MAX_NAME_CHARS` (100),
+typed in the name field or read from a theme file, cut there without a line (`cutToName`, never between
+the two halves of a surrogate pair).
 
 **And the staging is uncancellable.** Snapshotting and parsing may be abandoned freely --
 they change nothing on disk -- but from the first `replaceAll` onward the only states worth being
@@ -1438,26 +1524,27 @@ The objects in front take the same moment too: a tree, a car or a decoration wea
 palm carries `nightShadeAt` as a `PreviewSprite.shade` that the painter hands to `SpriteBlitter.draw`
 as the wallpaper does, the clouds blend their pair on the same `dayBlend`, a pumpkin is carved
 where `halloweenEnabled` is on, and a penguin's belly is `SceneObjectRenderer.PENGUIN_BELLY_COLOR`.
-At night a house lights the windows the wallpaper's would at the first moment of its roster (v5.12:
-the same `WindowRoster` from the same seeds, the lit panes as `PreviewSprite`s with a `rectWidth`, flat
+At night a house lights the windows the wallpaper's would at the first moment of its roster (the
+same `WindowRoster` from the same seeds, the lit panes as `PreviewSprite`s with a `rectWidth`, flat
 cards the painter draws over the dark glass). The card draws no porch light, car lamp, beacon, wheel,
 window occupant or chimney smoke, at any hour. Of the six buildings among the houses it draws three of
 the street's first stretch -- the buildings of three of the first copy's places,
 one for each row of the size table and the nearer of two in a row (`StorefrontStreet.firstStretch`,
-`cardPlaceOf`; two of a built-in street's five places are left out since v5.13B2) -- each in its group's
-colours and hours, shut with blinds and a shutter (v5.14) -- the shutter the wallpaper's own bands
+`cardPlaceOf`; two of a built-in street's five places are left out) -- each in its group's
+colours and hours, shut with blinds and a shutter -- the shutter the wallpaper's own bands
 (`DoorShutter.forEachBand`, one sequence for both) cut from the door's outline, flat cards of that shape
 (`PreviewSprite.outline`); and its towers only where the
 wallpaper keeps one (*Show Buildings* on and *Towers* above 0 %). With *Lights on the buildings* on its buildings carry the
-wallpaper's Christmas decorations (v5.14C2), the points from `ChristmasDecorations`, the one sequence the wallpaper draws from too
+wallpaper's Christmas decorations, the points from `ChristmasDecorations`, the one sequence the wallpaper draws from too
 (`drawDecorations`, its sill strings and its distant houses' bulbs), laid out as parts marked `PreviewSprite.decoration` -- the
 bulbs as discs (`discRadius`, which the painter draws with `SpriteBlitter.drawDisc`, the circle of a Canvas), a tower's star as an
 outline, the wreaths as `deco_wreath` blits at their own `PreviewSprite.scale` -- still and lit, a little larger than the
 wallpaper's (`cardDecorationFactor`: the smallest of a building 2 px or a little more on the BV6600's gallery card), the strings
-without their cords. With *Halloween decorations* on its houses and shops carry theirs (v5.16), the points from
+without their cords. With *Halloween decorations* on its houses and shops carry theirs, the points from
 `HalloweenDecorations`, the sequence `drawHalloweenDecorations` draws from too, as parts marked `PreviewSprite.decoration` as well:
-still, the bats unswung, the jack-o'-lanterns' candles lit as much as the card's night is, as the wallpaper's (none on a day card), `cardHalloweenFactor` times their size
-(their narrowest band 2 px on the BV6600's gallery card).
+still, one cobweb a building at the corner the wallpaper hangs it, tinted from the card's walls (`PreviewSprite.tint`, mirrored
+or not), the jack-o'-lanterns' candles lit as much as the card's night is, as the wallpaper's (none on a day card),
+`cardHalloweenFactor` times their size (their narrowest band 2 px on the BV6600's gallery card).
 
 It holds **no Android type beyond resource ids**, which is what makes "what does this theme's
 preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
@@ -1549,12 +1636,18 @@ re-binds the service; with it, the engine object is the
 same one before and after. The flag cannot be passed from outside the app, which is why this is
 code and not a script.
 
-**Nothing polls.** `SeasonalIconController` registers for `ACTION_DATE_CHANGED` (plus
-`TIME_CHANGED` and `TIMEZONE_CHANGED`) in code rather than in the manifest — implicit broadcasts
-have been refused to manifest receivers since Android 8, and the process is already alive whenever
-the wallpaper is set, so there is nothing to wake. A registered receiver costs nothing until it
-fires: no alarm, no job, no wakelock. A device whose wallpaper is not this app runs none of it and
-corrects itself the next time the wallpaper or the settings screen starts.
+**Nothing polls.** The wallpaper's service registers one receiver for `ACTION_DATE_CHANGED` (plus
+`TIME_CHANGED` and `TIMEZONE_CHANGED`), in code rather than in the manifest
+(`PaperWallpaperService.dateReceiver`) — implicit broadcasts have been refused to manifest receivers
+since Android 8, and the process is already alive whenever the wallpaper is set, so there is nothing
+to wake. A registered receiver costs nothing until it fires: no alarm, no job, no wakelock. On each
+broadcast `SeasonalIconController` puts the new day's icon on, and each engine chooses its theme by
+date again, redraws if it changed, and wakes its loop to work out the new day's sunrise and sunset:
+the icon and the theme change together. One receiver serves both because the controller and the
+receiver live alike, from the service's `onCreate` to its `onDestroy`. A device whose wallpaper is
+not this app runs none of it and corrects itself the next time the wallpaper or the settings screen
+starts; the settings screen reads its icon's settings with `readSettings`, and leaves the icon as it
+is when they cannot be read just now.
 
 ### Theme resolution
 
@@ -1573,7 +1666,7 @@ settings.themeId
 
 Every window in the scene crossfades from the day's glass on the frame's own `nightGlow`:
 `SceneObjectRenderer.WINDOW_GLASS_DAY` (`#B9CBD9`, cool glass) to `WINDOW_GLASS_NIGHT` (`#FFE79A`,
-warm light) when it is lit, and to `UNLIT_GLASS_NIGHT` (`#343B47`, dark glass) when it is not (v5.12).
+warm light) when it is lit, and to `UNLIT_GLASS_NIGHT` (`#343B47`, dark glass) when it is not.
 `windowGlassColor` and `unlitWindowGlassColor` are the only places that blend those constants (a
 house's window across a change is blended between the two results, `drawLitPanes`, and a business's -- a
 shop's, the school's or a tower's -- across its closing, `businessGlassColor`), and four places
@@ -1588,24 +1681,24 @@ opening hours of its group -- the towers', the shops' or the public buildings' (
 the police station never close, `Storefront.keepsHours`), by what the building is
 (`SceneCustomization.opennessFor`, the rule its colours follow; all three off by default and then
 arithmetically absent): outside their hours their glass is unlit -- the day's glass by day, the dark
-glass at night, reached over the doorway's two seconds (`businessGlassColor`, v5.12; `WindowWalk.Doorway.glassAt`, v5.14) -- and their window
+glass at night, reached over the doorway's two seconds (`businessGlassColor`, `WindowWalk.Doorway.glassAt`) -- and their window
 occupants walk out one at a time in the minute before a closing, the glass going dark at the closing minute
-once the last is out, and walk in at the opening minute, the glass lit over two seconds first (v5.14,
-`BusinessHours.peopleAt`, `WindowWalk.Doorway`); shut, the building shows its blinds and its door's shutter
+once the last is out, and walk in at the opening minute, the glass lit over two seconds first
+(`BusinessHours.peopleAt`, `WindowWalk.Doorway`); shut, the building shows its blinds and its door's shutter
 (`drawShut`). **A house lights half its windows at
-night** (v5.12): its glass mask is drawn in the dark glass and each lit pane is a flat card laid over
+night**: its glass mask is drawn in the dark glass and each lit pane is a flat card laid over
 it, the pane less `LIT_PANE_INSET` (`drawLitPanes`), at the panes the generator lists for each house
 piece (`BuildingPiece.panes`). Which panes are lit, and who stands at the windows of a building (a
 tower's never move), is the building's `WindowRoster` -- and at the hours how many of them are in, its
 doorway: worked out once when the scene's objects are built
 (`giveRosters`) and read every frame from the scene's clock, so it changes one thing at a time, every
-couple of minutes, and allocates nothing. By day both colours are the day's glass and a house is drawn
-as it always was. The lamp by a door lights with the building's `glassNight` since v5.11: unlit paper
+couple of minutes, and allocates nothing. By day both colours are the day's glass. The lamp by a door lights with the building's
+`glassNight`: unlit paper
 by day, lit at night, dark while its building is closed. The houses' windows never consult the
 opening hours — one line, `glassNight`, which `BusinessHoursWiringTest` pins along with the occupant
 path's own exemption (a house keeps no doorway), the way `SkyscraperWindowTest` pins the colour coupling.
 
-**Nobody at a window appears or vanishes: they walk** (v5.12, `WindowWalk`). When the roster moves a
+**Nobody at a window appears or vanishes: they walk** (`WindowWalk`). When the roster moves a
 person, they walk sideways out of their window, hidden by the wall beside it, and into the other from
 its side -- along one floor in one stretch, to another floor out of one window, a few seconds on the
 stairs and into the other; the same person, whose look is dealt from the window they first stood at
@@ -1619,7 +1712,7 @@ than five minutes between two frames (the screen off for an hour, a fixed hour m
 or the opening hours changed (`SceneCustomization.sameOpeningHours`) -- settles the doorways at once,
 as the sky and the glass change at once; any other change of the settings leaves a walker walking.
 Everybody of a building is worked out once for its frame into `WindowWalk.Figures` (reused arrays):
-whoever stands still is drawn as before v5.12, whoever walks is drawn cut to each pane they are seen
+whoever stands still is drawn whole, whoever walks is drawn cut to each pane they are seen
 through (`drawSpriteClipped`), in front of anybody standing there; a light a walker takes along lights
 before they reach the window and goes out once they have left it (`WindowWalk.litAmount`).
 `WindowWalkTest` holds it on the JVM over every building of the twelve streets frame by frame,
@@ -1717,7 +1810,7 @@ density rebuilds the static objects **without** resetting every car's in-flight
 `progress` along the road. Rebuilding the static list is visually free, since
 what a `StaticRuntime` holds is derived deterministically from its spec -- its
 `idleSeed`, its drawn depth, a building's roster and windows -- except a building's
-doorway at the hours, which the rebuild hands to the new list (v5.12); rebuilding the car list is not, which is why it is gated on the cars'
+doorway at the hours, which the rebuild hands to the new list; rebuilding the car list is not, which is why it is gated on the cars'
 **visibility** alone. A car *density* change rebuilds nothing at all:
 the slider maps to an explicit count (1 car at 0%, all ten slots at
 100% — `CarSelection`), every inventory slot keeps a ticking runtime whatever
@@ -1735,8 +1828,8 @@ All scene sprites are PNGs in `res/drawable-nodpi/`. `nodpi` is deliberate:
 sprites are scaled by an explicit `canvas.scale()`, so Android's automatic
 density scaling must not also apply.
 
-`SpriteCache` decodes each resource once (`inScaled = false`) into a Kotlin
-`object`, shared by every engine in the process — a wallpaper process can host
+`SpriteCache` decodes a resource (`inScaled = false`) when it is asked for and not held, into a
+Kotlin `object` shared by every engine in the process — a wallpaper process can host
 the picker's preview engine and the live engine at the same time.
 
 Bookkeeping (keys, byte sizes, LRU order) lives in `SpriteCacheIndex`, a pure
@@ -1773,7 +1866,7 @@ What is structural, and therefore worth stating here rather than counting:
 
 - **Every canvas is a whole multiple of the 3 px authoring grid.** `SpriteGeometryTest` fails
   the build if one is not.
-- **No two shipped sprites are byte-identical.** `validate` fails on an undeclared duplicate
+- **No two shipped sprites are pixel-identical** (the same pixels, however compressed). `validate` fails on an undeclared duplicate
   pair: one drawing under two names is two decodes, two atlas entries, and two files that can
   be edited apart in one place only.
 - **Total decoded size is capped**, and the cap is what the memory-pressure policy and the
@@ -1791,7 +1884,7 @@ What is structural, and therefore worth stating here rather than counting:
 Transparent margin is not accounted as waste, because it is not
 incidental. Each sprite declares a `contentBox` and an anchor rule, and the
 margin around the content is what the anchor is measured against: `palmtree_fronds`
-hangs its fan above a declared attachment point, `cloud_body` and `sun_body` are
+hangs its fan above a declared attachment point, `sun_body` and the moon's phases are
 centred in canvases their artwork deliberately does not fill. Cropping any of them
 would move the sprite rather than save anything.
 
@@ -1863,7 +1956,7 @@ the ink twice. Nothing has moved — the ink is at the same coordinates in the s
 own space and the origin compensation keeps it there on screen — but the rasterised
 edge is heavier than it was.
 
-Measured on the BV6600 in v4.31, cropping `dolphin_body`, `sailboat_hull` and
+Measured on the BV6600, cropping `dolphin_body`, `sailboat_hull` and
 `sailboat_sail` tight to the grid: **6 pixels changed in each of three lake goldens**,
 up to 70 levels on a single contour pixel, in frames where the other 288 000 were
 identical.
@@ -2013,7 +2106,7 @@ One DataStore Preferences instance per file:
   `settingsFlow: Flow<WallpaperSettings>`.
 - `paperscrape_custom_themes` — `CustomThemeStore`, custom themes and built-in
   overrides, serialised as JSON.
-- `paperscrape_update_prefs` — `UpdatePrefs`, the update snooze, the last notified tag and, since v5.15,
+- `paperscrape_update_prefs` — `UpdatePrefs`, the update snooze, the last notified tag and
   the moment GitHub's limit lifts (`update_limited_until_millis`).
 - `paperscrape_update_reply` — `UpdatePrefs`, GitHub's last reply to an update check, kept apart so
   the small file the snooze lives in does not have to parse it.
@@ -2060,7 +2153,8 @@ to a stale value for the frames between the finger lifting and the write
 landing.
 
 Text fields (custom location, hex colour, theme name) follow the same pattern
-with an explicit Apply/OK commit.
+with an explicit Apply/OK commit; a theme's name takes 100 characters at most, a place's name or a key
+4 096 (§4, "Backup and theme-share formats").
 
 ### The saved-themes document
 
@@ -2095,7 +2189,10 @@ strict scanner (`JsonSpans`), because `org.json` cannot hand back the text of a 
 re-serialising would change numbers and escapes. Every read retries each kept entry from the schema
 it records and puts it back where it came from if it now reads and its place is free. The section
 exists only while something is kept: a document with nothing unreadable carries no such section.
-A document that is not JSON is unreadable as a whole and refused.
+A document that is not JSON is unreadable as a whole and refused. **A backup carries the kept entries
+too** (`unreadableThemes`, each the stored text as a JSON string), and a restore keeps the phone's own
+(`AppBackup.themesWrittenOver`): a backup taken by a build that did not carry them would otherwise
+delete the only copy.
 
 `SceneTheme` overrides `equals`/`hashCode` on `id` alone, so two themes with the
 same id but different colours compare equal. `CustomThemeRegistry.generation()`
@@ -2126,9 +2223,12 @@ Lint's `OldTargetApi` would report a target that lags the compile SDK.
 
 Dependencies are declared as hardcoded version strings; there is no Gradle
 version catalog:
-Compose BOM `2026.08.00`, `core-ktx 1.19.0`, `appcompat 1.8.0`,
-`lifecycle 2.11.0`, `activity-compose 1.13.0`, `datastore-preferences 1.2.1`,
-`coroutines 1.11.0`. Nothing is on an alpha, beta or rc.
+Compose BOM `2026.08.00` (`ui`, `ui-graphics`, `material3` and `material-icons-core`),
+`core-ktx 1.19.0`, `lifecycle 2.11.0`, `activity-compose 1.13.0`,
+`datastore-preferences 1.2.1`, `coroutines 1.11.0`. Nothing is on an alpha, beta or rc.
+There is no `appcompat`, no `ui-tooling` (the project has no `@Preview`) and no
+`material-icons-extended`: the icons the settings draw beyond the core set are
+`ImageVector`s of the app's own in `ui/`.
 
 ### Build types
 
@@ -2158,12 +2258,18 @@ and asserts that no workflow builds it.
 `.github/workflows/android-build.yml`
 - `build` job on a push to `main` or of a `v*` tag, a pull request to `main`, and a manual run: lint, unit tests, `assembleDebug`, artifact
   upload. Never sees release secrets.
-- `release` job, only on a pushed `v*` tag -- never on a merge to `main`: checks
-  required secrets, decodes the keystore to a runner temp path, builds a signed
-  release APK, emits a SHA-256 checksum, produces a Sigstore build-provenance
-  attestation, refuses to overwrite an existing release, composes the body from
-  `release-notes/<tag>.md`, and publishes. The tag is validated against
-  `versionName`, not `versionCode`.
+- `release` job, only on a pushed `v*` tag -- never on a merge to `main`: before the build it
+  validates the tag against `versionName` (not `versionCode`), fails if `release-notes/<tag>.md` is
+  missing or empty, refuses to overwrite an existing release -- one `gh api --include` request for the
+  release under the tag, and only an HTTP 404 lets it go on; any other answer or failure (the network,
+  the token, GitHub) says nothing about whether the release exists and stops the job there, with
+  `gh`'s message -- and checks the required secrets (passed to the
+  scripts through `env:`); then it decodes the keystore to a runner temp path, builds a signed
+  release APK, emits a SHA-256 checksum, produces a Sigstore build-provenance attestation, composes
+  the body from `release-notes/<tag>.md`, and publishes. The app's *Update available* window shows that body
+  as it is, without reading Markdown, so the note is plain text: a paragraph or a list item a line (decision 95,
+  `DESIGN_NOTES.md` §12). Every checkout is made with
+  `persist-credentials: false`.
 
 There is **no third job**: CI runs no emulator, and **the instrumented tests are run on a phone
 instead** — see *Testing* below.
@@ -2174,8 +2280,8 @@ publishes for 9.7.1 so wrapper validation passes, and `compileSdk 37`
 needs nothing installed: the `ubuntu-24.04` runner image ships
 `android-37.0` alongside `android-36`, and build-tools 36.0.0, which is what
 AGP 9.4.0 selects by default. The three jobs of the two workflows -- `build` and `release` above and
-`dependency-submission.yml`'s -- name that image (`runs-on: ubuntu-24.04`) since
-v5.15, the maintainer's *«Ubuntu 24»* (2026-10-18): `ubuntu-latest` moves to Ubuntu 26.04
+`dependency-submission.yml`'s -- name that image (`runs-on: ubuntu-24.04`), the
+maintainer's *«Ubuntu 24»* (2026-10-18): `ubuntu-latest` moves to Ubuntu 26.04
 between 2026-10-19 and 2026-11-19 (GitHub's announcement, `actions/runner-images#14748`), and the
 Android SDK is the image's, not something a step installs -- the JDK and Gradle are fetched by
 `setup-java` and the wrapper on any image.
@@ -2271,7 +2377,7 @@ The two tables below are a selection, not the whole suite: the JVM layer first, 
 
 | Test class | Covers |
 |---|---|
-| `CloudCoverageTest` | The coverage field (falloff shape, saturation, edge clamping, frame reset) and the rain-follows-cloud rule: no rain from clear sky, uniform fallback when clouds are hidden, overcast reproduces the full drop set, no drop displacement when cloud cover changes |
+| `CloudCoverageTest` | The coverage field (falloff shape, saturation, edge clamping, frame reset) and the rain-follows-cloud rule: no rain from clear sky, uniform fallback when clouds are hidden or at 0 %, the floor that spreads the rain while clouds come or go, overcast reproduces the full drop set, no drop displacement when cloud cover changes |
 | `CandidateSystemTest` | The candidate-system invariants: determinism per theme, density-independent attributes, stability of survivors across density, monotonicity in both directions, independence from filtered-out candidates, effect decorrelation, the small-pool guarantee, and distribution quality |
 | `MemoryPressurePolicyTest` | Trim-level mapping, including that `TRIM_MEMORY_UI_HIDDEN` never evicts despite its numeric value exceeding `TRIM_MEMORY_RUNNING_CRITICAL`; unknown-level handling; mirrored constants match the platform |
 | `SpriteCacheIndexTest` | Cache bookkeeping: byte accounting, LRU eviction order, eviction to a byte budget, slot reuse, growth, repeated fill/release cycles |
@@ -2285,8 +2391,8 @@ The two tables below are a selection, not the whole suite: the JVM layer first, 
 | `SpriteEntryIndexTest` | The texture cache's hash lookup against a linear scan, on random tables through growth and clears |
 | `WakeLatchTest` | The render thread's park with real threads: a wake before the park stops it, a wake during it ends it, 5 000 handovers with no timeout to rescue a lost one |
 | `DayPhaseCacheTest`, `FirstFrameGateTest` | The engine's day phase equals a fresh compute over random input sequences; the first frame waits for both stores or the backstop, and is released once |
-| `StorefrontStreetTest`, `StorefrontFrontVisibilityTest`, `StorefrontDetailTest`, `StreetPlanMovesTest` | The street of v5.13, five places since v5.13B2: every deck of six places holds the six, no building twice in four places in a row, one anchor a street and every building the anchor of some; coming back into view deals the street nothing new (no round is counted anywhere, and the scroll the copies are counted from only grows with the frames' time); the twelve streets scrolled for eight copies on three screen shapes with no copy changing, never more than four places nor two alike on screen; how many buildings a screen shows; each of the six keeps the 40 % rule and no trunk across in each place of every built-in street (with the trees, with the palms, and on Beach and Desert with the trees put back), and on the streets the 5.12 and the 5.13B saved once the loader has moved what it must, a moved place keeping its buildings' identities and saved where it was stored; the widths the planner reads re-measured off the PNGs; a detail of 2.4 units at 2 px or more in every place, and the floor that keeps a random theme's places there; only places, trees and parasols moved by the plan, each tree or parasol the one it was, the towers left v5.13B's |
-| `PublicBuildingsPreferenceStoreTest`, `PublicBuildingsMigrationTest` | A preference store, a saved theme, a theme file and a backup written by the 5.12 read by v5.13: the shops' colours changed by hand carried to the public buildings, the shops' hours on found on in both groups, each reset its own group |
+| `StorefrontStreetTest`, `StorefrontFrontVisibilityTest`, `StorefrontDetailTest`, `StreetPlanMovesTest` | The street of six buildings in five places a tile: every deck of six places holds the six, no building twice in four places in a row, one anchor a street and every building the anchor of some; coming back into view deals the street nothing new (no round is counted anywhere, and the scroll the copies are counted from only grows with the frames' time); the twelve streets scrolled for eight copies on three screen shapes with no copy changing, never more than four places nor two alike on screen; how many buildings a screen shows; each of the six keeps the 40 % rule and no trunk across in each place of every built-in street (with the trees, with the palms, and on Beach and Desert with the trees put back), and on the streets the 5.12 and the 5.13B saved once the loader has moved what it must, a moved place keeping its buildings' identities and saved where it was stored; the widths the planner reads re-measured off the PNGs; a detail of 2.4 units at 2 px or more in every place, and the floor that keeps a random theme's places there; only places, trees and parasols moved by the plan, each tree or parasol the one it was, the towers left v5.13B's |
+| `PublicBuildingsPreferenceStoreTest`, `PublicBuildingsMigrationTest` | A preference store, a saved theme, a theme file and a backup written without the public buildings' block (as the 5.12 wrote them), read today: the shops' colours changed by hand carried to the public buildings, the shops' hours on found on in both groups, each reset its own group |
 | `ShopPlanTableTest` | The generated plan is `planStreets`'s output to the bit, the places and the moved trees and parasols, and the twelve streets laid out from it are the planner's; on a mismatch it writes the table it should be |
 | `ApkCachePruneTest` | An installed or older APK in the downloads folder is deleted, a newer one kept |
 | `SunPositionCalculatorTest` | Day/night classification, `progress` and `dayBlend` contracts, the celestial arc, sunrise/sunset approximation (equinox day length, hemispheric asymmetry, polar clamping, longitude offset), moon phase cycling, and the clock reading, pinned against `Calendar` at tolerance `0f` across eight time zones, a year of non-hour-aligned samples, and pre-epoch instants |
@@ -2331,7 +2437,7 @@ spans three days either side.
 
 | Suite | Covers |
 |---|---|
-| `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel: a frame admits no pixel that differs beyond the per-channel tolerance (`SceneGolden.MAX_DIFFERING_FRACTION` is 0). `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable, and `GoldenFocus` names the patch a golden is about, with a gate of its own. **Do not quote a count here** — the figure that means anything is the number of `assertMatches` calls, not the number of files in the directory. `grep -rh 'SceneGolden\.assertMatches' app/src/androidTest --include='*.kt' \| grep -vc '^\s*\*'` counts them, and **its answer is one too high**: `LightningPinTest` hands `assertMatches` a scene it must *reject*, which is how the guard is shown to run rather than merely to exist. Subtract it. An assertion is also not a file — two scenes are each asserted more than once with different focus rectangles, so the assertion count and the PNG count are different numbers and neither is "the number of goldens" on its own. |
+| `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel: a frame admits no pixel that differs beyond the per-channel tolerance (`SceneGolden.MAX_DIFFERING_FRACTION` is 0). `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable, and `GoldenFocus` names the patch a golden is about: on a Canvas golden it names and does not gate (a frame that admits no differing pixel has none in any patch; a failure reports how many fall inside each), on a GL reference it is a gate of its own. Every Canvas PNG is asserted once: a second assertion of the same file at the same zero would fail and pass with the first. **Do not quote a count here** — `grep -rh 'SceneGolden\.assertMatches' app/src/androidTest --include='*.kt' \| grep -vc '^\s*\*'` counts the assertions, and **its answer is one too high**: `LightningPinTest` hands `assertMatches` a scene it must *reject*, which is how the guard is shown to run rather than merely to exist. Subtract it. |
 | `GlSceneGoldenTest` | A few of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and **against a named region**. |
 | `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
 | `UnreadableSavedThemeStoreTest` | The same three properties on the phone's own `org.json` and the real DataStore: the damaged entry's bytes are read back off the store's file after each of three edits |
@@ -2343,7 +2449,7 @@ spans three days either side.
 | `CanvasGradientAllocationTest` | Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
 | `TrafficGoldenTest` | That the traffic goldens actually contain traffic, measured off the finished frame by `VehiclePresence` rather than inferred, that both lanes are occupied, that the frame is bit-identical across two renders, and that three plausible traffic regressions each move more of the frame than the golden's own budget. |
 | `TreeArtworkAlignmentTest` | That the winter tree's snow cap lands entirely on the crown, with no opaque pixel of it off the crown. An assertion about the *artwork*, which nothing else checks. |
-| `SkyWaterGoldenTest` | Three derived gates — the cloud band, the bird band and the water band — attached as `extraFocus` to golden scenes that already exist (`day`, `lake-busy`), each with a derived limit rather than the shared 2 % focus limit; and `waterline-worst-theme`, the one PNG it owns: the theme whose sky and water are closest, where only the struck waterline separates them. |
+| `SkyWaterGoldenTest` | `waterline-worst-theme`, the one PNG it owns: the theme whose sky and water are closest, where only the struck waterline separates them. The clouds, the birds and the water of the other scenes are held by the whole frame of `day` and `lake-busy`, which admits no differing pixel. |
 | `LakeDrawCallTest` | Counts every primitive the real renderer asks for, through the real `SceneCanvas`, with the water on and with it off. The difference is the water's own per-frame cost, measured rather than estimated. |
 
 **`GoldenScene.warmUpFrames`.** A car's `progress` starts negative and only
@@ -2420,7 +2526,7 @@ decision**: none is visible on the phone, and working on one is new work.
    (`tools/generate_people_layers.py` or `tools/assets/buildings/build_neighbourhood.py`).
 2. **More than one metric, and two sprite conventions.** The ground plane has one model,
    `SceneSpace`, but the lake keeps its own metric and the sky's bodies, the birds and the fireworks
-   are composed for legibility (the sleigh flies in the sky, sized against the people since v5.15); and sprites are authored in two scale conventions
+   are composed for legibility (the sleigh flies in the sky, sized against the people); and sprites are authored in two scale conventions
    (`SCENE_UNITS`, `CANVAS_PIXELS`) that nothing in a PNG records. Each sprite's convention is
    declared in `tools/assets/sources/sprites.json`, and `validate` checks every call site it can
    resolve against it.
@@ -2449,19 +2555,18 @@ decision**: none is visible on the phone, and working on one is new work.
     wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds
     2048² pushes its *later* sprites — the objects and people, which benefit most —
     out to standalone textures. `GlAtlasOccupancyTest` sweeps every built-in theme with the people at their
-    fullest and the distant houses on at 100 % into one atlas -- since v5.15 Santa's sleigh held in flight by
-    day and at night, in two frames a pose apart so the reindeer's four poses are all in it, and the Halloween moon with
-    its light at night; since v5.16 Halloween with everything v5.16 added (the Horseman in flight through his four poses,
-    the moon laughing, the scarecrows and the decorations), at night and at noon under the night by day: 692 of the page's
-    2048 rows in use (433 sprite-and-level entries) and no sprite standalone (measured on the BV6600, 2026-10-22, on the
-    final 79 / "5.16" tree's APKs; the 5.15's sweep, without Halloween's new drawings, 677 rows and 398 entries; the
-    5.14's, without the sleigh and the moon, 645 rows and 388 entries).
+    fullest and the distant houses on at 100 % into one atlas -- with Santa's sleigh held in flight by
+    day and at night, in two frames a pose apart so the reindeer's four poses are all in it, the Halloween moon with
+    its light at night, and Halloween with everything on (the Horseman in flight through his four poses and his
+    pumpkin, the moon laughing, the scarecrows and the decorations), at night and at noon under the night by day:
+    692 of the page's 2048 rows in use (434 sprite-and-level entries) and no sprite standalone (measured on the
+    BV6600, 2026-10-25, on the 80 / "5.17" APKs of the 5.17's first seal).
     It draws at 360 x 800 (`GlGolden.WIDTH` x `HEIGHT`), and a sprite is uploaded at the detail level its drawn
-    size asks for, so a larger screen fills more of the page: the 5.14's sweep at the screens' own sizes (v5.14C, on the
-    BV6600, 2026-10-16, before the sleigh and the moon were in it) filled
+    size asks for, so a larger screen fills more of the page: the sweep at the screens' own sizes (on the
+    BV6600, 2026-10-16, without the sleigh and the moon) filled
     1 832 rows at the BV6600's 720 x 1440 with none standalone, 2 040 at 1080 x 2340 with 3 standalone and
-    2 047 at 1440 x 3200 with 22 (the 5.13: 648, 1 814, 2 020 with 3, 2 043 with 23), each a break of the
-    batch where the draw order crosses it; Winter, Christmas and Autumn as they shipped then, each in a process of its own, stayed inside the page at every one of those sizes and drew one batch along the street. The maintainer kept it so: *«Lascia così (consigliato)»*
+    2 047 at 1440 x 3200 with 22, each a break of the
+    batch where the draw order crosses it; Winter, Christmas and Autumn, each in a process of its own, stayed inside the page at every one of those sizes and drew one batch along the street. The maintainer kept it so: *«Lascia così (consigliato)»*
     (2026-10-16). The sweep draws one screen of each theme at the street's first stretch, about three
     of the six buildings among the houses; a wallpaper left running meets all six within 4.4 screens.
 12. **Each engine has its own EGL context**, so the picker's preview engine and the

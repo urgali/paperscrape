@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""The shipped carrying pose: every walker with the near arm bent, P1 "Raised" (v4.28; the children since v5.4H).
+"""The shipped carrying pose: every walker, adults and children, with the near arm bent, P1 "Raised".
 
 Run from ``tools/assets`` with the pinned venv:
 
     /home/bober/.venvs/paperscrape-assets/bin/python concepts/people/build_carry_sprites.py
 
-This is the production half of ``build_carry_concepts.py``, which drew three candidate poses for
-the v4.28 phase-2 photographs. The maintainer chose P1 -- the forearm raised, the hand at cheek
-height ahead of the face, **fixed on all three walk frames**, with the far arm still swinging --
-and only that pose is drawn here; what ships is ``person_<kind>_<season>_carry<frame>`` as fixed art
-and region masks, written by ``tools/generate_people_layers.py`` (see below).
+This is the production half of ``build_carry_concepts.py``, which draws three candidate poses. The
+pose that ships is P1 -- the forearm raised, the hand at cheek height ahead of the face, **fixed on
+all three walk frames**, with the far arm still swinging -- and only that pose is drawn here; what
+ships is ``person_<kind>_<season>_carry<frame>`` as fixed art and region masks, written by
+``tools/generate_people_layers.py`` (see below).
 
 ### Why this is a generator and not twelve more committed SVGs
 
@@ -21,9 +21,10 @@ the body, the legs, the hair and the winter clothing of both adult families next
 the next change to a walker would have to be made twice.
 
 **The proof that this is the same road as the shipped artwork, and it runs on every invocation:**
-``check_reproduces_shipped`` re-renders the shipped man's three summer walk frames through this
-exact path -- the same drawing code, the same trim, the same rasteriser -- and compares them
-**byte for byte** with the PNGs in ``app/src/main/res/drawable-nodpi``. If that check ever stops
+``check_reproduces_shipped`` re-renders every shipped walk frame -- all four families, both seasons
+-- through this exact path -- the same drawing code, the same trim, the same rasteriser -- and compares them
+**pixel for pixel** with the PNGs in ``app/src/main/res/drawable-nodpi`` (``raster.same_output``: the
+same size and every channel equal, whatever compressed them). If that check ever stops
 passing, the carrying pose has stopped being a variation of the real walker and the difference has
 to be looked at before anything is regenerated. It is not a smoke test; it is the whole argument.
 
@@ -32,14 +33,12 @@ to be looked at before anything is regenerated. It is not a smoke test; it is th
 The **base** render of each frame is written to ``carry/`` as SVG and PNG and is *not* shipped: it
 is the drawing, kept beside the concept scripts. What ships is written by
 ``tools/generate_people_layers.py``, which calls [walker] itself and turns each frame into fixed art
-plus one weight mask per colourable region -- the v4.30 arrangement, in which a colour is not an
-axis of the artwork at all. Until v5.4H this script also wrote 36 **skin-tone** PNGs into
-``res``; v4.30 retired those and the loop that wrote them was left behind, so running the script
-put files back that nothing draws. It is gone; see [build].
+plus one weight mask per colourable region (``DESIGN_NOTES.md`` §12, decision 27), so a colour is
+not an axis of the artwork at all. This script writes nothing into ``res``; see [build].
 
-**v5.4H draws the children too.** The maintainer chose approach 1, variant 1b of the v5.4F proposal
-round: the near arm raised, and the canopy at 70 %. Four families here, twelve frames, and
-``PeopleLayerTable.CARRY`` goes from two families to four.
+**The children carry too**: the near arm raised, as the adults' is, and the canopy drawn at 70 %
+of the adults'. Four families here, three frames a season each, and ``PeopleLayerTable.CARRY``
+holds all four.
 
 The hand's centre and the crown of the handle go, **per family**, to ``carry/hands.json``;
 ``SceneObjectRenderer`` reads them to hang the handle, which is a rectangle drawn in code so that
@@ -72,21 +71,21 @@ CANVAS = (39, 84)
 
 
 def child_walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, dict]:
-    """``walker_relief_child`` verbatim, except the near arm when ``carrying`` (v5.4H).
+    """``walker_relief_child`` verbatim, except the near arm when ``carrying``.
 
-    A second function beside [walker] for the same reason ``build_people_concepts`` has two: since
-    v4.30 the child is not the adult scaled. Its skeleton is derived **from the target box
+    A second function beside [walker] for the same reason ``build_people_concepts`` has two: the
+    child is not the adult scaled (``DESIGN_NOTES.md`` §12, decision 34). Its skeleton is derived **from the target box
     downwards** -- crown, head, neck, torso, and the legs are whatever is left to the ground -- so
     ``CHILD_OF_ADULT`` lands on the proportion by construction. A branch inside [walker] would have
     had to choose between the two derivations on every line, and the copy here is held to the
     shipped drawing by [check_reproduces_shipped], which renders boy and girl through *this* path
-    and compares them byte for byte with what ships.
+    and compares them pixel for pixel with what ships.
 
-    **The pose is the maintainer's choice of v5.4F, approach 1, variant 1b: the near arm raised.** It
-    is the adult's P1 at a child's proportions -- elbow 5 down and 2.5 forward of the arm root
-    against the adult's 9 and 3, forearm 10.5 up against 16 -- and like P1 it is fixed on all three
-    walk frames while the far arm keeps swinging. The 1b half of the choice is not here: it is the
-    canopy drawn at 70 %, which is a number in ``SceneObjectRenderer`` and not a drawing.
+    **The pose is the near arm raised.** It is the adult's P1 at a child's proportions -- elbow 5
+    down and 2.5 forward of the arm root against the adult's 9 and 3, forearm 10.5 up against 16 --
+    and like P1 it is fixed on all three walk frames while the far arm keeps swinging. The child's
+    umbrella is not here: its canopy is drawn at 70 %, which is a number in ``SceneObjectRenderer``
+    and not a drawing.
     """
     p = CHILD_GEOMETRY
     name = f"person_{kind}_{season}_walk{frame}" if not carrying else f"person_{kind}_{season}_carry{frame}"
@@ -173,7 +172,8 @@ def walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, 
     """``walker_relief`` verbatim, except the near arm when ``carrying``.
 
     Dispatches to [child_walker] for the two child families exactly as ``walker_relief`` dispatches
-    to ``walker_relief_child``: since v4.30 a child is not an adult scaled down.
+    to ``walker_relief_child``: a child is not an adult scaled down
+    (``DESIGN_NOTES.md`` §12, decision 34).
 
     Returns the sprite and, for the carrying pose, the hand centre in untrimmed units.
     """
@@ -293,11 +293,10 @@ def render(s: Sprite):
 def check_reproduces_shipped() -> None:
     """The proof that this path is the shipped one: **all four families**, both seasons, every frame.
 
-    v4.28 checked the man's three summer walk frames, which was the whole argument while only the
-    two adult families had a carrying pose. v5.4H adds the children, and the children are not the
-    adults scaled ([child_walker]), so the check has to reach them: a second derivation of the
-    child skeleton that drifted by a unit would draw a child whose umbrella hangs off a shoulder
-    nobody ships, and nothing else in the pipeline would say so.
+    Every family carries, and the children are not the adults scaled ([child_walker]), so the check
+    reaches them too: a second derivation of the child skeleton that drifted by a unit would draw a
+    child whose umbrella hangs off a shoulder nobody ships, and nothing else in the pipeline would
+    say so.
 
     It is not a smoke test; it is the whole argument.
     """
@@ -308,12 +307,11 @@ def check_reproduces_shipped() -> None:
                 s, _ = walker(kind, season, frame, carrying=False)
                 s = bpc.faced(trimmed(s), STYLE)
                 _, r = render(s)
-                shipped = (RES / f"{s.name}.png").read_bytes()
-                if r.png_bytes != shipped:
+                if not raster.same_output(RES / f"{s.name}.png", r.png_bytes):
                     raise SystemExit(
                         f"the generator no longer reproduces the shipped frame {s.name}; stop and look")
                 checked += 1
-    print(f"  reproduces {checked} shipped walk frames byte-identically ({', '.join(bpc.KINDS)})")
+    print(f"  reproduces {checked} shipped walk frames pixel for pixel ({', '.join(bpc.KINDS)})")
 
 
 #: How far above a family's own ink the handle's crown sits, in canvas units.
@@ -329,11 +327,10 @@ CROWN_ABOVE_INK = 0.7
 #:
 #: The rule above is read off the adults rather than applied to them. Measured, the man's summer ink
 #: asks for 0.97 and the woman's for 1.30, and the shipped set hangs both handles at 1.0 -- one
-#: number for the two families. That is the artwork the v4.28 photographs were approved on and the
-#: pixels every adult golden was authored against, so v5.4H does not move it by a third of a unit to
-#: tidy an arithmetic: the children need a grip the adults never had, and that is the whole of what
-#: this pass is allowed to change about the umbrella. The rule is **checked** against it below, so a
-#: future redraw that walks the adults' heads away from 1.0 says so instead of drifting.
+#: number for the two families. That is the number every adult golden is authored against, so it is
+#: not moved by a third of a unit to tidy an arithmetic: the rule gives the children their crowns and
+#: leaves the adults' where they are. The rule is **checked** against it below (within 0.35 of a
+#: unit), so a redraw that walks the adults' heads away from 1.0 says so instead of drifting.
 SHIPPED_ADULT_CROWN = 1.0
 
 
@@ -347,12 +344,10 @@ def build() -> None:
     What ships is written by ``tools/generate_people_layers.py``, which calls [walker] itself and
     turns each frame into fixed art plus one weight mask per colourable region.
 
-    **This used to write 36 skin-tone PNGs straight into ``res`` and no longer does.** That was the
-    v4.28 arrangement, and v4.30 retired it: a person is drawn as fixed art plus region masks with
-    the colour arriving at the blit, so the tone copies were deleted from the shipped set two
-    releases ago. The loop that wrote them stayed here, which meant running this script put 36
-    retired files back into ``res`` that nothing draws and both memory ceilings charge for. Nothing
-    had run it since, so nothing had noticed.
+    **Nothing is written into ``res``.** A person is drawn as fixed art plus region masks with the
+    colour arriving at the blit (``DESIGN_NOTES.md`` §12, decision 27), so no skin-tone copy of a
+    frame ships: one written into ``res`` would be a file that nothing draws and both memory
+    ceilings charge for.
 
     ### hands.json
 

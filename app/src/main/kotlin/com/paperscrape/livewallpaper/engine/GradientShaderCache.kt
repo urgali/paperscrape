@@ -16,7 +16,7 @@ import androidx.core.graphics.ColorUtils
  * the celestial glow — which at the render loop's 30 fps is 90 native-backed objects a second.
  *
  * **Every one of them after the first was identical to one built a frame earlier.** The arguments
- * come from the day phase and the palette, and [SunPositionCalculator.currentHour24] quantises the
+ * come from the day phase and the palette, and the engine's hour (`PaperWallpaperService.sceneHourNow`) quantises the
  * clock to the minute: `dayBlend`, `celestialX` and `celestialY` therefore hold still for ~1800
  * consecutive frames, and the palette and the storm strength change more slowly still. Measured
  * over 300 scrolling frames: **900 objects built, 3 distinct gradients**.

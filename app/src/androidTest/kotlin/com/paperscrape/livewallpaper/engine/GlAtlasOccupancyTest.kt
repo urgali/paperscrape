@@ -32,8 +32,8 @@ import org.junit.runner.RunWith
  * it also draws what its frames never had: Santa's sleigh held in flight, by day and at night, and the
  * Halloween moon with its light at night (inventory I-934) -- the sleigh in two frames a pose apart, so the
  * reindeer's four poses are all in the atlas (v5.15C2, inventory I-975: one frame put two of them there). And since v5.16
- * Halloween with everything v5.16 added -- the Horseman in flight through his four poses, the moon laughing, the scarecrows
- * and the decorations -- at night and at noon under the night by day.
+ * Halloween with everything v5.16 added -- the Horseman in flight through his four poses (since v5.17 his rider in three
+ * pieces, throwing), the moon laughing, the scarecrows and the decorations -- at night and at noon under the night by day.
  */
 @RunWith(AndroidJUnit4::class)
 class GlAtlasOccupancyTest {
@@ -54,8 +54,8 @@ class GlAtlasOccupancyTest {
         )
         assertEquals("the sleigh and the reindeer's four poses in the sweep's atlas", 5, counted.sleighPiecesHeld)
         assertEquals(
-            "the drawings v5.16 added to Halloween in the sweep's atlas: the Horseman's four poses, his rider and cape, the " +
-                "laughing moon, the scarecrows, the decorations",
+            "the drawings of Halloween's things in the sweep's atlas: the Horseman's four poses, his rider's three pieces and " +
+                "cape, the laughing moon, the scarecrows, the decorations",
             GlGolden.HALLOWEEN_PIECES.size, counted.halloweenPiecesHeld,
         )
     }
