@@ -9,17 +9,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The distant houses on the mountains (v5.11, inventory I-407; the maintainer's choices of
- * 2026-10-06): off as every theme ships, a stable share of places, all three drawings, the size rule
- * of [SceneSpace.distantHousePixelsTall], and every drawn detail at two pixels or more where they are
- * drawn.
+ * The distant houses on the mountains (`DESIGN_NOTES.md` §12, decision 52): off as every theme ships,
+ * a stable share of places, all three drawings, the size rule of [SceneSpace.distantHousePixelsTall],
+ * and every drawn detail at two pixels or more where they are drawn.
  */
 class DistantHousesTest {
 
     private companion object {
         /**
          * The BV6600's screen, a larger one, the tallest phones' (21:9: the mountains, sized by the screen's height, crowd a
-         * tile twice its width most there) and a tablet on its side (v5.14D): the rule is worked out from the screen.
+         * tile twice its width most there) and a tablet on its side: the rule is worked out from the screen.
          */
         val SCREENS = listOf(720f to 1440f, 1080f to 2340f, 1080f to 2520f, 2560f to 1600f)
 
@@ -58,7 +57,7 @@ class DistantHousesTest {
                         assertFalse("a house at 0 %", DistantHouses.stands(s, slot, 0f, leftFirst))
                         assertTrue("a place empty at 100 %", DistantHouses.stands(s, slot, 1f, leftFirst))
                     }
-                    // Above 0 every mountain carries one, so the row never reads on over none (8.7).
+                    // Above 0 every mountain carries one, so the row never reads on over none (decision 52).
                     for (amount in listOf(0.001f, 0.01f, 0.05f)) {
                         assertTrue(
                             "a mountain with no house at $amount",
@@ -71,8 +70,8 @@ class DistantHousesTest {
     }
 
     /**
-     * **How many a mountain carries** (v5.14): `floor(amount x 5 + coin)`, one at least above 0 -- two or three at
-     * 50 %, two and a half on average as the places' coins gave until v5.14, all five at 100 % -- never fewer as the
+     * **How many a mountain carries**: `floor(amount x 5 + coin)`, one at least above 0 -- two or three at
+     * 50 %, two and a half on average, all five at 100 % -- never fewer as the
      * amount rises; and the places it stands in are exactly the first that many of its order.
      */
     @Test
@@ -102,15 +101,13 @@ class DistantHousesTest {
     }
 
     /**
-     * **On both sides** (v5.14, the maintainer: *«case lontane su montagne - sembra che siano solo a sinistra della
-     * montagna»*, 2026-10-14; the correction chosen with *«si a tutte»*, 2026-10-15), **and in sight** (v5.14C2, *«Spostala
-     * dove si vede»*, 2026-10-16): a mountain's order is one side, the other, the top, then each side's second place, a
-     * place a later mountain of the layer covers giving way to its side's other place -- so a mountain with two houses or
-     * more has one **in sight** on each side, at every amount, on every mountain of every built-in theme's two layers, with
+     * **On both sides, and in sight** (decision 52): a mountain's order is one side, the other, the top, then each side's
+     * second place, a place a later mountain of the layer covers giving way to its side's other place -- so a mountain
+     * with two houses or more has one **in sight** on each side, at every amount, on every mountain of every built-in theme's two layers, with
      * the themes' mountains and with both layers at 10 to 100 %, on every screen of [SCREENS]; and a mountain
      * with one has it on the side it starts from, every other mountain the other, wherever that side has a place in sight.
      * The counts left / top / right **in sight**, theme by theme at 50 % and 100 %, the themes' mountains and both layers at
-     * 100 %, are printed (`DISTANT_HOUSES`): the report's table.
+     * 100 %, are printed (`DISTANT_HOUSES`).
      */
     @Test
     fun `every mountain with two houses or more has them on both sides, in sight`() {
@@ -156,13 +153,13 @@ class DistantHousesTest {
     }
 
     /**
-     * **No house where a mountain of its layer drawn after it covers any of it** (the maintainer's
-     * *«Spostala dove si vede»*, 2026-10-16). Measured here without [DistantHouses.hiddenPlaces]: each standing house's
+     * **No house where a mountain of its layer drawn after it covers any of it** (decision 52: only
+     * where their own layer leaves them in sight). Measured here without [DistantHouses.hiddenPlaces]: each standing house's
      * drawing -- the ink of its own PNG, at its size there -- sampled on a grid of 9 x 9 points, each point tested against
      * the parabola of every mountain of the layer drawn after its own, on the copies around it. On the twelve built-ins,
      * with their mountains and with both layers at 0 to 100 % in steps of 10, the houses at 50 % and 100 %, on every screen
-     * of [SCREENS], two copies of the tile (the side rule repeats every two). Before v5.14C2, 2 houses of
-     * 454 stood covered with the layers at 80 to 100 % and the houses at 50 % (measured by a probe outside the repository).
+     * of [SCREENS], two copies of the tile (the side rule repeats every two). Without the rule some would stand covered:
+     * 2 of 454 with the layers at 80 to 100 % and the houses at 50 %.
      */
     @Test
     fun `no house stands where a later mountain of its layer covers any of it`() {
@@ -205,10 +202,10 @@ class DistantHousesTest {
     }
 
     /**
-     * **And the other way round** (v5.14D): every place [DistantHouses.hiddenPlaces] gives no house is one a later mountain of
+     * **And the other way round**: every place [DistantHouses.hiddenPlaces] gives no house is one a later mountain of
      * its layer does cover -- a point of the house's ink, on the same 9 x 9 grid, under it -- so the rule moves no house it
-     * did not have to; **with each theme's own mountains no place is covered**, so there every house stands where the 5.14's
-     * order put it (the option the maintainer chose said so: with the themes' mountains nothing changes -- *«Sì, va bene così
+     * did not have to; **with each theme's own mountains no place is covered**, so there every house stands where the side
+     * order puts it (the option the maintainer chose said so: with the themes' mountains nothing changes -- *«Sì, va bene così
      * (consigliato)»*, 2026-10-16); and **every mountain the scene draws carries a house** at every amount
      * above 0 %, no mountain having all five places covered -- the *Distant houses* row reads on over houses. On every screen
      * of [SCREENS], every theme, its mountains and both layers at 0 to 100 %, two copies of the tile.
@@ -299,8 +296,9 @@ class DistantHousesTest {
 
     /**
      * **The order with places covered** ([DistantHouses.standingMask]): never a house on a covered place; with nothing
-     * covered the 5.14's own rule; raising the amount only adds houses whatever is covered; a covered place gives way to its
-     * side's other place before the top or the other side; and a mountain with a place in sight carries a house above 0 %.
+     * covered the side order alone (one side, the other, the top, then each side's second place); raising the amount
+     * only adds houses whatever is covered; a covered place gives way to its side's other place before the top or the
+     * other side; and a mountain with a place in sight carries a house above 0 %.
      */
     @Test
     fun `a covered place gives way to its side's other place, and the amount still only adds`() {
@@ -532,7 +530,7 @@ class DistantHousesTest {
     }
 
     /**
-     * **Every other mountain along the whole strip** (v5.14B): with one, two, three or four mountains a tile, on
+     * **Every other mountain along the whole strip**: with one, two, three or four mountains a tile, on
      * both layers, the mountains in a row across five copies of the tile start from alternate sides -- across the
      * seams too, where a count started again at each tile put two neighbours on one side whenever a tile draws an odd
      * number of them. And the front layer's first mountain starts from the other side than the back layer's.
@@ -564,7 +562,7 @@ class DistantHousesTest {
         assertTrue(body.contains("DistantHouses.startsLeft(tileOffset - tileBias, place, perTile, frontLayer)"))
         assertTrue(body.contains("val present = CandidateThreshold.isPresent(i, config.density, effectOffset, fallbackIndex)"))
         assertTrue(body.contains("if (!present) continue\n            perTile++"))
-        // And the places a later mountain covers (v5.14C2): worked out from the mountains it has just laid out, handed on.
+        // And the places a later mountain covers: worked out from the mountains it has just laid out, handed on.
         assertTrue(body.contains("if (sceneCustomization.distantHouses.drawsAny) hidden.refresh(seed, config.density, baseY, tileWidth)"))
         assertTrue(body.contains("drawDistantHouses(canvas, x, baseY, width, mountainHeight[i], mountainSeed[i], leftFirst, hidden.masks[i], dayPhase.dayBlend)"))
     }
@@ -596,7 +594,7 @@ class DistantHousesTest {
 
     /**
      * **The size rule**: a small house at the projection of where it stands, never under the size at
-     * 0.6722 of the screen -- 14 px on the BV6600's 1440 -- and on every mountain the scene can draw, the
+     * 0.5922 of the screen -- 14 px on the BV6600's 1440 -- and on every mountain the scene can draw, the
      * floor's size. The mountains' geometry is `PaperRenderer.drawMountains`': bases on the hill's solid
      * line (the front layer 0.015 below it, the lake's top edge above it when there is water), heights
      * 0.15 and 0.105 of the screen with a jitter of 0.75..1.25; the lowest a house's place can be is the
@@ -608,7 +606,7 @@ class DistantHousesTest {
         val floor = SceneSpace.distantHousePixelsTall(SceneSpace.DISTANT_HOUSE_FLOOR_Y_FRACTION, bv6600)
         assertTrue("the floor is the maintainer's 14 px: $floor", floor >= 14f)
         assertEquals(14f, floor, 0.01f)
-        assertEquals("above the horizon the floor still holds", floor, SceneSpace.distantHousePixelsTall(0.6f, bv6600), 0f)
+        assertEquals("above the horizon the floor still holds", floor, SceneSpace.distantHousePixelsTall(SceneSpace.HORIZON_Y_FRACTION - 0.055f, bv6600), 0f)
         assertTrue("below the floor's line it grows with the projection",
             SceneSpace.distantHousePixelsTall(0.70f, bv6600) > floor)
         val base = SceneSpace.GROUND_SOLID_TOP_Y_FRACTION + 0.015f

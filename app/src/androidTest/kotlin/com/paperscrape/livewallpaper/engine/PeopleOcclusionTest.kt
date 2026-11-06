@@ -122,7 +122,7 @@ class PeopleOcclusionTest {
      * Swept over every theme and every density step, and applied wherever the step's arrivals are
      * **all** farther than everybody already on the street: nothing they draw may reach a pixel an
      * existing figure had painted. On the shipped catalogue that binds on `winter` between 40% and
-     * 80%, where one figure arrives at depth 0.7862 behind five standing at 0.8075 and nearer -- a
+     * 80%, where one figure arrives at depth 0.7062 behind five standing at 0.7275 and nearer -- a
      * stagger keyed to the list index fails it there with 153 disturbed pixels.
      */
     @Test
@@ -197,8 +197,8 @@ class PeopleOcclusionTest {
      * street and the people are what arrive, so any pixel the traffic had painted that the people
      * change is a figure drawn in front of a vehicle it is standing behind.
      *
-     * The geometry says it cannot be allowed. Every pavement row, jitter included, is above 0.819
-     * of screen height and every lane is at 0.834 or 0.862 — `PeopleTrafficDepthTest` proves both
+     * The geometry says it cannot be allowed. Every pavement row, jitter included, is above 0.739
+     * of screen height and every lane is at 0.754 or 0.782 — `PeopleTrafficDepthTest` proves both
      * halves — so a walking figure is always the farther object, and `drawPeople` runs before the
      * vehicle loop. The deepest figure the generator produces sits 24 px of a 2400 px screen below
      * a far-lane car's roof: drawn after the cars, a pedestrian's shoes would be painted across a

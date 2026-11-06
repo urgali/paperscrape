@@ -22,9 +22,10 @@ import org.junit.Test
 /**
  * **A decoration that hangs on something the theme's street has none of says so, reads off, and its line names only the
  * ways that would help there** (`DESIGN_NOTES.md` §12, decision 40). A random theme rolls three
- * to six objects and a saved theme keeps only what stood when it was saved, so a street can have no tree, no house, no
- * place among the houses (where the shops stand) or no building at all, at any amount. Then *Lights on the trees* and
- * *Christmas firs* -- on the trees alone -- say the theme has none; *Halloween decorations* -- on the houses or the shops --
+ * to six objects and a saved theme keeps only what stood when it was saved, so a street can have no house, no place
+ * among the houses (where the shops stand) or no building at all, at any amount. A tree or a palm it always has: a
+ * random, saved or imported street with neither is given trees (decision 97), so the tree-less street is built here by
+ * hand, its trees taken out. On it *Lights on the trees* and *Christmas firs* -- on the trees alone -- say the theme has none; *Halloween decorations* -- on the houses or the shops --
  * and *Lights on the buildings* -- on the houses, the buildings or the houses on the mountains -- read off whatever *Show
  * Buildings* says where nothing of theirs stands, and their line names the ways the street has and what it lacks, never a
  * switch or an amount that would not help. The home screen's count follows the switches.
@@ -72,10 +73,17 @@ class DecorationsOverAThemeWithNoneTest {
         assertEquals(what, line, row.needsLine)
     }
 
+    /**
+     * On a street with no tree, *Lights on the trees* and *Christmas firs* read off and say the theme has none. A random,
+     * saved or imported theme is given trees where it has none (`DESIGN_NOTES.md` §12, decision 97), so the street is a
+     * random one with its trees taken out by hand, and the theme as the catalogue lays it lights its trees.
+     */
     @Test
-    fun `on a random theme with no tree, Lights on the trees and Christmas firs read off and say the theme has none`() {
-        val (id, street) = firstRandom("without a tree") { !it.hasAny(DecorationExclusion.TREE_TYPES) }
-        println("$id: no tree on its street")
+    fun `on a street with no tree, Lights on the trees and Christmas firs read off and say the theme has none`() {
+        val (id, planted) = firstRandom("with trees") { it.hasAny(DecorationExclusion.TREE_TYPES) }
+        val street = planted.copy(staticObjects = planted.staticObjects.filter { it.type !in DecorationExclusion.TREE_TYPES })
+        val lightsOnPlanted = none.copy(trees = none.trees.copy(visible = true, density = 1f), christmasTreeLightsEnabled = true)
+        assertTrue("$id: its own trees light", SettingsUiModel.christmasTreeDecoration(true, lightsOnPlanted, planted).shownOn)
         val trees = listOf(
             none.trees.copy(visible = true, density = 0.5f),
             none.trees.copy(visible = true, density = 1f),

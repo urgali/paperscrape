@@ -234,6 +234,16 @@ data class DependentSwitchUiState(
 )
 
 /**
+ * *Show Rain/Snow* ([SettingsUiModel.rainOrSnow]): [shownOn] while something falls; [interactive] false, greyed, while the
+ * theme's sky has no cloud; [line] what is under it.
+ */
+data class RainOrSnowUiState(
+    val shownOn: Boolean,
+    val interactive: Boolean,
+    val line: String,
+)
+
+/**
  * A *Show X* switch with an amount slider beside it -- density, intensity, opacity, number -- for a thing the wallpaper
  * draws none of at 0 (`DESIGN_NOTES.md` §12, decision 40): at 0 % the switch reads off and says so, and the "decorations
  * on" counts follow it. The stored visibility is kept; raising the slider brings it back, and so does a tap ([amountTap]).
@@ -245,9 +255,11 @@ data class DependentSwitchUiState(
  * reads off, with its line, when none does (decision 40).
  *
  * **A theme's street can have none of a category at all**: a random theme rolls three to six objects, and a saved theme
- * keeps only what stood when it was saved, so no amount stands one ([StandingObjects.themeHasTrees] and the three like
- * it). There the switch reads off and locked whatever is stored, its line says the theme has none, and a tap writes
- * nothing ([AmountTap.NoneOnThisTheme]): the stored visibility and amount are left as they are.
+ * keeps only what stood when it was saved, so no amount stands a house, a tower or a parasol it lacks; trees are given to
+ * such a street (decision 97), and lack only where every one given would cross a place's front
+ * ([StandingObjects.themeHasTrees] and the three like it). There the switch reads off and locked whatever is stored, its
+ * line says the theme has none, and a tap writes nothing ([AmountTap.NoneOnThisTheme]): the stored visibility and amount
+ * are left as they are.
  *
  * @property shownOn visible, and something drawn: the amount above 0 and, for a category of the street, one standing.
  * @property noneAtZero the amount is 0, and that -- not the switch -- is why nothing is drawn.
@@ -880,17 +892,57 @@ object SettingsUiModel {
         DependentSwitchUiState(shownOn = stored && available, interactive = available)
 
     /**
-     * *Thunderstorm*, from the theme's own weather: it flashes only while *Show Rain/Snow* is on and Rain is the type,
-     * `LiveWeatherSceneRules.stormActive`'s theme path (`SwitchesTellTheTruthTest`). **Not the intensity**: at 0 % it is a
-     * storm without rain, and meant (`DESIGN_NOTES.md` §12, decision 44). Under Live Weather the row is not drawn
-     * ([forecastOwnsTheWeatherControls]).
+     * *Thunderstorm*, from the theme's own weather: it flashes only while the sky has a cloud ([skyHasClouds]), *Show
+     * Rain/Snow* is on and Rain is the type, `LiveWeatherSceneRules.stormActive`'s theme path with the renderer's cloudless
+     * sky (`SwitchesTellTheTruthTest`). **Not the intensity**: at 0 % it is a storm without rain, and meant
+     * (`DESIGN_NOTES.md` §12, decision 44). Under Live Weather the row is not drawn ([forecastOwnsTheWeatherControls]).
      */
     fun thunderstorm(
         storedThunderstorm: Boolean,
         precipitationVisible: Boolean,
         precipitationIsRain: Boolean,
+        skyHasClouds: Boolean,
     ): DependentSwitchUiState =
-        dependentSwitch(storedThunderstorm, available = precipitationVisible && precipitationIsRain)
+        dependentSwitch(storedThunderstorm, available = skyHasClouds && precipitationVisible && precipitationIsRain)
+
+    /** The line under *Thunderstorm* while it is locked: by the clouds ([skyHasClouds] false), or by *Show Rain/Snow*. */
+    fun thunderstormLockLine(skyHasClouds: Boolean): String =
+        if (skyHasClouds) THUNDERSTORM_NEEDS_RAIN_LINE else THUNDERSTORM_NEEDS_CLOUDS_LINE
+
+    /**
+     * Whether the theme's own sky has a cloud to rain or snow from: *Show Clouds* on above 0 %. Without one nothing falls
+     * and no storm flashes (`DESIGN_NOTES.md` §12, decision 98), whatever *Show Rain/Snow* and *Thunderstorm* hold.
+     */
+    fun skyHasClouds(cloudsVisible: Boolean, cloudDensity: Float): Boolean = cloudsVisible && cloudDensity > 0f
+
+    /**
+     * *Show Rain/Snow*: an amount switch ([amountSwitch], off at 0 % intensity), **off and greyed while the sky has no
+     * cloud** ([skyHasClouds]), its line [NO_CLOUDS_RAIN_LINE] and the stored choice kept, so it comes back by itself with
+     * the clouds (`DESIGN_NOTES.md` §12, decision 98). [interactive] is false then, and the type and the intensity follow it.
+     */
+    fun rainOrSnow(visible: Boolean, intensity: Float, skyHasClouds: Boolean): RainOrSnowUiState {
+        val amount = amountSwitch(visible, intensity)
+        return RainOrSnowUiState(
+            shownOn = skyHasClouds && amount.shownOn,
+            interactive = skyHasClouds,
+            line = when {
+                !skyHasClouds -> NO_CLOUDS_RAIN_LINE
+                amount.noneAtZero -> "None at 0% intensity - tap to bring it back"
+                else -> ""
+            },
+        )
+    }
+
+    /** The line under *Show Rain/Snow* with no cloud in the theme's sky (decision 98). */
+    const val NO_CLOUDS_RAIN_LINE =
+        "No rain or snow without clouds. Turn Show Clouds on and raise # of Clouds above 0%; your choice is kept until then."
+
+    /** The line under *Thunderstorm* with no cloud in the theme's sky (decision 98). */
+    const val THUNDERSTORM_NEEDS_CLOUDS_LINE =
+        "Needs clouds, and Show Rain/Snow on with Rain selected; your choice is kept until then."
+
+    /** The line under *Thunderstorm* with clouds, while *Show Rain/Snow* is off or Snow is chosen. */
+    const val THUNDERSTORM_NEEDS_RAIN_LINE = "Needs Show Rain/Snow on, with Rain selected; your choice is kept until then."
 
     /**
      * Whether the Clouds and the Rain and snow pages leave out the theme's own weather controls (*Show Clouds* and its

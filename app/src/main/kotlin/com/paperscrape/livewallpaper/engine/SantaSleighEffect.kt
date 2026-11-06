@@ -165,8 +165,8 @@ class SantaSleighEffect {
     private fun spawnFallingGift(screenWidth: Float, screenHeight: Float) {
         val x = currentX(screenWidth)
         // Lands on the pavement, the band derived from PAVEMENT_FAR/NEAR rather than restated, so it
-        // moves with the road. Houses stop at OBJECT_BAND_BOTTOM_Y_FRACTION (0.790), the painted
-        // carriageway runs 0.8178..0.8782 and its two wheel lines sit at 0.834 and 0.862; this effect
+        // moves with the road. Houses stop at OBJECT_BAND_BOTTOM_Y_FRACTION (0.710), the painted
+        // carriageway runs 0.7378..0.7982 and its two wheel lines sit at 0.754 and 0.782; this effect
         // draws after the cars, so a gift aimed at the road would land over a car roof whenever a
         // drop met traffic.
         val targetY = screenHeight * (

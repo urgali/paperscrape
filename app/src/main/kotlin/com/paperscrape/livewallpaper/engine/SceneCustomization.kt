@@ -877,7 +877,7 @@ const val DENSITY_SCHEME_GRID = 1
 const val DENSITY_SCHEME_FRACTION = 2
 
 private fun stableFraction(spec: CarObject, salt: Float): Float {
-    val raw = spec.laneYFraction * 7919f + spec.startDelaySeconds * 131f + salt
+    val raw = SceneObjectCatalog.identityLaneOf(spec) * 7919f + spec.startDelaySeconds * 131f + salt
     return raw - kotlin.math.floor(raw)
 }
 
@@ -1022,8 +1022,8 @@ private fun variantIndexFor(spec: StaticSceneObject): Int = colourCoin(spec.tile
 /** [spec]'s colour coin, for the plan of the places (`SceneObjectCatalog`): a tree or a parasol it moves keeps its colour. */
 internal fun colourCoinOf(spec: StaticSceneObject): Int = variantIndexFor(spec)
 
-/** The same coin for a car, over the two numbers that identify it on the road. */
-private fun variantIndexFor(spec: CarObject): Int = colourCoin(spec.laneYFraction, spec.startDelaySeconds)
+/** The same coin for a car, over the two numbers that identify it on the road: its lane as its identity reads it, and its start. */
+private fun variantIndexFor(spec: CarObject): Int = colourCoin(SceneObjectCatalog.identityLaneOf(spec), spec.startDelaySeconds)
 
 private fun colourCoin(first: Float, second: Float): Int =
     if (CandidateNoise.value(first.toRawBits(), second.toRawBits(), COLOUR_COIN_CHANNEL) < 0.5f) 0 else 1

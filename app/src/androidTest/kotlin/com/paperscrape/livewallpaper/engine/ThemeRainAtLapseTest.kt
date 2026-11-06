@@ -3,6 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Paint
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,9 +18,9 @@ import kotlin.math.abs
  * forecast's clouds fade out over up to twenty seconds. Gated by those clouds, the theme's rain would shrink with them
  * under a sky going clear and come back everywhere in a frame when the last had gone. Here a renderer that had a cloudy
  * forecast lapses, and frame by frame for 25 seconds it draws the same drops as a renderer of the same theme that never
- * had one: with the theme's cloud layer off (the rain everywhere) and on at 10 % (the rain under the theme's own
- * clouds). The density is low on purpose: at 40 % the theme's clouds already cover where the forecast's fading ones are,
- * and rain under either falls alike.
+ * had one: with the theme's cloud layer on at 10 % (the rain under the theme's own clouds), and off, where no rain falls
+ * (`DESIGN_NOTES.md` §12, decision 98) though the forecast's clouds are still drawn fading out. The density is low on
+ * purpose: at 40 % the theme's clouds already cover where the forecast's fading ones are, and rain under either falls alike.
  */
 @RunWith(AndroidJUnit4::class)
 class ThemeRainAtLapseTest {
@@ -53,11 +54,14 @@ class ThemeRainAtLapseTest {
             lapsing.liveWeatherOverride = null
             lapsing.liveWeatherLapsed = true
             var seen = 0
+            var forecastCloudsAfterTheLapse = 0
             repeat(25 * 30) { frame ->
                 clock += FRAME
                 drops.count = 0
+                drops.clouds = 0
                 lapsing.draw(drops, noon, clock, FRAME)
                 val afterLapse = drops.count
+                if (drops.clouds > 0) forecastCloudsAfterTheLapse++
                 drops.count = 0
                 theme.draw(drops, noon, clock, FRAME)
                 val themeAlone = drops.count
@@ -67,7 +71,15 @@ class ThemeRainAtLapseTest {
                 )
                 seen = maxOf(seen, themeAlone)
             }
-            assertTrue("the theme's rain drew ${seen} drops at most: the comparison above is about nothing", seen > 20)
+            if (themeClouds) {
+                assertTrue("the theme's rain drew ${seen} drops at most: the comparison above is about nothing", seen > 20)
+            } else {
+                assertEquals("rain with the theme's cloud layer off", 0, seen)
+                assertTrue(
+                    "the forecast's clouds were drawn in $forecastCloudsAfterTheLapse frames after the lapse: no cloud to rain from",
+                    forecastCloudsAfterTheLapse > 0,
+                )
+            }
         }
     }
 
@@ -87,9 +99,10 @@ class ThemeRainAtLapseTest {
         }
     }
 
-    /** Counts the drops of rain: the lines that run a quarter of their fall to the left. */
+    /** Counts the drops of rain (the lines that run a quarter of their fall to the left) and the clouds drawn. */
     private class RainCounter : SceneCanvas {
         var count = 0
+        var clouds = 0
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) {
             val fall = stopY - startY
             if (fall > 0f && abs((stopX - startX) + 0.25f * fall) <= 0.01f) count++
@@ -136,7 +149,9 @@ class ThemeRainAtLapseTest {
             tintColor: Int,
             alpha: Int,
             additive: Boolean,
-        ) = Unit
+        ) {
+            if (resId == R.drawable.cloud_body) clouds++
+        }
     }
 
     private companion object {

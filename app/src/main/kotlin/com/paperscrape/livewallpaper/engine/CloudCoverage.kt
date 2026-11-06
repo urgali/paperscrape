@@ -20,8 +20,10 @@ package com.paperscrape.livewallpaper.engine
  * `drawClouds` runs before `drawPrecipitation` in the frame, so this is populated from the real
  * on-screen cloud positions — after parallax, per-cloud drift, tile wrapping and off-screen
  * culling. That ordering is load-bearing: reversing it would leave precipitation reading a
- * one-frame-stale field. Which clouds go in, or whether the field is uniform, is [rainField]'s:
- * after a lapse of the forecast, the theme's own clouds at their places rather than the ones drawn.
+ * one-frame-stale field. Which clouds go in is [rainField]'s: after a lapse of the forecast, the
+ * theme's own clouds at their places rather than the ones drawn. **There is no field without a
+ * cloud**: with none drawn the coverage is zero everywhere and nothing falls
+ * (`DESIGN_NOTES.md` §12, decision 98).
  *
  * ### Soft edges without a diffuse floor
  *
@@ -44,40 +46,12 @@ internal class CloudCoverage(private val columnCount: Int = DEFAULT_COLUMNS) {
     private val columns = FloatArray(columnCount)
 
     /**
-     * When set, [at] reports full coverage everywhere regardless of [columns]: the frames whose rain falls
-     * [RAIN_EVERYWHERE] ([rainField]).
+     * Clears the field for a new frame: coverage starts at zero everywhere and the clouds the rain falls from -- the
+     * ones drawn, or the theme's after a lapse ([rainField]) -- are added.
      */
-    private var uniform = false
-
-    /** The coverage everywhere beneath which [at] never reads ([setFloor]); 0 from [beginFrame]. */
-    private var floor = 0f
-
-    /**
-     * Clears the field for a new frame whose rain falls as [field] says ([rainField]): [RAIN_EVERYWHERE] makes it
-     * uniform at once; under clouds, coverage starts at zero everywhere and the clouds the rain falls from are added.
-     */
-    fun beginFrame(field: Int = RAIN_UNDER_DRAWN_CLOUDS) {
+    fun beginFrame() {
         java.util.Arrays.fill(columns, 0f)
-        uniform = field == RAIN_EVERYWHERE
-        floor = 0f
     }
-
-    /**
-     * Raises the whole sky's coverage to at least [value] for this frame: the rain spreading beyond the clouds while they
-     * leave a clearing sky, or narrowing under them while they come into a clear one (`CloudCoverFade.rainEverywhereToward`).
-     * At 1 the field reads as [RAIN_EVERYWHERE] does; at 0 it is the clouds' alone.
-     */
-    fun setFloor(value: Float) {
-        floor = value.coerceIn(0f, 1f)
-    }
-
-    /** Declares the whole sky covered, as [beginFrame] does for [RAIN_EVERYWHERE]. */
-    fun setUniform() {
-        uniform = true
-    }
-
-    /** Whether the field is in its uniform-fallback state. */
-    fun isUniform(): Boolean = uniform
 
     /**
      * Adds one on-screen cloud.
@@ -118,11 +92,9 @@ internal class CloudCoverage(private val columnCount: Int = DEFAULT_COLUMNS) {
 
     /** Coverage at a horizontal screen position, in `[0, 1]`. */
     fun at(x: Float, screenWidth: Float): Float {
-        if (uniform) return 1f
         if (screenWidth <= 0f) return 0f
         val column = (x / screenWidth * columnCount).toInt()
-        val value = columns[column.coerceIn(0, columnCount - 1)]
-        return if (value > floor) value else floor
+        return columns[column.coerceIn(0, columnCount - 1)]
     }
 
     /** Test/diagnostic helper. */
@@ -135,35 +107,25 @@ internal class CloudCoverage(private val columnCount: Int = DEFAULT_COLUMNS) {
         /** The rain falls under the clouds drawn this frame, a cloud fading in or out counting whole. */
         const val RAIN_UNDER_DRAWN_CLOUDS = 0
 
-        /** The rain falls everywhere: the field is uniform and the intensity alone decides. */
-        const val RAIN_EVERYWHERE = 1
-
         /** The rain falls under the clouds the theme's own density places, whatever is drawn. */
         const val RAIN_UNDER_THEME_CLOUDS = 2
 
         /**
-         * Where this frame's rain may fall: [RAIN_UNDER_DRAWN_CLOUDS], [RAIN_EVERYWHERE] or [RAIN_UNDER_THEME_CLOUDS]. What
-         * `PaperRenderer.drawClouds` hands [beginFrame] before it places a cloud.
+         * Where this frame's rain may fall: [RAIN_UNDER_DRAWN_CLOUDS] or [RAIN_UNDER_THEME_CLOUDS]; never anywhere a cloud
+         * is not (`DESIGN_NOTES.md` §12, decision 98).
          *
-         * - **Nothing placed and nothing showing** -- the cloud layer off or at 0 %, or a forecast that reports a clear
-         *   sky --: the rain falls everywhere. Turning clouds off must not also turn precipitation off, and with no cloud to derive a
-         *   field from, an empty one would cancel rain the forecast does report.
          * - **The forecast has lapsed** ([lapsed]: no snapshot, and the last one aged out): the rain is the theme's, from
-         *   the frame of the lapse, and it falls as the theme draws it -- under the theme's own clouds, or everywhere when
-         *   its cloud layer is off or at 0 % ([themeDensity] `NaN` or 0). The forecast's clouds fade out over seconds (`CloudCoverFade`);
-         *   falling only under them, the theme's rain would shrink with them and come back everywhere when the last went.
-         * - Otherwise under the clouds drawn, the ones fading in or out included, and beyond them as far as [setFloor]
-         *   says while the clouds leave a clearing sky or come into a clear one.
+         *   the frame of the lapse, and it falls under the theme's own clouds, at their places, while the forecast's
+         *   fade out (`CloudCoverFade`): under the forecast's it would shrink with them. With the theme's cloud layer
+         *   off or at 0 % ([themeDensity] `NaN` or 0) there is none, and nothing falls.
+         * - Otherwise under the clouds drawn, the ones fading in or out included: as the last clouds of a clearing sky
+         *   fade out the rain stops with them, and it starts under the first ones that come back.
          *
-         * @param placedDensity the density the clouds are placed at this frame, `NaN` for none; 0 places none either.
-         * @param cloudsShowing whether a cloud is still drawn, fully or fading (`CloudCoverFade.anythingVisible`).
+         * @param lapsed whether the forecast has lapsed and the theme's weather is back.
          * @param themeDensity the density of the theme's own clouds, `NaN` when its cloud layer is off.
          */
-        fun rainField(placedDensity: Float, cloudsShowing: Boolean, lapsed: Boolean, themeDensity: Float): Int = when {
-            lapsed -> if (placesNone(themeDensity)) RAIN_EVERYWHERE else RAIN_UNDER_THEME_CLOUDS
-            placesNone(placedDensity) && !cloudsShowing -> RAIN_EVERYWHERE
-            else -> RAIN_UNDER_DRAWN_CLOUDS
-        }
+        fun rainField(lapsed: Boolean, themeDensity: Float): Int =
+            if (lapsed && !placesNone(themeDensity)) RAIN_UNDER_THEME_CLOUDS else RAIN_UNDER_DRAWN_CLOUDS
 
         /** Whether a cloud density places no cloud at all: none (`NaN`), or 0 %. */
         fun placesNone(density: Float): Boolean = density.isNaN() || density <= 0f

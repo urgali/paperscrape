@@ -67,13 +67,12 @@ class VehiclePedestrianScaleTest {
     /** And the vehicles keep theirs, so this release cannot be read as having resized the world. */
     @Test
     fun `the vehicles keep their declared heights`() {
-        // v4.19: three bodies, one metre-per-unit. The height table's reference pair is the
+        // Three bodies, one metre-per-unit. The height table's reference pair is the
         // saloon's; the other two derive their metres from the same constant, so a unit is the
         // same pixel on all three and CAR_BASE_SCALE stays a single number.
         assertEquals(0.0302f, SceneSpace.CAR_UNIT_METRES, 0.0001f)
-        // The reference pair is the saloon the street draws (53 units, 1.60 m), not the 56-unit
-        // body v5.6F retired: until v5.8C it said 56, and every test sizing a car from it measured
-        // a car nobody draws (v5.8B comment audit).
+        // The reference pair is the saloon the street draws (53 units, 1.60 m): a pair taken from
+        // any other body would make every test that sizes a car from it measure a car nobody draws.
         assertEquals(CarShell.SALOON.unitsTall, SceneSpace.CAR_SPRITE_UNITS_TALL, 0f)
         assertEquals(53f, SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0001f)
         assertEquals(1.6006f, SceneSpace.CAR_METRES_TALL, 0.0001f)
@@ -113,8 +112,8 @@ class VehiclePedestrianScaleTest {
     /**
      * **The assertion the defect fails.**
      *
-     * A vehicle in the far lane stands at 0.834 of screen height; a pedestrian on the far pavement
-     * at 0.795. The vehicle is nearer, so it is drawn larger. At `PERSON_METRES_TALL = 1.9f` this
+     * A vehicle in the far lane stands at 0.754 of screen height; a pedestrian on the far pavement
+     * at 0.715. The vehicle is nearer, so it is drawn larger. At `PERSON_METRES_TALL = 1.9f` this
      * came out 62.7 for the pedestrian against 61.1 for the car and the car read as a toy.
      */
     @Test
@@ -180,8 +179,8 @@ class VehiclePedestrianScaleTest {
     fun `a fire engine towers over a car in the same lane`() {
         for (lane in listOf(SceneSpace.ROAD_LANE_FAR_Y_FRACTION, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)) {
             val ratio = fireTruckOn(lane) / carOn(lane)
-            // The cars grew in v4.19 (1.51 m -> 1.6912 m for the reference saloon), so the
-            // appliance towers by less than it did and still unmistakably towers.
+            // The ratio is the two heights' (2.9 m against the reference saloon's 1.60 m), so the
+            // appliance unmistakably towers.
             assertEquals(
                 "fire truck / car at $lane",
                 SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.CAR_METRES_TALL, ratio, 0.0001f,
@@ -229,14 +228,11 @@ class VehiclePedestrianScaleTest {
     /**
      * **The primary proportions: occupant against pane, and occupant against vehicle.**
      *
-     * These are the two relations the v4.15 report is about, and they are the two that a change of
+     * These are the two relations an occupant is judged by, and they are the two that a change of
      * [SceneSpace.CAR_METRES_TALL] cannot touch -- an occupant lives in the vehicle's local units,
      * so enlarging the vehicle enlarges the person with it and leaves both ratios exactly where
-     * they were. Measured on a OnePlus 6T at 1.45 m and at 1.75 m: head over vehicle 31.3% in both,
-     * head over pane 72.6% in both. Only the occupant's own scale moves them.
-     *
-     * v4.16 takes the head to 51.9% of its pane -- the share `drawWindowOccupant` has given a head
-     * since v4.2 -- which brings the sedan's driver from 31.3% of the vehicle's height to 22.4%.
+     * they were (measured on a phone with the car at 1.45 m and at 1.75 m: each share the same at
+     * both heights). Only the occupant's own scale moves them.
      */
     @Test
     fun `an occupant is the table's head in its pane and against its vehicle`() {
@@ -246,8 +242,8 @@ class VehiclePedestrianScaleTest {
         // as a number rather than as a picture nobody looked at.
         val carHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         val cabHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE
-        // v4.25: 0.666 on the artwork this replaced. The redrawn seated head is measured by the
-        // same rule as the pedestrian it is scaled against, which moved the share it fills.
+        // The seated head is measured by the same rule as the pedestrian it is scaled against, and
+        // that rule sets the share it fills.
         assertEquals("driver head over pane", 0.683f, carHead / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS, 0.002f)
         assertEquals("cab head over pane", 0.636f, cabHead / SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.002f)
         // The same head on all three bodies, because they share one metre-per-unit: the share of
@@ -258,11 +254,9 @@ class VehiclePedestrianScaleTest {
                 carHead, SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE,
                 0.0001f,
             )
-            // v5.6F: 0.322 on all three, because «Cut-out» stands all three bodies at 53 units
-            // and the head did not move -- a lower car with the same occupant is a slightly larger
-            // share of it. The band's top goes to 0.33 with that measurement; it is a guard
-            // against an occupant becoming absurd, not a target, and what it guards has not
-            // changed. Worth saying that the three are now *equal*: one pane, one head, one
+            // 0.322 on all three, because «Cut-out» stands all three bodies at 53 units with the
+            // same head. The band's top is 0.33 to hold that; it is a guard against an occupant
+            // becoming absurd, not a target. The three are *equal*: one pane, one head, one
             // height, so a difference between two bodies here would be a defect rather than a
             // property of the drawing.
             val share = carHead / shell.unitsTall
@@ -288,13 +282,12 @@ class VehiclePedestrianScaleTest {
      */
     @Test
     fun `an occupant's head stays in a sane relation to a pedestrian's at the same depth`() {
-        // rc2: the relation is no longer a wide guard band around a share-derived size -- it is
-        // the rule itself. An occupant's head IS the pedestrian's, times the 0.97 seat fit,
+        // The relation is the rule itself, not a wide guard band around a share-derived size: an
+        // occupant's head IS the pedestrian's, times the 0.97 seat fit,
         // whatever vehicle they sit in; the +/-10% band is the acceptance criterion's own.
         val pedestrianHead = SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS *
             (SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL)
-        // v4.25: 0.518 m. The v4.25 walker carries a slightly larger head -- 24.3 of its 80
-        // units against 23.7 -- and this is that head in scene metres.
+        // The walker's head is 24.3 of its 80 units, and this is that head in scene metres.
         assertEquals("a pedestrian's head, in metres", 0.532f, pedestrianHead, 0.005f)
         val perCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
         val perTruckUnit = SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
@@ -317,11 +310,10 @@ class VehiclePedestrianScaleTest {
     @Test
     fun `the occupant heads are the drawn sizes this release chose`() {
         val actual = drawnHeads()
-        // rc2: the table's signature is that every adult head in traffic measures the same at the
+        // The table's signature is that every adult head in traffic measures the same at the
         // same lane, sedan and appliance alike, because the size is the person's, not the
-        // vehicle's. v4.25: 24.53/21.21 reference px on the artwork this replaced, 25.15/21.76 on
-        // the redrawn family -- the signature is the equality, and the pair of numbers is what
-        // this release drew.
+        // vehicle's. The signature is the equality; 25.15/21.76 reference px is what the shipped
+        // family draws.
         assertEquals("near-lane driver", 25.15f, actual.getValue("near-lane driver"), 0.05f)
         assertEquals("far-lane driver", 21.76f, actual.getValue("far-lane driver"), 0.05f)
         assertEquals("near-lane passenger", 25.15f, actual.getValue("near-lane passenger"), 0.05f)
@@ -337,7 +329,7 @@ class VehiclePedestrianScaleTest {
     /**
      * One scale per vehicle family, and every bust stands on its sill.
      *
-     * rc2 set the rule and rc4 keeps it on the frontal family: the `head_car` set carries
+     * The rule holds on the frontal family: the `head_car` set carries
      * adults at 35 local units of head and children at 31.5, so a child would be shorter
      * through the same number rather than through a scale of their own (no vehicle can seat one
      * today -- one seat, adults drive -- but the artwork keeps the discipline). What is asserted
@@ -365,8 +357,8 @@ class VehiclePedestrianScaleTest {
         )
         assertEquals(
             "the frontal anchor is the family's shared canvas bottom",
-            // v4.25: 44 until the seated canvas was trimmed onto its own family, two units off
-            // the top. The anchor is still the canvas bottom; the canvas is what moved.
+            // The seated canvas is trimmed onto its own family's content, which puts its bottom,
+            // the anchor, at 42.
             42f,
             SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS,
             0.001f,
@@ -376,21 +368,18 @@ class VehiclePedestrianScaleTest {
     /**
      * The pane's geometry, and the door accessories riding the sill.
      *
-     * The glasshouse grew for the table-sized occupants and has been 25 units ever since; v5.6F
-     * moved the whole bay four units down the body without changing its height, because the slab's
-     * roof came up from -19/-20 to -16. The livery is blitted *at the sill*, so it follows it
-     * rather than being a second copy of the number.
+     * The glasshouse is 25 units tall, sized for the table-sized occupants, and the bay sits low
+     * enough on the body to clear the slab's roof at -16. The livery is blitted *at the sill*, so
+     * it follows it rather than being a second copy of the number.
      *
-     * **And the sprite is two units taller than the pane**, which is the v5.6F construction rather
-     * than a slack canvas: the glass sheet lies behind the body paper and is grown half a unit
-     * past the hole on every side so no seam can open between them, on a canvas with another half
-     * unit of padding. `the glass is authored at its drawn size` used to assert the two were
-     * equal; it asserts the growth is exactly one unit per side now, which is the same kind of
-     * claim about the same pair of numbers and is the one that is true of this drawing.
+     * **And the sprite is two units taller than the pane**, which is the «Cut-out» construction
+     * rather than a slack canvas: the glass sheet lies behind the body paper and is grown half a
+     * unit past the hole on every side so no seam can open between them, on a canvas with another
+     * half unit of padding. The test asserts that growth, exactly one unit per side.
      */
     @Test
     fun `the glass stops short of the beltline and the accessories ride the sill`() {
-        // v5.6F: the cabin's vertical layout is shared by all three bodies -- pane -12 to 13,
+        // The cabin's vertical layout is shared by all three bodies -- pane -12 to 13,
         // 25 units -- and it is what the height table asks for rather than what a roof allowed.
         assertEquals("the pane's top", -12f, SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS, 0.001f)
         assertEquals("the sill", 13f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
@@ -428,13 +417,13 @@ class VehiclePedestrianScaleTest {
      * Both busts stay inside every pane, clear of both pillars, with the driver forward.
      *
      * **The clearance is a share of the head, not of the pane**. Against the pane it moved every time the glass
-     * did, which is how v4.18 ended up lowering it from 15% to 13% to pay for a wider cabin.
+     * did, and a wider cabin could pay for itself by lowering it.
      * Against the head it says the thing that actually matters: a head must not look wedged into
      * its pillar.
      *
      * **The floor is 15%, and it comes from legibility at the size a car is actually drawn.** The
      * smallest a car is ever rendered is the far lane, where the projection puts **1.242 px on a
-     * local unit** at the reference 1080x2340 device (`CAR_BASE_SCALE * perspectiveScaleAt(0.834)
+     * local unit** at the reference 1080x2340 device (`CAR_BASE_SCALE * perspectiveScaleAt(0.754)
      * * sceneScale(2340)`, measured rather than estimated). A band of glass thinner than about
      * 3 px reads as an antialiasing seam between two shapes rather than as daylight between two
      * people, and 3 px / 1.242 = 2.41 units, which is 13.3% of an adult head's 18.08. Rounded up
@@ -488,9 +477,8 @@ class VehiclePedestrianScaleTest {
             SceneObjectRenderer.CAR_PASSENGER_X_UNITS > SceneObjectRenderer.CAR_HEAD_X_UNITS,
         )
         // And by more than the widest head band: the two heads may not touch at all, whatever
-        // the rendered gap measurement then says. The widest ink any *seatable* bust carries
-        // between crown and chin is the winter girl's 22 units -- v4.18 could quote 18.08 here
-        // because only adults were seated; v4.19 seats children, so the number is hers.
+        // the rendered gap measurement then says. The widest ink is taken across every *seatable*
+        // bust between crown and chin, the children's among them.
         val pitch = SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS
         val widestDrawn = WIDEST_SEATABLE_HEAD_BUST_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         assertTrue(
@@ -504,9 +492,8 @@ class VehiclePedestrianScaleTest {
     /**
      * Each pane has its own sprite, and the sprite is **bigger than the pane**.
      *
-     * This method was called *"each pane is its own sprite, and the sprite is the pane"* until
-     * v5.6F and asserted the two widths were equal, which was true while the glass was an overlay
-     * stuck on top of the shell. «Cut-out» puts it behind: the sheet is grown half a unit past
+     * The glass is not an overlay stuck on top of the shell, whose sprite could be exactly the
+     * pane. «Cut-out» puts it behind: the sheet is grown half a unit past
      * every edge of the hole so the cut edge of the body paper lands on glass rather than on a
      * seam, and the canvas carries another half unit. So the sprite is exactly two units wider
      * than the cabin pane on the two bodies whose glazing *is* the cabin, and wider still on the
@@ -544,19 +531,18 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * v4.6 resized the people in the cars and **nothing else about a car**.
+     * The occupants are sized to the cars, and **nothing else about a car follows them**.
      *
-     * The one thing the batch was explicitly not allowed to do is make the vehicle bigger to make
-     * its occupants fit, so the two constants that would express that are pinned here as well as
-     * in `the vehicles keep their declared heights` above -- once as a size table entry, once as a
-     * statement about this release.
+     * A vehicle is never made bigger to make its occupants fit, so the two constants that would
+     * express that are pinned here as well as in `the vehicles keep their declared heights` above
+     * -- once as a size table entry, once as this rule.
      */
     @Test
     fun `the redesign grew the car by units and metres together, not by scale`() {
-        // v4.20 made the saloon taller on purpose -- but through the size table, with metres and
-        // units moving together, never by inflating the pixels a unit is worth. 1.51/50 is within
-        // half a percent of the 1.45/48 every other object was authored against, so a local unit
-        // still lands on the same pixel and nothing else in the scene moved.
+        // The saloon's height comes from the size table, with metres and units moving together,
+        // never from inflating the pixels a unit is worth. 1.60/53 is within half a percent of
+        // the 1.45/48 every other object was authored against, so a local unit lands on the same
+        // pixel as everything else in the scene.
         assertEquals(1.45f / 48f, SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0002f)
         assertEquals(1.359f, SceneSpace.CAR_BASE_SCALE, 0.001f)
         assertEquals(45f, SceneSpace.PIXELS_PER_METRE_AT_REFERENCE, 0.0001f)
@@ -594,8 +580,8 @@ class VehiclePedestrianScaleTest {
         contentLeftUnits: Float,
         contentRightUnits: Float,
     ): Pair<Float, Float> {
-        // **Reflected about the anchor, because that is what the blit does.** v4.25 mirrors every
-        // seated bust so it faces the vehicle's front (`drawSeatedOccupant`), and the content box
+        // **Reflected about the anchor, because that is what the blit does.** Every seated bust is
+        // mirrored so it faces the vehicle's front (`drawSeatedOccupant`), and the content box
         // is not symmetric about the eye axis, so modelling the unmirrored span would check an
         // envelope the scene never draws.
         return (placementX - (contentRightUnits - anchorX) * scale) to
@@ -606,8 +592,7 @@ class VehiclePedestrianScaleTest {
         /**
          * The walk sprites' child content height, against the adults' 80.
          *
-         * 62 until v4.30, when the children were redrawn at 0.65 of an adult instead of 0.779.
-         * Measured on the regenerated artwork: the summer boy's and girl's alpha boxes are 162 and
+         * The children are drawn at 0.65 of an adult. Measured on the artwork: the summer boy's and girl's alpha boxes are 162 and
          * 161 px against the man's and woman's 247 and 246, which is 0.655 of the adults' box and
          * 52.4 of their declared 80 units. See `SceneSpace.PERSON_METRES_TALL`.
          */
@@ -622,43 +607,37 @@ class VehiclePedestrianScaleTest {
          */
         const val PEDESTRIAN_CONTENT_UNITS = 242f / 3f
 
-        /** The widest `person_*_head_car` alpha box on x -- the winter adults -- in the shared
-         * 141 px canvas: 5..130 px. */
-        // v4.25: 5/3 and 130/3 on the 47-unit canvas this replaced. The redrawn family sits on a
-        // 38-unit canvas trimmed onto its own content, and the shared ink spans 0..112 px of it --
-        // measured across the eight seatable busts, the union of their content boxes.
+        /** The widest `person_*_head_car` alpha box on x, in bust units: the union across the
+         * seatable busts. */
+        // The seated family sits on a 38-unit canvas trimmed onto its own content, and the shared
+        // ink spans 0..112 px of it -- measured across the eight seatable busts, the union of their
+        // content boxes.
         const val HEAD_CAR_CONTENT_LEFT_UNITS = 0f
         const val HEAD_CAR_CONTENT_RIGHT_UNITS = 112f / 3f
 
         /**
          * The floor for pillar light and head gap alike, as a share of the head's own width.
-         * See the pillar test for where 12% comes from.
+         * See the pillar test for where 15% comes from.
          */
         const val PILLAR_LIGHT_MIN_HEAD_SHARE = 0.15f
 
         /**
-         * The widest crown-to-chin ink any seatable bust carries: the winter girl's bunches.
-         * Measured off the shipped artwork by the pass's criteria sweep.
+         * The widest crown-to-chin ink any seatable bust carries, measured off the shipped
+         * artwork.
          */
-        // v4.25: 22 until the family was redrawn, then 23 once the generator placed every side
-        // piece inside the declared band, and **34.33 since the proportion pass gave the head
-        // back its width** -- measured across the eight seatable busts between each one's own
-        // crown and jaw. The widest is the summer woman's.
+        // 34.33, measured across the eight seatable busts between each one's own crown and jaw.
+        // The widest is the summer woman's.
         //
         // **This is in the bust's own units and the seat pitch is in the car's**, which are not
         // the same unit: multiply by `CAR_OCCUPANT_SCALE` before the two are compared. Reading
-        // one as the other is the defect that produced the narrow head in the first place -- it
-        // made the generator's own band twice as tight as the car is -- and it was in this file
-        // as well, where it compared 22.33 against a 23-unit pitch and read the margin as one
-        // unit when it is really eleven.
+        // one as the other makes the generator's band twice as tight as the car is.
         const val WIDEST_SEATABLE_HEAD_BUST_UNITS = 103f / 3f
 
         /**
          * The width of the pane the occupants actually sit in.
          *
-         * The exclusion of the estate's load-bay window used to live here, as a literal beside a
-         * `when`: it is a fact about the drawing, so v5.6F moved it into [CarShell.paneWidthUnits]
-         * and this reads it. The function stays because the criteria below read it by name and
+         * The estate's load-bay window is left out by [CarShell.paneWidthUnits], since that is a
+         * fact about the drawing, and this reads it. The function stays because the criteria below read it by name and
          * the name is what says *which* pane is meant.
          */
         fun cabinPaneWidth(shell: CarShell): Float = shell.paneWidthUnits
@@ -669,8 +648,8 @@ class VehiclePedestrianScaleTest {
         /**
          * Where `police_stripe` and `taxi_checker` are actually blitted, **read from the source**.
          *
-         * It used to be the literal `13f` copied out of `drawCar`, which is a second copy of a
-         * number and went stale the moment v4.15 moved the sill. The call site now names
+         * Not a literal copied out of `drawCar`: a second copy of a number goes stale the moment
+         * the sill moves. The call site names
          * [SceneObjectRenderer.CAR_SILL_Y_UNITS] directly, and this reads that back out of the file
          * so the assertion is about the coupling rather than about a number somebody retyped.
          */

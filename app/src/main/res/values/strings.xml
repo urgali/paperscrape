@@ -7,7 +7,7 @@
     <!-- The theme's own cloud and rain controls are not drawn while the forecast drives the sky
          (SettingsUiModel.forecastOwnsTheWeatherControls): not while the switch is merely on;
          with no forecast yet, or none to be had, the theme's own weather shows and so do its controls. -->
-    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While the forecast drives the sky, this theme\'s own Clouds and Rain and snow screens leave those to it; their colours stay yours.</string>
+    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed at most once an hour while PaperScrape is on screen. While the forecast drives the sky, this theme\'s own Clouds and Rain and snow screens leave those to it; their colours stay yours.</string>
     <string name="live_weather_needs_location">Pick a location above first - GPS, Network or Custom - so it knows where to check the weather for.</string>
     <string name="live_weather_fallback_notice">Location unavailable — showing this theme\'s own weather instead.</string>
 

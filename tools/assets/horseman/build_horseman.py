@@ -130,7 +130,8 @@ RIDER_TO_PEDESTRIAN = 1.3
 
 #: An adult walking on the near row of the pavement on the BV6600, in px: `SceneSpace.PERSON_METRES_TALL` (1.75 m) at
 #: `PIXELS_PER_METRE_AT_REFERENCE` (45 px/m on a 2 400 px screen, x0.6 for its 1 440), at the perspective of
-#: `PAVEMENT_NEAR_Y_FRACTION` (0.807: (0.807 - 0.655) / (0.846 - 0.655)) -- `SantaSleighScale.pedestrianPx` there.
+#: `PAVEMENT_NEAR_Y_FRACTION` (0.152 under the horizon over the reference line's 0.191; the three lines written each 0.08
+#: below `SceneSpace`'s, which leaves the ratio the same) -- `SantaSleighScale.pedestrianPx` there.
 PEDESTRIAN_PX_BV6600 = 1.75 * 45.0 * (1440 / 2400) * ((0.807 - 0.655) / (0.846 - 0.655))
 
 #: The reins' width, in units, at the shipped size (3 px on the BV6600); never under 2.5 px at any size ([Size.rein]).

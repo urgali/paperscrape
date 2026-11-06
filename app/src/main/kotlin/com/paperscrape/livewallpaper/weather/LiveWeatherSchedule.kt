@@ -62,12 +62,67 @@ object LiveWeatherSchedule {
     const val SNAPSHOT_MAX_AGE_MILLIS = 3 * WEATHER_REFRESH_INTERVAL_MS
 
     /**
-     * The first retry delay after a transient failure, and the unit the backoff doubles.
-     *
-     * Equal to the loop's own tick, because the tick is the finest schedule the loop can actually
-     * keep: asking for anything shorter would not be honoured and would only look precise.
+     * The first retry delay after a transient failure, and the unit the backoff doubles: the loop's
+     * own tick, its pass every two minutes. Shorter waits are the quick retries of a showing
+     * ([QUICK_RETRY_DELAYS_MILLIS]), for which the loop shortens its wait ([passDelayMillis]).
      */
     const val RETRY_BASE_MILLIS = 2 * 60 * 1000L
+
+    /**
+     * **The maintainer's rule** (`DESIGN_NOTES.md` §12, decision 99, 2026-11-04): *«se passa più di un'ora deve
+     * aggiornare il meteo nel momento in cui riaccendo lo schermo, non semplicemente fallire e aspettare l'ora dopo»*.
+     * Whether the wallpaper coming on screen ([newlyShown]: the screen turned on over it, on the lock screen or the
+     * home screen, or an app over it closed) asks for the weather at once: when the last **successful** request is an
+     * interval ([intervalMillis]) or more ago ([sinceLastSuccessMillis], on the monotonic clock), whatever failed in
+     * between and whatever the backoff ([nextAttemptDelayMillis]) says. **Not after a refusal** ([lastWasRefusal]: a
+     * missing or rejected key, the provider's limit, a refused request): the same request gets the same no, so those wait
+     * the hour from their last attempt, as the backoff has them.
+     */
+    fun dueOnShowing(newlyShown: Boolean, sinceLastSuccessMillis: Long, lastWasRefusal: Boolean, intervalMillis: Long): Boolean =
+        newlyShown && !lastWasRefusal && isAttemptDue(sinceLastSuccessMillis, intervalMillis)
+
+    /**
+     * How long after a request that found **no network** ([isNetworkNotReady]) the loop asks again while the wallpaper
+     * stays on screen: 5, then 10, then 20 seconds -- three quick retries, 35 s in all, for a phone whose connection
+     * comes up a moment after the screen. They are for the request a showing made ([dueOnShowing]) and its own retries;
+     * once spent the loop is back on the backoff, the burst counted as one failure ([nextAttemptDelayMillis]), and the
+     * next showing starts again. Off screen none is made.
+     */
+    val QUICK_RETRY_DELAYS_MILLIS = longArrayOf(5_000L, 10_000L, 20_000L)
+
+    /**
+     * The wait before quick retry number [retriesMade] (0 the first), or -1 once the three are spent
+     * ([QUICK_RETRY_DELAYS_MILLIS]).
+     */
+    fun quickRetryDelayMillis(retriesMade: Int): Long =
+        if (retriesMade in QUICK_RETRY_DELAYS_MILLIS.indices) QUICK_RETRY_DELAYS_MILLIS[retriesMade] else -1L
+
+    /**
+     * Whether [result] failed because the phone could not reach the provider -- no network yet, a timeout, a dropped
+     * connection ([WeatherFailure.NETWORK]) -- the one failure a few seconds can mend. A server error or an answer that
+     * could not be read ([WeatherFailure.HTTP_ERROR], [WeatherFailure.MALFORMED_RESPONSE]) came from a provider that was
+     * reached, and waits for the backoff; so does every refusal ([isRefusal]).
+     */
+    fun isNetworkNotReady(result: WeatherFetchResult?): Boolean =
+        result is WeatherFetchResult.Failed && result.reason == WeatherFailure.NETWORK
+
+    /**
+     * Whether [result] is an answer asking again soon would not change: a missing key (nothing is sent), a rejected key,
+     * the provider's limit, a refused request. Such an answer keeps a showing from asking ([dueOnShowing]).
+     */
+    fun isRefusal(result: WeatherFetchResult?): Boolean = when (result) {
+        is WeatherFetchResult.MissingApiKey -> true
+        is WeatherFetchResult.Failed -> !isTransient(result)
+        else -> false
+    }
+
+    /**
+     * How long the loop waits before its next pass: [basePassMillis], its two-minute tick (or the sooner try for the
+     * phone's position), or less when a quick retry falls due before it ([quickRetryInMillis], negative for none; never
+     * under a tenth of a second).
+     */
+    fun passDelayMillis(basePassMillis: Long, quickRetryInMillis: Long): Long =
+        if (quickRetryInMillis < 0L) basePassMillis else minOf(basePassMillis, maxOf(quickRetryInMillis, 100L))
 
     /**
      * Whether this outcome is worth trying again sooner than the normal interval.
@@ -131,8 +186,9 @@ object LiveWeatherSchedule {
      * | 5 | 32 min | 62 min |
      * | 6+ | 60 min | hourly, as if nothing had happened |
      *
-     * That is **four extra requests in the first hour** of an outage and none after it -- bounded,
-     * deterministic, and no more network than a user who opens the settings screen a few times.
+     * That is **four extra requests in the first hour** of an outage from the backoff and none after it -- bounded,
+     * deterministic, and no more network than a user who opens the settings screen a few times. A showing past the hour
+     * asks besides, with at most three quick retries for no network ([dueOnShowing], decision 99).
      * A live wallpaper cannot afford a fixed short retry: an aeroplane, a tunnel or a dead Wi-Fi
      * network would turn it into a permanent 2-minute poll.
      */

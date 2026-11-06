@@ -17,9 +17,10 @@ import org.junit.Test
  *
  * The twelve built-in themes, the clock swept in **five-minute steps** through the real
  * [SunPositionCalculator] rather than sampled at its ends, clear / live rain / thunderstorm, and
- * thirteen heights down the stretch of screen a drop crosses with sky behind it — the cloud band's
- * own middle, where a drop is born, to the top of the hills. **10 368 situations**, all on the host:
- * this is arithmetic over the themes' own numbers and needs no device.
+ * thirteen heights down the stretch of sky a drop's colour is held off — the cloud band's own
+ * middle, where a drop is born, down to 0.60 of the screen, past the hills' top at 0.52, more sky
+ * than a drop crosses. **10 368 situations**, all on the host: this is arithmetic over the themes'
+ * own numbers and needs no device.
  *
  * **Eleven of the twelve themes have an hour at which the rain and the sky are the same
  * brightness.** The floor is [FAILING_WORST_GAP], against a median of [MEDIAN_SKY_GAP]. Halloween
@@ -95,11 +96,11 @@ class PrecipitationContrastTest {
     }
 
     /**
-     * The stretch a drop crosses with sky behind it: the cloud band's middle — `drawPrecipitation`'s
-     * own `fallStartY` — down to the top of the hills, at the default cloud height.
+     * The stretch a drop's colour is held off: the cloud band's middle — `drawPrecipitation`'s
+     * own `fallStartY` — down to [PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION], at the default cloud height.
      */
     private val fallTopFraction = CloudBand.precipitationOriginY(1000, SceneCustomization.DEFAULT.sky.sunCloudHeight) / 1000f
-    private val horizonFraction = SceneSpace.HILL_LAYER_TOP_FRACTION
+    private val horizonFraction = PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION
     private val heights = (0..12).map { fallTopFraction + (horizonFraction - fallTopFraction) * it / 12f }
 
     /**
@@ -339,7 +340,7 @@ class PrecipitationContrastTest {
         // **What the correction is allowed to cost, pinned as a fact rather than described.**
         // The largest carry is New Year at 08:40, where `#7EB2DF` is drawn `#6189AB`: the same
         // blue, held down, because that theme's sky spans the drop's own brightness from the cloud
-        // band to the hills and one colour has to clear all of it. If a future change makes the
+        // band down to 0.60 of the screen and one colour has to clear all of it. If a future change makes the
         // correction louder than this, it is a change to how the rain looks and has to be judged
         // as one rather than absorbed.
         assertEquals(

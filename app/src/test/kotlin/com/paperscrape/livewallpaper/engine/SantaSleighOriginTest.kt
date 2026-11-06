@@ -8,7 +8,7 @@ import java.io.File
 import javax.imageio.ImageIO
 
 /**
- * Pins where Santa's sleigh group of v5.15 lands and how large it is drawn, against what actually ships.
+ * Pins where Santa's sleigh group (`DESIGN_NOTES.md` §12, decision 73) lands and how large it is drawn, against what actually ships.
  *
  * The group is five sprites placed by [SantaSleighTable] -- the sleigh with Santa and the presents, and the reindeer in
  * four poses -- which `tools/assets/sleigh/build_sleigh.py` writes from the geometry it draws the SVGs with
@@ -126,7 +126,7 @@ class SantaSleighOriginTest {
             val santa = SantaSleighScale.SANTA_UNITS_TALL * sc
             // An adult on the near row of the pavement as the street draws one: its 80 units of sprite at the walkers'
             // scale there (`SceneObjectRenderer`, read below) -- not the sleigh's own reading, metres through the
-            // projection, which until v5.15C2 this compared with itself (inventory I-975).
+            // projection, which would compare that reading with itself.
             val pedestrian = SceneSpace.PERSON_SPRITE_UNITS_TALL * SceneSpace.PERSON_BASE_SCALE *
                 SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION) * SceneSpace.sceneScale(height)
             assertEquals("the sleigh's pedestrian on a screen $height px tall", pedestrian, SantaSleighScale.pedestrianPx(height), 0.001f)
@@ -137,8 +137,11 @@ class SantaSleighOriginTest {
         }
         // The street draws its walkers at that scale.
         val street = File(drawableDir.parentFile!!.parentFile, "kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt").readText()
-        assertTrue(street.contains("val s = SceneSpace.PERSON_BASE_SCALE * SceneSpace.perspectiveScaleAt(rowYFraction) * sceneScale"))
-        // The BV6600's adult on the near row, which the generator thickens the drawing for, is the app's own.
+        assertTrue(street.contains("val share = if (pavement.size.isNaN()) SceneSpace.perspectiveScaleAt(rowYFraction) else pavement.size"))
+        assertTrue(street.contains("val s = SceneSpace.PERSON_BASE_SCALE * share * sceneScale"))
+        assertTrue("the street's pavement is the projection's", street.contains("private val streetPavement = Pavement(seedSalt = 0, shift = 0f, size = Float.NaN)"))
+        // The BV6600's adult on the near row, which the generator thickens the drawing for, is the app's own: the generator
+        // writes each line 0.08 below SceneSpace's, which leaves the ratio the same.
         val stated = Regex("""PEDESTRIAN_PX_BV6600 = 1\.75 \* 45\.0 \* \(1440 / 2400\) \* \(\(0\.807 - 0\.655\) / \(0\.846 - 0\.655\)\)""")
         assertTrue("build_sleigh.py's pedestrian is no longer SceneSpace's", stated.containsMatchIn(generator.readText()))
         assertEquals(1.75f * 45f * 0.6f * ((0.807f - 0.655f) / (0.846f - 0.655f)), SantaSleighScale.pedestrianPx(1440f), 0.01f)
@@ -190,7 +193,7 @@ class SantaSleighOriginTest {
         assertTrue("the reins: ${SantaSleighTable.SANTA_REIN_UNITS * sc} px", SantaSleighTable.SANTA_REIN_UNITS * sc >= 2f)
         assertTrue("the traces: ${SantaSleighTable.SANTA_TRACE_UNITS * sc} px", SantaSleighTable.SANTA_TRACE_UNITS * sc >= 2f)
         // A gift's ribbon: drawn never narrower than MIN_RIBBON_PX, which is 2 px -- the draw holds the floor, so the
-        // test reads it there (until v5.15C2 it asserted `max(x, 2) >= 2`, true whatever was drawn; inventory I-975).
+        // test reads it there (a `max(x, 2) >= 2` would hold whatever was drawn).
         assertTrue(SantaSleighEffect.MIN_RIBBON_PX >= 2f)
         val effect = File(drawableDir.parentFile!!.parentFile, "kotlin/com/paperscrape/livewallpaper/engine/SantaSleighEffect.kt").readText()
         assertTrue("the gift's ribbon is drawn with its floor", effect.contains("val r = maxOf(h * RIBBON_OF_HALF, MIN_RIBBON_PX * 0.5f)"))

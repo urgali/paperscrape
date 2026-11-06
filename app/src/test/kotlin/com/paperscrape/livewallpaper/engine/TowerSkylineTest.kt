@@ -6,10 +6,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * The towers of v5.11: three heights by a coin of their own under the crowns they had, and the ones whose
- * foot stood on the hill's crest drawn a little forward (inventory I-402 and I-404; the maintainer's
- * choices of 2026-10-06); since v5.13B2 two candidates fewer on every street, which are places among the
- * houses.
+ * The towers: three heights by a coin of their own under the crowns they had, and the ones whose
+ * foot stands on the hill's crest drawn a little forward (`DESIGN_NOTES.md` §12, decisions 47 and 49); two
+ * candidates fewer on every street, which are places among the houses (decision 60).
  */
 class TowerSkylineTest {
 
@@ -24,15 +23,12 @@ class TowerSkylineTest {
     }
 
     /**
-     * **The number of towers is the maintainer's, not a round's to move** (the factory amounts stay, his
-     * rule since the 5.11's proposals): counted on every built-in at its factory settings, 62 on the twelve. **He moved it on
-     * 2026-10-12**, shown a street with two towers fewer and five places among the houses on the BV6600:
-     * *«Sì, 5 posti, in un giro a parte»*, then *«5 posti prima del sigillo»* -- what he was told was two towers
-     * fewer and two more buildings among the houses every two screens, one fewer and one more a screen. Two of
-     * the seven tower candidates of every street are places now (v5.13B2,
-     * `SceneObjectCatalog.buildingCandidates`), and the towers that stood on them go: 62 to 45, the counts
-     * before 4, 6, 4, 7, 5, 6, 5, 7, 5, 5, 4, 4. Every tower left is one that stood, where it stood -- the
-     * four generated tower depths and the school third's surplus at 0.15 -- and nothing here may change one.
+     * **The number of towers of every theme is a decided one** (decision 47), and only a decision moves it:
+     * counted on every built-in at its factory settings, 45 on the twelve. Two of the seven tower candidates
+     * of every street are places among the houses (decision 60, `SceneObjectCatalog.buildingCandidates`), so
+     * no tower stands on them: two towers fewer and two more buildings among the houses every two screens,
+     * one fewer and one more a screen. Every tower left stands where its candidate puts it -- the four
+     * generated tower depths and the school third's surplus at 0.15 -- and nothing here may change one.
      */
     @Test
     fun `every built-in stands the towers it stood, less the two candidates that are places`() {
@@ -76,7 +72,7 @@ class TowerSkylineTest {
 
     /**
      * A tower's height is the same whichever way it is dealt -- from the silhouette the generator
-     * recorded, or from its position (the gallery card, a theme saved before v5.5) -- because both read
+     * recorded, or from its position (the gallery card, a saved theme that records no silhouette) -- because both read
      * the building's own identity.
      */
     @Test
@@ -127,8 +123,8 @@ class TowerSkylineTest {
             }
             moved[theme.id] = n
         }
-        // As photographed in the proposals, one to three a theme; v5.13B2's two towers fewer took four of the
-        // twenty (until then 1, 1, 1, 2, 1, 2, 2, 3, 2, 1, 3, 1): Desert's, Christmas's, New Year's and Halloween's.
+        // None to three a theme (decision 49): the two candidates that are places among the houses
+        // (decision 60) stand no tower, so none is brought forward there.
         assertEquals(
             mapOf(
                 "sunset" to 1, "autumn" to 1, "winter" to 1, "desert" to 1, "christmas" to 0, "new_year" to 1,
@@ -139,14 +135,14 @@ class TowerSkylineTest {
     }
 
     /**
-     * Under the crest's lowest point, too -- 0.688 of the screen at full variation, where a tower would
+     * Under the crest's lowest point, too -- 0.608 of the screen at full variation, where a tower would
      * be wanted at 0.337, past the shops' band: what stands from [SceneSpace.BUILDING_TOWER_MAX_DEPTH]
      * on is drawn where it stands, and the cap stays behind every shop.
      */
     @Test
     fun `a shop or anything else is drawn where it stands`() {
         val underTheLowestCrest = 0.875f
-        assertEquals(0.688f, SceneSpace.hillCrestYFraction(underTheLowestCrest, 1f, 0f), 1e-4f)
+        assertEquals(0.608f, SceneSpace.hillCrestYFraction(underTheLowestCrest, 1f, 0f), 1e-4f)
         for (depth in listOf(0.30f, 0.356f, 0.5f, 0.8f)) {
             assertEquals(depth, SceneSpace.towerDrawnDepth(depth, 0.3f, 1f, 0f), 0f)
             assertEquals(depth, SceneSpace.towerDrawnDepth(depth, underTheLowestCrest, 1f, 0f), 0f)

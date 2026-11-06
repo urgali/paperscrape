@@ -30,20 +30,21 @@ class ServiceWiringTest {
     }
 
     /**
-     * A request outside the hour only for another place, not for any fix that differs by a bit; and each of the two
-     * reasons asks alone: the hour up at the same place, or another place within the hour. Whole lines, comments taken
-     * off.
+     * A request outside the hour only for another place, not for any fix that differs by a bit, or for a showing
+     * ([com.paperscrape.livewallpaper.weather.ShowingRefresh]); and each reason asks alone: the hour up at the same place,
+     * another place within the hour, a showing an hour after the last success or its quick retry. Whole lines, comments
+     * taken off.
      */
     @Test
-    fun `the loop asks for new conditions only for another place`() {
+    fun `the loop asks for new conditions for another place, when the hour is up, or at a showing`() {
         val lines = codeLines(engine)
         assertFalse("the bit-for-bit comparison", engine.contains("fix != lastWeatherFetchLocation"))
         assertTrue("val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation)" in lines)
         assertTrue(
             "val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)" in lines,
         )
-        val ask = lines.indexOf("if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired)) {")
-        assertTrue("the request waits for both reasons, or for neither", ask >= 0)
+        val ask = lines.indexOf("if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {")
+        assertTrue("the request is asked for any of the three reasons, each alone: another place, the timer, a showing", ask >= 0)
         assertEquals(
             "what the request is asked under",
             listOf("lastWeatherFetchElapsed = SystemClock.elapsedRealtime()", "lastWeatherFetchLocation = fix", "result = WeatherRepository.fetchCurrentConditions("),

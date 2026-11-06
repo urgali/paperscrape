@@ -13,7 +13,8 @@ PaperScrape replaces your home screen background with a small landscape that kee
 moving on its own.
 
 - **A live wallpaper**, not a static image. Hills, a lake, a village and a road, drawn
-  every frame.
+  every frame; under the road the street seen again, nearer: houses, trees, the restaurant, the bar and the shop,
+  decorations and people walking.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick —
@@ -43,12 +44,13 @@ moving on its own.
   the bar and a shop — and the public buildings — the school, a fire station and a police station.
   Each of the twelve themes has all six buildings among the houses: as the scenery scrolls they take
   turns in five places every two screens, about three on a screen, in an order of their own, never two
-  alike on the screen, and they change only as the scenery scrolls: coming back to the home screen finds the
+  alike along the street on one screen, and they change only as the scenery scrolls: coming back to the home screen finds the
   same ones. Small houses far away on the mountains can be
   turned on, in the houses' colours, on both sides of the mountains. (The umbrellas people carry follow the rain and have no switch
   of their own.) A switch reads on only while what it promises happens: one that can do nothing -- at an amount where
-  nothing stands, or on a random or saved theme whose street has no trees, houses, parasols, towers or shops at all --
-  reads off with a line that says why, and your choice is kept.
+  nothing stands, or on a random or saved theme whose street has no houses, parasols, towers or shops at all --
+  reads off with a line that says why, and your choice is kept. Trees can be turned on on every theme: a random or saved
+  theme with none is given its own.
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
@@ -79,7 +81,7 @@ moving on its own.
 - **Parallax.** Swiping between home screens scrolls the world, with nearer things
   moving further than distant ones.
 - **Traffic and pedestrians.** Two lanes of cars, taxis, police cars and fire engines,
-  each carrying an occupant; people walking the ground between the buildings and the
+  each carrying an occupant; people walking the ground on both sides of the
   road, dressed for the season. Behind the windows there are people too — and behind the
   school's, children; behind the fire and the police station's, grown-ups — and now and then one of
   them walks out of a window and into another (a tower's stay at theirs); in the minute before a building
@@ -95,9 +97,11 @@ moving on its own.
   needed), WeatherAPI.com or OpenWeather (free account, own API key). If no location is available,
   or the chosen provider needs a key it does not have or refuses the one it has, it says so and falls back to the
   theme's own weather rather than quietly asking the other service. A request the provider refuses is asked again at
-  the next hourly refresh. The rain falls from the clouds: with the clouds off or at 0 %, or a clear forecast,
-  over the whole sky, and as the clouds come or go it narrows under them or spreads out with their fade, never in a
-  jump. The drops are thin strokes with square ends.
+  the next hourly refresh. When the wallpaper comes back on screen and the last update is an hour old or more, the
+  weather is asked for at once, and again within seconds if the network is not up yet. The rain falls from the clouds and only from
+  them: with the theme's clouds off or at 0 % nothing falls and no storm flashes, a forecast of rain under a clear sky is drawn
+  with a few clouds to fall from, and as the last clouds go the rain stops with them. The drops are thin strokes with
+  square ends.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
   on (the Christmas theme starts with it on); the Headless Horseman, the same way, throwing pumpkins on fire from his
   hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks,

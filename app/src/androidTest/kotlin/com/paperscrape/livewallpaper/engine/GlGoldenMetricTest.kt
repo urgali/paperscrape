@@ -14,10 +14,10 @@ import org.junit.runner.RunWith
  * scene contains rather than whether the scene changed: on an Adreno 630, against goldens captured
  * on the reference emulator, 99.8% / 98.2% / 86.4% of the over-threshold pixels sat within one pixel
  * of an edge, and the frames were identical between commits. Masking those pixels is only defensible
- * if the mask cannot also hide a real regression, so this test tries to hide five.
+ * if the mask cannot also hide a real regression, so this test tries to hide six.
  *
  * Each case takes a committed golden, damages it the way a real bug would, and requires the metric
- * to still call it different. The last case does the opposite: it reproduces the driver difference
+ * to still call it different. One case does the opposite: it reproduces the driver difference
  * itself -- every silhouette displaced by one pixel -- and requires the metric to accept it.
  */
 @RunWith(AndroidJUnit4::class)
@@ -45,7 +45,7 @@ class GlGoldenMetricTest {
      *
      * Both are needed and neither is enough. A tint shift moves no edge and is invisible to the
      * displacement measure; a band slid three pixels maps flat colour onto the same flat colour and
-     * is nearly invisible to the interior measure (0.075%, inside the limit). The pair is the check.
+     * is nearly invisible to the interior measure (well inside the limit). The pair is the check.
      */
     private fun assertCaught(name: String, a: Bitmap, b: Bitmap) {
         val (fraction, masked) = verdict(a, b)
@@ -125,8 +125,8 @@ class GlGoldenMetricTest {
      *
      * The whole frame is scaled 3% about its centre: every flat interior keeps its colour, so the
      * interior half sees very little, and every outline moves by an amount that grows with the
-     * distance from the centre. This is the shape a scale-table mistake takes -- v4.15's tower
-     * declaration would have looked like this had it not been pixel-neutral -- and it is the case
+     * distance from the centre. This is the shape a scale-table mistake takes -- a sprite declared
+     * at the wrong scale convention grows or shrinks about its anchor -- and it is the case
      * the pair of measures exists to cover between them.
      */
     @Test

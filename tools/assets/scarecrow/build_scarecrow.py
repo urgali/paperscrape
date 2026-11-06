@@ -78,7 +78,7 @@ M_UNITS = 4.5
 #: smallest size roll (`1 - SIZE_VARIATION_SPREAD / 2`, 0.92), on the BV6600: 1 440 px tall, so 27 px a metre at the
 #: reference line (45 x 1 440 / 2 400), and the perspective of 0.45 deep, (0.704 + 0.45 x 0.086 - 0.655) / 0.191 (the
 #: object band from 0.704 to 0.790 of the screen, `SceneSpace.groundYFraction`, over the horizon at 0.655 and the
-#: reference line at 0.846).
+#: reference line at 0.846: each 0.08 below `SceneSpace`'s lines, which leaves the ratio the same).
 FARTHEST_PERSPECTIVE = (0.704 + 0.45 * 0.086 - 0.655) / 0.191
 FARTHEST_PX_TALL = METRES_TALL * 27.0 * FARTHEST_PERSPECTIVE * 0.92
 

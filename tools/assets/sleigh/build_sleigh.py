@@ -72,8 +72,10 @@ SANTA_TO_PEDESTRIAN = 1.3
 
 #: An adult walking on the near row of the pavement on the BV6600, in px: `SceneSpace.PERSON_METRES_TALL` (1.75 m) at
 #: `PIXELS_PER_METRE_AT_REFERENCE` (45 px/m on a 2 400 px screen, x0.6 for its 1 440), at the perspective of
-#: `PAVEMENT_NEAR_Y_FRACTION` (0.807: (0.807 - 0.655) / (0.846 - 0.655)). `SantaSleighOriginTest` computes it again from
-#: `SceneSpace` and fails if this has gone stale.
+#: `PAVEMENT_NEAR_Y_FRACTION`: 0.152 of the screen under the horizon over the reference line's 0.191, the three lines
+#: written each 0.08 below `SceneSpace`'s (0.807, 0.655, 0.846 for 0.727, 0.575, 0.766), which leaves the ratio the same.
+#: `SantaSleighOriginTest` holds this expression as written, computes it again from `SceneSpace` and fails if this has
+#: gone stale.
 PEDESTRIAN_PX_BV6600 = 1.75 * 45.0 * (1440 / 2400) * ((0.807 - 0.655) / (0.846 - 0.655))
 
 #: Santa's height in the group's units, his hat's top to the sleigh's rim: measured off the drawing in [build] and

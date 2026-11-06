@@ -72,7 +72,8 @@ class CloudCoverFadeTest {
      * The snapshot aging out eases to the theme's cover at the forecast's rate.
      *
      * Through `coverToward` with no target the drawn cover would leave 0.87 for the theme's density in **one**
-     * frame, against the 270 the same move takes as a forecast change.
+     * frame, against the about 372 the same move to 0.25 takes as a forecast change: 0.62 at
+     * [CloudCoverFade.COVER_UNITS_PER_SECOND], 12.4 seconds at 30 frames a second.
      */
     @Test
     fun anExpiryEasesToTheThemesCoverAtTheForecastsRate() {
@@ -206,55 +207,48 @@ class CloudCoverFadeTest {
         assertEquals(0f, fade.opacityOf(13, present = false, deltaSeconds = dt), 0f)
     }
 
+    /**
+     * **The rain stops with the last cloud** (`DESIGN_NOTES.md` §12, decision 98): the clouds of a sky brought to no cloud
+     * fade out over [CloudCoverFade.FADE_SECONDS], the rain falls under them while any is drawn, and the sky is cloudless --
+     * nothing falls -- from the frame the last one has gone: about a second and a half.
+     */
     @Test
-    fun theRainBeyondTheCloudsEasesWithTheirFade() {
+    fun theRainStopsWithTheLastCloudInAboutASecondAndAHalf() {
         val fade = CloudCoverFade(41)
-        // The first frame takes its value at once: clouds placed, so none beyond them.
-        assertEquals(0f, fade.rainEverywhereToward(nothingPlaced = false, deltaSeconds = dt), 0f)
-        // The clouds go: the rain spreads over the clouds' own fade, a frame's share a frame.
-        var value = 0f
+        for (i in 0 until 41) fade.opacityOf(i, present = i % 3 == 0, deltaSeconds = dt)
+        assertTrue(fade.anythingVisible())
+        assertFalse(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0.3f, placedDensity = 0.3f, cloudsShowing = fade.anythingVisible()))
         var steps = 0
-        while (value != 1f) {
-            val next = fade.rainEverywhereToward(nothingPlaced = true, deltaSeconds = dt)
-            assertTrue("a step of ${next - value}", next - value <= dt / CloudCoverFade.FADE_SECONDS + 1e-6f)
-            value = next
+        while (fade.anythingVisible()) {
+            assertFalse(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0f, placedDensity = 0f, cloudsShowing = true))
+            for (i in 0 until 41) fade.opacityOf(i, present = false, deltaSeconds = dt)
             steps++
-            assertTrue("never everywhere in $steps frames", steps < 10_000)
+            assertTrue("never gone in $steps frames", steps < 10_000)
         }
+        assertTrue(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0f, placedDensity = 0f, cloudsShowing = fade.anythingVisible()))
         val expected = (CloudCoverFade.FADE_SECONDS / dt).toInt()
         assertTrue("took $steps frames, expected about $expected", steps in (expected - 2)..(expected + 2))
-        // They come back: it narrows the same way.
-        val back = fade.rainEverywhereToward(nothingPlaced = false, deltaSeconds = dt)
-        assertEquals(1f - dt / CloudCoverFade.FADE_SECONDS, back, 1e-6f)
-        // A fresh one with nothing placed: everywhere at once.
-        assertEquals(1f, CloudCoverFade(41).rainEverywhereToward(nothingPlaced = true, deltaSeconds = dt), 0f)
     }
 
     /**
-     * **And the renderer eases it once a frame, by the frame's time**: the one call to [CloudCoverFade.rainEverywhereToward]
-     * in the app's sources is `PaperRenderer.drawClouds`', handed the frame's `deltaSeconds`; `drawClouds` has one call, and
-     * what it eases is the floor of the rain under the drawn clouds. Called twice a frame, or with a longer step, the rain
-     * would spread at twice the clouds' fade or more, and `RainFollowsTheCloudsTest` sees that only on the phone. Read off
-     * the sources, whole lines with the comments taken off.
+     * **And the renderer asks it once a frame, before anything is drawn, and draws no drop from a cloudless sky**: the
+     * frame's weather predicates set `cloudlessSkyNow` from [LiveWeatherSceneRules.cloudlessSky] with the clouds still
+     * showing, `drawPrecipitation` returns on it, and the umbrellas, the waves and the storm read it. Read off the sources,
+     * whole lines with the comments taken off.
      */
     @Test
-    fun theRendererEasesTheRainBeyondTheCloudsOnceAFrame() {
-        val calls = mainSources().flatMap { file ->
-            codeLines(file.readText()).filter { ".rainEverywhereToward(" in it }.map { "${file.name}: $it" }
-        }
-        assertEquals(
-            listOf(
-                "PaperRenderer.kt: val rainEverywhere = cloudCoverFade.rainEverywhereToward(" +
-                    "nothingPlaced = CloudCoverage.placesNone(density), deltaSeconds = deltaSeconds)",
-            ),
-            calls,
-        )
+    fun theRendererDrawsNothingFallingFromACloudlessSky() {
         val renderer = codeLines(mainSources().single { it.name == "PaperRenderer.kt" }.readText())
-        assertEquals(listOf("drawClouds(canvas, dayPhase, elapsedSeconds, deltaSeconds)"), renderer.filter { it.startsWith("drawClouds(") })
+        assertEquals(listOf("cloudlessSkyNow = LiveWeatherSceneRules.cloudlessSky("), renderer.filter { it.startsWith("cloudlessSkyNow =") })
+        assertTrue(renderer.contains("cloudsShowing = cloudCoverFade.anythingVisible(),"))
         assertEquals(
-            listOf("if (rainField == CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS) cloudCoverage.setFloor(rainEverywhere)"),
-            renderer.filter { "setFloor(" in it },
+            listOf("if (kind == PrecipitationLook.NONE || cloudlessSkyNow) return"),
+            renderer.filter { it.startsWith("if (kind == PrecipitationLook.NONE") },
         )
+        assertTrue(renderer.contains("if (cloudlessSkyNow) {"))
+        assertEquals(1, renderer.count { it.startsWith("stormActiveNow = !cloudlessSkyNow && LiveWeatherSceneRules.stormActive(") })
+        assertEquals(1, renderer.count { it.startsWith("val stormActive = !cloudlessSkyNow && LiveWeatherSceneRules.stormActive(") })
+        assertTrue(mainSources().none { f -> codeLines(f.readText()).any { "rainEverywhere" in it || "RAIN_EVERYWHERE" in it } })
     }
 
     /** [text]'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */

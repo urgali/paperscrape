@@ -9,7 +9,8 @@ import org.junit.Test
  * ### What the seven scenes pin
  *
  *  - **people-single** -- that density selects *groups*, so a low setting yields a lone figure or a
- *    small cluster. The full pavement of the same theme, at density 1, is the `day` frame
+ *    small cluster on the street's pavement, and the near row's pavement under the road is thinned by
+ *    the same setting. The full pavement of the same theme, at density 1, is the `day` frame
  *    (`SceneGoldenTest.day`): `sunset`'s defaults draw it, so a scene of its own here would be a
  *    second PNG of one scene, and a second assertion of `day.png` fails and passes with the first.
  *  - **people-overlap** -- the depth order of the walkers, as a picture. `PeopleOcclusionTest`
@@ -49,7 +50,10 @@ class PeopleGoldenTest {
 
     private companion object {
 
-        /** The walking band: both pavement rows, plus headroom for a standing adult. */
+        /**
+         * The walking band: the street's pavement, its far and near rows, plus headroom for a
+         * standing adult. The near row's own pavement under the road, at 0.930, lies below it.
+         */
         val PAVEMENT = GoldenFocus(
             left = 0,
             top = (SceneSpace.PAVEMENT_FAR_Y_FRACTION * SceneGolden.HEIGHT).toInt() - 90,
@@ -74,12 +78,12 @@ class PeopleGoldenTest {
          * pane the golden is about, and a failure says how much of the change fell inside it.
          */
         val RESTAURANT_FRONT = GoldenFocus(
-            left = 288, top = 562, right = 306, bottom = 582, label = "restaurant frontage",
+            left = 288, top = 498, right = 306, bottom = 518, label = "restaurant frontage",
         )
 
         /** The two `city` towers whose window grids hold busts, one rectangle each. */
-        val TOWER_LEFT = GoldenFocus(left = 154, top = 506, right = 184, bottom = 532, label = "left tower windows")
-        val TOWER_RIGHT = GoldenFocus(left = 218, top = 536, right = 234, bottom = 562, label = "right tower windows")
+        val TOWER_LEFT = GoldenFocus(left = 154, top = 442, right = 184, bottom = 468, label = "left tower windows")
+        val TOWER_RIGHT = GoldenFocus(left = 218, top = 472, right = 234, bottom = 498, label = "right tower windows")
 
         fun people(density: Float, themeId: String = "sunset", name: String, focus: List<GoldenFocus> = listOf(PAVEMENT)) =
             GoldenScene(
@@ -97,7 +101,8 @@ class PeopleGoldenTest {
     }
 
     /**
-     * A thinned street. Density this low selects a single group.
+     * A thinned street. Density this low selects a single group on the street's pavement; the near
+     * row's pavement under the road follows the same setting.
      *
      * The density setting is held by this frame against its committed PNG, whole: the density
      * ignored (0.2 drawn as 1) or every pedestrian hidden moves pixels of it, and the frame admits

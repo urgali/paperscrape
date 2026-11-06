@@ -149,14 +149,74 @@ class SwitchesTellTheTruthTest {
     fun `Thunderstorm reads on exactly when the renderer flashes, and is left to the forecast while it drives`() {
         // Held to the renderer's own rule, not to a sentence: `stormActive`'s theme path, every
         // combination. The intensity is not in it -- the renderer flashes at 0 % too.
-        for (stored in listOf(true, false)) for (visible in listOf(true, false)) for (isRain in listOf(true, false)) {
-            val ui = SettingsUiModel.thunderstorm(stored, precipitationVisible = visible, precipitationIsRain = isRain)
-            val flashes = com.paperscrape.livewallpaper.engine.LiveWeatherSceneRules.stormActive(null, visible, isRain, stored)
-            assertEquals("stored=$stored visible=$visible rain=$isRain", flashes, ui.shownOn)
-            assertEquals("locked exactly where it can do nothing", visible && isRain, ui.interactive)
-        }
+        // The theme's clouds too: with *Show Clouds* off or at 0 % the sky is cloudless and nothing flashes (decision 98).
+        val rules = com.paperscrape.livewallpaper.engine.LiveWeatherSceneRules
+        for (stored in listOf(true, false)) for (visible in listOf(true, false)) for (isRain in listOf(true, false))
+            for (cloudsOn in listOf(true, false)) for (cloudDensity in listOf(0f, 0.4f)) {
+                val clouds = SettingsUiModel.skyHasClouds(cloudsOn, cloudDensity)
+                val ui = SettingsUiModel.thunderstorm(stored, precipitationVisible = visible, precipitationIsRain = isRain, skyHasClouds = clouds)
+                val placed = rules.cloudDensity(Float.NaN, cloudsOn, cloudDensity)
+                val cloudless = rules.cloudlessSky(lapsed = false, themeDensity = placed, placedDensity = placed, cloudsShowing = false)
+                val flashes = !cloudless && rules.stormActive(null, visible, isRain, stored)
+                val case = "stored=$stored visible=$visible rain=$isRain clouds=$cloudsOn at $cloudDensity"
+                assertEquals(case, flashes, ui.shownOn)
+                assertEquals("locked exactly where it can do nothing: $case", clouds && visible && isRain, ui.interactive)
+                if (!ui.interactive) {
+                    assertEquals(
+                        if (clouds) SettingsUiModel.THUNDERSTORM_NEEDS_RAIN_LINE else SettingsUiModel.THUNDERSTORM_NEEDS_CLOUDS_LINE,
+                        SettingsUiModel.thunderstormLockLine(clouds),
+                    )
+                }
+            }
+        assertEquals(
+            "Needs clouds, and Show Rain/Snow on with Rain selected; your choice is kept until then.",
+            SettingsUiModel.THUNDERSTORM_NEEDS_CLOUDS_LINE,
+        )
         // Under a forecast the row is not drawn: locked with the stored value, it could read on
         // under a clear sky (`ForecastWeatherControlsTest`).
+    }
+
+    /**
+     * *Show Rain/Snow* reads on exactly when something falls: on, above 0 %, **and under a cloud** -- off and greyed with
+     * its line while *Show Clouds* is off or at 0 %, the stored choice kept (decision 98).
+     */
+    @Test
+    fun `Show Rain-Snow reads on exactly when something falls, and is greyed with no cloud`() {
+        val rules = com.paperscrape.livewallpaper.engine.LiveWeatherSceneRules
+        for (stored in listOf(true, false)) for (intensity in listOf(0f, 0.5f))
+            for (cloudsOn in listOf(true, false)) for (cloudDensity in listOf(0f, 0.4f)) {
+                val clouds = SettingsUiModel.skyHasClouds(cloudsOn, cloudDensity)
+                val ui = SettingsUiModel.rainOrSnow(stored, intensity, clouds)
+                val placed = rules.cloudDensity(Float.NaN, cloudsOn, cloudDensity)
+                val cloudless = rules.cloudlessSky(lapsed = false, themeDensity = placed, placedDensity = placed, cloudsShowing = false)
+                val falls = !cloudless && stored && intensity > 0f
+                val case = "stored=$stored at $intensity clouds=$cloudsOn at $cloudDensity"
+                assertEquals(case, falls, ui.shownOn)
+                assertEquals(case, clouds, ui.interactive)
+                assertEquals(
+                    case,
+                    when {
+                        !clouds -> "No rain or snow without clouds. Turn Show Clouds on and raise # of Clouds above 0%; your choice is kept until then."
+                        intensity <= 0f -> "None at 0% intensity - tap to bring it back"
+                        else -> ""
+                    },
+                    ui.line,
+                )
+            }
+        val world = codeLines("ui/WorldSceneScreen.kt")
+        for (line in listOf(
+            "val precipitation = SettingsUiModel.rainOrSnow(precip.visible, precip.intensity, skyHasClouds)",
+            "subtitle = precipitation.line,",
+            "enabled = precipitation.interactive,",
+            "val falling = SettingsUiModel.amountSliderEnabled(precip.visible) && precipitation.interactive",
+        )) assertTrue("World & scene does not use $line", world.contains(line))
+        assertEquals(
+            2,
+            world.count { it == "val skyHasClouds = SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density)" },
+        )
+        // The Rain and snow row of World & scene says it too, before its amount.
+        assertTrue(world.contains("!SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density) -> NO_CLOUDS_SUMMARY"))
+        assertEquals("Off - no clouds", NO_CLOUDS_SUMMARY)
     }
 
     @Test

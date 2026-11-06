@@ -74,7 +74,8 @@ PX = 3  # SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 #: 2 400).
 PX_PER_UNIT_AT_REFERENCE = 5.76 * 27.0 / 67.434
 #: The perspective of the farthest house of the built-in streets, 0.28 deep (`SceneObjectCatalog`'s houses' far band,
-#: 0.28 to 0.48): (0.704 + 0.28 x 0.086 - 0.655) / 0.191 (`SceneSpace.groundYFraction` and `perspectiveScaleAt`).
+#: 0.28 to 0.48): (0.704 + 0.28 x 0.086 - 0.655) / 0.191 (`SceneSpace.groundYFraction` and `perspectiveScaleAt`; the
+#: band, the horizon and the reference line written each 0.08 below `SceneSpace`'s, which leaves the ratio the same).
 FARTHEST_PERSPECTIVE = (0.704 + 0.28 * 0.086 - 0.655) / 0.191
 #: A piece unit there at the smallest size roll (0.92): 0.812 px.
 PX_PER_UNIT_FARTHEST = PX_PER_UNIT_AT_REFERENCE * FARTHEST_PERSPECTIVE * 0.92

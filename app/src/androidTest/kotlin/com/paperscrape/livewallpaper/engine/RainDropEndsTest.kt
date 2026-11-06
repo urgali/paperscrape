@@ -158,15 +158,16 @@ class RainDropEndsTest {
     }
 
     /**
-     * Sunset at noon with heavy rain or none, and nothing else the rain changes: no clouds (the rain falls everywhere), no
-     * people (they would open umbrellas), no lake (it would raise waves).
+     * Sunset at noon with heavy rain or none, and nothing else the rain changes: its clouds at 100 %, the same in both, so the
+     * rain falls under the whole sky (there is none without clouds, decision 98); no people (they would open umbrellas), no
+     * lake (it would raise waves).
      */
     private fun renderer(width: Int, height: Int, rain: Boolean, blood: Boolean = false): PaperRenderer {
         val defaults = defaultCustomizationFor("sunset")
         return PaperRenderer(width, height, context).apply {
             theme = ThemeCatalog.byId("sunset")
             sceneCustomization = defaults.copy(
-                clouds = defaults.clouds.copy(visible = false),
+                clouds = defaults.clouds.copy(visible = true, density = 1f),
                 people = defaults.people.copy(visible = false),
                 lake = defaults.lake.copy(visible = false),
                 bloodRainEnabled = blood,

@@ -13,19 +13,18 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
  * Defining them once is what makes the GL suite's claim ("the two backends draw the same picture")
  * checkable at all.
  *
- * Only three are shared **with the GL suite**, because only those three are the ones P1-4 selected:
- * between them they cover the geometries the two backends build by genuinely different routes — a
+ * Only three are shared **with the GL suite**, because those three are enough for it: between
+ * them they cover the geometries the two backends build by genuinely different routes — a
  * radial gradient against a triangle fan, a linear gradient against stepped columns, and analytic
  * arcs against tessellated ones. Every other Canvas golden is defined by the class that asserts it.
  *
- * (This paragraph used to end by counting those others. It said eleven, there were nineteen, and
- * v4.21 found it while correcting three stale golden counts at once — so it now names the rule
- * instead of a number that has to be kept in step by hand.)
+ * (This paragraph names the rule rather than counting those others: a count written here would
+ * have to be kept in step by hand, and goes stale silently.)
  */
 object SharedGoldenScenes {
 
     /**
-     * The sun's glow, named as a region so the GL suite can measure it on its own (v3.7 Filone E).
+     * The sun's glow, named as a region so the GL suite can measure it on its own.
      *
      * `drawRadialGlow` is the one effect the whole-frame gates provably cannot police: it is drawn
      * at alpha 90 over a bright sky, so destroying its shape entirely moves no pixel by more than
@@ -34,9 +33,9 @@ object SharedGoldenScenes {
      * same regression is an order of magnitude clear of the noise.
      *
      * The rectangle is the disc the renderer actually draws, read off the call the scene makes:
-     * centre (180,160) with radius 127 at this frame size, clamped to the frame.
+     * centre (180,96) with radius 127 at this frame size, its top clamped to the frame's.
      */
-    private val SUN_GLOW = GoldenFocus(left = 53, top = 33, right = 307, bottom = 287, label = "sun glow")
+    private val SUN_GLOW = GoldenFocus(left = 53, top = 0, right = 307, bottom = 223, label = "sun glow")
 
     fun day() = GoldenScene(
         name = "day",

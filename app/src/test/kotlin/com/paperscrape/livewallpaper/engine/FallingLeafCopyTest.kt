@@ -69,6 +69,8 @@ class FallingLeafCopyTest {
             listOf(
                 "recordLeafSource(r, leafCopyId(runtimeIndex, copyOf(r.spec.tileFractionX, geom, 0)), x, groundY, effectiveScale)",
                 "recordLeafSource(r, leafCopyId(runtimeIndex, copyOf(r.spec.tileFractionX, geom, tileIndex)), x = copyX, groundY = groundY, scale = effectiveScale)",
+                // The near row below the road: its own copy number, its runtimes apart from the street's.
+                "recordLeafSource(r, leafCopyId(NEAR_LEAF_RUNTIME_OFFSET + index, copy), x = copyX, groundY = groundY, scale = scale)",
             ),
             lines.filter { it.startsWith("recordLeafSource(r, ") },
         )

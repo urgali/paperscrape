@@ -11,25 +11,18 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * **The rain follows the clouds as they come and go, never in a frame, and clouds come into a clear sky fading in.**
+ * **The rain falls only from the clouds drawn, comes and goes with them, and clouds come into a clear sky fading in.**
  *
- * Rain falls under the clouds drawn and everywhere with none ([CloudCoverage.rainField]). While the last clouds leave a
- * clearing sky -- the theme's cloud switch turned off, or a forecast's cover easing down to clear -- the rain spreads
- * from under them to the whole sky over their fade; while the first clouds come into a clear sky it narrows under
- * them as they fade in ([CloudCoverFade.rainEverywhereToward]). Frame by frame, the drops drawn never move in the change's
- * direction -- more while the rain spreads, fewer while it narrows -- by more than [MOST_OF_THE_CHANGE] of the whole change in
- * one frame. The other direction is not measured: while a forecast's cover eases down, the clouds leave one at a time, and
- * the rain under one goes with it in the frame its fade ends. And a cloud seen for the first time after the first frame fades
- * in ([CloudCoverFade.opacityOf]): its first blits are drawn below full alpha.
+ * There is no rain beyond the clouds (`DESIGN_NOTES.md` §12, decision 98): with the cloud layer off or at 0 % nothing
+ * falls, and the rain under a cloud comes and goes with the cloud's presence ([CloudCoverage.rainField]). So the theme's
+ * clouds turned off take their rain with them: it lasts their [CloudCoverFade.FADE_SECONDS] fade, never spreading past
+ * them, and stops in the frame the last of them goes ([LiveWeatherSceneRules.cloudlessSky]). Turned on over a clear sky,
+ * the rain comes with the first cloud drawn. A forecast of rain under a clear sky is drawn with
+ * [LiveWeatherSceneRules.FALLING_MIN_COVER] of clouds, so it rains from them and never stops for a clear sky. And a cloud
+ * seen for the first time after the first frame fades in ([CloudCoverFade.opacityOf]): its first blits are drawn below
+ * full alpha.
  *
- * Where the theme's switch turns its clouds off or on, the change also takes the clouds' own fade: from the frame the drops
- * have made a tenth of it to the frame they have made nine tenths, at least half of [CloudCoverFade.FADE_SECONDS] in frames
- * ([SPREAD_OVER_AT_LEAST]). The rain beyond the clouds eases linearly over the fade, so the drops make those eight tenths
- * over some 36 of its 45 frames; eased twice a frame they make them over 18, in five frames over 4. Not where a forecast
- * clears: there the ease starts two seconds after the change, and the clouds whose fade ends inside it take their rain
- * with them, so where the tenths fall depends on which cloud leaves when.
- *
- * The theme's clouds stand at 10 %, where the rain under them is a fraction of the rain everywhere.
+ * The theme's clouds stand at 10 %.
  */
 @RunWith(AndroidJUnit4::class)
 class RainFollowsTheCloudsTest {
@@ -38,29 +31,56 @@ class RainFollowsTheCloudsTest {
     private val noon = SunPositionCalculator.compute(hour24 = 12f)
 
     @Test
-    fun theRainSpreadsToTheWholeSkyAsTheThemesCloudsGo() {
+    fun theRainStopsWithTheLastOfTheThemesClouds() {
         val r = renderer(themeClouds = true)
-        val counts = framesOf(r, before = 3f, after = 5f) { r.sceneCustomization = r.sceneCustomization.withClouds(false) }
-        assertGradual("the theme's clouds turned off", counts, spreads = true)
-        assertOverTheFade("the theme's clouds turned off", counts, spreads = true)
+        val frames = framesOf(r, before = 3f, after = 5f) { r.sceneCustomization = r.sceneCustomization.withClouds(false) }
+        val before = frames.first()
+        assertTrue("no rain under the theme's clouds before the change: $before", before.drops > 0 && before.clouds > 0)
+        val stop = (1 until frames.size).firstOrNull { frames[it].drops == 0 }
+        assertTrue("the rain never stopped after the theme's clouds were turned off: ${frames.map { it.drops }}", stop != null)
+        stop!!
+        val fadeFrames = CloudCoverFade.FADE_SECONDS / FRAME
+        assertTrue(
+            "the rain stopped at frame $stop, the clouds' fade is $fadeFrames frames: ${frames.map { it.drops }}",
+            stop >= fadeFrames - 2 && stop <= fadeFrames + 3,
+        )
+        for (f in stop until frames.size) {
+            assertTrue("frame $f after the rain stopped: ${frames[f]}", frames[f].drops == 0 && frames[f].clouds == 0)
+        }
+        for (f in 1 until stop) {
+            assertTrue("frame $f: a cloud drawn, ${frames[f]}", frames[f].clouds > 0)
+            assertTrue(
+                "frame $f: ${frames[f].drops} drops, the rain spread past the clouds (${before.drops} before the change)",
+                frames[f].drops * 2 <= before.drops * 3,
+            )
+        }
     }
 
     @Test
-    fun theRainNarrowsUnderTheThemesCloudsAsTheyCome() {
+    fun theRainComesWithTheThemesClouds() {
         val r = renderer(themeClouds = false)
-        val counts = framesOf(r, before = 3f, after = 5f) { r.sceneCustomization = r.sceneCustomization.withClouds(true) }
-        assertGradual("the theme's clouds turned on", counts, spreads = false)
-        assertOverTheFade("the theme's clouds turned on", counts, spreads = false)
+        val frames = framesOf(r, before = 3f, after = 5f) { r.sceneCustomization = r.sceneCustomization.withClouds(true) }
+        assertTrue("rain under a sky with no clouds: ${frames.first()}", frames.first().drops == 0)
+        val firstRain = (1 until frames.size).firstOrNull { frames[it].drops > 0 }
+        assertTrue("no rain after the theme's clouds were turned on: ${frames.map { it.drops }}", firstRain != null)
+        val firstCloud = (1 until frames.size).first { frames[it].clouds > 0 }
+        assertTrue("the rain began at frame $firstRain, the first cloud at frame $firstCloud", firstRain == firstCloud)
+        assertTrue("no rain at the end: ${frames.last()}", frames.last().drops > 0)
     }
 
     @Test
-    fun theRainSpreadsToTheWholeSkyAsTheForecastClears() {
+    fun aForecastOfRainUnderAClearSkyRainsFromAFewClouds() {
         val r = renderer(themeClouds = false)
-        r.liveWeatherOverride = forecast(cover = 0.1f)
-        // The forecast's cover eases to 0 at `CloudCoverFade.COVER_UNITS_PER_SECOND`, two seconds from 0.1, then the last
-        // clouds fade out.
-        val counts = framesOf(r, before = 25f, after = 8f) { r.liveWeatherOverride = forecast(cover = 0f) }
-        assertGradual("the forecast's cover going to clear", counts, spreads = true)
+        r.liveWeatherOverride = forecast(cover = 0.4f)
+        // The forecast's cover eases at `CloudCoverFade.COVER_UNITS_PER_SECOND`: from 0.4 down to the floor in four seconds.
+        val frames = framesOf(r, before = 25f, after = 10f) { r.liveWeatherOverride = forecast(cover = 0f) }
+        for (f in frames.indices) {
+            assertTrue("frame $f of a forecast of rain clearing: ${frames[f]}", frames[f].drops > 0 && frames[f].clouds > 0)
+        }
+        assertTrue(
+            "the cover did not come down to the floor: ${frames.first()} to ${frames.last()}",
+            frames.last().drops < frames.first().drops,
+        )
     }
 
     @Test
@@ -68,14 +88,14 @@ class RainFollowsTheCloudsTest {
         // The theme's switch turned on, and a clear forecast turning cloudy.
         for (fromForecast in listOf(false, true)) {
             val r = renderer(themeClouds = false)
-            if (fromForecast) r.liveWeatherOverride = forecast(cover = 0f)
+            if (fromForecast) r.liveWeatherOverride = forecast(cover = 0f, falling = false)
             val recorder = Recorder()
             var clock = SceneTime(60.0)
             repeat(30) {
                 clock += FRAME
                 r.draw(recorder, noon, clock, FRAME)
             }
-            if (fromForecast) r.liveWeatherOverride = forecast(cover = 0.4f) else r.sceneCustomization = r.sceneCustomization.withClouds(true)
+            if (fromForecast) r.liveWeatherOverride = forecast(cover = 0.4f, falling = false) else r.sceneCustomization = r.sceneCustomization.withClouds(true)
             val firstAlphas = ArrayList<Int>()
             var frames = 0
             while (firstAlphas.isEmpty() && frames < 30 * 10) {
@@ -99,78 +119,37 @@ class RainFollowsTheCloudsTest {
         }
     }
 
+    /** What one frame drew: its drops of rain and its clouds. */
+    private data class Frame(val drops: Int, val clouds: Int)
+
     /**
-     * The drops drawn on each frame: [before] seconds settled, then [change], then [after] seconds. The first element is
-     * the last settled frame's.
+     * Each frame's drops and clouds: [before] seconds settled, then [change], then [after] seconds. The first element is the
+     * last settled frame's.
      */
-    private fun framesOf(r: PaperRenderer, before: Float, after: Float, change: () -> Unit): IntArray {
+    private fun framesOf(r: PaperRenderer, before: Float, after: Float, change: () -> Unit): List<Frame> {
         val recorder = Recorder()
         var clock = SceneTime(60.0)
         repeat((before / FRAME).toInt()) {
             clock += FRAME
             r.draw(recorder, noon, clock, FRAME)
         }
-        val frames = (after / FRAME).toInt()
-        val counts = IntArray(frames + 1)
-        recorder.drops = 0
-        clock += FRAME
-        r.draw(recorder, noon, clock, FRAME)
-        counts[0] = recorder.drops
-        change()
-        for (f in 1..frames) {
+        val frames = ArrayList<Frame>()
+        fun drawOne() {
             clock += FRAME
             recorder.drops = 0
+            recorder.cloudAlphas.clear()
             r.draw(recorder, noon, clock, FRAME)
-            counts[f] = recorder.drops
+            frames += Frame(recorder.drops, recorder.cloudAlphas.size)
         }
-        return counts
+        drawOne()
+        change()
+        repeat((after / FRAME).toInt()) { drawOne() }
+        return frames
     }
 
-    private fun assertGradual(what: String, counts: IntArray, spreads: Boolean) {
-        val from = counts.first()
-        val to = counts.last()
-        val change = to - from
-        assertTrue(
-            "$what: the rain went from $from to $to drops, the clouds did not ${if (spreads) "narrow" else "widen"} it",
-            if (spreads) to > from * 3 / 2 else from > to * 3 / 2,
-        )
-        var worst = 0
-        var at = 0
-        for (f in 1 until counts.size) {
-            // A step in the change's own direction: more drops while it spreads, fewer while it narrows.
-            val step = (counts[f] - counts[f - 1]) * (if (spreads) 1 else -1)
-            if (step > worst) {
-                worst = step
-                at = f
-            }
-        }
-        assertTrue(
-            "$what: $worst drops in one frame (frame $at) of a change of $change, from $from to $to",
-            worst <= abs(change) * MOST_OF_THE_CHANGE,
-        )
-    }
-
-    /**
-     * The frames from the first whose drops have made a tenth of the change, in its direction, to the first that has made nine
-     * tenths: at least [SPREAD_OVER_AT_LEAST] of the clouds' fade.
-     */
-    private fun assertOverTheFade(what: String, counts: IntArray, spreads: Boolean) {
-        val from = counts.first()
-        val change = abs(counts.last() - from)
-        val made = IntArray(counts.size) { (counts[it] - from) * (if (spreads) 1 else -1) }
-        val tenth = (1 until counts.size).first { made[it] * 10 >= change }
-        val nineTenths = (1 until counts.size).first { made[it] * 10 >= change * 9 }
-        val fadeFrames = CloudCoverFade.FADE_SECONDS / FRAME
-        assertTrue(
-            "$what: the change of $change drops went from a tenth to nine tenths of it in ${nineTenths - tenth} frames " +
-                "(frames $tenth to $nineTenths), under ${SPREAD_OVER_AT_LEAST * fadeFrames} of the clouds' $fadeFrames-frame fade",
-            nineTenths - tenth >= SPREAD_OVER_AT_LEAST * fadeFrames,
-        )
-    }
-
-    private fun forecast(cover: Float) = LiveWeatherSnapshot(
-        precipitationType = PrecipitationType.RAIN,
-        precipitationIntensity = 0.5f,
+    private fun forecast(cover: Float, falling: Boolean = true) = LiveWeatherSnapshot(
+        precipitationType = if (falling) PrecipitationType.RAIN else null,
+        precipitationIntensity = if (falling) 0.5f else 0f,
         cloudCoverFraction = cover,
         isThunderstorm = false,
         fetchedAtMillis = 0L,
@@ -251,12 +230,6 @@ class RainFollowsTheCloudsTest {
 
     private companion object {
         const val FRAME = 1f / 30f
-
-        /** A quarter: over the clouds' 1.5 s fade the change is spread over some 45 frames. */
-        const val MOST_OF_THE_CHANGE = 0.25f
-
-        /** Half the clouds' fade: the drops' eight middle tenths take some 36 of its 45 frames, eased twice as fast 18. */
-        const val SPREAD_OVER_AT_LEAST = 0.5f
 
         /** A frame's worth of a 1.5 s fade, and some: a cloud that snaps in is drawn at 255. */
         const val FIRST_FRAME_ALPHA_AT_MOST = 64

@@ -199,8 +199,8 @@ class SceneGoldenTest {
             // pixel ([SceneGolden.MAX_DIFFERING_FRACTION]) and fails on them, and the rectangles say
             // which pixels the depth order is about.
             focus = listOf(
-                GoldenFocus(4, 424, 40, 446, "dolphin 0 at its apex, inside sailboat 0's sail"),
-                GoldenFocus(300, 454, 336, 476, "dolphin 2 mid-climb, inside sailboat 2's sail"),
+                GoldenFocus(4, 360, 40, 382, "dolphin 0 at its apex, inside sailboat 0's sail"),
+                GoldenFocus(300, 390, 336, 412, "dolphin 2 mid-climb, inside sailboat 2's sail"),
             ),
         ),
     )
@@ -340,10 +340,9 @@ class SceneGoldenTest {
     )
 
     /**
-     * **And at noon, which is night on the Halloween theme** (the night sky by day, on as it ships, decision 82: *«deve
-     * diventare il nuovo default del tema halloween»*, 2026-10-21): the whole scene at night, the carved moon standing still
-     * in the middle, low over the roofs, as the theme ships (*Moon stays in place*, decision 86), the windows lit, and the
-     * opening hours the clock's noon. The clouds off so the moon is in the frame; the moon not laughing (120 s is between
+     * **And at noon, which is night on the Halloween theme** (the night sky by day, on as it ships, decision 82): the
+     * whole scene at night, the carved moon standing still in the middle, low over the roofs, as the theme ships (*Moon
+     * stays in place*, decision 86), the windows lit, and the opening hours the clock's noon. The clouds off so the moon is in the frame; the moon not laughing (120 s is between
      * two laughs).
      */
     @Test
@@ -370,9 +369,9 @@ class SceneGoldenTest {
      *
      * **Why these numbers.** Solved from the same candidate noise the renderer uses rather than
      * chosen: at `sceneSeconds = 0.3` on this theme's seed, bird 0 sits inside the focus rectangle --
-     * clear of the cloud band, clear of both edges -- with its flap term positive, which is the pose
-     * the sprite is authored in rather than its vertical mirror. The clouds are switched off so the
-     * frame is about the bird and nothing else.
+     * clear of both edges -- with its flap term positive, which is the pose the sprite is authored in
+     * rather than its vertical mirror. The rectangle lies within the cloud band's height, so the
+     * clouds are switched off: the frame is about the bird and nothing else.
      */
     @Test
     fun birdFacing() = SceneGolden.assertMatches(
@@ -387,7 +386,7 @@ class SceneGoldenTest {
                 )
             },
             focus = listOf(
-                GoldenFocus(225, 268, 292, 302, "the bird, at the size it ships, facing its own travel"),
+                GoldenFocus(225, 204, 292, 238, "the bird, at the size it ships, facing its own travel"),
             ),
         ),
     )
@@ -446,7 +445,7 @@ class SceneGoldenTest {
                 )
             },
             focus = listOf(
-                GoldenFocus(0, 435, 360, 545, "the water: waves, and what is in front of what"),
+                GoldenFocus(0, 371, 360, 481, "the water: waves, and what is in front of what"),
             ),
             pinLightning = true,
         ),
@@ -464,7 +463,8 @@ class SceneGoldenTest {
      * walker crosses its tile in about 38 s (`SceneSpace.PEDESTRIAN_SPEED_NEAR = 0.026`) and is out
      * of sight for roughly half of it, so 80 seconds of scene clock is comfortably more than one
      * crossing and the street has had time to pick umbrellas up. A frame that showed none would be
-     * pinning the rule failing, which is why the focus rectangle is on the pavement.
+     * pinning the rule failing, which is why the focus rectangle is on the street's pavement (the
+     * near row's pavement under the road, at 0.930, lies below the rectangle).
      *
      * In the rain everyone who can hold an umbrella carries one, so every adult on this pavement
      * does, and this frame is where the canopy is pinned as a picture. A golden is one scene, and
@@ -484,7 +484,7 @@ class SceneGoldenTest {
                 it.copy(people = it.people.copy(visible = true, density = 1f))
             },
             focus = listOf(
-                GoldenFocus(0, 560, 360, 720, "the pavement: who is carrying, and what it looks like"),
+                GoldenFocus(0, 496, 360, 656, "the pavement: who is carrying, and what it looks like"),
             ),
         ),
     )
@@ -512,7 +512,7 @@ class SceneGoldenTest {
                 // The weakest regression that must fail, the contrast correction removed entirely,
                 // moves a few hundred pixels of this band, and the whole frame admits none
                 // ([SceneGolden.MAX_DIFFERING_FRACTION]).
-                GoldenFocus(0, 250, 360, 470, "the band of open sky the rain crosses"),
+                GoldenFocus(0, 250, 360, 406, "the band of open sky the rain crosses"),
             ),
         ),
     )

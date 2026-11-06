@@ -668,7 +668,9 @@ object ThemePreviewScenes {
         }
 
         // --- weather --------------------------------------------------------------------------
-        if (drawn(c.precipitation.visible, c.precipitation.intensity)) {
+        // Nothing falls from a sky with no cloud, as on the wallpaper (`DESIGN_NOTES.md` §12, decision 98): the theme's
+        // clouds decide it, not the two the card draws, which it leaves out at night.
+        if (drawn(c.precipitation.visible, c.precipitation.intensity) && drawn(c.clouds.visible, c.clouds.density)) {
             var seed = theme.id.hashCode() xor 0x50F1
             val snow = c.precipitation.type == PrecipitationType.SNOW
             // The wallpaper's own rule (`PaperRenderer.drawPrecipitation`): the theme's night colour

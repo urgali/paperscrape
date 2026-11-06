@@ -11,18 +11,17 @@ import org.junit.Test
  *
  * `SceneObjectRenderer.draw` ran the vehicle loop and *then* `drawPeople`, so a walking figure was
  * painted over the traffic. That is wrong for every arrangement the app can reach -- the pavement
- * rows are 0.795 and 0.807, the lanes 0.834 and 0.862 -- and it was only invisible because the two
- * have to coincide in x before anything shows. Measured across the shipped catalogue when the
- * order was fixed (v4.6): the deepest figure the generator produces stood **0.0100 of screen height
- * below a far-lane car's roof line**, 24 px on a 2400 px screen and 32 px against a police light
- * bar, and it painted its shoes across the roof whenever a car passed behind it. The cars have
- * grown since, and the test below holds today's figure: 0.0119, 28.5 px.
+ * rows are 0.715 and 0.727, the lanes 0.754 and 0.782 -- and it was only invisible because the two
+ * have to coincide in x before anything shows. Measured across the shipped catalogue, the deepest
+ * figure the generator produces stands **0.0119 of screen height below a far-lane car's roof
+ * line**, 28.5 px on a 2400 px screen: drawn over the traffic, it paints its shoes across the roof
+ * whenever a car passes behind it. The test below holds that figure.
  *
  * ### Why this is arithmetic and not a golden
  *
  * A golden sees one frame of one theme at one instant, and the overlap needs a coincidence in x
  * that most frames do not contain -- `traffic-day.png` and `traffic-night.png` do not, which is
- * exactly why seventeen releases of golden comparison never noticed. What makes the reordering
+ * exactly why golden comparison does not catch it. What makes the reordering
  * *correct* is a property of the two bands, so that is what is asserted: sweep every theme and
  * every density, take the deepest figure any of them can put on the street, and check it against
  * the nearest thing the road can put in front of it.
@@ -53,7 +52,7 @@ class PeopleTrafficDepthTest {
      *
      * Checked against the generator's own hard ceiling rather than against what the shipped themes
      * happen to produce, so a new theme cannot slip past it: a member's row is the group's row plus
-     * a jitter clamped to `MEMBER_ROW_SPREAD` either side, so 0.807 + 0.012 is the deepest ground
+     * a jitter clamped to `MEMBER_ROW_SPREAD` either side, so 0.727 + 0.012 is the deepest ground
      * line that exists, whatever the seed.
      */
     @Test
@@ -111,12 +110,10 @@ class PeopleTrafficDepthTest {
             SceneSpace.REFERENCE_SCREEN_HEIGHT_PX
         val roof = SceneSpace.ROAD_LANE_FAR_Y_FRACTION - carHeightFraction
         val overlap = deepestPedestrianRow() - roof
-        // v4.19: the reference saloon grew from 50 to 56 local units and from 1.51 m to 1.6912 m,
-        // so a far-lane car's roof stands higher and the overlap the old draw order would have
-        // cost is correspondingly larger. Re-measured, not relaxed.
-        // v5.8C: re-measured again, and smaller, because the reference pair now describes the
-        // saloon the street actually draws -- 53 units, 1.60 m since v5.6F -- where it still said
-        // 56 (v5.8B comment audit). 0.0135 / 32 px was the 56-unit car nobody draws.
+        // Measured on the reference saloon the street actually draws, 53 local units and 1.60 m:
+        // its roof sets how far the deepest figure would overlap a far-lane car if the people
+        // were drawn over the traffic. A reference pair describing any other body would measure
+        // a car nobody draws. The figure is re-measured when the car changes, never relaxed.
         assertEquals(
             "the deepest figure's feet, below a far-lane car's roof, in fractions of screen height",
             0.0119f,

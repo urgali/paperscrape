@@ -3,6 +3,7 @@ package com.paperscrape.livewallpaper.ui
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.DecorationExclusion
+import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
@@ -24,9 +25,10 @@ import org.junit.Test
 /**
  * **A switch of the street on a theme whose street has none of its things reads off and locked, says so, and a tap
  * writes nothing** (`DESIGN_NOTES.md` §12, decision 40). A random theme rolls three to six
- * objects and a saved theme keeps only what
- * stood when it was saved, so its street can have no tree, house, tower or parasol at any amount. There *Show Trees*
- * (and Houses, Parasols) reads off whatever is stored, its line says "This theme has no trees.", and a tap writes neither
+ * objects and a saved theme keeps only what stood when it was saved, so its street can have no house, tower or parasol
+ * at any amount. A tree or a palm it always has: a random, saved or imported street with neither is given trees
+ * (decision 97), so the tree-less street is built here by hand, its trees taken out. There *Show Trees* (and Houses, Parasols) reads off
+ * whatever is stored, its line says "This theme has no trees.", and a tap writes neither
  * the flag nor the amount: the stored choice stays. The rows of World & scene say the same, *Tower opening hours* and the
  * *Towers & offices* row say there is no tower, and *Palms* that there is no tree to stand in. **The buildings too**: on a
  * street with no place among the houses the shops and the public buildings never stand, so their hours, rows and pages
@@ -59,6 +61,15 @@ class SwitchesOverAThemeWithNoneTest {
         throw AssertionError("no random theme up to random:2000 $what")
     }
 
+    /** The first random theme whose street the generator rolls with no tree and no palm, with its street as the catalogue lays it. */
+    private fun firstRandomBornWithoutTrees(): Pair<String, SceneObjectLayout> {
+        for (n in 1..2000) {
+            val born = runCatching { RandomSceneGenerator.generateLayout("random:$n", 0) }.getOrNull() ?: continue
+            if (!born.hasAny(DecorationExclusion.TREE_TYPES)) return "random:$n" to (randomStreet(n) ?: continue)
+        }
+        throw AssertionError("no random theme up to random:2000 born without a tree")
+    }
+
     private fun SceneObjectLayout.hasAny(types: Set<SceneObjectType>, places: Boolean = false) =
         staticObjects.any { it.type in types && StorefrontStreet.isPlace(it) == places }
 
@@ -73,10 +84,31 @@ class SwitchesOverAThemeWithNoneTest {
 
     private val amounts = listOf(0f, 0.04f, 0.5f, 1f)
 
+    /**
+     * **A random theme born with no tree gets trees** (`DESIGN_NOTES.md` §12, decision 97): ten from its seed
+     * ([SceneObjectCatalog.withTrees]), less any that would stand with its trunk across a place's front; the first such
+     * theme keeps all ten, which the count pins. So *Show Trees* reads on as the theme ships and says what a theme with
+     * trees says.
+     * The rule of a street that has none still stands for every other kind, and is held below on that random street with
+     * its trees taken out by hand.
+     */
     @Test
-    fun `on a random theme with no tree, Show Trees reads off and locked, says why, and a tap writes nothing`() {
-        val (id, street) = firstRandom("without a tree") { !it.hasAny(DecorationExclusion.TREE_TYPES) }
-        println("$id: no tree on its street")
+    fun `a random theme born with no tree has trees, and Show Trees reads on`() {
+        val (id, street) = firstRandomBornWithoutTrees()
+        assertTrue("$id: the catalogue planted no tree", street.hasAny(DecorationExclusion.TREE_TYPES))
+        assertEquals(10, street.staticObjects.count { it.type == SceneObjectType.TREE })
+        val c = SceneCustomization.DEFAULT
+        val standing = SettingsUiModel.standing(street, c)
+        assertTrue(standing.themeHasTrees)
+        assertTrue("$id: none of ten stands at the trees' amount", standing.trees)
+        val shown = SettingsUiModel.amountSwitch(c.trees.visible, c.trees.density, standing.trees, standing.themeHasTrees)
+        assertEquals(AmountSwitchUiState(shownOn = true, noneAtZero = false, noneAtThisAmount = false, noneOnThisTheme = false), shown)
+    }
+
+    @Test
+    fun `on a street with no tree, Show Trees reads off and locked, says why, and a tap writes nothing`() {
+        val (id, planted) = firstRandomBornWithoutTrees()
+        val street = planted.copy(staticObjects = planted.staticObjects.filter { it.type !in DecorationExclusion.TREE_TYPES })
         for (visible in listOf(true, false)) for (amount in amounts) {
             val c = SceneCustomization.DEFAULT.copy(trees = SceneCustomization.DEFAULT.trees.copy(visible = visible, density = amount))
             val standing = SettingsUiModel.standing(street, c)

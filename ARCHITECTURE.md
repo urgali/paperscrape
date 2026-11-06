@@ -68,7 +68,7 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 
 | File | Responsibility |
 |---|---|
-| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location moved to another place (farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 11 km, about a cell of the coarsest provider's grid); the tick comes sooner when a try for the phone's position falls due (`SolarDaySchedule.nextPassDelayMillis`). It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
+| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed, the location moved to another place (farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 11 km, about a cell of the coarsest provider's grid), or the wallpaper came back on screen with the last success an hour old (`ShowingRefresh`, decision 99: at once, then 5, 10 and 20 seconds after a request that found no network); the tick comes sooner when a try for the phone's position or a quick retry falls due (`SolarDaySchedule.nextPassDelayMillis`, `LiveWeatherSchedule.passDelayMillis`). Every pass is caught whole: an exception is logged and the next pass runs. The engine counts its showings (`showings`) where on screen changes. It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
 | `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper". Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
 | `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. A tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. Each place among the houses (five on a built-in street) draws the building the street deals that copy of it (`StorefrontStreet`, by the copy's own number -- `SceneObjectRenderer.copyOf`: the place's representative copy plus `tileIndex`, the scroll's whole tiles, `scrollTileBias` taken out -- and the theme's seed, allocation-free), each of the six with a runtime of its own -- roster, windows, doorway, kept across rebuilds and advanced every frame on its group's hours -- and no place is drawn smaller than `placeScaleFloor`. Nothing about the street changes when the engine becomes visible again: a building changes only by scrolling. A shut building draws its blinds and its door's shutter (`drawShut`, `DoorShutter`); with *Lights on the buildings* on every building draws its decorations -- the roof string, the wreath, a tower's star, where the table says, through `ChristmasDecorations`, the sequence the gallery card draws them from too (`drawDecorations`) -- and with *Christmas firs* on one tree in three is the fir A (`drawFir`, `FirTable`); bulbs are discs (`SpriteBlitter.drawDisc`), wreaths blits of the atlas. |
@@ -108,7 +108,7 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 | `WaveTint.kt` | Where a wave's body and foam sit in luma, given the water under them. Pure arithmetic, so `WaveContrastTest` measures the same numbers the renderer draws: the cheaper carry for the direction, the foam always the lighter paper, and the gate that is a floor rather than a target. |
 | `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people (`nextCarrying`); the rule itself, `wantsUmbrella`: in the rain every walker who can hold an umbrella holds one, with no share and no deal; and the canopy palette. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
-| `CloudCoverage.kt` | The coverage field the rain reads, refilled every frame from the clouds drawn (§4, "Precipitation reads a local density"), and which field a frame uses (`rainField`): under the clouds drawn, everywhere when none is placed (`placesNone`: the layer off or at 0 %, a clear forecast), or under the theme's clouds after a forecast's expiry; `setFloor` raises the whole field while the clouds come or go. |
+| `CloudCoverage.kt` | The coverage field the rain reads, refilled every frame from the clouds drawn (§4, "Precipitation reads a local density"), and which clouds a frame's rain falls from (`rainField`): the clouds drawn, or the theme's after a forecast's expiry. Nowhere else: with no cloud the field is clear (decision 98). |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
 | `CarSelection.kt` | Which cars a density means: an explicit count from 1 to every slot, filled in an order whose every prefix has the largest minimum loop gap, seeded per theme, applied per frame against each runtime's stored rank and only ever off screen. |
 | `BusinessHours.kt` | How open a business is at a scene hour, to the minute: a switch that defaults to bitwise-off, `open == close` as always-open, wraparound spans; open from the opening minute, shut at the closing minute, its people out in the minute before (`peopleAt`) -- the glass's two seconds and the walks are the doorway's (`WindowWalk.Doorway`). Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. Three groups, each with its switch and its hours: the towers, the shops (the restaurant, the bar, the shop) and the public buildings -- the school's hours, the fire station and the police station never closing (`Storefront.keepsHours`) -- a building by what it is (`SceneCustomization.opennessFor`, for a variant or for a `Storefront`). |
@@ -139,7 +139,7 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 | `DayPhaseCache.kt` | The engine's day phase, recomputed only when the hour or the sun's times change; the moon's phase is written into the one it holds. |
 | `FirstFrameGate.kt` | Holds an engine's first frame until its settings and saved themes have arrived, or 2 s. |
 | `ShopPlanTable.kt` | **Generated** (`ShopPlanTableTest`): where the twelve built-in streets' five places among the houses stand, and where each tree or parasol the plan moved stands -- the plan's answer computed when the table is written instead of at every start. |
-| `CloudCoverFade.kt` | How the sky gets from one cloud cover to the next without the change being a single frame: the cover itself moves at a fixed rate, and each cloud's opacity eases in or out. Both eases are linear, so they arrive and stop, and the first frame snaps, so a fresh engine and every golden draw the sky they were handed; after a frame with no cloud placed or showing (`clearSkyDrawn`) a cloud seen for the first time fades in from nothing. A third ease moves where the rain falls: `rainEverywhereToward` spreads it beyond the clouds to the whole sky while the last ones leave, and narrows it under them while the first ones come, at their fade rate. |
+| `CloudCoverFade.kt` | How the sky gets from one cloud cover to the next without the change being a single frame: the cover itself moves at a fixed rate, and each cloud's opacity eases in or out. Both eases are linear, so they arrive and stop, and the first frame snaps, so a fresh engine and every golden draw the sky they were handed; after a frame with no cloud placed or showing (`clearSkyDrawn`) a cloud seen for the first time fades in from nothing. While any cloud is still drawn (`anythingVisible`) the sky is not cloudless, so the rain stops with the last one. |
 | `GlLifecyclePolicy.kt` | The GL backend's lifecycle rules as pure decisions: one render thread per engine rather than per surface, how many times a working context may be rebuilt before the engine falls back to `Canvas`, and when a memory trim may run (only with a context current); when the `Canvas` loop may run (`canvasLoopMayRun`), whether a fall-back to `Canvas` is taken (`mayFallBackToCanvas`) and what counts as visible (`countsAsVisible`). |
 | `PeopleColours.kt` | What colour each of a person's four regions wears, dealt afresh each time a walker crosses the scene and deterministic in theme, person and crossing. |
 | `PeopleLayerTable.kt` | **Generated** (`tools/generate_people_layers.py`, which also writes the artwork): which drawables make up each person, the fixed art and one weight mask per colourable region. |
@@ -303,7 +303,11 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
   - `LiveWeatherSchedule.kt` — what the Live Weather loop does next and whether what it holds may
     draw: `decide` returns the status and the snapshot together, so the settings screen and the
     renderer cannot disagree about whether the forecast drives the scene; also the retries after a
-    failure, and how old a snapshot may be. Pure.
+    failure, the showing that asks at once and its quick retries (`dueOnShowing`, `QUICK_RETRY_DELAYS_MILLIS`), and how
+    old a snapshot may be. Pure.
+  - `ShowingRefresh.kt` — what the loop holds for the showings: the last success, whether the last answer was a refusal,
+    the showings answered and the quick retries of the current one; asked once a pass (`asks`), told every answer
+    (`answered`). Pure, the clock handed in.
   - `WeatherRequest.kt` — what a provider URL carries: coordinates rounded to two decimals, and the
     key URL-encoded.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API. A check sends the `ETag` of the last reply
@@ -594,8 +598,8 @@ corners of a quad, the centre and the rim of a fan -- is written once and named 
 and their floats are the ones written corner by corner would be, so the picture is the same. `GlSceneTarget` counts the
 corners (`drawnVertices`) and the vertices written (`writtenVertices`).
 
-**And a batch ends when it is full: 12 288 triangle corners** (`GlSceneTarget.MAX_VERTICES`); the vertices written
-are never more, and the indices stay within an unsigned short. A sprite
+**And a batch ends when it is full: 24 576 triangle corners** (`GlSceneTarget.MAX_VERTICES`, decision 70); the vertices
+written are never more, and the indices stay within a short. A sprite
 is 6 corners (4 vertices written), a fan of `drawCircle` 24 or more (eight slices at the least,
 `CircleTable.MIN_SEGMENTS`; the slices plus two written), so what fills a frame is its circles: that is why the
 snowflakes, the point stars and every Christmas light are discs (`drawDisc`) and every wreath a blit of the atlas
@@ -603,17 +607,12 @@ snowflakes, the point stars and every Christmas light are discs (`drawDisc`) and
 lengthened by half its width at each end along the line as the Canvas's square cap is, so the drop is as long as with
 round ends, where a round end would add a fan at each end (54 corners a drop); full rain (240 drops, 1 440 corners) does
 not fill a batch on its own. `drawLine` ends its quad at the two points for `BUTT` and `ROUND`, and adds the two fans for
-`ROUND`. Christmas at night with everything on -- the people at their most, the distant houses, every building
-shut -- takes 9 738 corners at most over the street and twelve moments, and with the snow falling at 100 %, every star
-and the distant houses at 100 % 10 992, one draw everywhere. Those numbers are at the tests' 360 x 800; a circle is a
-segment every 3 px of the screen, so the frame takes more on a larger one: for Christmas at its most 11 247 at the
-BV6600's 720 x 1440 and 11 631 at 1080 x 2340, one draw everywhere (every scene above, at those two sizes), and 11 988
-at 1440 x 3200, under the batch; there, Autumn at its most takes 12 312 at one position of 60 and two draws (kept so by
-the maintainer, 2026-10-16). With Santa's sleigh in flight over Christmas at its most -- the reindeer through their four
-poses, the gifts falling -- about 12 000 at 360 x 800, one draw; at 720 x 1440 about 12 350 and at 1080 x 2340 about
-12 800, two draws at one and at three positions of 60 (on the BV6600, 2026-10-20: in `GlDrawCallTest` 12 033 at 360 x
-800, 12 351 and 12 786 -- the gifts fall at random moments, a gift's few corners from one run to the next).
-`GlDrawCallTest` sweeps the street, because one frame does not see it, and holds the corners and the vertices written
+`ROUND`. Christmas at night with everything on -- the people at their most, the distant houses, every building shut,
+the near row below the road -- is one draw everywhere over the street and twelve moments at the tests' 360 x 800, and so
+is it with the snow at 100 %, every star and the distant houses at 100 %; the most corners a frame takes there are printed
+by `GlDrawCallTest` (the log line `GlDrawCallTest Christmas`). A circle is a segment every 3 px of the screen, so a larger
+screen takes more: about 19 200 corners at the BV6600's 720 x 1440 for Christmas at its most and about 21 900 at
+1440 x 3200 (measured with a probe on 2026-11-04), under the batch. `GlDrawCallTest` sweeps the street, because one frame does not see it, and holds the corners and the vertices written
 of each primitive and of a crowded frame.
 
 **A sprite is reduced, then cropped, then packed — and the order is the whole of it.**
@@ -1087,15 +1086,24 @@ finalScale = variantScale        // metres -> local units, from the size table
            x perspectiveScale(y) // how far away that ground point is
            x sceneScale(height)  // viewport height / 2400 px reference
 
-groundYFraction(depth) = lerp(0.704, 0.790, depth)
-perspectiveScaleAt(y)  = (y - 0.655) / (0.846 - 0.655)      // 1.0 at the reference line
+groundYFraction(depth) = lerp(0.624, 0.710, depth)
+perspectiveScaleAt(y)  = (y - 0.575) / (0.766 - 0.575)      // 1.0 at the reference line
 ```
+
+The ground stands 0.08 of the screen high, every line of it lifted alike, so the ratios and every size are the
+projection's own; under the road the **near row** stands on lines of its own (`SceneSpace.NEAR_ROW_*`,
+`nearRowFeetYFraction`), at a fixed share of the reference size (`SceneObjectRenderer.nearScaleFor`), planned once from
+the layout (`SceneObjectCatalog.nearRowOf`): the street's houses, trees, parasols and decorations a third of a tile on,
+two of its places, in their order once moved, where the restaurant, the bar and the shop take turns (`nearShopAt`: never
+the same twice in a row on the screen), the fronts of those shops kept
+clear and no two houses standing one over the other. It is drawn after the cars, its meadow first and its pavement's
+people last, a crowd of their own (`SceneObjectRenderer.Pavement`); the gallery card does not draw it.
 
 Apparent size is proportional to the distance below the horizon, which is what a
 flat ground plane seen from a fixed viewpoint does. Static objects, both traffic
-lanes, both pavement rows and every vehicle and pedestrian read the same
+lanes, both pavement rows and every vehicle and pedestrian of the street read the same
 function, so their relative sizes and speeds follow from their ground lines with
-nothing kept in step by hand.
+nothing kept in step by hand; the near row and its pavement below the road stand at their fixed sizes (above).
 
 **The weather is sized the same way the buildings are.** Rain (a line with square ends,
 on both backends), snow and the lightning bolt declare a size in metres and convert it with
@@ -1157,10 +1165,12 @@ about the artwork's own sense: the three-quarter seated family faces +x, which i
 rear. Mirroring about the *anchor* rather than the canvas centre is what keeps the eye axis where
 the seat put it.
 
-**Draw order is depth order for people and traffic too.** `drawPeople` runs *before* the
-vehicle loop. Every pavement row including its jitter is above 0.819 of screen height and every
-lane is at 0.834 or 0.862 -- `SceneObjectCatalog` snaps persisted lanes onto those two -- so a
-walking figure is always the farther object.
+**Draw order is depth order for people and traffic too.** The street's `drawPeople` runs *before* the
+vehicle loop, and the near pavement's after it, with the near row. Every pavement row of the street including its jitter is above 0.739 of screen height and every
+lane is at 0.754 or 0.782 -- `SceneObjectCatalog` snaps persisted lanes onto those two -- so a
+walking figure of the street is always the farther object. A car's identity -- its colour coin, and the frozen selection an older save
+path filtered with -- reads its lane as the lanes stood before the ground was lifted, 0.862 and 0.834
+(`SceneObjectCatalog.identityLaneOf`), so the lift moved where the cars drive and not which car is which.
 
 A category's base scale is **derived**, not authored: each declares the real
 height it should read as and the local-unit height its own drawing occupies
@@ -1198,7 +1208,7 @@ horizon where `perspectiveScaleAt` is at or near zero, so it has its own metric
 (21 px per metre) whose only job is keeping its inhabitants right relative to
 each other. Birds, fireworks and the celestial bodies are composed
 for legibility and read neither. The sleigh flies where the sky puts it, but its
-size is the projection's: Santa is 1.3 times an adult on the near pavement row
+size is the projection's: Santa is 1.3 times an adult on the street's nearer pavement row
 (`SantaSleighScale`).
 
 **The surface is a mirror of the sky, which makes it the one part of the
@@ -1312,15 +1322,12 @@ existence changes.
 The kernel has a flat top: coverage is exactly 1 within a cloud's own silhouette
 and falls smoothly to 0 across a margin `RAIN_SPREAD_FACTOR` times wider,
 combining by maximum so an overcast sky saturates to exactly 1 and reproduces the
-full drop set. Coverage 0 means no precipitation, with no diffuse floor
-anywhere while the clouds are settled. When no cloud is placed -- the cloud layer off or at 0 %, a forecast
-that reports a clear sky -- the field is set uniform so that hiding clouds does not also hide rain.
-
-**Between the two the rain does not jump.** While the last clouds of a clearing sky fade out, or the first of a
-clouding one fade in, `CloudCoverFade.rainEverywhereToward` moves a floor at the clouds' own fade rate
-(`FADE_SECONDS`, 1.5 s), and `CloudCoverage.setFloor` raises the whole field to it: the rain spreads from under the
-clouds to the whole sky as they go, and narrows under them as they come. Under a cloud the field is 1 from the
-cloud's first frame whatever its opacity, so the rain under a cloud fading in falls at once.
+full drop set. Coverage 0 means no precipitation, with no diffuse floor anywhere. **With no cloud nothing falls**
+(decision 98): the frame's `cloudlessSkyNow` (`LiveWeatherSceneRules.cloudlessSky`: no cloud placed and none still
+fading, or after a forecast's lapse the theme's clouds off or at 0 %) stops the precipitation, the umbrellas, the waves
+and the storm, and a forecast reporting rain or snow under less than a fifth of the sky in clouds is drawn with a fifth
+(`forecastCover`). Under a cloud the field is 1 from the cloud's first frame whatever its opacity, so the rain under a
+cloud fading in falls at once, and the rain stops in the frame the last cloud's fade ends.
 
 This depends on `drawClouds` running before `drawPrecipitation` in the frame,
 which it does unconditionally. Reversing that order would leave precipitation
@@ -1330,8 +1337,8 @@ reading a one-frame-stale field.
 a day/night pair; the sky it falls through changes with the hour, the twilight
 branch and the weather, and in eleven of the twelve themes there is an hour at
 which the two carry the same Rec. 601 luma. `drawPrecipitation` therefore reads
-the sky's luma at the two ends of the stretch a drop crosses with sky behind it —
-the cloud band's own middle down to `SceneSpace.HILL_LAYER_TOP_FRACTION` — and
+the sky's luma at the two ends of a stretch of sky at least as long as the one a drop crosses —
+the cloud band's own middle down to `PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION` (0.60, past the hills' top) — and
 `PrecipitationContrast.standOffFromSky` carries the theme's colour toward white or black until it clears
 that whole band by `PRECIPITATION_MIN_LUMA_GAP`, and no further. A colour already
 clear is returned unchanged.
@@ -2267,8 +2274,8 @@ and asserts that no workflow builds it.
   scripts through `env:`); then it decodes the keystore to a runner temp path, builds a signed
   release APK, emits a SHA-256 checksum, produces a Sigstore build-provenance attestation, composes
   the body from `release-notes/<tag>.md`, and publishes. The app's *Update available* window shows that body
-  as it is, without reading Markdown, so the note is plain text: a paragraph or a list item a line (decision 95,
-  `DESIGN_NOTES.md` §12). Every checkout is made with
+  as it is, without reading Markdown, so the note is plain text: a paragraph or a list item a line (decision 95).
+  Every checkout is made with
   `persist-credentials: false`.
 
 There is **no third job**: CI runs no emulator, and **the instrumented tests are run on a phone
@@ -2313,7 +2320,10 @@ Versions are forced in two places that are easy to mistake for one. The root `bu
 forces the **plugin classpath**; `app/build.gradle.kts` forces this project's own configurations,
 of which `androidLintTool` is the one that matters: a version lifted on the plugin classpath by
 ordinary conflict resolution can survive there. **`buildEnvironment` alone cannot tell you a fix is
-complete; `:app:dependencies` can.**
+complete; `:app:dependencies` can.** The forced coordinates are Bouncy Castle's three jars, jose4j, jdom2,
+commons-lang3, httpclient and Guava (`com.google.guava:guava`, which AGP and lint-gradle bring in four
+versions and both blocks hold at `33.7.2-jre`); the APK carries no Guava, only the one-interface
+`listenablefuture:1.0` artifact androidx asks for.
 
 The check that says whether the graph is clean is not a document. Resolve the graph and scan every
 coordinate it contains -- the OSV API answers unauthenticated, and the GitHub Advisory Database
@@ -2377,7 +2387,7 @@ The two tables below are a selection, not the whole suite: the JVM layer first, 
 
 | Test class | Covers |
 |---|---|
-| `CloudCoverageTest` | The coverage field (falloff shape, saturation, edge clamping, frame reset) and the rain-follows-cloud rule: no rain from clear sky, uniform fallback when clouds are hidden or at 0 %, the floor that spreads the rain while clouds come or go, overcast reproduces the full drop set, no drop displacement when cloud cover changes |
+| `CloudCoverageTest` | The coverage field (falloff shape, saturation, edge clamping, frame reset) and the rain-follows-cloud rule: no rain from clear sky, none with clouds hidden or at 0 %, overcast reproduces the full drop set, no drop displacement when cloud cover changes |
 | `CandidateSystemTest` | The candidate-system invariants: determinism per theme, density-independent attributes, stability of survivors across density, monotonicity in both directions, independence from filtered-out candidates, effect decorrelation, the small-pool guarantee, and distribution quality |
 | `MemoryPressurePolicyTest` | Trim-level mapping, including that `TRIM_MEMORY_UI_HIDDEN` never evicts despite its numeric value exceeding `TRIM_MEMORY_RUNNING_CRITICAL`; unknown-level handling; mirrored constants match the platform |
 | `SpriteCacheIndexTest` | Cache bookkeeping: byte accounting, LRU eviction order, eviction to a byte budget, slot reuse, growth, repeated fill/release cycles |

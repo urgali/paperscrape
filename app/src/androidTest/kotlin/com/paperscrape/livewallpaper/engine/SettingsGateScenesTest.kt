@@ -36,23 +36,23 @@ class SettingsGateScenesTest {
         /**
          * The road band, derived from the lane geometry: the tarmac strip spans the two lanes plus
          * the shoulder margin --
-         * `(0.834 - 0.01624) * 800 = 654` down to `(0.862 + 0.01624) * 800 = 703` -- and the
+         * `(0.754 - 0.01624) * 800 = 590` down to `(0.782 + 0.01624) * 800 = 639` -- and the
          * band opens upward to clear the tallest vehicle, the 2.9 m fire engine at the far
          * lane's perspective: `2.9 * 15 px/m * 0.937 = 40.8 px` above the far ground line at
-         * `0.834 * 800 = 667`, so the top is 626.
+         * `0.754 * 800 = 603`, so the top is 562.
          */
         fun roadBand() = GoldenFocus(
-            left = 0, top = 626, right = SceneGolden.WIDTH, bottom = 703,
+            left = 0, top = 562, right = SceneGolden.WIDTH, bottom = 639,
             label = "road band",
         )
 
         /**
          * The storeys between the roofline and the pavement, where every commercial window in
          * the frame lives -- the same derivation as `PeopleGoldenTest.FACADES`:
-         * `int(0.795 * 800) = 636` up 260 px to 376.
+         * `int(0.715 * 800) = 572` up 260 px to 312.
          */
         fun facadesBand() = GoldenFocus(
-            left = 0, top = 376, right = SceneGolden.WIDTH, bottom = 636,
+            left = 0, top = 312, right = SceneGolden.WIDTH, bottom = 572,
             label = "facades band",
         )
 

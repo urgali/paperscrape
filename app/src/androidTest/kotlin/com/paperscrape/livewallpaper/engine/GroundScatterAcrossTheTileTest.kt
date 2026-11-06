@@ -17,8 +17,8 @@ import org.junit.runner.RunWith
  * [SceneObjectRenderer.FLOWER_CLUMP_COUNT] clumps and [SceneObjectRenderer.pileCount] piles a screen, so the screen
  * the scroll shows -- the first, the second, or across the two -- carries as many (`DESIGN_NOTES.md` §12, decision 88).
  * Laid over one screen only, the other would be bare: at the factory scroll on the BV6600 Spring would have no flower
- * for some eighteen minutes out of every thirty-seven. Counted on the blits the scene hands its canvas, at three
- * positions of the scroll.
+ * for some eighteen minutes out of every thirty-seven. The meadow below the road carries as many again, laid the same way
+ * (decision 96). Counted on the blits the scene hands its canvas, row by row, at three positions of the scroll.
  */
 @RunWith(AndroidJUnit4::class)
 class GroundScatterAcrossTheTileTest {
@@ -40,13 +40,18 @@ class GroundScatterAcrossTheTileTest {
             val (name, customization, drawable) = case
             // The first screen of the tile, half way across the two, and the second.
             for (screens in floatArrayOf(0f, 0.5f, 1f)) {
-                val drawn = blitsOf(drawable, customization, shift = -screens * WIDTH)
-                assertTrue(
-                    "$name: $drawn on the screen $screens screens along, where one screen carries $perScreen",
-                    drawn >= perScreen,
-                )
-                // A slice beyond each edge is drawn too, so a thing straddling it is not cut: never more than two besides.
-                assertTrue("$name: $drawn drawn $screens screens along, more than a screen's $perScreen and its edges", drawn <= perScreen + 2)
+                val rows = blitsOf(drawable, customization, shift = -screens * WIDTH)
+                for ((row, drawn) in listOf("street" to rows.street, "meadow below the road" to rows.near)) {
+                    assertTrue(
+                        "$name, $row: $drawn on the screen $screens screens along, where one screen carries $perScreen",
+                        drawn >= perScreen,
+                    )
+                    // A slice beyond each edge is drawn too, so a thing straddling it is not cut: never more than two besides.
+                    assertTrue(
+                        "$name, $row: $drawn drawn $screens screens along, more than a screen's $perScreen and its edges",
+                        drawn <= perScreen + 2,
+                    )
+                }
             }
             // The scroll a whole tile on is the same street: the thing laid in the tile's last slice, straddling the left
             // edge, is drawn on both sides of the wrap and does not vanish as the scroll wraps.
@@ -57,23 +62,36 @@ class GroundScatterAcrossTheTileTest {
         }
     }
 
-    /** How many times one frame blits [drawable] with the street scrolled by [shift] pixels. */
-    private fun blitsOf(drawable: Int, customization: SceneCustomization, shift: Float): Int {
+    /** How many times one frame blits [drawable] in each row: the street's ground, and the meadow below the road. */
+    private data class Rows(val street: Int, val near: Int)
+
+    /** How many times one frame blits [drawable] with the street scrolled by [shift] pixels, row by row. */
+    private fun blitsOf(drawable: Int, customization: SceneCustomization, shift: Float): Rows {
         val renderer = SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), customization, context, "sunset")
         val recorder = BlitCounter(drawable)
         renderer.draw(
             recorder, GroundGeometry(shift, 2f * WIDTH), dayBlend = 1f,
             elapsedSeconds = SceneTime(120.0), screenWidth = WIDTH, screenHeight = HEIGHT,
         )
-        return recorder.count
+        return Rows(recorder.street, recorder.near)
     }
 
-    /** Counts the blits of one drawable and ignores everything else. */
+    /**
+     * Counts the blits of one drawable, by the row its ground line falls in (the translation it is blitted under: above the
+     * meadow below the road, or in it), and ignores everything else.
+     */
     private class BlitCounter(private val drawable: Int) : SceneCanvas {
-        var count = 0
-        override fun save() = Unit
-        override fun restore() = Unit
-        override fun translate(dx: Float, dy: Float) = Unit
+        var street = 0
+        var near = 0
+        private var y = 0f
+        private val saved = ArrayDeque<Float>()
+        override fun save() = saved.addLast(y)
+        override fun restore() {
+            y = saved.removeLast()
+        }
+        override fun translate(dx: Float, dy: Float) {
+            y += dy
+        }
         override fun scale(sx: Float, sy: Float) = Unit
         override fun rotate(degrees: Float) = Unit
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
@@ -115,7 +133,8 @@ class GroundScatterAcrossTheTileTest {
             alpha: Int,
             additive: Boolean,
         ) {
-            if (resId == drawable) count++
+            if (resId != drawable) return
+            if (y < SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION * HEIGHT) street++ else near++
         }
     }
 

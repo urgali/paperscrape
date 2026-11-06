@@ -124,21 +124,19 @@ class LiveWeatherScheduleTest {
     @Test
     fun `a rejected key never shortens the interval`() {
         assertFalse(LiveWeatherSchedule.isTransient(failed(WeatherFailure.UNAUTHORIZED)))
+        // The loop's count goes through ShowingRefresh.answered, which counts one more only for a transient failure.
+        val shows = ShowingRefresh()
+        assertEquals(0, shows.answered(0L, failed(WeatherFailure.UNAUTHORIZED), forShowing = false, transientFailures = 3))
+        assertEquals(0, shows.answered(0L, failed(WeatherFailure.UNAUTHORIZED), forShowing = true, transientFailures = 3))
+        assertEquals(4, shows.answered(0L, failed(WeatherFailure.NETWORK), forShowing = false, transientFailures = 3))
         val loop = serviceCodeLines()
-        val counted = loop.indexOf("weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {")
-        assertTrue("the service counts its failures by isTransient", counted >= 0)
-        assertEquals(
-            "a transient failure counts one more, any other answer none",
-            listOf("weatherTransientFailures + 1", "} else {", "0", "}"),
-            loop.subList(counted + 1, counted + 5),
-        )
         assertEquals(
             "every line that reads or writes the count: declared at none, read for the wait, counted, and back to none when Live Weather stops",
             listOf(
                 "private var weatherTransientFailures = 0",
                 "consecutiveTransientFailures = weatherTransientFailures,",
-                "weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {",
-                "weatherTransientFailures + 1",
+                "weatherTransientFailures = showingRefresh.answered(",
+                "transientFailures = weatherTransientFailures,",
                 "weatherTransientFailures = 0",
             ),
             loop.filter { "weatherTransientFailures" in it },
@@ -186,7 +184,12 @@ class LiveWeatherScheduleTest {
         assertTrue(delays.all { it >= LiveWeatherSchedule.RETRY_BASE_MILLIS })
     }
 
-    /** What that costs, stated as requests rather than as a ladder: four extra in the first hour. */
+    /**
+     * What the backoff's own schedule ([LiveWeatherSchedule.nextAttemptDelayMillis]) costs, stated as
+     * requests rather than as a ladder: four extra in the first hour and none after. The loop also
+     * asks at a showing an hour after the last success, with its quick retries (decision 99); those
+     * are `ShowingRefreshTest`'s, not counted here.
+     */
     @Test
     fun `an outage costs four extra requests in the first hour and none after`() {
         var t = 0L

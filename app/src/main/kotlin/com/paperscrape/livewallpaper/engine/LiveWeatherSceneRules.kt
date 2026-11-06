@@ -11,8 +11,12 @@ package com.paperscrape.livewallpaper.engine
  * it, which reads as rain falling out of a clear sky.
  *
  * The settings screen states the contract: *"Real current conditions replace each theme's manual
- * rain/snow/cloud settings automatically, refreshed hourly. While the forecast drives the sky, this
- * theme's own Clouds and Rain and snow screens leave those to it"*. Both layers, or neither.
+ * rain/snow/cloud settings automatically, … While the forecast drives the sky, this theme's own Clouds
+ * and Rain and snow screens leave those to it"*. Both layers, or neither.
+ *
+ * **Nothing falls from a sky with no cloud** (`DESIGN_NOTES.md` §12, decision 98): the theme's rain,
+ * snow and storm need its clouds ([cloudlessSky]), and a forecast that reports something falling under
+ * a clear sky is drawn with [FALLING_MIN_COVER] of clouds to fall from ([forecastCover]).
  */
 object LiveWeatherSceneRules {
 
@@ -42,6 +46,31 @@ object LiveWeatherSceneRules {
         // the same rule precipitation follows.
         else -> liveCloudCover.coerceIn(0f, 1f)
     }
+
+    /**
+     * The least cover drawn while the forecast reports rain or snow falling: a fifth of the sky, so what falls has clouds
+     * to fall from (`DESIGN_NOTES.md` §12, decision 98, *«Poche nuvole (consigliata)»*).
+     */
+    const val FALLING_MIN_COVER = 0.2f
+
+    /**
+     * The cover to draw for a forecast reporting [cover], `NaN` for none: at least [FALLING_MIN_COVER] while
+     * [somethingFalling], the forecast's own otherwise.
+     */
+    fun forecastCover(cover: Float, somethingFalling: Boolean): Float = when {
+        cover.isNaN() -> Float.NaN
+        somethingFalling && cover < FALLING_MIN_COVER -> FALLING_MIN_COVER
+        else -> cover
+    }
+
+    /**
+     * Whether this frame's sky has no cloud to rain, snow or flash from, so nothing falls and no storm flashes
+     * (`DESIGN_NOTES.md` §12, decision 98): after a lapse of the forecast, when the theme's own clouds place none
+     * ([themeDensity] `NaN` or 0 -- *Show Clouds* off, or *# of Clouds* at 0 %); otherwise when none is placed
+     * ([placedDensity]) and none is still fading out ([cloudsShowing]), so the rain stops with the last cloud.
+     */
+    fun cloudlessSky(lapsed: Boolean, themeDensity: Float, placedDensity: Float, cloudsShowing: Boolean): Boolean =
+        if (lapsed) CloudCoverage.placesNone(themeDensity) else CloudCoverage.placesNone(placedDensity) && !cloudsShowing
 
     /**
      * Whether the lightning flash should be running.

@@ -13,14 +13,10 @@ import kotlin.math.abs
  *
  * ### Why both a floor and a ceiling, on four viewports
  *
- * This suite has now been wrong in both directions, and each time only one bound existed.
- *
- * **v4.4** had a floor and no ceiling: it asserted rain covered *at least* a share of a phone
- * frame, which the fix satisfied by making every drop three times longer. A raindrop ended up
- * **1.15 times the height of the pedestrian beside it** and no test objected.
- *
- * Before that, nothing measured a second viewport at all, so an effect sized in absolute pixels
- * looked correct at 360x800 and was invisible at 1080x2424.
+ * One bound alone lets the effect go wrong the other way: a floor alone, that rain covers *at
+ * least* a share of a phone frame, is met by making every drop three times longer, until a
+ * raindrop is **1.15 times the height of the pedestrian beside it**. And an effect sized in
+ * absolute pixels looks correct at 360x800 and is invisible at 1080x2424.
  *
  * So every property here is checked **at four viewport sizes**, and every one is bounded **above
  * and below**, against something in the scene rather than against a share of the frame: a
@@ -190,9 +186,9 @@ class PrecipitationPixelTest {
      * **The two bounds together.** A raindrop must be clearly smaller than a pedestrian and
      * clearly not nothing, on every viewport.
      *
-     * Measured with v4.5's sizes the median streak is about 0.40 of the tallest painted
-     * pedestrian; v4.4 shipped 1.13, and the pre-v4.4 absolute pixels fell to 0.11 on the largest
-     * viewport. The band below refuses both.
+     * The median streak is about 0.40 of the tallest painted pedestrian; drops three times longer
+     * measured 1.13, and drops sized in absolute pixels 0.11 on the largest viewport. The band
+     * below refuses both.
      */
     @Test
     fun aRaindropIsSmallerThanAPedestrianAndBiggerThanNothing() {
@@ -225,7 +221,7 @@ class PrecipitationPixelTest {
     }
 
     /**
-     * **Density, which is the property v4.4 compensated for with size.** The curtain has to be
+     * **Density, which drops made longer only seem to give.** The curtain has to be
      * spread across the frame, not bunched: at the shipped pool the swept frames filled 86 % of a
      * 6x12 grid with no dry hole wider than two of six columns; at a pool of 90 they filled 46 %
      * and left holes four columns wide.
@@ -275,7 +271,7 @@ class PrecipitationPixelTest {
      * The oracle is the *painted* building, not the size table: a tower is 16.8 m but is drawn far
      * back, where perspective shrinks it, so the metre reading made a bolt that measured taller
      * than anything in the scene look defensible. Measured on 1080x2424 the tallest painted
-     * building is 288 px and v4.4's tallest bolt was 325 px.
+     * building is 288 px, which a bolt sized by the size table's metres (325 px) out-tops.
      *
      * The bolt itself fires off an unseeded timer, so the *constant* is compared rather than a
      * captured strike -- which is the stronger check anyway, since it bounds every roll rather
@@ -300,12 +296,15 @@ class PrecipitationPixelTest {
         }
     }
 
-    // -- the state contract, unchanged from v4.4 ---------------------------------------------------
+    // -- the state contract ---------------------------------------------------------------------
 
+    /** **No rain without clouds** (decision 98): with the cloud layer off the frame is the dry one, to the pixel. */
     @Test
-    fun rainStillFallsWithTheCloudLayerSwitchedOff() {
+    fun noRainFallsWithTheCloudLayerSwitchedOff() {
         val (p, cov, _) = effect(1080, 2424, PrecipitationType.RAIN, clouds = false)
-        assertTrue("no rain with clouds off", p.count > 0 && cov > 0.0015)
+        assertTrue("rain with the clouds off: ${p.count} drops, ${cov * 100}% of the frame", p.count == 0 && cov == 0.0)
+        val (withClouds, coverWithClouds, _) = effect(1080, 2424, PrecipitationType.RAIN, clouds = true)
+        assertTrue("no rain with the clouds on either: the check above is about nothing", withClouds.count > 0 && coverWithClouds > 0.0)
     }
 
     @Test

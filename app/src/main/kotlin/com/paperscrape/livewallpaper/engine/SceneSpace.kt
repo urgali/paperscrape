@@ -49,10 +49,19 @@ object SceneSpace {
 
     // ---- The hill layer the ground belongs to -------------------------------------------
 
-    /** Top of the single hill layer, as a fraction of screen height. */
-    const val HILL_LAYER_TOP_FRACTION = 0.60f
+    /**
+     * Top of the single hill layer, as a fraction of screen height: 0.08 of the screen above where the
+     * ground band's shape puts it, so the whole ground -- the rainbow, the mountains, the lake, the hills,
+     * the village, the road, the people and the cars -- stands that much higher and the space under the
+     * road holds the near row (`DESIGN_NOTES.md` §12, decision 96).
+     */
+    const val HILL_LAYER_TOP_FRACTION = 0.52f
 
-    /** Height of that layer, as a fraction of screen height. */
+    /**
+     * Height of the band the hill's crest is shaped in ([hillCrestFraction]), as a fraction of screen
+     * height. The hill's paper goes on below it to the screen's bottom edge
+     * (`PaperRenderer.buildBaseHillPath`): the band shapes the crest, the paper covers the ground.
+     */
     const val HILL_LAYER_HEIGHT_FRACTION = 0.40f
 
     /**
@@ -141,7 +150,7 @@ object SceneSpace {
      * [OBJECT_BAND_TOP_Y_FRACTION] sets how strongly the scene recedes: up flattens it, down
      * shrinks the farthest objects to nothing.
      */
-    const val HORIZON_Y_FRACTION = 0.655f
+    const val HORIZON_Y_FRACTION = 0.575f
 
     /** Where a static object of `depthFraction = 0` stands. The hill's guaranteed-solid line. */
     const val OBJECT_BAND_TOP_Y_FRACTION = GROUND_SOLID_TOP_Y_FRACTION
@@ -151,21 +160,21 @@ object SceneSpace {
      * drawn before the road strip, so one standing below [roadTopYFraction] would be painted over.
      * `SceneSpaceTest` asserts the margin.
      */
-    const val OBJECT_BAND_BOTTOM_Y_FRACTION = 0.790f
+    const val OBJECT_BAND_BOTTOM_Y_FRACTION = 0.710f
 
     /**
      * The wheel line of the far traffic lane, as a fraction of screen height. The road sits low
      * enough to leave [PAVEMENT_FAR_Y_FRACTION]..[PAVEMENT_NEAR_Y_FRACTION] as ground between the
      * buildings and the road, where people walk.
      */
-    const val ROAD_LANE_FAR_Y_FRACTION = 0.834f
+    const val ROAD_LANE_FAR_Y_FRACTION = 0.754f
 
     /**
      * The wheel line of the near traffic lane. The lanes are 0.028 apart, about a vehicle: wider
      * and the carriageway reads as a dark band dominating the scene. The road's edges derive from
      * the lanes, so moving the pair moves the road without resizing it.
      */
-    const val ROAD_LANE_NEAR_Y_FRACTION = 0.862f
+    const val ROAD_LANE_NEAR_Y_FRACTION = 0.782f
 
     /**
      * How far past the outer lanes the painted surface reaches, as a fraction of one lane's
@@ -180,17 +189,17 @@ object SceneSpace {
      * pavement in front of the village, not on the tarmac. That far back, the projection draws
      * people small; this is distance, not a size error.
      */
-    const val PAVEMENT_FAR_Y_FRACTION = 0.795f
+    const val PAVEMENT_FAR_Y_FRACTION = 0.715f
 
     /** Where the nearer row of pedestrians walks. */
-    const val PAVEMENT_NEAR_Y_FRACTION = 0.807f
+    const val PAVEMENT_NEAR_Y_FRACTION = 0.727f
 
     /**
      * The ground line at which [perspectiveScaleAt] is exactly 1, so the size table below reads
      * directly as "pixels at this line, on a reference-height screen". Its own constant, not a lane:
      * tied to a lane, moving the road would rescale every object in the scene.
      */
-    const val REFERENCE_Y_FRACTION = 0.846f
+    const val REFERENCE_Y_FRACTION = 0.766f
 
     /** Where an object of [depthFraction] stands, as a fraction of screen height. */
     fun groundYFraction(depthFraction: Float): Float {
@@ -214,13 +223,13 @@ object SceneSpace {
     // ---- The distant houses ---------------------------------------------------------------
 
     /**
-     * Where the distant houses stop shrinking: as small as a house standing 0.6722 down the screen,
+     * Where the distant houses stop shrinking: as small as a house standing 0.5922 down the screen,
      * 25 px under the horizon, where a small house is 14.0 px tall on the BV6600 (the maintainer's
-     * 14 px minimum; 0.672 gives 13.84). The projection is zero at and above the horizon, where the
+     * 14 px minimum; 0.592 gives 13.84). The projection is zero at and above the horizon, where the
      * mountains are, so a house sized by it alone would vanish, and its details (a window, the
      * chalet's attic, the snow's lip) would fall under the 2 px every drawn detail is held to.
      */
-    const val DISTANT_HOUSE_FLOOR_Y_FRACTION = 0.6722f
+    const val DISTANT_HOUSE_FLOOR_Y_FRACTION = 0.5922f
 
     /**
      * How many pixels tall a distant house stands with its foot at [footYFraction]: a small house
@@ -307,6 +316,53 @@ object SceneSpace {
     val PEDESTRIAN_SPEED_FAR: Float
         get() = PEDESTRIAN_SPEED_NEAR * perspectiveScaleAt(PAVEMENT_FAR_Y_FRACTION) /
             perspectiveScaleAt(PAVEMENT_NEAR_Y_FRACTION)
+
+    // ---- The near row, below the road ----------------------------------------------------
+
+    /*
+     * Under the road the street is seen a second time, nearer (`DESIGN_NOTES.md` §12, decision 96): the
+     * street's own houses, trees, palms, parasols and decorations, with the shops, on one line of feet
+     * between [NEAR_ROW_FEET_TOP_Y_FRACTION] and [NEAR_ROW_FEET_BOTTOM_Y_FRACTION], and a pavement of
+     * people in front of them. They are drawn at a **fixed** share of the size table's size,
+     * [NEAR_ROW_SIZE], not at the projection of where they stand, which would make them 1.3 to 1.7
+     * times the reference size and put a tree's crown over the road and half the village behind it.
+     */
+
+    /** Where the near row's farthest object stands, as a fraction of screen height. */
+    const val NEAR_ROW_FEET_TOP_Y_FRACTION = 0.885f
+
+    /** Where its nearest object stands: the row is ordered back to front by the objects' own depths. */
+    const val NEAR_ROW_FEET_BOTTOM_Y_FRACTION = 0.915f
+
+    /**
+     * The near row's size, a share of the size at [REFERENCE_Y_FRACTION]: its houses a little taller than
+     * the village's nearest (about 0.71), never as large as the projection would draw them.
+     */
+    const val NEAR_ROW_SIZE = 0.72f
+
+    /**
+     * The near pavement's farther row of people, in front of the near row: the street's pavement rows
+     * moved down by [NEAR_PAVEMENT_SHIFT_FRACTION], so its two rows and their spread are the pavement's.
+     */
+    const val NEAR_PAVEMENT_FAR_Y_FRACTION = 0.930f
+
+    /** How far below the pavement behind the road the near pavement's rows walk. */
+    const val NEAR_PAVEMENT_SHIFT_FRACTION = NEAR_PAVEMENT_FAR_Y_FRACTION - PAVEMENT_FAR_Y_FRACTION
+
+    /** The near pavement's people's size, a share of the size at [REFERENCE_Y_FRACTION], both rows alike. */
+    const val NEAR_PEOPLE_SIZE = 0.9f
+
+    /**
+     * The meadow under the road the near row's flowers and piles are scattered over: from a little below the
+     * road's bottom edge to the screen's.
+     */
+    const val NEAR_MEADOW_TOP_Y_FRACTION = 0.82f
+    const val NEAR_MEADOW_BOTTOM_Y_FRACTION = 0.99f
+
+    /** Where a near-row object of [depthFraction] (its own depth in the street) stands, as a fraction of screen height. */
+    fun nearRowFeetYFraction(depthFraction: Float): Float =
+        NEAR_ROW_FEET_TOP_Y_FRACTION +
+            depthFraction.coerceIn(0f, 1f) * (NEAR_ROW_FEET_BOTTOM_Y_FRACTION - NEAR_ROW_FEET_TOP_Y_FRACTION)
 
     // ---- Stage 1: the size table --------------------------------------------------------
 

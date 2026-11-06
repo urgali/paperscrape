@@ -935,11 +935,13 @@ internal class GlSceneTarget : SceneCanvas {
     private companion object {
         /**
          * The batch's size in triangle corners, what [ensureRoom] cuts on; it sizes the vertex buffer too, since the
-         * written vertices are never more. A frame that fills it is drawn in two (Christmas with everything on and the
-         * sleigh in flight, at a few positions of the street), which is correct, not a failure. Full rain, 240 drops of
-         * six corners, takes 1 440.
+         * written vertices are never more, and the indices, which stay under a short's 32 767. 24 576, so Christmas at
+         * night with everything on and the near row below the road is one draw on the BV6600
+         * (`DESIGN_NOTES.md` §12, decision 70): its busiest frames over sixty positions of the street take about 19 200 corners at
+         * 720 x 1440 and 21 900 at 1440 x 3200. The two buffers and the index array hold about 1.6 MB. A frame that fills
+         * it is drawn in two, which is correct, not a failure. Full rain, 240 drops of six corners, takes 1 440.
          */
-        const val MAX_VERTICES = 12288
+        const val MAX_VERTICES = 24576
         const val INV_255 = 1f / 255f
         const val DEG_TO_RAD = (Math.PI / 180.0).toFloat()
 

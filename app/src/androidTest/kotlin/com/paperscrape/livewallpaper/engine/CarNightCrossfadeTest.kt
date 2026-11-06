@@ -19,6 +19,9 @@ import org.junit.Test
  * frame or three earlier (vehicle-detection flicker at the threshold is matched against a short
  * history rather than a single frame, so a detection blink is not misread as a pop).
  *
+ * The trees, the houses, the places and the parasols are off: the near row below the road (decision 96) reaches over
+ * the road's lower edge -- a crown, a turret's roof -- and [VehiclePresence] would count it as a vehicle standing still.
+ *
  * The clock is compressed — the hour advances faster than the 1/30 s frame delta would imply —
  * which the invariant is insensitive to: membership may flip only off screen, however fast the
  * blend moves.
@@ -39,7 +42,14 @@ class CarNightCrossfadeTest {
             val scene = GoldenScene(name = "dusk-crossfade", dayPhase = GoldenScene.day())
             scene.configure(renderer)
             renderer.sceneCustomization = renderer.sceneCustomization.let {
-                it.copy(cars = it.cars.copy(visible = true, density = 1f), carsNightDensity = 0f)
+                it.copy(
+                    cars = it.cars.copy(visible = true, density = 1f),
+                    carsNightDensity = 0f,
+                    trees = it.trees.copy(visible = false),
+                    houses = it.houses.copy(visible = false),
+                    buildings = it.buildings.copy(visible = false),
+                    parasols = it.parasols.copy(visible = false),
+                )
             }
             target.bind(Canvas(bitmap))
             // The traffic golden's own warm-up, so the road starts with the full day's traffic. All but

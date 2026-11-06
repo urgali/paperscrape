@@ -10,11 +10,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **The blood rain under Live Weather** (v5.17; the maintainer's question of 2026-10-23, *«la pioggia di sangue funziona
- * anche con live weather?»*, answered then from the code -- yes by the code, not yet proved --, and promised a test
- * and a photograph): it rains from a forecast -- Open-Meteo's answer as the app parses it, made a snapshot by the app's own
- * mapper, the snapshot the wallpaper hands its renderer -- on the Halloween theme as it ships, whose own rain is off, and the
- * rain is the blood rain: red, by night and by day, and twice as thick; the forecast's snow stays the theme's snow, as thin
+ * **The blood rain under Live Weather** (`DESIGN_NOTES.md` §12, decision 78): it rains from a forecast -- Open-Meteo's
+ * answer as the app parses it, made a snapshot by the app's own mapper, the snapshot the wallpaper hands its renderer --
+ * on the Halloween theme as it ships, whose own rain is off, and the rain is the blood rain: red, by night and by day, and twice as thick; the forecast's snow stays the theme's snow, as thin
  * as ever; with *Blood rain* off the forecast's rain is the theme's colours. The renderer draws precipitation by this one
  * rule ([PrecipitationLook]), the forecast's when Live Weather drives the scene.
  */
@@ -94,7 +92,7 @@ class BloodRainLiveWeatherTest {
         val renderer = File(sourceRoot(), "engine/PaperRenderer.kt").readLines().map { it.substringBefore("//").trim() }
         for (line in listOf(
             "val kind = PrecipitationLook.kind(precip, liveWeatherOverride)",
-            "if (kind == PrecipitationLook.NONE) return",
+            "if (kind == PrecipitationLook.NONE || cloudlessSkyNow) return",
             "val intensity = PrecipitationLook.intensity(precip, liveWeatherOverride)",
             "val blood = PrecipitationLook.blood(kind, sceneCustomization)",
             "val themeColour = PrecipitationLook.colour(kind, blood, precip, dayPhase.dayBlend)",

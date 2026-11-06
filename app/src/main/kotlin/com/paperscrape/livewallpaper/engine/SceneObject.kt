@@ -152,6 +152,19 @@ object SceneObjectCatalog {
     private const val LANE_MIDPOINT =
         (SceneSpace.ROAD_LANE_NEAR_Y_FRACTION + SceneSpace.ROAD_LANE_FAR_Y_FRACTION) / 2f
 
+    /**
+     * **A car's lane as its identity reads it**: the near lane's and the far lane's heights before the ground was lifted
+     * (`DESIGN_NOTES.md` §12, decision 96), 0.862 and 0.834, whatever height the lane is drawn at. A car's colour coin and
+     * the frozen selection an older save path filtered with hash its lane's height with its start delay
+     * (`SceneCustomization.kt`); hashed at the drawn height, lifting the road would have changed every car's colour and
+     * the repair's proof of authorship. Moving the lanes moves where the cars drive, never which car is which.
+     */
+    fun identityLaneOf(spec: CarObject): Float =
+        if (spec.laneYFraction >= LANE_MIDPOINT) IDENTITY_LANE_NEAR else IDENTITY_LANE_FAR
+
+    private const val IDENTITY_LANE_NEAR = 0.862f
+    private const val IDENTITY_LANE_FAR = 0.834f
+
     /** Same for every theme and every one of the 5 structural customizable categories -- see the
      * class doc. [seasonalDecorationCandidates] uses this same constant for its own categories. */
     const val CANDIDATES_PER_CATEGORY = 10
@@ -184,13 +197,41 @@ object SceneObjectCatalog {
 
     fun layoutFor(themeId: String, accentColor: Int): SceneObjectLayout {
         if (RandomSceneGenerator.isRandomThemeId(themeId)) {
-            return RandomSceneGenerator.generateLayout(themeId, accentColor) + seasonalDecorationCandidates(themeId)
+            return withTrees(RandomSceneGenerator.generateLayout(themeId, accentColor), themeId) + seasonalDecorationCandidates(themeId)
         }
-        CustomThemeRegistry.overrideLayoutFor(themeId)?.let { return withSeasonalDecorations(it, themeId) }
+        CustomThemeRegistry.overrideLayoutFor(themeId)?.let { return withTrees(withSeasonalDecorations(it, themeId), themeId) }
         val builtinLayout = builtinLayoutFor(themeId, accentColor)
         if (builtinLayout != null) return builtinLayout + seasonalDecorationCandidates(themeId)
-        CustomThemeRegistry.customEntry(themeId)?.let { return withSeasonalDecorations(it.layout, themeId) }
+        CustomThemeRegistry.customEntry(themeId)?.let { return withTrees(withSeasonalDecorations(it.layout, themeId), themeId) }
         return SceneObjectLayout(staticObjects = emptyList(), cars = emptyList())
+    }
+
+    /**
+     * [layout] with trees, if its street has no tree and no palm: a random, a saved or an imported theme can have none,
+     * and *Show Trees* then has something to show (`DESIGN_NOTES.md` §12, decision 97). Ten candidates from the theme's own
+     * seed by the rule the built-in streets plant theirs by -- one in each tenth of the tile, 0.18 to 1.0 deep -- in the
+     * theme's colours, thinned by the Trees page's *Density* as every street's. **No trunk across a door**: a tree standing in front of a
+     * place among the houses whose trunk would cross its front is left out, as the built-in streets' plan keeps it so.
+     * A street that has trees or palms is left as it is; so is a random theme's own generation.
+     */
+    internal fun withTrees(layout: SceneObjectLayout, themeId: String): SceneObjectLayout {
+        if (layout.staticObjects.any { it.type == SceneObjectType.TREE || it.type == SceneObjectType.PALM_TREE }) return layout
+        val places = layout.staticObjects.filter { StorefrontStreet.isPlace(it) }
+        val trees = generateStaticCandidates(SceneObjectType.TREE, themeId.hashCode() + 5, 0.18f..1.0f)
+            .filter { tree -> places.none { place -> trunkAcross(tree, place) } }
+        return layout.copy(staticObjects = layout.staticObjects + trees)
+    }
+
+    /** Whether [tree] stands in front of [place] with its trunk across the place's front, at the reference viewport. */
+    private fun trunkAcross(tree: StaticSceneObject, place: StaticSceneObject): Boolean {
+        if (tree.depthFraction <= place.depthFraction) return false
+        val trunk = occluderBoxes(tree).last()
+        val front = frontRect(place)
+        val tile = REF_SCREEN_W * 2f
+        for (shift in floatArrayOf(-tile, 0f, tile)) {
+            if (trunk[0] + shift < front[2] && trunk[2] + shift > front[0]) return true
+        }
+        return false
     }
 
     /**
@@ -1328,6 +1369,159 @@ object SceneObjectCatalog {
                 floatArrayOf(x - half, g - b.inkTallUnits * metre * s, x + half, g),
             )
         }
+    }
+
+    // ---- The near row, below the road ----------------------------------------------------------
+
+    /**
+     * How far along the tile the near row stands from the street it repeats: the same street, a third of a tile on,
+     * so a house below the road is not the one above it.
+     */
+    const val NEAR_ROW_SHIFT = 0.31f
+
+    /**
+     * One object of the near row: [spec] is what stands there -- [source] moved [NEAR_ROW_SHIFT] along the tile, a house
+     * with its drawing dealt from its new place ([StaticSceneObject.UNDEALT]) -- and [source] the street's candidate it
+     * repeats, whose density coin and switches decide whether it stands.
+     */
+    class NearRowEntry(val source: StaticSceneObject, val spec: StaticSceneObject)
+
+    /**
+     * The near row of a layout (`DESIGN_NOTES.md` §12, decision 96): its [objects], and its [shops] -- at most two of
+     * the street's places among the houses, moved as the objects are and in their order across the tile, where the
+     * restaurant, the bar and the shop take turns ([nearShopAt]) -- with the place each repeats in [shopSources].
+     */
+    class NearRowPlan(
+        val objects: List<NearRowEntry>,
+        val shops: List<StaticSceneObject>,
+        val shopSources: List<StaticSceneObject>,
+    )
+
+    /**
+     * The near row of [layout], planned once from the whole layout, whatever the densities, so a slider adds or takes
+     * away members of it and moves none: each member is a candidate of the street, kept or not by its own coin.
+     *
+     * - **What stands there**: every candidate of the street but the towers and the places among the houses -- its houses,
+     *   trees, palms, parasols and seasonal decorations -- [NEAR_ROW_SHIFT] along the tile.
+     * - **The shops**: of the street's places, the two that stand nearest half a tile apart (the one, on a street with
+     *   one), so the near row shows about one shop a screen. Only the shops' group stands there; the school, the fire
+     *   station and the police station stay behind.
+     * - **A shop's front is left clear**: a candidate whose drawing reaches across a near shop's front is left out of the
+     *   near row.
+     * - **Two houses never stand one in front of the other**: on one line of feet two houses whose fronts overlap by more
+     *   than half of the narrower read as one house drawn twice, so the one farther back in the street is left out.
+     *
+     * Widths are measured at the near row's size on the plan's reference screen (`REF_SCREEN_W` x `REF_SCREEN_H`, the
+     * narrowest common shape, where a tile is shortest against the drawings): on a wider screen everything stands farther
+     * apart.
+     */
+    fun nearRowOf(layout: SceneObjectLayout): NearRowPlan {
+        val tilePx = REF_SCREEN_W * 2f
+        val places = StorefrontStreet.places(layout)
+        // In their order across the tile once moved: a copy's places are dealt in that order ([nearShopAt]), so a place
+        // moved past the tile's end comes first, and two shops dealt one after the other stand one after the other.
+        val shopSources = nearShopPlaces(places).sortedBy { nearX(it.tileFractionX) }
+        val shops = shopSources.map { it.copy(tileFractionX = nearX(it.tileFractionX)) }
+        val shopFronts = shops.map { nearExtent(it) ?: floatArrayOf(0f, 0f) }
+        val kept = ArrayList<NearRowEntry>()
+        for (source in layout.staticObjects) {
+            if (source.type == SceneObjectType.SKYSCRAPER) continue
+            val spec = source.copy(
+                tileFractionX = nearX(source.tileFractionX),
+                silhouette = if (source.type == SceneObjectType.HOUSE) StaticSceneObject.UNDEALT else source.silhouette,
+            )
+            val reach = nearExtent(spec) ?: floatArrayOf(0f, 0f)
+            val acrossAShop = shops.indices.any { k ->
+                overlapPx(spec.tileFractionX, reach, shops[k].tileFractionX, shopFronts[k], tilePx) > 0f
+            }
+            if (!acrossAShop) kept += NearRowEntry(source, spec)
+        }
+        // The houses, nearest in the street first: each keeps its place unless a house kept before it covers half of it.
+        val houses = kept.filter { it.spec.type == SceneObjectType.HOUSE }.sortedByDescending { it.source.depthFraction }
+        val standing = ArrayList<NearRowEntry>()
+        val dropped = HashSet<NearRowEntry>()
+        for (h in houses) {
+            val hReach = nearExtent(h.spec) ?: continue
+            val hidden = standing.any { o ->
+                val oReach = nearExtent(o.spec) ?: return@any false
+                val narrower = minOf(hReach[1] - hReach[0], oReach[1] - oReach[0])
+                overlapPx(h.spec.tileFractionX, hReach, o.spec.tileFractionX, oReach, tilePx) > narrower / 2f
+            }
+            if (hidden) dropped += h else standing += h
+        }
+        return NearRowPlan(kept.filter { it !in dropped }, shops, shopSources)
+    }
+
+    /** [x] moved [NEAR_ROW_SHIFT] along the tile, wrapped into `[0, 1)`. */
+    private fun nearX(x: Float): Float = (x + NEAR_ROW_SHIFT) % 1f
+
+    /**
+     * Of [places] (in their order across the tile), the near row's: the two standing nearest half a tile apart, in their
+     * order across the tile; the one of a street with one; none of a street with none.
+     */
+    private fun nearShopPlaces(places: List<StaticSceneObject>): List<StaticSceneObject> {
+        if (places.size < 2) return places
+        var best = 0 to 1
+        var bestGap = -1f
+        for (i in places.indices) for (j in i + 1 until places.size) {
+            val d = places[j].tileFractionX - places[i].tileFractionX
+            val gap = minOf(d, 1f - d)
+            if (gap > bestGap + 1e-6f) { bestGap = gap; best = i to j }
+        }
+        return listOf(places[best.first], places[best.second])
+    }
+
+    /**
+     * How far [o]'s drawing reaches left and right of its foot in the near row, in pixels of the plan's reference screen:
+     * its occluding boxes ([occluderBoxes]) brought from the projection of its depth to [SceneSpace.NEAR_ROW_SIZE]. Null for
+     * what has none (a seasonal decoration): its foot is all it takes up.
+     */
+    private fun nearExtent(o: StaticSceneObject): FloatArray? {
+        val boxes = occluderBoxes(o)
+        if (boxes.isEmpty()) return null
+        val x = o.tileFractionX * REF_SCREEN_W * 2f
+        val k = SceneSpace.NEAR_ROW_SIZE / SceneSpace.depthScale(o.depthFraction)
+        return floatArrayOf(boxes.minOf { it[0] - x } * k, boxes.maxOf { it[2] - x } * k)
+    }
+
+    /** How many pixels of the tile two spans share, each `[x + reach[0], x + reach[1]]`, across the tile's seam too. */
+    private fun overlapPx(xa: Float, a: FloatArray, xb: Float, b: FloatArray, tilePx: Float): Float {
+        var d = (xb - xa) * tilePx
+        d -= Math.round(d / tilePx) * tilePx
+        val left = maxOf(a[0], d + b[0])
+        val right = minOf(a[1], d + b[1])
+        return maxOf(0f, right - left)
+    }
+
+    /** The noise channel of the near row's shops' shuffles ([nearShopAt]): a number no other attribute uses. */
+    private const val NEAR_SHOP_CHANNEL = 603
+
+    /** The shops' group in the order [nearShopAt] deals it from. */
+    private val NEAR_SHOPS = arrayOf(Storefront.RESTAURANT, Storefront.BAR, Storefront.SHOP)
+
+    /**
+     * Which shop stands in the near row's place [place] (`copy * places + rank`, [StorefrontStreet.placeIndex]) for the
+     * theme seeded [seed]: the restaurant, the bar and the shop in decks of three, each deck shuffled by the seed and
+     * started on another shop than the one the deck before ended on, so **two places in a row never hold the same shop**.
+     * [scratch] is an array of three ints, overwritten: the draw path asks once a place a frame and allocates nothing.
+     */
+    fun nearShopAt(seed: Int, place: Int, scratch: IntArray): Storefront {
+        val deck = Math.floorDiv(place, NEAR_SHOPS.size)
+        val i = Math.floorMod(place, NEAR_SHOPS.size)
+        val previousLast = nearDeck(seed, deck - 1, scratch)[NEAR_SHOPS.size - 1]
+        val order = nearDeck(seed, deck, scratch)
+        if (order[0] == previousLast) { order[0] = order[1]; order[1] = previousLast }
+        return NEAR_SHOPS[order[i]]
+    }
+
+    /** [deck]'s shuffle of the three shops into [into], Fisher-Yates on the seed; its last place is the shuffle's own. */
+    private fun nearDeck(seed: Int, deck: Int, into: IntArray): IntArray {
+        for (k in NEAR_SHOPS.indices) into[k] = k
+        for (k in NEAR_SHOPS.size - 1 downTo 1) {
+            val j = (CandidateNoise.value(seed, deck * 4 + k, NEAR_SHOP_CHANNEL) * (k + 1)).toInt().coerceIn(0, k)
+            val t = into[k]; into[k] = into[j]; into[j] = t
+        }
+        return into
     }
 
     /**

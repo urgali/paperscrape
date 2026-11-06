@@ -6,8 +6,8 @@ import org.junit.Test
 /**
  * REN-08: nobody walks on the road.
  *
- * The near pavement row is 0.807 of screen height and members jitter by up to +-0.012, so a figure
- * could stand at 0.819 while the road's own painted top edge is 0.8178 -- about three pixels of
+ * The near pavement row is 0.727 of screen height and members jitter by up to +-0.012, so a figure
+ * could stand at 0.739 while the road's own painted top edge is 0.7378 -- about three pixels of
  * foot on the tarmac at 2340 px, on the nearest row, where the figures are drawn largest and it
  * shows most. The jitter was clamped to the band the *rows* define, which knows nothing about where
  * the road is.

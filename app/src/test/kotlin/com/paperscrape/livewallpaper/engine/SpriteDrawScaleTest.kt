@@ -106,17 +106,20 @@ class SpriteDrawScaleTest {
      */
     private val maxSizeVariation = 1f + SceneSpace.SIZE_VARIATION_SPREAD / 2f
 
-    /** The deepest, and therefore largest, ground line a static object can stand on. */
-    private val maxStaticDepthScale = SceneSpace.depthScale(1f)
+    /**
+     * The largest a static object is drawn: on the deepest ground line of the street, or in the near row below the road,
+     * at its fixed size (`SceneSpace.NEAR_ROW_SIZE`, `DESIGN_NOTES.md` §12, decision 96), whichever is larger.
+     */
+    private val maxStaticDepthScale = maxOf(SceneSpace.depthScale(1f), SceneSpace.NEAR_ROW_SIZE)
 
-    /** The nearer of the two pavements: pedestrians are drawn largest there. */
-    private val maxPavementScale = SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION)
+    /** The larger of the near pavement row behind the road and the near pavement below it: pedestrians are drawn largest there. */
+    private val maxPavementScale = maxOf(SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION), SceneSpace.NEAR_PEOPLE_SIZE)
 
     /** The near lane: vehicles are drawn largest there. */
     private val maxLaneScale = SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
 
-    /** `drawGroundFlowers`/`scatterPiles` stand their scatter anywhere in this depth band. */
-    private val maxScatterDepthScale = SceneSpace.depthScale(SceneObjectRenderer.FLOWER_DEPTH_MAX)
+    /** `drawGroundFlowers`/`scatterPiles` stand their scatter anywhere in this depth band, and under the road at the near row's size. */
+    private val maxScatterDepthScale = maxOf(SceneSpace.depthScale(SceneObjectRenderer.FLOWER_DEPTH_MAX), SceneSpace.NEAR_ROW_SIZE)
 
     private fun staticPath(label: String, variant: SceneSpace.SceneVariant, inner: Float = 1f) =
         DrawPath(label, SpriteScale.SCENE_UNITS) { v ->

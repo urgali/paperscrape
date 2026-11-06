@@ -168,10 +168,11 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Rain and snow",
-                supporting = if (liveWeatherDriving) {
-                    "Driven by Live Weather"
-                } else {
-                    amountSummary(customization.precipitation.visible, customization.precipitation.intensity)
+                supporting = when {
+                    liveWeatherDriving -> "Driven by Live Weather"
+                    // Nothing falls without a cloud (`DESIGN_NOTES.md` §12, decision 98), whatever the switch holds.
+                    !SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density) -> NO_CLOUDS_SUMMARY
+                    else -> amountSummary(customization.precipitation.visible, customization.precipitation.intensity)
                 },
                 icon = Icons.Outlined.WaterDrop,
                 supportingIsAccent = liveWeatherDriving,
@@ -508,11 +509,15 @@ private fun starsDrawnAmount(density: Float): Float = if (PaperRenderer.starCoun
 /** What a row says for a thing drawn not at all at 0 % ([SettingsUiModel.amountSwitch]). */
 private const val NONE_AT_ZERO_SUMMARY = "None at 0%"
 
+/** The Rain and snow row's state while the theme's sky has no cloud: nothing falls (decision 98). */
+internal const val NO_CLOUDS_SUMMARY = "Off - no clouds"
+
 /**
  * [densitySummary] for the things the wallpaper draws none of at 0 % or, for a category of the street, at an
  * amount that keeps none on this theme ([stands], [StandingObjects]). The cars keep [densitySummary]: at 0 %
  * there is still a car; the people have [peopleSummary].
  */
+
 private fun amountSummary(visible: Boolean, amount: Float, stands: Boolean = amount > 0f): String {
     val shown = SettingsUiModel.amountSwitch(visible, amount, stands)
     return when {
@@ -770,12 +775,14 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            // At 0 % intensity nothing falls.
-            val precipitation = SettingsUiModel.amountSwitch(precip.visible, precip.intensity)
+            // At 0 % intensity nothing falls, and nothing without a cloud: off and greyed then, the choice kept.
+            val skyHasClouds = SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density)
+            val precipitation = SettingsUiModel.rainOrSnow(precip.visible, precip.intensity, skyHasClouds)
             SettingSwitchRow(
                 title = "Show Rain/Snow",
-                subtitle = if (precipitation.noneAtZero) "None at 0% intensity - tap to bring it back" else "",
+                subtitle = precipitation.line,
                 checked = precipitation.shownOn,
+                enabled = precipitation.interactive,
                 onCheckedChange = { wanted ->
                     scope.applyAmountTap(
                         SettingsUiModel.amountTap(wanted, precip.intensity, defaultCustomizationFor(forThemeId).precipitation.intensity),
@@ -785,7 +792,7 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
                 },
             )
             // The type and the intensity follow the switch: with nothing falling they would change nothing.
-            val falling = SettingsUiModel.amountSliderEnabled(precip.visible)
+            val falling = SettingsUiModel.amountSliderEnabled(precip.visible) && precipitation.interactive
             Text("Type", style = MaterialTheme.typography.bodyMedium)
             SettingsSegmentedChoice(
                 options = listOf("Rain", "Snow"),
@@ -820,22 +827,24 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
             onEditNight = { editingTarget = ColorEditTarget("Snow - Night Color", precip.snowColorNight) { c -> scope.launch { prefs.setPrecipitationSnowColorNight(c, forThemeId) } } },
             onModeChange = { scope.launch { prefs.setPrecipitationSnowAutoMode(it, forThemeId) } },
         )
-        // The lightning flashes only with Show Rain/Snow on and Rain selected
+        // The lightning flashes only with a cloud in the sky, Show Rain/Snow on and Rain selected
         // (`LiveWeatherSceneRules.stormActive`): off and locked otherwise, the stored value kept. Under
         // Live Weather not drawn: the forecast decides the flashes.
         if (!liveWeatherDriving) {
             SectionTitle("Storms")
+            val skyHasClouds = SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density)
             val storm = SettingsUiModel.thunderstorm(
                 storedThunderstorm = precip.thunderstorm,
                 precipitationVisible = precip.visible,
                 precipitationIsRain = precip.type == PrecipitationType.RAIN,
+                skyHasClouds = skyHasClouds,
             )
             SettingSwitchRow(
                 title = "Thunderstorm",
                 subtitle = if (storm.interactive) {
                     "Occasional lightning flashes (only while Rain is selected)"
                 } else {
-                    "Needs Show Rain/Snow on, with Rain selected; your choice is kept until then."
+                    SettingsUiModel.thunderstormLockLine(skyHasClouds)
                 },
                 checked = storm.shownOn,
                 enabled = storm.interactive,
@@ -1323,7 +1332,7 @@ private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: Strin
             subtitle = if (config.visible && peopleShown.noneAtZero) {
                 SettingsUiModel.NO_PEOPLE_AT_ZERO_LINE
             } else {
-                "People walk along the ground between the buildings and the road, and dress for the season."
+                "People walk along the ground on both sides of the road, and dress for the season."
             },
             checked = peopleShown.shownOn,
             onCheckedChange = { wanted ->

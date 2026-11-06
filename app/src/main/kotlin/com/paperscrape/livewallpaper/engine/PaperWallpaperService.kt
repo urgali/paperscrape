@@ -33,8 +33,10 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
 import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
 import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
+import com.paperscrape.livewallpaper.weather.ShowingRefresh
 import com.paperscrape.livewallpaper.weather.WeatherFetchResult
 import com.paperscrape.livewallpaper.weather.WeatherRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -252,8 +254,17 @@ class PaperWallpaperService : WallpaperService() {
         private inline fun changingOnScreen(change: () -> Unit) {
             val before = onScreen
             change()
+            if (onScreen && !before) showings++
             onEngineVisibilityChanged(nowVisible = onScreen, wasVisible = before)
         }
+
+        /**
+         * How many times this engine has come on screen: the weather loop compares it with the count it last saw, so a
+         * showing it slept through -- off and on again between two of its passes -- still counts
+         * ([LiveWeatherSchedule.dueOnShowing]). Written on the main thread, read by the loop.
+         */
+        @Volatile
+        private var showings = 0
 
         /** Whether the `Canvas` loop may run on this engine now: [GlLifecyclePolicy.canvasLoopMayRun]. */
         private fun canvasLoopMayRun(): Boolean =
@@ -352,6 +363,13 @@ class PaperWallpaperService : WallpaperService() {
          */
         @Volatile
         private var weatherTransientFailures = 0
+
+        /**
+         * The weather loop's showings: a showing asks at once when the last success is an hour old, and its request is
+         * retried within seconds when it found no network ([ShowingRefresh], `DESIGN_NOTES.md` §12, decision 99). On the
+         * monotonic clock, as [lastWeatherFetchElapsed]. The loop's alone.
+         */
+        private val showingRefresh = ShowingRefresh()
 
         /**
          * What the renderer was last told, so an unchanged decision costs nothing. Main thread only,
@@ -610,126 +628,148 @@ class PaperWallpaperService : WallpaperService() {
                     // On screen means shown **with a surface** ([onScreen]): an engine bound to a
                     // window nobody shows has nothing to draw on and fetches nothing.
                     if (!onScreen) {
+                        showingRefresh.offScreen()
                         weatherWakeUp.receive()
                         continue
                     }
-                    // **The reasons to ask the device where it is**: a weather refresh is due, so the
-                    // position behind it might be stale; none is held; or a try is due. `currentFix`
-                    // prefers the system's cached answer, and **a real request is made at most once an
-                    // hour while the phone answers**, whoever asks (`LocationRequestThrottle`).
-                    // A request that finds nothing is tried again after 5, 15 and
-                    // 30 minutes, then the hour, held position or not
-                    // (`DESIGN_NOTES.md` §12, decision 41): `deviceRetryDue`, and the shorter wait at
-                    // the bottom of the loop.
-                    // What the phone allows (permission and location switch, no radio) is read on
-                    // every pass: without the permission no position is kept or asked for
-                    // (`DeviceLocationAccess.mayUsePosition`), and no try is counted.
-                    val source = LocationSource.of(settings)
-                    val deviceAccess = source.deviceKind?.let { deviceAccess(it) }
-                    // Live Weather runs only over a scene that follows real time: a fixed hour has no
-                    // "now" to fetch for, as the settings screen says (`LiveWeatherUiState.canBeTurnedOn`).
-                    val liveWeatherRuns = LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)
-                    // The wait before another attempt: the hourly interval, or a bounded backoff while
-                    // transient failures run (LiveWeatherSchedule.nextAttemptDelayMillis).
-                    val attemptDelay = LiveWeatherSchedule.nextAttemptDelayMillis(
-                        consecutiveTransientFailures = weatherTransientFailures,
-                        normalIntervalMillis = WEATHER_REFRESH_INTERVAL_MS,
-                    )
-                    // The sunrise and sunset are decided on every pass, whatever the source and
-                    // whether Live Weather is on (SolarDaySchedule.onTick). A weather refresh is a
-                    // reason to ask the phone only if it would be sent: a provider waiting for its key
-                    // sends nothing (`MissingApiKey`).
-                    when (SolarDaySchedule.onTick(
-                        followRealTime = settings.syncWithRealTime,
-                        liveWeatherEnabled = LiveWeatherSchedule.wouldFetch(liveWeatherRuns, settings.weatherProvider, settings.apiKeyForWeatherProvider),
-                        deviceSource = source.deviceKind != null,
-                        devicePositionUsable = deviceAccess?.mayUsePosition == true,
-                        weatherAttemptDue = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay),
-                        hasPosition = solarDay.hasFix,
-                        holdsDevicePosition = source.deviceKind != null && lastLocationFix != null,
-                        dayIsStale = solarDayIsStale(),
-                        userAskPending = userChoseDeviceSource,
-                        deviceRetryDue = source.deviceKind != null && LocationRequestThrottle.shared.retryDue(),
-                    )) {
-                        SolarDaySchedule.Action.ASK_DEVICE -> refreshDeviceFix(source)
-                        SolarDaySchedule.Action.RECOMPUTE_FROM_HELD_POSITION ->
-                            lastLocationFix?.let { updateSunTimesFromLocation(it) }
-                        SolarDaySchedule.Action.FORGET_DEVICE_POSITION -> forgetDevicePosition()
-                        SolarDaySchedule.Action.NOTHING -> Unit
-                    }
-                    val fix = lastLocationFix
-                    // Two reasons to fetch: the hourly timer (the conditions are stale), and another
-                    // place, farther than LiveWeatherSchedule.SAME_PLACE_KM from the last fetch's (they
-                    // are the wrong conditions). A fix a few metres away is the same place, and waits.
-                    val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation)
-                    val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
-                    val provider = settings.weatherProvider
-                    val generationAtStart = weatherInputsGeneration
-                    // The outcome of a fetch made on *this* pass, or null when none was due
-                    // (the meaning LiveWeatherStatus.of gives the parameter).
-                    var result: WeatherFetchResult? = null
-                    if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired)) {
-                        lastWeatherFetchElapsed = SystemClock.elapsedRealtime()
-                        lastWeatherFetchLocation = fix
-                        result = WeatherRepository.fetchCurrentConditions(
-                            providerId = provider,
-                            latitude = fix.latitude,
-                            longitude = fix.longitude,
-                            apiKey = settings.apiKeyForWeatherProvider,
+                    // **Every pass is caught whole**: an exception that is not the loop's own cancellation -- from the
+                    // phone's position, the sun times, the decision, the scene -- is logged and the loop goes on to its
+                    // next pass, so the weather and the sun times never stop for the engine's life over one failure.
+                    try {
+                        // **The reasons to ask the device where it is**: a weather refresh is due, so the
+                        // position behind it might be stale; none is held; or a try is due. `currentFix`
+                        // prefers the system's cached answer, and **a real request is made at most once an
+                        // hour while the phone answers**, whoever asks (`LocationRequestThrottle`).
+                        // A request that finds nothing is tried again after 5, 15 and
+                        // 30 minutes, then the hour, held position or not
+                        // (`DESIGN_NOTES.md` §12, decision 41): `deviceRetryDue`, and the shorter wait at
+                        // the bottom of the loop.
+                        // What the phone allows (permission and location switch, no radio) is read on
+                        // every pass: without the permission no position is kept or asked for
+                        // (`DeviceLocationAccess.mayUsePosition`), and no try is counted.
+                        val source = LocationSource.of(settings)
+                        val deviceAccess = source.deviceKind?.let { deviceAccess(it) }
+                        // Live Weather runs only over a scene that follows real time: a fixed hour has no
+                        // "now" to fetch for, as the settings screen says (`LiveWeatherUiState.canBeTurnedOn`).
+                        val liveWeatherRuns = LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)
+                        // The wait before another attempt: the hourly interval, or a bounded backoff while
+                        // transient failures run (LiveWeatherSchedule.nextAttemptDelayMillis).
+                        val attemptDelay = LiveWeatherSchedule.nextAttemptDelayMillis(
+                            consecutiveTransientFailures = weatherTransientFailures,
+                            normalIntervalMillis = WEATHER_REFRESH_INTERVAL_MS,
                         )
-                        // A failure keeps the previous snapshot, so one dropped request does not
-                        // revert the scene to the theme's own weather, for at most
-                        // LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS and **only if it is this
-                        // place's**: after a move, a failure drops the old place's.
-                        val (held, heldFor) = LiveWeatherSchedule.heldAfterFetch(
-                            held = lastWeatherSnapshot,
-                            heldFor = lastWeatherSnapshotLocation,
-                            fetched = WeatherRepository.snapshotOf(result),
-                            fetchedFor = fix,
-                        )
-                        lastWeatherSnapshot = held
-                        lastWeatherSnapshotLocation = heldFor
-                        // Only a transient failure earns a faster retry. A missing or rejected key,
-                        // a spent quota and a refused request are answers: asking sooner changes
-                        // nothing, so the normal interval stands and the status says what is wrong.
-                        weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {
-                            weatherTransientFailures + 1
-                        } else {
-                            0
+                        // **A showing asks at once when the last success is an hour old** (`DESIGN_NOTES.md` §12, decision 99),
+                        // whatever failed before; a request it makes that finds no network is retried within seconds while
+                        // the wallpaper stays on screen (LiveWeatherSchedule.QUICK_RETRY_DELAYS_MILLIS).
+                        val forShowing = showingRefresh.asks(SystemClock.elapsedRealtime(), showings, WEATHER_REFRESH_INTERVAL_MS)
+                        // The sunrise and sunset are decided on every pass, whatever the source and
+                        // whether Live Weather is on (SolarDaySchedule.onTick). A weather refresh is a
+                        // reason to ask the phone only if it would be sent: a provider waiting for its key
+                        // sends nothing (`MissingApiKey`).
+                        when (SolarDaySchedule.onTick(
+                            followRealTime = settings.syncWithRealTime,
+                            liveWeatherEnabled = LiveWeatherSchedule.wouldFetch(liveWeatherRuns, settings.weatherProvider, settings.apiKeyForWeatherProvider),
+                            deviceSource = source.deviceKind != null,
+                            devicePositionUsable = deviceAccess?.mayUsePosition == true,
+                            weatherAttemptDue = forShowing ||
+                                LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay),
+                            hasPosition = solarDay.hasFix,
+                            holdsDevicePosition = source.deviceKind != null && lastLocationFix != null,
+                            dayIsStale = solarDayIsStale(),
+                            userAskPending = userChoseDeviceSource,
+                            deviceRetryDue = source.deviceKind != null && LocationRequestThrottle.shared.retryDue(),
+                        )) {
+                            SolarDaySchedule.Action.ASK_DEVICE -> refreshDeviceFix(source)
+                            SolarDaySchedule.Action.RECOMPUTE_FROM_HELD_POSITION ->
+                                lastLocationFix?.let { updateSunTimesFromLocation(it) }
+                            SolarDaySchedule.Action.FORGET_DEVICE_POSITION -> forgetDevicePosition()
+                            SolarDaySchedule.Action.NOTHING -> Unit
                         }
+                        val fix = lastLocationFix
+                        // Two reasons to fetch: the hourly timer (the conditions are stale), and another
+                        // place, farther than LiveWeatherSchedule.SAME_PLACE_KM from the last fetch's (they
+                        // are the wrong conditions). A fix a few metres away is the same place, and waits.
+                        val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation)
+                        val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
+                        val provider = settings.weatherProvider
+                        val generationAtStart = weatherInputsGeneration
+                        // The outcome of a fetch made on *this* pass, or null when none was due
+                        // (the meaning LiveWeatherStatus.of gives the parameter).
+                        var result: WeatherFetchResult? = null
+                        if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {
+                            lastWeatherFetchElapsed = SystemClock.elapsedRealtime()
+                            lastWeatherFetchLocation = fix
+                            result = WeatherRepository.fetchCurrentConditions(
+                                providerId = provider,
+                                latitude = fix.latitude,
+                                longitude = fix.longitude,
+                                apiKey = settings.apiKeyForWeatherProvider,
+                            )
+                            // A failure keeps the previous snapshot, so one dropped request does not
+                            // revert the scene to the theme's own weather, for at most
+                            // LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS and **only if it is this
+                            // place's**: after a move, a failure drops the old place's.
+                            val (held, heldFor) = LiveWeatherSchedule.heldAfterFetch(
+                                held = lastWeatherSnapshot,
+                                heldFor = lastWeatherSnapshotLocation,
+                                fetched = WeatherRepository.snapshotOf(result),
+                                fetchedFor = fix,
+                            )
+                            lastWeatherSnapshot = held
+                            lastWeatherSnapshotLocation = heldFor
+                            // Only a transient failure earns a faster retry. A missing or rejected key,
+                            // a spent quota and a refused request are answers: asking sooner changes
+                            // nothing, so the normal interval stands and the status says what is wrong.
+                            // A showing's request and its quick retries count as one failure, the burst's first.
+                            weatherTransientFailures = showingRefresh.answered(
+                                now = SystemClock.elapsedRealtime(),
+                                result = result,
+                                forShowing = forShowing,
+                                transientFailures = weatherTransientFailures,
+                            )
+                        }
+                        // **The single decision**: every pass, fetch or not, gets the status the settings
+                        // screen reads and the snapshot the renderer draws from one call, so they cannot
+                        // disagree (LiveWeatherSchedule.decide).
+                        val decision = LiveWeatherSchedule.decide(
+                            enabled = liveWeatherRuns,
+                            hasLocation = fix != null,
+                            result = result,
+                            snapshot = lastWeatherSnapshot,
+                            nowMillis = System.currentTimeMillis(),
+                            previous = publishedWeatherStatus ?: LiveWeatherStatus.OFF,
+                        )
+                        if (!liveWeatherRuns) {
+                            // Switched off, the feature forgets what was fetched: switched on again it
+                            // fetches at once, for a fresh look at the sky.
+                            lastWeatherSnapshot = null
+                            lastWeatherSnapshotLocation = null
+                            lastWeatherFetchLocation = null
+                            lastWeatherFetchElapsed = Long.MIN_VALUE / 4
+                            weatherTransientFailures = 0
+                            showingRefresh.forget()
+                        }
+                        applyLiveWeather(decision.snapshotForScene, decision.lapsed)
+                        // Not an answer about inputs replaced while this pass was fetching: see
+                        // [weatherInputsGeneration]. The next pass, due at once, answers for the new ones.
+                        if (generationAtStart == weatherInputsGeneration) publishWeatherStatus(decision.status)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        Log.e(TAG, "A weather pass failed; the loop goes on to its next pass", failure)
                     }
-                    // **The single decision**: every pass, fetch or not, gets the status the settings
-                    // screen reads and the snapshot the renderer draws from one call, so they cannot
-                    // disagree (LiveWeatherSchedule.decide).
-                    val decision = LiveWeatherSchedule.decide(
-                        enabled = liveWeatherRuns,
-                        hasLocation = fix != null,
-                        result = result,
-                        snapshot = lastWeatherSnapshot,
-                        nowMillis = System.currentTimeMillis(),
-                        previous = publishedWeatherStatus ?: LiveWeatherStatus.OFF,
-                    )
-                    if (!liveWeatherRuns) {
-                        // Switched off, the feature forgets what was fetched: switched on again it
-                        // fetches at once, for a fresh look at the sky.
-                        lastWeatherSnapshot = null
-                        lastWeatherSnapshotLocation = null
-                        lastWeatherFetchLocation = null
-                        lastWeatherFetchElapsed = Long.MIN_VALUE / 4
-                        weatherTransientFailures = 0
-                    }
-                    applyLiveWeather(decision.snapshotForScene, decision.lapsed)
-                    // Not an answer about inputs replaced while this pass was fetching: see
-                    // [weatherInputsGeneration]. The next pass, due at once, answers for the new ones.
-                    if (generationAtStart == weatherInputsGeneration) publishWeatherStatus(decision.status)
                     // Waits for the tick or a wake-up, whichever comes first; the tick comes sooner
                     // when a try for the phone's position falls due before it, so 5 minutes after a
-                    // request that found nothing means 5, not the next two-minute pass after 5.
+                    // request that found nothing means 5, not the next two-minute pass after 5, and
+                    // sooner still when a quick retry falls due.
                     withTimeoutOrNull(
-                        SolarDaySchedule.nextPassDelayMillis(
-                            checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,
-                            deviceSource = LocationSource.of(settings).deviceKind != null,
-                            retryPassDelayMillis = LocationRequestThrottle.shared.passDelay(WEATHER_CHECK_INTERVAL_MS),
+                        LiveWeatherSchedule.passDelayMillis(
+                            basePassMillis = SolarDaySchedule.nextPassDelayMillis(
+                                checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,
+                                deviceSource = LocationSource.of(settings).deviceKind != null,
+                                retryPassDelayMillis = LocationRequestThrottle.shared.passDelay(WEATHER_CHECK_INTERVAL_MS),
+                            ),
+                            quickRetryInMillis = showingRefresh.quickRetryInMillis(SystemClock.elapsedRealtime()),
                         ),
                     ) { weatherWakeUp.receive() }
                 }

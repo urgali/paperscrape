@@ -64,15 +64,17 @@ object GlGolden {
      * Every limit sits above the disagreement of two correct GL drivers drawing the same frame and
      * below what a deliberately broken backend moves. Two correct implementations differ simply
      * because they are different rasterisers, and nothing under that floor is detectable by a pixel
-     * test allowed to run on more than one machine. A percentage is the share of the 360x800 frame
-     * whose largest channel delta reaches the stated level; every run logs its own readings under
-     * `CANVASCROSS` and `GLREGION`.
+     * test allowed to run on more than one machine. A percentage is the share of what the gate
+     * judges -- the frame's flat interiors for [GlTarget], the named region for [Region], the whole
+     * 360x800 frame for [CanvasCross] -- whose largest channel delta reaches the stated level; every
+     * run logs its own readings under `CANVASCROSS` and `GLREGION`.
      *
      * ### [GlTarget]: GL still draws what GL drew
      *
-     * Against a committed `gl-<name>.png`. The strict one, and it can afford to be: at `>=16` two
-     * correct drivers differ by a fraction of its 0.50 %, and a broken blend crosses that limit on
-     * all three scenes.
+     * Against a committed `gl-<name>.png`. The strict one, and it can afford to be: at `>=16` the
+     * suite's own stand-in for a second driver, `gl-day` with every outline shifted one pixel, judges
+     * about 0.50 % of the interiors different, under its 0.60 % (decision 100), and a broken blend
+     * crosses that limit on all three scenes.
      *
      * ### [CanvasCross]: GL still draws what Canvas draws
      *
@@ -98,7 +100,7 @@ object GlGolden {
         /** Against the committed GL golden: same backend, possibly a different GL driver. */
         object GlTarget {
             const val CHANNEL = 16
-            const val MAX_FRACTION = 0.005
+            const val MAX_FRACTION = 0.006
         }
 
         /**
@@ -116,7 +118,7 @@ object GlGolden {
          * watches, the sun's glow, moves no pixel by more than 15/255 when its shape is destroyed:
          * at `>=16` that regression is worth no pixel at all, and no whole-frame limit at any
          * fraction could see it. A channel of 4 over the whole frame would sit far under the
-         * driver floor; over the glow's 254x254 region it does not. [MAX_FRACTION] is **0.50%**:
+         * driver floor; over the glow's 254x223 region it does not. [MAX_FRACTION] is **0.50%**:
          * inside the glow, at channel 4, a second driver's disagreement sits far below it, and the
          * glow at half intensity or with its fan reduced to a triangle several times above it.
          * Each region's reading is logged under `GLREGION`, pass or fail.

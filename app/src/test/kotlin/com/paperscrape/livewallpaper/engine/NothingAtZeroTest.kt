@@ -7,14 +7,14 @@ import org.junit.Test
 
 /**
  * **At 0 % the wallpaper draws none of these, which is what lets their switch read off there**
- * (v5.10C, row 8 of the maintainer's table, inventory I-211; the switch side is
+ * (`DESIGN_NOTES.md` §12, decision 40; the switch side is
  * `SwitchesTellTheTruthTest`). The settings screen may say "None at 0% density" only about things of
  * which the scene really draws none, and may not say it about the ones of which it draws some --
  * so both halves are asserted against the code that decides what stands:
  *
  *  - the static objects through [keepCandidate], on all twelve built-in layouts: houses, trees,
- *    parasols and the six seasonal decorations keep **nothing** at 0; the buildings keep their three
- *    shops (exempt from density, `keepCandidate`'s KDoc), which is why their switch is not one of these;
+ *    parasols and the six seasonal decorations keep **nothing** at 0; the buildings keep their five
+ *    places (exempt from density, `keepCandidate`'s KDoc), which is why their switch is not one of these;
  *  - the effects that select from a pool through [CandidateThreshold] -- clouds, rain and snow, birds,
  *    sailboats, dolphins, the two mountain layers -- admit no candidate at 0, for every candidate and
  *    every effect offset;
@@ -22,12 +22,12 @@ import org.junit.Test
  *    (none below 1/70, so *Show Stars* reads off there too); the rainbow and the theme's own rain, whose
  *    rule sits inside `PaperRenderer`, by its source: the rainbow returns when its visibility, which
  *    multiplies the opacity, is 0. The renderer cannot be built on the JVM;
- *  - the distant houses on the mountains (v5.11), switched on at 0 %: no place of any mountain stands
+ *  - the distant houses on the mountains, switched on at 0 %: no place of any mountain stands
  *    one, the renderer returns before drawing, and the gallery card stands none either.
  *
  * And the ones left out, for what they keep at 0: one car (`CarSelection`) and the people (their
- * night density is a slider of its own). The mountains were counted here until v5.11 as keeping one at
- * 0; they keep none, as every pooled effect (inventory I-414), and their switch reads off there since.
+ * night density is a slider of its own). The mountains keep none at
+ * 0, as every pooled effect, and their switch reads off there.
  */
 class NothingAtZeroTest {
 
@@ -78,7 +78,7 @@ class NothingAtZeroTest {
             val shops = layout.staticObjects.count {
                 it.type == SceneObjectType.SKYSCRAPER && zero.keepCandidate(it, layout.densityScheme)
             }
-            // Five since v5.13B2: the street's places among the houses, never thinned.
+            // Five: the street's places among the houses, never thinned (decision 60).
             assertEquals("${theme.id}: places standing at 0 %", 5, shops)
         }
     }
@@ -116,13 +116,13 @@ class NothingAtZeroTest {
             "the rainbow's visibility must still multiply its opacity, and return at 0",
             rainbow.contains("* rainbow.opacity.coerceIn(0f, 1f)") && rainbow.contains("if (visibility <= 0f) return"),
         )
-        // Since v5.17 what falls is one pure rule, `PrecipitationLook`, and the renderer returns when it says nothing does.
+        // What falls is one pure rule, `PrecipitationLook`, and the renderer returns when it says nothing does.
         val precipitation = renderer.substring(renderer.indexOf("private fun drawPrecipitation("))
         val look = source("engine/PrecipitationLook.kt")
         assertTrue(
             "the theme's own rain and snow must still return at 0 intensity",
             look.contains("if (!precip.visible || precip.intensity <= 0f) return NONE") &&
-                precipitation.contains("if (kind == PrecipitationLook.NONE) return"),
+                precipitation.contains("if (kind == PrecipitationLook.NONE || cloudlessSkyNow) return"),
         )
     }
 

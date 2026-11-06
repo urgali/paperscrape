@@ -80,9 +80,9 @@ package com.paperscrape.livewallpaper.engine
  * Nor precipitation or the storm, on any path: they do not ease, a forecast that stops the rain
  * stops it in a frame, and giving the expiry a rain fade the forecast does not have would make the
  * rarer event the smoother one. **Where** the rain falls follows the clouds: under them while they
- * are drawn, everywhere with none ([rainEverywhereToward] eases the one into the other over the
- * clouds' own fade, so rain under the last clouds of a clearing sky spreads to all of it as they go,
- * and narrows under the first clouds of a sky that clouds over as they come).
+ * are drawn and nowhere else: as the last clouds of a clearing sky fade out over [FADE_SECONDS] the
+ * rain under them goes with them, and it starts under the first clouds of a sky that clouds over
+ * (`DESIGN_NOTES.md` §12, decision 98).
  *
  * No allocation and no new artwork: one float, one [FloatArray] sized to the pool, and an alpha
  * argument `SpriteBlitter.drawTinted` takes. "No cover" is `NaN`, not `null`, in and out:
@@ -109,9 +109,6 @@ internal class CloudCoverFade(poolSize: Int) {
 
     /** Whether a frame has drawn the sky with no cloud ([clearSkyDrawn]): until then a candidate's first sight snaps. */
     private var skyObserved = false
-
-    /** How much of the sky beyond the clouds the rain falls on, in `0..1`, or [UNSET] before the first frame. */
-    private var rainEverywhere: Float = UNSET
 
     /**
      * The cover to draw this frame, easing toward [target].
@@ -175,20 +172,6 @@ internal class CloudCoverFade(poolSize: Int) {
             else -> wanted
         }
         opacity[index] = settled
-        return settled
-    }
-
-    /**
-     * How much of the sky the rain falls on beyond the clouds' own field this frame, easing toward all of it while no
-     * cloud is placed ([nothingPlaced]: a clear forecast, the cloud switch off) and toward none while clouds are, at the
-     * clouds' own fade rate ([FADE_SECONDS]): it moves from the frame the clouds start to leave or to come, with them.
-     * The first frame takes its value at once. `CloudCoverage.setFloor` is handed it.
-     */
-    fun rainEverywhereToward(nothingPlaced: Boolean, deltaSeconds: Float): Float {
-        val wanted = if (nothingPlaced) 1f else 0f
-        val now = rainEverywhere
-        val settled = if (now == UNSET) wanted else approach(now, wanted, deltaSeconds / FADE_SECONDS)
-        rainEverywhere = settled
         return settled
     }
 

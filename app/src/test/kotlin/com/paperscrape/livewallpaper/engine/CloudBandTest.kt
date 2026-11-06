@@ -7,16 +7,17 @@ import org.junit.Test
 /**
  * The cloud band, and the two things hung off it.
  *
- * These exist because of a live-render report -- the bolts were giants and came out of the top of
- * the sky -- whose cause was that the lightning did not read the band at all: it used a fixed 0.08
- * of screen height while the band, at the default arc, starts at 0.15. The invariant worth pinning
- * is therefore not any one number but the *relationship*: a bolt is born inside the clouds, at
- * every arc height, and stays clear of the horizon.
+ * A bolt that does not read the band comes out of the top of the sky, or out of clear air under
+ * it: the band moves with the arc, its top at 0.15 of screen height at the default, so no fixed
+ * fraction of the screen stays inside it. The invariant worth pinning is therefore not any one
+ * number but the *relationship*: a bolt is born inside the clouds, at every arc height, and stays
+ * clear of the horizon.
  */
 class CloudBandTest {
 
     private val screenHeight = 2424
-    private val horizonFraction = 0.62f
+    /** The hills' top: no cloud and no bolt reaches it, at any Sun/Cloud height. */
+    private val horizonFraction = SceneSpace.HILL_LAYER_TOP_FRACTION
 
     /** The whole slider, plus the two ends, sampled finely enough to catch a sign error. */
     private val arcHeights: List<Float> =
@@ -53,11 +54,10 @@ class CloudBandTest {
     // -- what hangs off it ---------------------------------------------------------------------------
 
     /**
-     * The defect, stated directly. Both origins have to land *within* the band -- rain from its
-     * middle, lightning from deeper still -- at every arc height. The old lightning constant fails
-     * this at every arc height except none: 0.08 * screenHeight is above the band's top even at the
-     * band's highest position (0.06 + 0 = 0.06 only at the very top of the slider, where the bolt
-     * would still start above the midpoint).
+     * Both origins have to land *within* the band -- rain from its middle, lightning from deeper
+     * still -- at every arc height. The band's top runs from 0.06 of screen height at the top of the
+     * slider to 0.31 at its foot, more than the band's own 0.16, so an origin at a fixed fraction of
+     * the screen leaves the band somewhere on the slider: it has to be read off the band.
      */
     @Test
     fun `rain and lightning are both born inside the band`() {
@@ -96,9 +96,8 @@ class CloudBandTest {
     // -- the bolt's size -----------------------------------------------------------------------------
 
     /**
-     * The other half of the report: the bolt was 0.26..0.40 of screen height, taller than the whole
-     * cloud layer. It is now sized against the band, and the tallest roll still ends well above the
-     * horizon from the lowest band position.
+     * A bolt is sized against the band: never taller than the whole cloud layer, and the tallest
+     * roll still ends well above the horizon from the lowest band position.
      */
     @Test
     fun `a bolt fits the cloud layer and never crosses the horizon`() {

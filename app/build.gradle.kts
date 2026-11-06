@@ -41,8 +41,8 @@ android {
         // **One release, one step.** A counter bumped twice in the making of one release is how a
         // build installed for a comparison runs into `adb install -r`'s silent refusal of a
         // downgrade.
-        versionCode = 80
-        versionName = "5.17"
+        versionCode = 81
+        versionName = "5.18"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -302,9 +302,14 @@ androidComponents {
 // here. The two MODERATE alerts listed above are covered too: 1.85 is past the 1.84 that patched
 // them.
 //
+// **Guava is at 33.7.2-jre** on `androidLintTool` too, where lint-gradle 32.4.0 asks for 18.0 and
+// 33.4.0-jre: CVE-2026-102554 / GHSA-xxph-c9ww-hj94 (HIGH), first patched in 33.7.2. The root
+// block carries the reasoning. The app's own classpaths hold `listenablefuture:1.0`, a separate
+// artifact with one interface, and no `guava`.
+//
 // `configureEach` rather than `getByName("androidLintTool")` because AGP creates that
 // configuration lazily; naming it eagerly resolves it during configuration. Forcing across every
-// configuration is safe here only because it was checked: none of these five coordinates appears
+// configuration is safe here only because it was checked: none of these six coordinates appears
 // on `releaseRuntimeClasspath`, `debugRuntimeClasspath` or `releaseCompileClasspath` -- those
 // carry androidx, Compose, coroutines and kotlin-stdlib and nothing else -- so no force here can
 // reach the APK. Do not extend this list with a coordinate the app actually ships without
@@ -316,6 +321,7 @@ configurations.configureEach {
         force("org.bouncycastle:bcutil-jdk18on:1.85")
         force("org.apache.commons:commons-lang3:3.20.0")
         force("org.apache.httpcomponents:httpclient:4.5.14")
+        force("com.google.guava:guava:33.7.2-jre")
     }
 }
 

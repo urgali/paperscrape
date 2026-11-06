@@ -53,7 +53,6 @@ class CloudCoverageTest {
         val coverage = CloudCoverage()
         coverage.beginFrame()
         for (x in 0..1080 step 10) assertEquals(0f, coverage.at(x.toFloat(), screenWidth), 0f)
-        assertFalse(coverage.isUniform())
     }
 
     @Test
@@ -148,94 +147,47 @@ class CloudCoverageTest {
         }
     }
 
-    // --- Clouds switched off falls back to uniform ---------------------------------
-
-    @Test
-    fun `hiding the cloud layer falls back to full coverage`() {
-        val coverage = CloudCoverage()
-        coverage.beginFrame()
-        coverage.setUniform()
-        assertTrue(coverage.isUniform())
-        for (x in 0..1080 step 20) assertEquals(1f, coverage.at(x.toFloat(), screenWidth), 0f)
-    }
-
-    @Test
-    fun `hiding the cloud layer leaves precipitation exactly as it was`() {
-        // Turning clouds off must not turn rain off.
-        val uniform = CloudCoverage()
-        uniform.beginFrame()
-        uniform.setUniform()
-        for (intensity in listOf(0.1f, 0.35f, 0.6f, 1f)) {
-            assertEquals(
-                "intensity $intensity changed when clouds were hidden",
-                referenceDrops(intensity),
-                drops(uniform, intensity),
-            )
-        }
-    }
+    // --- No cloud, no rain (`DESIGN_NOTES.md` §12, decision 98) ----------------------------
 
     /**
-     * **No cloud placed and none showing: the rain falls everywhere**, through the field the renderer begins its frame
-     * with. The rule and the field are the renderer's own ([CloudCoverage.rainField], [CloudCoverage.beginFrame]), so a
-     * frame that forgot to make the field uniform -- the cloud layer switched off, and the rain gone with it -- fails
-     * here.
+     * **No cloud placed and none showing: nothing falls.** Without a lapse the rain's field is the drawn clouds',
+     * whatever the theme's density (none, 0 or 0.4); the field the renderer begins its frame with is clear, and without a
+     * cloud added it stays clear at every intensity. The coverage is built here with no cloud in it, not through a
+     * setting: that the cloud layer switched off or at 0 % adds none is the renderer's side.
      */
     @Test
-    fun `with no cloud placed or showing the rain falls everywhere`() {
-        val field = CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = false, lapsed = false, themeDensity = Float.NaN)
-        assertEquals(CloudCoverage.RAIN_EVERYWHERE, field)
+    fun `with no cloud the field is clear and no drop falls`() {
+        val field = CloudCoverage.rainField(lapsed = false, themeDensity = Float.NaN)
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, field)
         val coverage = CloudCoverage()
-        coverage.beginFrame(field)
-        for (x in 0..1080 step 20) assertEquals(1f, coverage.at(x.toFloat(), screenWidth), 0f)
-        for (intensity in listOf(0.1f, 0.6f, 1f)) assertEquals(referenceDrops(intensity), drops(coverage, intensity))
-        // A cloud still fading out is still a cloud: the field is its, until it has gone.
-        assertEquals(
-            CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS,
-            CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = true, lapsed = false, themeDensity = Float.NaN),
-        )
-        assertEquals(
-            CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS,
-            CloudCoverage.rainField(placedDensity = 0.4f, cloudsShowing = true, lapsed = false, themeDensity = 0.4f),
-        )
+        coverage.beginFrame()
+        for (x in 0..1080 step 20) assertEquals(0f, coverage.at(x.toFloat(), screenWidth), 0f)
+        for (intensity in listOf(0.1f, 0.6f, 1f)) assertEquals(emptyList<Int>(), drops(coverage, intensity))
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(lapsed = false, themeDensity = 0f))
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(lapsed = false, themeDensity = 0.4f))
     }
 
     /**
-     * **When the forecast lapses, the theme's rain falls as the theme draws it, from that frame.** The theme's rain
-     * arrives in the frame the forecast lapses -- precipitation and the storm change in one frame on an expiry, as on
-     * every forecast change -- while the forecast's clouds fade out over seconds: falling through those, the
-     * theme's rain would shrink with them for up to twenty seconds and come back everywhere in a frame when the last went.
-     * It falls everywhere if the theme's cloud layer is off, under the theme's own clouds if it is on -- whatever the
-     * forecast's still draw.
+     * **When the forecast lapses, the theme's rain falls under the theme's clouds, from that frame**, not under the
+     * forecast's that fade out over seconds: falling through those, it would shrink with them. With the theme's cloud
+     * layer off or at 0 % there is no cloud to fall from: the field is the drawn clouds', and the renderer draws nothing
+     * from a cloudless sky (`LiveWeatherSceneRules.cloudlessSky`).
      */
     @Test
     fun `after a lapse the theme's rain falls through the theme's clouds and not the fading forecast's`() {
-        // The forecast's clouds still fading out at an eased cover of 0.6, the theme's cloud layer off.
-        val off = CloudCoverage.rainField(placedDensity = 0.6f, cloudsShowing = true, lapsed = true, themeDensity = Float.NaN)
-        assertEquals(CloudCoverage.RAIN_EVERYWHERE, off)
-        val coverage = CloudCoverage()
-        coverage.beginFrame(off)
-        for (intensity in listOf(0.35f, 1f)) assertEquals(referenceDrops(intensity), drops(coverage, intensity))
-        // The theme's clouds on at 0.4: under those, whatever the forecast's still draw, and also when none is drawn yet.
-        assertEquals(
-            CloudCoverage.RAIN_UNDER_THEME_CLOUDS,
-            CloudCoverage.rainField(placedDensity = 0.6f, cloudsShowing = true, lapsed = true, themeDensity = 0.4f),
-        )
-        assertEquals(
-            CloudCoverage.RAIN_UNDER_THEME_CLOUDS,
-            CloudCoverage.rainField(placedDensity = Float.NaN, cloudsShowing = false, lapsed = true, themeDensity = 0.4f),
-        )
-        val theme = CloudCoverage()
-        theme.beginFrame(CloudCoverage.RAIN_UNDER_THEME_CLOUDS)
-        assertFalse("under the theme's clouds the field starts clear", theme.isUniform())
+        assertEquals(CloudCoverage.RAIN_UNDER_THEME_CLOUDS, CloudCoverage.rainField(lapsed = true, themeDensity = 0.4f))
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(lapsed = true, themeDensity = Float.NaN))
+        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(lapsed = true, themeDensity = 0f))
+        assertTrue(LiveWeatherSceneRules.cloudlessSky(lapsed = true, themeDensity = 0f, placedDensity = 0.6f, cloudsShowing = true))
     }
 
     @Test
-    fun `beginFrame clears the uniform fallback`() {
+    fun `beginFrame clears what the last frame added`() {
         val coverage = CloudCoverage()
         coverage.beginFrame()
-        coverage.setUniform()
+        coverage.addCloud(540f, 100f, 160f, screenWidth)
+        assertEquals(1f, coverage.at(540f, screenWidth), 0f)
         coverage.beginFrame()
-        assertFalse(coverage.isUniform())
         assertEquals(0f, coverage.at(540f, screenWidth), 0f)
     }
 
@@ -356,38 +308,13 @@ class CloudCoverageTest {
         assertNotEquals(low, high)
     }
     @Test
-    fun aFloorRaisesTheWholeSkyForOneFrame() {
-        val coverage = CloudCoverage()
-        coverage.beginFrame(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS)
-        coverage.addCloud(centerX = 200f, coreHalfWidth = 50f, spreadHalfWidth = 80f, screenWidth = screenWidth)
-        assertEquals(0f, coverage.at(900f, screenWidth), 0f)
-        coverage.setFloor(0.4f)
-        // Open sky reads the floor; under the cloud the cloud's own 1 stands.
-        assertEquals(0.4f, coverage.at(900f, screenWidth), 0f)
-        assertEquals(1f, coverage.at(200f, screenWidth), 0f)
-        // More drops at the floor than under the cloud alone, all of them at 1.
-        val atFloor = drops(coverage, 0.9f).size
-        coverage.setFloor(1f)
-        val everywhere = drops(coverage, 0.9f).size
-        coverage.beginFrame(CloudCoverage.RAIN_EVERYWHERE)
-        assertEquals("a floor of 1 is the rain everywhere", drops(coverage, 0.9f).size, everywhere)
-        assertTrue("the floor added no drop: $atFloor of $everywhere", atFloor < everywhere)
-        // The next frame starts without it.
-        coverage.beginFrame(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS)
-        assertEquals(0f, coverage.at(900f, screenWidth), 0f)
-    }
-
-    @Test
-    fun `clouds at 0 percent leave the rain falling everywhere, as clouds turned off do`() {
-        // The theme's own clouds on at 0 %: no cloud is placed, so the rain falls over the whole sky, as with the cloud
-        // layer off; not nowhere, with Show Rain/Snow on.
-        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(0f, cloudsShowing = false, lapsed = false, themeDensity = 0f))
-        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(Float.NaN, cloudsShowing = false, lapsed = false, themeDensity = Float.NaN))
-        // A forecast lapsed to a theme whose clouds are at 0 %: the theme's rain everywhere too.
-        assertEquals(CloudCoverage.RAIN_EVERYWHERE, CloudCoverage.rainField(0.3f, cloudsShowing = true, lapsed = true, themeDensity = 0f))
-        // While the last clouds of a slider brought to 0 % still fade, the rain is still under them (and spreads as they go).
-        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(0f, cloudsShowing = true, lapsed = false, themeDensity = 0f))
+    fun `clouds at 0 percent or turned off leave a cloudless sky, and the last fading cloud keeps its rain`() {
+        // The theme's own clouds at 0 % or off: no cloud is placed and none shows, so nothing falls.
+        assertTrue(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0f, placedDensity = 0f, cloudsShowing = false))
+        assertTrue(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = Float.NaN, placedDensity = Float.NaN, cloudsShowing = false))
+        // While the last clouds of a slider brought to 0 % still fade, the rain is still under them, and stops with them.
+        assertFalse(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0f, placedDensity = 0f, cloudsShowing = true))
         // Clouds above 0 % place clouds, and the rain falls under them.
-        assertEquals(CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS, CloudCoverage.rainField(0.01f, cloudsShowing = false, lapsed = false, themeDensity = 0.01f))
+        assertFalse(LiveWeatherSceneRules.cloudlessSky(lapsed = false, themeDensity = 0.01f, placedDensity = 0.01f, cloudsShowing = false))
     }
 }

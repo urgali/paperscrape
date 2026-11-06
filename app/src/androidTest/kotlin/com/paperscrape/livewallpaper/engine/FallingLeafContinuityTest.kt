@@ -37,7 +37,10 @@ import kotlin.math.abs
  * against any slot-based deal -- it is not satisfiable by accident.
  *
  * A leaf is identified in the recording by its signature rather than by paint colour heuristics
- * on pixels: leaves are the only ovals the scene draws with the local rect (-4,-6,4,6).
+ * on pixels: leaves are the only ovals the scene draws with the local rect (-4,-6,4,6). The tree
+ * stands a second time in the near row below the road (decision 96), whose leaves fall below the
+ * object band: the counts here are the street row's, the leaves above the band's bottom
+ * ([streetLeaves]), while the near row is there and sheds too.
  */
 @RunWith(AndroidJUnit4::class)
 class FallingLeafContinuityTest {
@@ -53,8 +56,10 @@ class FallingLeafContinuityTest {
         // A crown's leaf count is proportional to its drawn size (3..13), so the counts
         // are measured off the lone-tree render rather than taken from a constant. T and U stand
         // at the same depth, so they shed the same number.
-        val perTree = render(listOf(tree(T_FRACTION)), offset = 0f).size
+        val loneT = renderRecording(listOf(tree(T_FRACTION))).leaves
+        val perTree = streetLeaves(loneT).size
         assertTrue("a crown sheds a sane number of leaves, got $perTree", perTree in 3..13)
+        assertTrue("the tree's copy in the near row shed no leaf below the band", loneT.size > perTree)
         val layout = listOf(tree(U_FRACTION), tree(T_FRACTION))
         val both = render(layout, offset = 0f)
         val uGone = render(layout, offset = 1f)
@@ -248,7 +253,11 @@ class FallingLeafContinuityTest {
         layout: List<StaticSceneObject>,
         atSeconds: Double = AT_SECONDS,
         offset: Float = 0f,
-    ): List<Leaf> = renderRecording(layout, atSeconds, offset).leaves
+    ): List<Leaf> = streetLeaves(renderRecording(layout, atSeconds, offset).leaves)
+
+    /** The leaves of the street row: above the object band's bottom, where the near row's never fall. */
+    private fun streetLeaves(leaves: List<Leaf>): List<Leaf> =
+        leaves.filter { it.y < SceneSpace.OBJECT_BAND_BOTTOM_Y_FRACTION * HEIGHT }
 
     private class Recording(val leaves: List<Leaf>, val crowns: List<RectF>, val colors: List<Int>)
 

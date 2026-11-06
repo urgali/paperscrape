@@ -61,6 +61,12 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     var place: Int = -1
 
     /**
+     * Whether this place is one of the near row's, below the road: the restaurant, the bar and the shop take turns in
+     * it ([SceneObjectCatalog.nearShopAt]), each with its runtime in [SceneObjectRenderer]'s near shops.
+     */
+    var nearShop = false
+
+    /**
      * For the runtime of one of the six buildings among the houses, which one: its [spec] is the
      * building's identity ([StorefrontStreet.identities]) and its roster, windows and doorway are the
      * building's, whichever place it stands in. Null for every object of the layout.
@@ -143,6 +149,36 @@ class SceneObjectRenderer(
     private val streetDeckB = IntArray(StorefrontStreet.DECK)
 
     /**
+     * The near row below the road ([SceneObjectCatalog.nearRowOf], `DESIGN_NOTES.md` §12, decision 96), planned once:
+     * the layout does not change under a renderer. Declared above [staticRuntimes], built with it.
+     */
+    private val nearPlan: SceneObjectCatalog.NearRowPlan = SceneObjectCatalog.nearRowOf(layout)
+
+    /**
+     * The near row's restaurant, bar and shop, one runtime each at its [Storefront.ordinal] (the other three null): of
+     * their own, apart from the street's six, so a shop below the road has its own colour coin, people and doorway, and is
+     * never the twin of one behind it. Its identity is the street's building's, half a tile along. Null on a street with no
+     * place among the houses.
+     */
+    private val nearShops: Array<StaticRuntime?>? = if (nearPlan.shops.isEmpty()) null else StorefrontStreet.identities(
+        layout, themeId.takeIf { CustomThemeRegistry.overrideLayoutFor(it) == null },
+    )?.let { identities ->
+        val deal = NeighbourhoodComposer.Deal()
+        Array(Storefront.ALL.size) { k ->
+            val storefront = Storefront.ALL[k]
+            if (storefront.group != StorefrontGroup.SHOPS) return@Array null
+            val identity = identities[k]
+            StaticRuntime(identity.copy(tileFractionX = (identity.tileFractionX + 0.5f) % 1f)).also {
+                it.storefront = storefront
+                giveRoster(it, storefront.family, storefront, deal)
+            }
+        }
+    }
+
+    /** Scratch for [SceneObjectCatalog.nearShopAt] on the draw path. */
+    private val nearShopDeck = IntArray(3)
+
+    /**
      * The active per-category configuration, applied **in place**, rebuilding only the runtime list
      * whose membership changed: the static list for a category's visibility or density or the palms
      * switch, the car list (restarting the cars) for the Cars visibility. *Hills variation* re-sorts
@@ -182,6 +218,31 @@ class SceneObjectRenderer(
      */
     private var staticRuntimes: List<StaticRuntime> = buildStaticRuntimes()
     private var carRuntimes: List<CarRuntime> = buildCarRuntimes()
+
+    /**
+     * The near row's runtimes, back to front by their own depths in the street: the objects the switches and amounts keep
+     * of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its shops while *Show Buildings* keeps the
+     * street's places. Built with [staticRuntimes], from the same inputs.
+     */
+    private var nearRuntimes: List<StaticRuntime> = buildNearRuntimes()
+
+    private fun buildNearRuntimes(): List<StaticRuntime> {
+        val objects = nearPlan.objects
+            .filter { customization.keepCandidate(it.source, layout.densityScheme) }
+            .map { entry ->
+                StaticRuntime(customization.palmSpeciesApplied(entry.spec, layoutPlantsPalms)).also { r ->
+                    r.scarecrowAside = customization.scarecrowStandsAside(entry.source, layout.densityScheme)
+                }
+            }
+        val shops = if (nearShops == null) {
+            emptyList()
+        } else {
+            nearPlan.shops.indices
+                .filter { k -> customization.keepCandidate(nearPlan.shopSources[k], layout.densityScheme) }
+                .map { k -> StaticRuntime(nearPlan.shops[k]).also { it.place = k; it.nearShop = true } }
+        }
+        return (objects + shops).sortedBy { it.spec.depthFraction }.also(::giveRosters)
+    }
 
     private fun buildStaticRuntimes(): List<StaticRuntime> = layout.staticObjects
         .filter { spec -> customization.keepCandidate(spec, layout.densityScheme) }
@@ -279,6 +340,7 @@ class SceneObjectRenderer(
     private fun rebuildStaticRuntimes() {
         val previous = staticRuntimes
         staticRuntimes = buildStaticRuntimes()
+        nearRuntimes = buildNearRuntimes()
         // Whoever was walking out or in at the hours goes on walking: a building's doorway is handed to
         // the runtime of the same building in the new list (the specs are the layout's own objects).
         for (r in staticRuntimes) {
@@ -547,6 +609,13 @@ class SceneObjectRenderer(
             val floor = placeScaleFloor(variant, screenHeightPx)
             return if (drawn < floor) floor else drawn
         }
+
+        /**
+         * The scale a near-row object is drawn at: the size table's size at [SceneSpace.REFERENCE_Y_FRACTION] times
+         * [SceneSpace.NEAR_ROW_SIZE], whatever line of the near row it stands on (`DESIGN_NOTES.md` §12, decision 96).
+         */
+        fun nearScaleFor(spec: StaticSceneObject, screenHeightPx: Float): Float =
+            variantFor(spec).baseScale * spec.scale * SceneSpace.NEAR_ROW_SIZE * SceneSpace.sceneScale(screenHeightPx)
 
         /**
          * The smallest scale a place among the houses is drawn at (0 for anything else): a piece unit at
@@ -1015,6 +1084,15 @@ class SceneObjectRenderer(
          */
         const val MAX_LEAF_SOURCES = 24
 
+        /** Added to a near-row runtime's index for its leaves' identity ([leafCopyId]), apart from the street's. */
+        internal const val NEAR_LEAF_RUNTIME_OFFSET = 10_000
+
+        /** Added to a flower's or a pile's index under the road, so the near meadow's scatter is not the street's. */
+        private const val NEAR_SCATTER_SALT = 7919
+
+        /** XORed into the theme's seed for the near pavement's crowd: another crowd than the street's. */
+        private const val NEAR_PAVEMENT_SEED_SALT = 0x2B5D
+
         /**
          * Screen pixels of crown half-width per shed leaf: a near crown of ~85 px half-width sheds
          * 12, inside the 3 to 13 a crown of `DESIGN_NOTES.md` decision 10.
@@ -1359,7 +1437,8 @@ class SceneObjectRenderer(
     val leafSourceGroundY = FloatArray(MAX_LEAF_SOURCES)
 
     /**
-     * Each crown's tree, as [leafCopyId] of its index in [staticRuntimes] and its copy: a falling leaf
+     * Each crown's tree, as [leafCopyId] of its index in [staticRuntimes] (a near-row tree's index in its own
+     * runtimes plus [NEAR_LEAF_RUNTIME_OFFSET]) and its copy: a falling leaf
      * belongs to its tree, not to a slot of these arrays, whose indices shuffle as trees cross the
      * screen's edges. A `Long`: a theme's 2 149th object is past `Int.MAX_VALUE`, its leaves far sooner.
      */
@@ -1434,24 +1513,25 @@ class SceneObjectRenderer(
      * nothing allocated, the same scatter every frame. Stratified across the width (a slice each,
      * jittered inside it; a uniform draw clusters into bald patches), free in depth. **Across the
      * whole tile, [FLOWER_CLUMP_COUNT] a screen** ([scatterCountOnTile]): the street is two screens
-     * wide, and one screen's scatter would leave the meadow bare half of the scroll.
+     * wide, and one screen's scatter would leave the meadow bare half of the scroll. With [near], the
+     * meadow under the road ([scatterGroundY]), as many a screen.
      */
-    private fun drawGroundFlowers(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
+    private fun drawGroundFlowers(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float, near: Boolean = false) {
         if (!customization.flowersEnabled) return
         // From [groundFlowerSprite], as the gallery card, so the two cannot disagree.
         val dry = groundFlowerSprite(customization) == R.drawable.ground_flowers_dry
         val sceneScale = SceneSpace.sceneScale(screenHeight)
         val clumps = scatterCountOnTile(FLOWER_CLUMP_COUNT, geom.tileWidth, screenWidth)
         for (i in 0 until clumps) {
-            val h = (i * 2654435761L.toInt()) xor (i shl 7)
+            val k = if (near) i + NEAR_SCATTER_SALT else i
+            val h = (k * 2654435761L.toInt()) xor (k shl 7)
             val jitterX = ((h ushr 3) and 0xFF) / 255f
             val jitterDepth = ((h ushr 13) and 0xFF) / 255f
             // **Stratified across the width, free in depth**: banding depth by the clump index too
             // would correlate depth with x and lay every clump on one straight diagonal.
-            val depth = FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth
-            val groundY = screenHeight * SceneSpace.groundYFraction(depth)
+            val groundY = scatterGroundY(jitterDepth, near, screenHeight)
             val scale = SceneSpace.scaleForHeight(FLOWER_METRES_TALL, FLOWER_SPRITE_UNITS_TALL) *
-                SceneSpace.depthScale(depth) * sceneScale
+                scatterSize(jitterDepth, near) * sceneScale
             val slice = scatterSlice(screenWidth, FLOWER_CLUMP_COUNT)
             val baseX = (i + jitterX) * slice
             val tile = if (geom.tileWidth > 0f) geom.tileWidth else screenWidth
@@ -1483,16 +1563,32 @@ class SceneObjectRenderer(
      * Drifts of snow and heaps of leaves: [drawGroundFlowers]'s scatter, salted so a drift and a
      * clump never coincide. The count is the slider truncated ([pileCount]): 0% runs no loop, 100% is
      * [PILE_MAX_COUNT]. Each is gated on its own season, not a switch of its own: snow on a summer
-     * lawn and leaves under a snow-capped tree are both wrong.
+     * lawn and leaves under a snow-capped tree are both wrong. With [near], the meadow under the road.
      */
-    private fun drawGroundPiles(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
+    private fun drawGroundPiles(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float, near: Boolean = false) {
+        val salt = if (near) NEAR_SCATTER_SALT else 0
         if (customization.winterColorsEnabled) {
-            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.snowPiles, R.drawable.snow_pile, PILE_SALT_SNOW)
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.snowPiles, R.drawable.snow_pile, PILE_SALT_SNOW + salt, near)
         }
         if (customization.fallColorsEnabled) {
-            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.leafPiles, R.drawable.leaf_pile, PILE_SALT_LEAF)
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.leafPiles, R.drawable.leaf_pile, PILE_SALT_LEAF + salt, near)
         }
     }
+
+    /**
+     * Where a flower or a pile of jitter [jitterDepth] stands: on the street's meadow, free in the flowers' depths, or with
+     * [near] on the meadow under the road, between [SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION] and its bottom.
+     */
+    private fun scatterGroundY(jitterDepth: Float, near: Boolean, screenHeight: Float): Float = screenHeight * if (near) {
+        SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION +
+            (SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION - SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION) * jitterDepth
+    } else {
+        SceneSpace.groundYFraction(FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth)
+    }
+
+    /** What a flower's or a pile's size is multiplied by there: the projection of its depth, or the near row's size. */
+    private fun scatterSize(jitterDepth: Float, near: Boolean): Float =
+        if (near) SceneSpace.NEAR_ROW_SIZE else SceneSpace.depthScale(FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth)
 
     private fun scatterPiles(
         canvas: SceneCanvas,
@@ -1502,6 +1598,7 @@ class SceneObjectRenderer(
         density: Float,
         drawable: Int,
         salt: Int,
+        near: Boolean,
     ) {
         val count = pileCount(density)
         if (count <= 0) return
@@ -1512,10 +1609,9 @@ class SceneObjectRenderer(
             val h = ((i + salt) * 2654435761L.toInt()) xor ((i + salt) shl 7)
             val jitterX = ((h ushr 3) and 0xFF) / 255f
             val jitterDepth = ((h ushr 13) and 0xFF) / 255f
-            val depth = FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth
-            val groundY = screenHeight * SceneSpace.groundYFraction(depth)
+            val groundY = scatterGroundY(jitterDepth, near, screenHeight)
             val scale = SceneSpace.scaleForHeight(PILE_METRES_TALL, PILE_SPRITE_UNITS_TALL) *
-                SceneSpace.depthScale(depth) * sceneScale
+                scatterSize(jitterDepth, near) * sceneScale
             // A slice of a screen each whatever the count, so the slider thins every screen evenly.
             val slice = scatterSlice(screenWidth, count)
             val baseX = (i + jitterX) * slice
@@ -1598,12 +1694,12 @@ class SceneObjectRenderer(
         drawRoad(canvas, dayBlend, screenWidth, screenHeight, geom.shiftXWrapped, geom.tileWidth)
 
         // **People before traffic: every pedestrian is farther away than every car.** The pavement
-        // rows (0.795, 0.807, plus at most [PedestrianPopulation.MEMBER_ROW_SPREAD]) stand behind the
-        // lanes (0.834, 0.862, where `SceneObjectCatalog` snaps every stored lane,
+        // rows (0.715, 0.727, plus at most [PedestrianPopulation.MEMBER_ROW_SPREAD]) stand behind the
+        // lanes (0.754, 0.782, where `SceneObjectCatalog` snaps every stored lane,
         // `PersistedThemeGeometryTest`), so no walker is in front of a vehicle (`PeopleTrafficDepthTest`).
         // Drawn after the cars, the deepest figure, below a far-lane roof line, would paint its shoes
         // across the roof. `drawPeople` draws the walkers only, so this order decides nothing else.
-        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
+        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend, streetPavement)
 
         for (carIndex in carRuntimes.indices) {
             val c = carRuntimes[carIndex]
@@ -1615,6 +1711,45 @@ class SceneObjectRenderer(
                 continue
             }
             drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
+        }
+
+        // **Below the road, in front of the cars: the near row** (`DESIGN_NOTES.md` §12, decision 96) -- its meadow's
+        // flowers and piles, its houses, trees, decorations and shops, then the people of its pavement in front of them.
+        drawGroundFlowers(canvas, geom, screenWidth, screenHeight, near = true)
+        drawGroundPiles(canvas, geom, screenWidth, screenHeight, near = true)
+        drawNearRow(canvas, geom, dayBlend, elapsedSeconds, screenWidth, screenHeight)
+        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend, nearPavement)
+    }
+
+    /**
+     * The near row's objects and shops, back to front ([nearRuntimes]), each on its line of feet
+     * ([SceneSpace.nearRowFeetYFraction]) at its fixed size ([nearScaleFor]), every copy on screen drawn as the street's
+     * are. Its trees shed leaves as the street's do ([recordLeafSource]).
+     */
+    private fun drawNearRow(
+        canvas: SceneCanvas,
+        geom: GroundGeometry,
+        dayBlend: Float,
+        elapsedSeconds: SceneTime,
+        screenWidth: Float,
+        screenHeight: Float,
+    ) {
+        if (geom.tileWidth <= 0f) return
+        for (index in nearRuntimes.indices) {
+            val r = nearRuntimes[index]
+            val groundY = screenHeight * SceneSpace.nearRowFeetYFraction(r.spec.depthFraction)
+            val scale = nearScaleFor(r.spec, screenHeight)
+            val halfWidth = MAX_OBJECT_HALF_WIDTH_UNITS * scale
+            val x = anchorX(r.spec, geom)
+            val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
+            val tileLimit = tileOffsetLimit(x, halfWidth, geom.tileWidth, screenWidth)
+            for (tileIndex in firstTile until tileLimit) {
+                val copyX = x + tileIndex * geom.tileWidth
+                if (!isHorizontallyVisible(copyX, halfWidth, screenWidth)) continue
+                val copy = copyOf(r.spec.tileFractionX, geom, tileIndex)
+                drawStaticObject(canvas, r, copyX, groundY, scale, dayBlend, elapsedSeconds, copy)
+                recordLeafSource(r, leafCopyId(NEAR_LEAF_RUNTIME_OFFSET + index, copy), x = copyX, groundY = groundY, scale = scale)
+            }
         }
     }
 
@@ -1639,6 +1774,23 @@ class SceneObjectRenderer(
                 open = customization.opennessFor(variant, frameHour) >= 1f,
                 settle = settle,
             )
+        }
+        // The near row's shops, whether a place shows them or not.
+        val near = nearShops
+        if (near != null) {
+            for (index in near.indices) {
+                val r = near[index] ?: continue
+                val doorway = r.doorway ?: continue
+                val roster = r.roster ?: continue
+                val layout = r.windowLayout ?: continue
+                val storefront = Storefront.ALL[index]
+                doorway.advance(
+                    roster, layout, elapsed,
+                    present = customization.peopleFor(storefront, roster.people, frameHour),
+                    open = customization.opennessFor(storefront, frameHour) >= 1f,
+                    settle = settle,
+                )
+            }
         }
         // The six buildings among the houses too, whether a place shows them or not.
         val buildings = storefronts ?: return
@@ -1672,28 +1824,60 @@ class SceneObjectRenderer(
      */
     private fun outdoorSeasonIndex(): Int = if (customization.winterColorsEnabled) 1 else 0
 
-    /** The crowd [populationAt] last built, the groups it holds and the street it was built for. */
-    private var crowd: List<Pedestrian> = emptyList()
-    private var crowdGroups = -1
-    private var crowdSeed = 0
+    /**
+     * One pavement's walkers and what is held for each of them between frames: the pavement behind the road
+     * ([streetPavement]) and the near pavement below it ([nearPavement], `DESIGN_NOTES.md` §12, decision 96), each a crowd of
+     * its own. [seedSalt] makes the near crowd another crowd; [shift] is how far below the street's pavement rows its rows
+     * walk; [size] is its people's size as a share of the size at the reference line, NaN for the projection of their row.
+     */
+    private class Pavement(val seedSalt: Int, val shift: Float, val size: Float) {
+        /** Which walkers have one up, by the population's address: the state the off-screen rule protects. */
+        val umbrellaCarrying = BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
+
+        /** Which crossing each walker's colours were dealt for; [PeopleColours.UNDEALT] until the figure is first drawn. */
+        val personCrossing = IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
+            PeopleColours.UNDEALT
+        }
+
+        /** The tone each walker was dealt with its held crossing ([dealTone]); held under the same rule. */
+        val personTone = IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
+            PeopleColours.NO_TONE
+        }
+
+        /** The crowd [populationAt] last built, the groups it holds and the street it was built for. */
+        var crowd: List<Pedestrian> = emptyList()
+        var crowdGroups = -1
+        var crowdSeed = 0
+    }
+
+    /** The pavement between the village and the road. */
+    private val streetPavement = Pavement(seedSalt = 0, shift = 0f, size = Float.NaN)
+
+    /** The near pavement, in front of the near row below the road: a crowd of its own at a fixed size. */
+    private val nearPavement = Pavement(
+        seedSalt = NEAR_PAVEMENT_SEED_SALT,
+        shift = SceneSpace.NEAR_PAVEMENT_SHIFT_FRACTION,
+        size = SceneSpace.NEAR_PEOPLE_SIZE,
+    )
 
     /**
-     * The street's crowd at [density] ([PedestrianPopulation.build]), built again only when the groups
+     * [pavement]'s crowd at [density] ([PedestrianPopulation.build]), built again only when the groups
      * on the street ([PedestrianPopulation.presentMask]) or the street change, since building allocates.
+     * Built on the street's pavement rows: the near pavement walks them [Pavement.shift] lower.
      */
-    private fun populationAt(seed: Int, density: Float): List<Pedestrian> {
+    private fun populationAt(pavement: Pavement, seed: Int, density: Float): List<Pedestrian> {
         val groups = PedestrianPopulation.presentMask(density)
-        if (groups != crowdGroups || seed != crowdSeed) {
-            crowd = PedestrianPopulation.build(
+        if (groups != pavement.crowdGroups || seed != pavement.crowdSeed) {
+            pavement.crowd = PedestrianPopulation.build(
                 seed = seed,
                 density = density,
                 nearRowYFraction = SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
                 farRowYFraction = SceneSpace.PAVEMENT_FAR_Y_FRACTION,
             )
-            crowdGroups = groups
-            crowdSeed = seed
+            pavement.crowdGroups = groups
+            pavement.crowdSeed = seed
         }
-        return crowd
+        return pavement.crowd
     }
 
     /**
@@ -1709,6 +1893,7 @@ class SceneObjectRenderer(
         screenHeight: Float,
         elapsedSeconds: SceneTime,
         dayBlend: Float,
+        pavement: Pavement,
     ) {
         if (geom.tileWidth <= 0f) return
         val config = customization.people
@@ -1725,7 +1910,10 @@ class SceneObjectRenderer(
         )
         // The population arrives sorted far-to-near by each figure's own baseline
         // ([PedestrianPopulation]), so drawing it in order puts the nearest figure on top.
-        val population = populationAt(themeId.hashCode(), density)
+        val population = populationAt(pavement, themeId.hashCode() xor pavement.seedSalt, density)
+        val umbrellaCarrying = pavement.umbrellaCarrying
+        val personCrossing = pavement.personCrossing
+        val personTone = pavement.personTone
         // Which addresses are on the street at this density: [PeopleColours.keepingSpread] keeps the
         // tones spread over the walkers actually present, not over the whole pool.
         var presentMask = 0
@@ -1736,13 +1924,15 @@ class SceneObjectRenderer(
         for (i in population.indices) {
             val person = population[i]
             // Row and speed from [SceneSpace]: the near row larger and faster, by the ratio of the two
-            // ground lines -- inside the projection, like everything on the ground.
-            val rowYFraction = person.rowYFraction
-            val nearer = rowYFraction > (SceneSpace.PAVEMENT_NEAR_Y_FRACTION + SceneSpace.PAVEMENT_FAR_Y_FRACTION) / 2f
+            // ground lines -- inside the projection, like everything on the ground. Below the road the rows are
+            // the street's moved down, their people at the near pavement's fixed size.
+            val nearer = person.rowYFraction > (SceneSpace.PAVEMENT_NEAR_Y_FRACTION + SceneSpace.PAVEMENT_FAR_Y_FRACTION) / 2f
             val speed = if (nearer) SceneSpace.PEDESTRIAN_SPEED_NEAR else SceneSpace.PEDESTRIAN_SPEED_FAR
+            val rowYFraction = person.rowYFraction + pavement.shift
             val y = screenHeight * rowYFraction
             val dir = person.direction
-            val s = SceneSpace.PERSON_BASE_SCALE * SceneSpace.perspectiveScaleAt(rowYFraction) * sceneScale
+            val share = if (pavement.size.isNaN()) SceneSpace.perspectiveScaleAt(rowYFraction) else pavement.size
+            val s = SceneSpace.PERSON_BASE_SCALE * share * sceneScale
 
             // The walk on the ground: `cycle` is 0..1 over a tile of walking, the start offset spreads them.
             val walk = elapsedSeconds.cycle(speed, person.phase)
@@ -1815,7 +2005,7 @@ class SceneObjectRenderer(
             // the next copy where the scroll may show it (`PedestrianTileWrapTest`).
             if (!onScreen && personCrossing[walkStagger] != wantedCrossing) {
                 personCrossing[walkStagger] = wantedCrossing
-                personTone[walkStagger] = dealTone(person, walkStagger, wantedCrossing, presentMask)
+                personTone[walkStagger] = dealTone(person, walkStagger, wantedCrossing, presentMask, personTone)
             }
         }
     }
@@ -1827,7 +2017,7 @@ class SceneObjectRenderer(
      * of the stratum wears when it is dealt: the rotation alone loses the spread, every walker
      * crossing on its own clock. Every deal after the first ([PeopleColours.firstSightTone]).
      */
-    private fun dealTone(person: Pedestrian, address: Int, crossing: Int, presentMask: Int): Int =
+    private fun dealTone(person: Pedestrian, address: Int, crossing: Int, presentMask: Int, personTone: IntArray): Int =
         PeopleColours.keepingSpread(
             PeopleColours.toneIndex(person.skinIndex, themeId.hashCode(), address, crossing),
             address, personTone, presentMask,
@@ -1836,28 +2026,6 @@ class SceneObjectRenderer(
     // ---- The umbrella in the hand --------------------------------------------------------------
     /** Set once per frame by [PaperRenderer]: exactly the predicate `drawPrecipitation` rains on. */
     var rainingNow = false
-
-    /**
-     * Which walkers have one up, by the population's address: the state the off-screen rule protects,
-     * so it survives between frames.
-     */
-    private val umbrellaCarrying =
-        BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
-
-    /**
-     * Which crossing each walker's colours were dealt for, held as [umbrellaCarrying] is;
-     * [PeopleColours.UNDEALT] until the figure is first drawn.
-     */
-    private val personCrossing =
-        IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
-            PeopleColours.UNDEALT
-        }
-
-    /** The tone each walker was dealt with its held crossing ([dealTone]); held under the same rule. */
-    private val personTone =
-        IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
-            PeopleColours.NO_TONE
-        }
 
     private val umbrellaHandlePaint = Paint().apply { color = 0xFF5B4A3E.toInt(); style = Paint.Style.FILL }
 
@@ -1968,6 +2136,18 @@ class SceneObjectRenderer(
         canvas.translate(x, y)
         canvas.scale(effectiveScale, effectiveScale)
 
+        // A place of the near row draws the shop its deck deals this copy ([SceneObjectCatalog.nearShopAt]), with that
+        // shop's own runtime ([nearShops]).
+        val nearBuildings = nearShops
+        if (r.nearShop && nearBuildings != null) {
+            val shop = SceneObjectCatalog.nearShopAt(
+                themeSeed, StorefrontStreet.placeIndex(copy, r.place, nearPlan.shops.size), nearShopDeck,
+            )
+            val runtime = nearBuildings[shop.ordinal]
+            if (runtime != null) drawNeighbourhoodBuilding(canvas, runtime, elapsed, dayBlend, variantFor(r.spec), shop)
+            canvas.restore()
+            return
+        }
         // A place draws, at its own size, the building the street deals this copy ([StorefrontStreet]),
         // with that building's own runtime ([storefronts]).
         val buildings = storefronts

@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The three placement changes v4.17 makes to the ground, each asserted on what it produces.
+ * Three placement rules for the ground, each asserted on what it produces.
  *
  * None of these restates a constant back to itself. The parasol assertion generates the layout a
  * theme actually gets and measures it; the pile assertions are about how many objects a slider
@@ -82,7 +82,7 @@ class GroundPilesAndParasolsTest {
         assertEquals(0, SceneObjectRenderer.pileCount(-1f))
     }
 
-    /** Both default to nothing, so v4.16's scene is v4.17's scene until somebody moves a slider. */
+    /** Both default to nothing, so a theme's scene has no piles until somebody moves a slider. */
     @Test
     fun `both piles default to off on every theme`() {
         for (themeId in ThemeCatalog.ALL.map { it.id }) {
@@ -120,9 +120,9 @@ class GroundPilesAndParasolsTest {
     /**
      * A leaf ends its fall at its own tree's foot, read from the call site.
      *
-     * It used to end at one global `screenHeight * 0.88`, which is below both traffic lanes
-     * (0.834 and 0.862), so leaves from every tree crossed the hillside and settled on the road
-     * among the cars. Asserted against the source because the alternative -- rendering autumn and
+     * Not at one global `screenHeight * 0.88`, which is below both traffic lanes (0.754 and
+     * 0.782): there leaves from every tree would cross the hillside and settle on the road among
+     * the cars. Asserted against the source because the alternative -- rendering autumn and
      * looking for orange pixels -- cannot tell a leaf from the autumn canopy it fell off.
      */
     @Test

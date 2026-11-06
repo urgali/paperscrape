@@ -6,8 +6,8 @@ package com.paperscrape.livewallpaper.engine
  * Independent of [PersonSex] by construction: both are read back off one stratified deal of the
  * four kinds `[man, woman, boy, girl]` on `CH_KIND`, so each is 50/50 and their joint is 25%, an
  * adult is no more likely to be male than female and a group containing an adult is no more likely
- * to contain a boy than a girl. v4.0 could not express that -- see [PedestrianPopulation] for what
- * it did instead.
+ * to contain a boy than a girl. A sprite index picked directly cannot express that -- see
+ * [PedestrianPopulation] for why no attribute is read off an index.
  */
 internal enum class PersonAge { ADULT, CHILD }
 
@@ -18,8 +18,8 @@ internal enum class PersonSex { MALE, FEMALE }
  * One walking figure, fully resolved.
  *
  * A value type with no Android dependency, so the whole generative system is testable on the JVM
- * without a device: every claim v4.1 makes about variety, independence and depth ordering is a
- * statement about lists of these.
+ * without a device: every claim the population makes about variety, independence and depth
+ * ordering is a statement about lists of these.
  *
  * [depth] is the single source of truth for draw order -- see [PedestrianPopulation.build], which
  * returns the list already sorted by it.
@@ -42,10 +42,10 @@ internal data class Pedestrian(
      * is heavily biased in the small, which is what produced a boy-less `beach` before the ranks
      * came in.
      *
-     * **Since v4.30 this is rotated by the walker's crossing** (`PeopleColours.toneIndex`), so the
+     * **This is rotated by the walker's crossing** (`PeopleColours.toneIndex`), so the
      * deal moves instead of being held for the life of the theme. A rotation per walker is a
      * bijection over the tones for that walker, so no tone is ever favoured, but on its own it
-     * does not keep the spread across figures; since v5.8C the renderer deals every rotated tone
+     * does not keep the spread across figures; the renderer therefore deals every rotated tone
      * through `PeopleColours.keepingSpread`, which does -- the walkers of a stratum are first seen in
      * their [arrivalSkinIndex] and wear as many distinct tones as they can after every deal.
      */
@@ -61,8 +61,8 @@ internal data class Pedestrian(
     /**
      * Draw-order key: the ground line the feet stand on, larger meaning nearer the viewer.
      *
-     * Derived from the figure's own baseline rather than from its index in any list, which is the
-     * v4.0 defect this field exists to close.
+     * Derived from the figure's own baseline rather than from its index in any list: an order taken
+     * from an index draws a farther figure over a nearer one wherever the two overlap.
      */
     val depth: Float,
     /**
@@ -76,16 +76,17 @@ internal data class Pedestrian(
      * four -- the spread `PeopleColours.keepingSpread` then keeps. [skinIndex] ranks the stratum
      * in a seeded order instead, which a thinner street can cut into a pair of one tone (`autumn`
      * at 50 %). And it is a function of the theme and the walker only, never of who else is
-     * present, so raising the density recolours nobody already on the street (`PeopleOcclusionTest`;
-     * v5.8C, found on the device when the first deal went through `keepingSpread`).
+     * present, so raising the density recolours nobody already on the street (`PeopleOcclusionTest`).
+     * A first-sight tone that read who is present would recolour walkers on the device as the density
+     * rose, once `keepingSpread` dealt it.
      */
     val arrivalSkinIndex: Int,
 ) {
     /**
      * Index into the four shipped sprite sets, `[man, woman, boy, girl]`.
      *
-     * A *projection* of [age] and [sex], not a source of them. v4.0 picked this index directly and
-     * derived nothing -- which is why age and sex could not vary independently there.
+     * A *projection* of [age] and [sex], not a source of them. Picking this index directly and
+     * deriving nothing from it would leave age and sex unable to vary independently.
      */
     val kindIndex: Int
         get() = when {
@@ -99,10 +100,10 @@ internal data class Pedestrian(
 /**
  * Builds the street's walking population for a frame.
  *
- * ### The v4.0 defect this replaces
+ * ### Why no attribute is read off the slot index
  *
- * Every attribute of a pedestrian was a function of its candidate index `i`, and the pool held
- * exactly as many candidates as there were sprite kinds:
+ * If every attribute of a pedestrian were a function of its candidate index `i`, with the pool
+ * holding exactly as many candidates as there are sprite kinds:
  *
  * ```
  * val reverse = i % 2 == 1              // direction
@@ -110,7 +111,7 @@ internal data class Pedestrian(
  * val kindIdx = i % personKinds.size    // which of man/woman/boy/girl
  * ```
  *
- * With `PEDESTRIAN_COUNT == 4` and four kinds, the periods 2 and 4 lock together and the table is
+ * then with four candidates and four kinds the periods 2 and 4 lock together and the table is
  * fixed for all time:
  *
  * | i | kind  | row  | direction |
@@ -120,16 +121,16 @@ internal data class Pedestrian(
  * | 2 | boy   | near | right     |
  * | 3 | girl  | far  | left      |
  *
- * So one direction was always *man + boy* and the other always *woman + girl*, on every device and
- * in every theme -- not an unlucky seed but arithmetic. Because each sprite carries its own baked
- * palette, the reported "skin tone follows the direction" was this same table seen through the
+ * One direction would always be *man + boy* and the other always *woman + girl*, on every device
+ * and in every theme -- not an unlucky seed but arithmetic. Because each sprite carries its own
+ * baked palette, skin tone would follow the direction too: the same table seen through the
  * artwork.
  *
- * ### What replaces it
+ * ### What it does instead
  *
- * Groups, not candidates. The pool still holds [GROUP_COUNT] slots so that density keeps the
+ * Groups, not candidates. The pool holds [GROUP_COUNT] slots so that density keeps the
  * linear/monotone/stable contract [CandidateThreshold] guarantees for every category, but each
- * surviving slot now yields a *group* of one to three people, and every attribute is read from its
+ * surviving slot yields a *group* of one to three people, and every attribute is read from its
  * own [CandidateNoise] channel, except age and sex, which are read together off one four-kind deal
  * (`CH_KIND`):
  *
@@ -151,10 +152,9 @@ internal object PedestrianPopulation {
     /**
      * How many group slots the density thresholds are drawn from.
      *
-     * Deliberately still four, the pool size v4.0 used for individual pedestrians: the density
-     * slider keeps mapping onto the same five outcomes it did before, so the setting behaves the
-     * way an existing user's muscle memory expects. What changed is that a surviving slot is now a
-     * group of one to three rather than exactly one person.
+     * Deliberately four: the density slider maps onto five outcomes, an empty street up to four
+     * slots, the same steps it has always had, so the setting behaves the way an existing user's
+     * muscle memory expects. A surviving slot is a group of one to three, not one person.
      */
     const val GROUP_COUNT = 4
 
@@ -179,8 +179,7 @@ internal object PedestrianPopulation {
      * separate put it on top of the boy's brown. A fourth tone needs an art pass on hair and
      * outlines, not another recolour.
      *
-     * v4.1's first batch shipped this as `1` with the honest note that the raster art could not
-     * express more. The follow-up batch made the artwork, so the constant is now the real count.
+     * The constant is the number of tones the shipped artwork really carries, not a target.
      *
      * **Not a user setting, and deliberately not one.** No preference, slider, DataStore key or
      * UI control selects a tone; the only inputs are the seed ([CH_SKIN], [CH_SKIN_ROTATION]) and
@@ -192,17 +191,16 @@ internal object PedestrianPopulation {
     /**
      * Pedestrians' own threshold offset.
      *
-     * v4.0 passed `PEDESTRIAN_THRESHOLD_SALT = 6151` to [CandidateThreshold.offsetFor], which
-     * expects an [EffectId] *ordinal* and computes `(ordinal + 0.5) / COUNT`. That returned
-     * `683.5`, far outside the `[0, 1)` the offset is meant to live in. It survived only because
-     * the thresholds take a fractional part -- and `frac(683.5)` is exactly `0.5`, which is
-     * `MOUNTAINS_BACK`'s offset. The salt whose stated job was to decorrelate pedestrians from
-     * every other category had instead pinned them to one.
+     * Not taken from [CandidateThreshold.offsetFor], which expects an [EffectId] *ordinal* and
+     * computes `(ordinal + 0.5) / COUNT`. A salt passed there in place of an ordinal (6151 gives
+     * `683.5`) lands far outside the `[0, 1)` the offset is meant to live in, and because the
+     * thresholds take a fractional part, `frac(683.5)` is exactly `0.5`, `MOUNTAINS_BACK`'s offset:
+     * a salt meant to decorrelate pedestrians from every other category pins them to one.
      *
-     * Fixed here rather than by adding an ordinal and bumping `EffectId.COUNT`: `offsetFor`
-     * divides by that count, so raising it would move every other category's thresholds and change
-     * clouds, birds, sailboats and dolphins in every theme. This constant keeps the fix inside the
-     * people system. `2/18` is a maximally-separated point on the nine-offset grid -- `1/18` from
+     * Nor an ordinal of its own with `EffectId.COUNT` raised: `offsetFor` divides by that count,
+     * so raising it would move every other category's thresholds and change clouds, birds,
+     * sailboats and dolphins in every theme. This constant keeps the offset inside the people
+     * system. `2/18` is a maximally-separated point on the nine-offset grid -- `1/18` from
      * its two nearest neighbours, which is the best any value outside the grid can do.
      */
     const val THRESHOLD_OFFSET = 2f / 18f
@@ -219,7 +217,7 @@ internal object PedestrianPopulation {
     private const val CH_MEMBER_OFFSET = 29
     private const val CH_MEMBER_ROW = 30
 
-    // v4.2. The two axes whose value count does not divide the slot count evenly need one more
+    // The two axes whose value count does not divide the slot count evenly need one more
     // draw to say *which* value gets the spare slot -- otherwise the spare would always fall on
     // value 0 and every street would carry an extra person of the palest tone.
     private const val CH_SKIN_ROTATION = 31
@@ -262,7 +260,7 @@ internal object PedestrianPopulation {
      * The street's population, **sorted far-to-near**.
      *
      * The caller draws the list in order, so the last element -- the nearest -- lands on top. That
-     * single guarantee is what closes the reported overlap defect, and it holds between members of
+     * single guarantee is what keeps a nearer figure over a farther one, and it holds between members of
      * one group exactly as it holds between groups, because the sort sees a flat list of people
      * and never considers which group they came from.
      *
@@ -326,9 +324,9 @@ internal object PedestrianPopulation {
                 var start = (groupStart - direction * m * MEMBER_SPACING * spread) % 1f
                 if (start < 0f) start += 1f
                 val rowJitter = CandidateNoise.range(seed, addr, CH_MEMBER_ROW, -MEMBER_ROW_SPREAD, MEMBER_ROW_SPREAD)
-                // **REN-08: the jitter may not put anyone on the road.** The near pavement row is
-                // 0.807 and the spread is +-0.012, so a jittered figure could stand at 0.819 while
-                // the road's painted top edge is at 0.8178 -- about 3 px of foot on the tarmac at
+                // **The jitter may not put anyone on the road.** The near pavement row is
+                // 0.727 and the spread is +-0.012, so a jittered figure could stand at 0.739 while
+                // the road's painted top edge is at 0.7378 -- about 3 px of foot on the tarmac at
                 // 2340 px, on the row where the figures are largest and it shows most. The band the
                 // rows themselves define is the wrong bound here because it knows nothing about the
                 // road; `SceneSpace.roadTopYFraction()` is the thing that must not be crossed, and
@@ -370,11 +368,10 @@ internal object PedestrianPopulation {
      * **Everything else [build] returns depends on the seed and the rows alone**, so two densities
      * with the same mask give the same population -- the same people, in the same order, down to the
      * last float. That is what lets the renderer build the street once and keep it while the mask
-     * holds (v5.10B): it used to rebuild it every frame, a dozen `Pedestrian`s, their list and a sort
-     * that boxed two `Float`s per comparison, about ninety objects a frame -- the largest share of what
-     * the render thread still allocated once `setAlpha` stopped (v5.10A). The density itself moves
-     * every frame through dusk (it is blended by the light), the mask only where a threshold is
-     * crossed. `PedestrianPopulationTest` checks both halves: the mask names exactly the groups
+     * holds: rebuilding it every frame would allocate a dozen `Pedestrian`s, their list and a sort that
+     * boxes two `Float`s per comparison, about ninety objects a frame on the render thread. The density
+     * itself moves every frame through dusk (it is blended by the light), the mask only where a
+     * threshold is crossed. `PedestrianPopulationTest` checks both halves: the mask names exactly the groups
      * [build] returns, and one mask means one population.
      */
     fun presentMask(density: Float): Int {
@@ -406,8 +403,8 @@ internal object PedestrianPopulation {
     /**
      * Group [g]'s place in a seeded ordering of the four group slots, on [channel].
      *
-     * The address is the group index, exactly the address v4.1 hashed. What changed is that the
-     * value is compared against its peers instead of against a constant.
+     * The address is the group index, the one [build] reads the group's start from. The value is
+     * compared against its peers instead of against a constant, so the slots are dealt, not rolled.
      */
     private fun rankAmongGroups(seed: Int, channel: Int, g: Int): Int =
         SeededBalance.rankOf(seed, channel, g, GROUP_COUNT, addressStride = 1, addressOffset = 0)
@@ -422,7 +419,8 @@ internal object PedestrianPopulation {
      * strata 1 and 2 are dealt across the same four slots, and only the groups that reach them
      * show their share.
      *
-     * The address is `g * MAX_GROUP_SIZE + m`, exactly v4.1's.
+     * The address is `g * MAX_GROUP_SIZE + m`, the one [build] reads the member's other attributes
+     * from.
      */
     private fun rankAmongMembers(seed: Int, channel: Int, g: Int, m: Int): Int =
         SeededBalance.rankOf(seed, channel, g, GROUP_COUNT, addressStride = MAX_GROUP_SIZE, addressOffset = m)

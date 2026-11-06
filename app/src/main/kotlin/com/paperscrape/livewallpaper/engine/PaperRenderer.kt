@@ -493,8 +493,19 @@ class PaperRenderer(
          */
         const val CELESTIAL_RADIUS_FRACTION = 0.055f
 
-        /** The horizon the sun's and the moon's arc rises from, a share of the screen's height ([drawCelestialBody]). */
-        const val HORIZON_Y_FRACTION_OF_ARC = 0.62f
+        /**
+         * The horizon the sun's and the moon's arc rises from, a share of the screen's height ([drawCelestialBody]):
+         * behind the hills, 0.02 of the screen below their top ([SceneSpace.HILL_LAYER_TOP_FRACTION]).
+         */
+        const val HORIZON_Y_FRACTION_OF_ARC = 0.54f
+
+        /**
+         * How far down the screen the rain's colour is held off the sky ([drawPrecipitation]): 0.60, 0.08 of the screen past
+         * the hills' top at 0.52 (`DESIGN_NOTES.md` §12, decision 96) -- more sky than a drop crosses, which can only ask more
+         * of the colour. Every rain and snow colour, and the measurements `PRECIPITATION_MIN_LUMA_GAP` rests on
+         * (`PrecipitationContrastTest`), are taken over this stretch.
+         */
+        const val PRECIPITATION_SKY_BOTTOM_FRACTION = 0.60f
 
         /** Largest star radius [regenerateStars] can produce, in canvas pixels. */
         const val MAX_STAR_RADIUS_PX = 2.4f + 3.2f
@@ -874,6 +885,12 @@ class PaperRenderer(
     /** The storm gate the lightning already uses, so the two cannot disagree about a thunderstorm. */
     private var stormActiveNow = false
 
+    /**
+     * No cloud in this frame's sky to rain, snow or flash from ([LiveWeatherSceneRules.cloudlessSky]): nothing falls, no
+     * umbrella opens, no wave rises and no storm flashes (`DESIGN_NOTES.md` §12, decision 98).
+     */
+    private var cloudlessSkyNow = false
+
     private fun updateWeatherPredicates(deltaSeconds: Float) {
         val live = liveWeatherOverride
         val precip = sceneCustomization.precipitation
@@ -886,8 +903,20 @@ class PaperRenderer(
             val clouds = sceneCustomization.clouds
             cloudCoverFade.coverLapsingTo(if (clouds.visible) clouds.density else 0f, deltaSeconds)
         } else {
-            cloudCoverFade.coverToward(if (live == null) Float.NaN else live.cloudCoverFraction, deltaSeconds)
+            // Something falling under a clear forecast is drawn with a few clouds to fall from.
+            val falling = live != null && live.precipitationType != null && live.precipitationIntensity > 0f
+            cloudCoverFade.coverToward(
+                LiveWeatherSceneRules.forecastCover(if (live == null) Float.NaN else live.cloudCoverFraction, falling),
+                deltaSeconds,
+            )
         }
+        val clouds = sceneCustomization.clouds
+        cloudlessSkyNow = LiveWeatherSceneRules.cloudlessSky(
+            lapsed = live == null && liveWeatherLapsed,
+            themeDensity = LiveWeatherSceneRules.cloudDensity(Float.NaN, clouds.visible, clouds.density),
+            placedDensity = LiveWeatherSceneRules.cloudDensity(drawnCloudCover, clouds.visible, clouds.density),
+            cloudsShowing = cloudCoverFade.anythingVisible(),
+        )
         if (live != null) {
             rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
             snowingNow = live.precipitationType == PrecipitationType.SNOW && live.precipitationIntensity > 0f
@@ -897,7 +926,12 @@ class PaperRenderer(
             snowingNow = precip.visible && precip.intensity > 0f && precip.type == PrecipitationType.SNOW
             rainIntensityNow = if (rainingNow) precip.intensity else 0f
         }
-        stormActiveNow = LiveWeatherSceneRules.stormActive(
+        if (cloudlessSkyNow) {
+            rainingNow = false
+            snowingNow = false
+            rainIntensityNow = 0f
+        }
+        stormActiveNow = !cloudlessSkyNow && LiveWeatherSceneRules.stormActive(
             liveIsThunderstorm = live?.isThunderstorm,
             themePrecipitationVisible = precip.visible,
             themePrecipitationIsRain = precip.type == PrecipitationType.RAIN,
@@ -1162,8 +1196,8 @@ class PaperRenderer(
         drawPrecipitation(canvas, dayPhase, elapsedSeconds)
         drawFallingLeaves(canvas, dayPhase, elapsedSeconds)
         // A forecast's thunderstorm flashes whatever the theme's own switch; the precedence is
-        // LiveWeatherSceneRules', shared with the clouds and the rain so the layers agree.
-        val stormActive = LiveWeatherSceneRules.stormActive(
+        // LiveWeatherSceneRules', shared with the clouds and the rain so the layers agree. No cloud, no flash.
+        val stormActive = !cloudlessSkyNow && LiveWeatherSceneRules.stormActive(
             liveIsThunderstorm = liveWeatherOverride?.isThunderstorm,
             themePrecipitationVisible = sceneCustomization.precipitation.visible,
             themePrecipitationIsRain = sceneCustomization.precipitation.type == PrecipitationType.RAIN,
@@ -1501,7 +1535,8 @@ class PaperRenderer(
         for (i in 0 until BIRD_POOL_SIZE) {
             if (!CandidateThreshold.isPresent(i, birds.density, effectOffset, fallbackIndex)) continue
 
-            val laneFraction = CandidateNoise.range(seed, i, CandidateNoise.CH_Y, 0.08f, 0.38f) // upper portion of the sky
+            // The upper portion of the sky, from its top to 0.30, over the ground (`DESIGN_NOTES.md` §12, decision 96).
+            val laneFraction = CandidateNoise.range(seed, i, CandidateNoise.CH_Y, 0.00f, 0.30f)
             val y = screenHeight * laneFraction
             val speed = CandidateNoise.range(seed, i, CandidateNoise.CH_SPEED, 0.025f, 0.045f)
             val phase = CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)
@@ -1564,21 +1599,16 @@ class PaperRenderer(
         // A cover easing to nothing reaches zero before the last clouds finish fading: leaving now would cut the fade.
         val showing = cloudCoverFade.anythingVisible()
         val placing = !density.isNaN() || showing
-        // **Where the rain may fall this frame** ([CloudCoverage.rainField]): under the clouds drawn; everywhere when none
-        // is placed or showing (the cloud switch does not turn the rain off); once the forecast has lapsed, under the
-        // theme's own clouds, everywhere if it has none, since the theme's rain arrives in the frame of the lapse
-        // (the rain is never eased, the clouds are) and must not fall only under the forecast's clouds while they fade.
+        // **Where the rain may fall this frame** ([CloudCoverage.rainField]): under the clouds drawn, fading ones included,
+        // and nowhere else; once the forecast has lapsed, under the theme's own clouds, since the theme's rain arrives in
+        // the frame of the lapse (the rain is never eased, the clouds are) and must not fall only under the forecast's
+        // clouds while they fade (`DESIGN_NOTES.md` §12, decision 98).
         val themeDensity = LiveWeatherSceneRules.cloudDensity(Float.NaN, clouds.visible, clouds.density)
         val rainField = CloudCoverage.rainField(
-            placedDensity = density,
-            cloudsShowing = showing,
             lapsed = liveWeatherOverride == null && liveWeatherLapsed,
             themeDensity = themeDensity,
         )
-        // Beyond the clouds, the rain spreads to the whole sky while the last clouds leave it and narrows under the first
-        // ones while they come, over their own fade ([CloudCoverFade.rainEverywhereToward]), never in one frame.
-        val rainEverywhere = cloudCoverFade.rainEverywhereToward(nothingPlaced = CloudCoverage.placesNone(density), deltaSeconds = deltaSeconds)
-        cloudCoverage.beginFrame(rainField)
+        cloudCoverage.beginFrame()
         if (!placing && rainField != CloudCoverage.RAIN_UNDER_THEME_CLOUDS) {
             cloudCoverFade.clearSkyDrawn()
             return
@@ -1653,7 +1683,6 @@ class PaperRenderer(
                 )
             }
         }
-        if (rainField == CloudCoverage.RAIN_UNDER_DRAWN_CLOUDS) cloudCoverage.setFloor(rainEverywhere)
     }
 
     /**
@@ -1714,7 +1743,7 @@ class PaperRenderer(
         // What falls -- the forecast's while Live Weather drives the scene, else the theme's -- and how it looks: one rule,
         // [PrecipitationLook], which the JVM suite runs on a forecast.
         val kind = PrecipitationLook.kind(precip, liveWeatherOverride)
-        if (kind == PrecipitationLook.NONE) return
+        if (kind == PrecipitationLook.NONE || cloudlessSkyNow) return
         val isRain = kind == PrecipitationLook.RAIN
         val intensity = PrecipitationLook.intensity(precip, liveWeatherOverride)
         // The theme's colour, the user's pick, only carried far enough off the sky's brightness to be seen
@@ -1737,8 +1766,9 @@ class PaperRenderer(
         // tests of the band and of the rain's contrast measure.
         val fallStartY = CloudBand.precipitationOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)
         // The sky's brightness at the two ends of the stretch a drop crosses with sky behind it, from the band's
-        // middle to the top of the hills: `skyAbove` is a lerp and luma is linear, so these two bound the stretch.
-        val precipHorizonY = screenHeight * SceneSpace.HILL_LAYER_TOP_FRACTION
+        // middle down to [PRECIPITATION_SKY_BOTTOM_FRACTION]: `skyAbove` is a lerp and luma is linear, so these two bound
+        // the stretch.
+        val precipHorizonY = screenHeight * PRECIPITATION_SKY_BOTTOM_FRACTION
         val skyLumaAtFallStart = rec601Luma(skyAbove(fallStartY))
         val skyLumaAtHorizon = rec601Luma(skyAbove(precipHorizonY))
         val skyLumaLow = kotlin.math.min(skyLumaAtFallStart, skyLumaAtHorizon)
@@ -2172,7 +2202,7 @@ class PaperRenderer(
         if (!lake.drawsWater) return false
         // The band sits just above the hills, its bottom on their always-covered line ([hillGuaranteedTopFraction]),
         // so the hills drawn over it dip into its edge with no bare sky between. Its height grows with Lake Height
-        // up to 0.16 of the screen, so its top (0.544 at most) stays below the tallest back mountain's peak (0.5165).
+        // up to 0.16 of the screen, so its top (0.464 at most) stays below the tallest back mountain's peak (0.4365).
         val bottom = screenHeight * hillGuaranteedTopFraction
         val bandHeight = screenHeight * 0.16f * lake.height.coerceIn(0f, 1f)
         val top = bottom - bandHeight
@@ -2182,7 +2212,7 @@ class PaperRenderer(
     }
 
     /**
-     * The lake, a horizontal band in the middle distance (0.544 to 0.704 of the screen height at full
+     * The lake, a horizontal band in the middle distance (0.464 to 0.624 of the screen height at full
      * [LakeConfig.height]), well above the road ([SceneSpace.roadTopYFraction]), outside the object placement as the
      * mountains are.
      */
@@ -2626,8 +2656,9 @@ class PaperRenderer(
      * Builds one hill layer's skyline, two screens wide, at the shift-0 position: a sine, `0.13 +/- 0.09 x
      * hillsVariation` of the band with two cycles a tile and a phase from the theme, smooth and periodic by
      * construction, sampled densely. Its range `[0.04, 0.22]` at variation 1 is what
-     * [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] is derived from. The parallax is a translate at draw time, so this
-     * runs only when the theme, the size or [hillsVariation] change.
+     * [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] is derived from. Below the band the paper goes on to the screen's
+     * bottom edge, under the road and the near row ([hillPaperBottom]). The parallax is a translate at draw time, so
+     * this runs only when the theme, the size or [hillsVariation] change.
      */
     private fun buildBaseHillPath(path: SceneShape, layer: Int, top: Float, height: Float) {
         path.reset()
@@ -2643,7 +2674,8 @@ class PaperRenderer(
         // backend their anti-aliased edges would each cover the seam's column by half, showing a faint line of what
         // is behind the hills. The ridge is periodic, so the extra points carry the end samples' heights.
         val seam = HILL_TILE_SEAM_OVERLAP_PX
-        path.moveTo(startX - seam, top + height)
+        val bottom = hillPaperBottom(top, height)
+        path.moveTo(startX - seam, bottom)
         path.lineTo(startX - seam, top + height * SceneSpace.hillCrestFraction(0f, hillsVariation, phase))
         // 64 samples for two cycles: cheap, since the path is cached.
         val samples = 64
@@ -2657,7 +2689,10 @@ class PaperRenderer(
             lastY = y
         }
         path.lineTo(startX + width + seam, lastY)
-        path.lineTo(startX + width + seam, top + height)
+        path.lineTo(startX + width + seam, bottom)
         path.close()
     }
+
+    /** Where a hill layer's paper ends: the screen's bottom edge, or its band's own if that is lower. */
+    private fun hillPaperBottom(top: Float, height: Float): Float = maxOf(top + height, screenHeight.toFloat())
 }

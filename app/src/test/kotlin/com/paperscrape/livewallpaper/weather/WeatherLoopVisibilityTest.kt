@@ -6,31 +6,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * ARC-02: an engine that cannot be seen does not run the Live Weather loop.
+ * **An engine that cannot be seen does not run the Live Weather loop, and the loop never stops while the engine lives.**
  *
- * The loop was `while (true) { …; withTimeoutOrNull(2 min) { wakeUp.receive() } }` launched in
- * `onCreate` and never gated on visibility. It therefore woke the main thread every two minutes for
- * the whole life of the engine — screen off included, Live Weather off included — and a wallpaper
- * process can host two engines at once, the picker's preview beside the live one, so both the ticks
- * and the hourly fetch behind them doubled whenever the picker was open.
+ * While the engine is not on screen the loop parks on its channel with **no timeout**: no tick, no request, screen off
+ * and Live Weather off alike, and a process hosting two engines (the picker's preview beside the live one) does not tick
+ * twice. Coming back on screen sends on the channel and the body runs at once, so a refresh that fell due meanwhile is
+ * asked for then. On screen means shown **with a surface** ([com.paperscrape.livewallpaper.engine.GlLifecyclePolicy.countsAsVisible]):
+ * an engine bound to a window nobody shows fetches nothing. A coming on screen is counted ([com.paperscrape.livewallpaper.engine.PaperWallpaperService]'s
+ * `showings`), so a showing the loop slept through still asks ([ShowingRefresh], `DESIGN_NOTES.md` §12, decision 99).
  *
- * The fix is to park on the channel with **no timeout** while invisible. That is what removes the
- * polling rather than lengthening it, and it also makes the loop *more* responsive: coming back
- * visible sends on the channel, the body re-enters at once, and a refresh that fell due while the
- * screen was off is picked up immediately instead of up to two minutes later.
- *
- * **On screen means shown with a surface since v5.15** (inventory I-918): the picker's preview of a stopped package,
- * bound later to a window nobody shows, was "visible" with nothing to draw on and fetched the weather for it. The loop
- * parks on `onScreen` -- [com.paperscrape.livewallpaper.engine.GlLifecyclePolicy.countsAsVisible] of the visibility and
- * the surface -- and a surface arriving or going wakes it, as visibility does.
+ * **Every pass is caught whole**: an exception from the position, the sun times, the decision or the scene is logged and
+ * the loop goes on to its timed wait and its next pass; only its own cancellation ends it. Without that, one failure
+ * would end the weather and, with the phone's position, the sun times for the engine's life.
  *
  * ### Why this reads the source
  *
- * What has to hold is a shape: a park with no timeout, reached before any timed wait, and a producer
- * on the other side that runs when visibility changes. The loop lives inside a `WallpaperService`
- * engine and cannot be instantiated on the JVM, and an instrumented test of "did nothing happen for
- * two minutes" is a two-minute test that proves very little. The same reasoning
- * `IndoorClothingTest` and `InternetInventoryTest` are built on.
+ * What has to hold is a shape: a park with no timeout, reached before any timed wait, a `try` around the pass and outside
+ * the wait, and producers that run when visibility changes. The loop lives inside a `WallpaperService` engine and cannot be
+ * instantiated on the JVM; what it decides is pure and tested apart ([LiveWeatherScheduleTest], [ShowingRefreshTest]).
  */
 class WeatherLoopVisibilityTest {
 
@@ -39,7 +32,7 @@ class WeatherLoopVisibilityTest {
     @Test
     fun `the loop parks with no timeout while the engine is invisible`() {
         val park = Regex(
-            """if \(!onScreen\) \{\s*\n\s*weatherWakeUp\.receive\(\)\s*\n\s*continue\s*\n\s*\}""",
+            """if \(!onScreen\) \{\s*\n\s*showingRefresh\.offScreen\(\)\s*\n\s*weatherWakeUp\.receive\(\)\s*\n\s*continue\s*\n\s*\}""",
         )
         assertTrue(
             "the Live Weather loop must park on weatherWakeUp while invisible, with no timeout",
@@ -50,8 +43,8 @@ class WeatherLoopVisibilityTest {
     @Test
     fun `the park comes before the timed wait, so the timer only runs when visible`() {
         val parkAt = source.indexOf("if (!onScreen) {")
-        // One timed wait, of the check interval or -- since v5.10E -- less, when a try for the phone's
-        // position falls due before it (`SolarDaySchedule.nextPassDelayMillis`).
+        // One timed wait, of the check interval or less, when a try for the phone's position falls due before it
+        // (`SolarDaySchedule.nextPassDelayMillis`) or a quick retry of a showing does (`LiveWeatherSchedule.passDelayMillis`).
         val timedAt = TIMED_WAIT.find(source)?.range?.first ?: -1
         assertTrue("the visibility park is missing", parkAt > 0)
         assertTrue("the timed wait is missing", timedAt > 0)
@@ -98,8 +91,56 @@ class WeatherLoopVisibilityTest {
     }
 
     private companion object {
-        /** The loop's one timed wait, as the service writes it since v5.10E, whatever the line breaks. */
-        val TIMED_WAIT = Regex("""withTimeoutOrNull\(\s*SolarDaySchedule\.nextPassDelayMillis\(\s*checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,""")
+        /** The loop's one timed wait, as the service writes it, whatever the line breaks. */
+        val TIMED_WAIT = Regex(
+            """withTimeoutOrNull\(\s*LiveWeatherSchedule\.passDelayMillis\(\s*basePassMillis = SolarDaySchedule\.nextPassDelayMillis\(\s*""" +
+                """checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,""",
+        )
+    }
+
+    /**
+     * **The pass is caught whole, its wait is not**: one `try` from the first line after the park to the line before the
+     * timed wait, rethrowing the loop's own cancellation and logging every other exception, so a failing pass is followed
+     * by the wait and the next pass. A `catch` of `Throwable`, a missing rethrow or a wait inside the `try` fails here.
+     */
+    @Test
+    fun `every pass is caught and the loop goes on to its next one`() {
+        val loopStart = source.indexOf("if (!onScreen) {")
+        val tryAt = source.indexOf("\n                    try {\n", loopStart)
+        val cancelAt = source.indexOf("} catch (cancelled: CancellationException) {", loopStart)
+        val failureAt = source.indexOf("} catch (failure: Exception) {", loopStart)
+        val timedAt = TIMED_WAIT.find(source)?.range?.first ?: -1
+        assertTrue("the pass is not in a try", tryAt > loopStart)
+        assertTrue("the cancellation is not let through first", cancelAt in tryAt..failureAt)
+        assertTrue("the wait must follow the catch", failureAt in cancelAt..timedAt)
+        val cancelled = source.substring(cancelAt, failureAt)
+        assertTrue("the loop's cancellation must be thrown on: $cancelled", cancelled.contains("throw cancelled"))
+        val caught = source.substring(failureAt, timedAt)
+        assertTrue("the failure must be logged: $caught", caught.contains("Log.e(TAG, \"A weather pass failed; the loop goes on to its next pass\", failure)"))
+        assertTrue("the pass's fetch is inside the try", source.indexOf("WeatherRepository.fetchCurrentConditions(", tryAt) in tryAt..cancelAt)
+        assertTrue("the sun times are inside the try", source.indexOf("when (SolarDaySchedule.onTick(", tryAt) in tryAt..cancelAt)
+        assertEquals("one try in the loop", 1, Regex("""catch \(cancelled: CancellationException\)""").findAll(source).count())
+        assertTrue(source.contains("import kotlinx.coroutines.CancellationException"))
+    }
+
+    /**
+     * **A coming on screen is counted where on screen changes**, and the loop hands the count to [ShowingRefresh] once a
+     * pass, the request and the backoff's count going through it; the showing is a reason to ask the phone's position too.
+     */
+    @Test
+    fun `a showing is counted where on screen changes, and the loop asks ShowingRefresh once a pass`() {
+        val change = source.substring(source.indexOf("private inline fun changingOnScreen("), source.indexOf("private var showings = 0"))
+        assertTrue(change.contains("if (onScreen && !before) showings++"))
+        assertEquals(
+            1,
+            Regex("""val forShowing = showingRefresh\.asks\(SystemClock\.elapsedRealtime\(\), showings, WEATHER_REFRESH_INTERVAL_MS\)""")
+                .findAll(source).count(),
+        )
+        assertTrue(source.contains("if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {"))
+        assertTrue(source.contains("weatherTransientFailures = showingRefresh.answered("))
+        assertTrue(source.contains("weatherAttemptDue = forShowing ||"))
+        assertTrue(source.contains("showingRefresh.forget()"))
+        assertTrue(source.contains("quickRetryInMillis = showingRefresh.quickRetryInMillis(SystemClock.elapsedRealtime()),"))
     }
 
     @Test

@@ -6,9 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The street of v5.13 ([StorefrontStreet]), five places a tile since v5.13B2: the maintainer's *«ci vanno
- * tutti sempre in qualsiasi tema ma in modo randomico mentre scorre il wallpaper»* (2026-10-11) and, shown
- * a street with two towers fewer and five places, *«Sì, 5 posti, in un giro a parte»* (2026-10-12) -- all
+ * The street ([StorefrontStreet], `DESIGN_NOTES.md` §12, decision 60), five places a tile -- all
  * six buildings on every theme, in any place; dealt at random as the scene scrolls, every copy that comes in
  * from the side a new one, by the theme's seed and the copy, never changing under the eyes; never two alike
  * on the screen at once; all six within a short stretch.
@@ -28,8 +26,8 @@ class StorefrontStreetTest {
 
     /**
      * Every theme's seed, some that are no theme's -- a saved theme's or a random one's is any -- and the extremes.
-     * (Until v5.14 each return of the wallpaper dealt the street a new round, another seed: the rules were held over
-     * a few rounds of each theme's; they are held over these seeds.)
+     * (A return of the wallpaper deals the street nothing new, its deal being the seed and the place alone: the rules
+     * are held over these seeds.)
      */
     private val seeds = themes.map { it.hashCode() } + listOf(0, 1, -1, 12345, Int.MIN_VALUE, Int.MAX_VALUE) +
         (1..36).map { it * 7_919 + 104_729 * (it % 5) }
@@ -194,8 +192,8 @@ class StorefrontStreetTest {
 
     /**
      * How many places a screen shows, theme by theme, on the BV6600: the share of the scroll at which 1, 2,
-     * 3 or 4 buildings among the houses are on it -- the maintainer was told he would see two or three a screen
-     * instead of one or two. Each place counts while its paper is on screen; whole means the building is all on it.
+     * 3 or 4 buildings among the houses are on it, printed. Each place counts while its paper is on screen; whole
+     * means the building is all on it.
      */
     @Test
     fun `how many buildings a screen shows, theme by theme`() {
@@ -242,7 +240,7 @@ class StorefrontStreetTest {
      * place across the tile, every six places from the start of the street hold the six once each -- read off
      * the scroll on every built-in street, from the buildings each copy of each place shows, not from the
      * rule's own numbering. A street that counted its places without the tile's five (a copy's places
-     * overlapping the next copy's) still kept two alike off the screen and failed here (a mutation of v5.13B2).
+     * overlapping the next copy's) would still keep two alike off the screen and would fail here.
      */
     @Test
     fun `along the scroll every six places of the street hold the six`() {
@@ -282,8 +280,8 @@ class StorefrontStreetTest {
     /**
      * **Another seed is another shuffle, not the same one with another anchor**: the streets of two seeds agree on
      * about a sixth of their places, as two independent shuffles of six would; a street dealt from the same
-     * shuffles with only the anchor moved agreed on most of them (a mutation of v5.13B2 the tests above let
-     * through, when a round of the street was another seed).
+     * shuffles with only the anchor moved would agree on most of them -- a defect the tests above do not
+     * catch.
      */
     @Test
     fun `two seeds agree on about a sixth of the places, as two shuffles would`() {
@@ -409,26 +407,28 @@ class StorefrontStreetTest {
      * above is checked with, and with that copy's own tile index: read in the renderer's source, because the
      * loop draws on a canvas the JVM does not have. A copy numbered without its tile index -- the one that
      * comes in at the right edge before the wrap moves on -- would show the building of the copy to its left
-     * and change under the eyes when the wrap moved (a mutation of v5.13B that every other test let through).
+     * and change under the eyes as the wrap moves (a defect no other test catches).
      */
     @Test
     fun `the draw loop hands every copy its own number`() {
         val text = source("SceneObjectRenderer.kt")
         val calls = Regex("""drawStaticObject\(canvas, r, [^\n]*""").findAll(text).map { it.value }.toList()
-        assertEquals("the two draws of a static object: $calls", 2, calls.size)
+        assertEquals("the three draws of a static object, the near row's the third: $calls", 3, calls.size)
+        assertTrue(calls.toString(), calls.any { it == "drawStaticObject(canvas, r, copyX, groundY, scale, dayBlend, elapsedSeconds, copy)" })
+        assertTrue("the near row's copy is its own", text.contains("val copy = copyOf(r.spec.tileFractionX, geom, tileIndex)"))
         assertTrue(calls.toString(), calls.any { it.endsWith("copyOf(r.spec.tileFractionX, geom, tileIndex))") })
         assertTrue(calls.toString(), calls.any { it.endsWith("copyOf(r.spec.tileFractionX, geom, 0))") })
         assertTrue("the place's copy is dealt from that number", text.contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA,"))
     }
 
     /**
-     * **Coming back into view changes nothing of the street** (v5.14, the maintainer's «C» of 2026-10-14, which took
-     * back *«Nuovi edifici al ritorno sempre»* of 2026-10-12): a building changes only by scrolling. So the deal is
+     * **Coming back into view changes nothing of the street** (`DESIGN_NOTES.md` §12, decision 60):
+     * a building changes only by scrolling. So the deal is
      * the theme's seed and the place alone (above), and nothing in the engine touches it when the wallpaper becomes
      * visible -- read in the sources, the engine and the renderer needing a phone: `onVisibilityChanged` hands the
      * renderer nothing about the street, and no round of the street is counted or handed on anywhere in the app.
-     * The phone shows it: three returns from an app and the screen off and on again, the same buildings (v5.14B,
-     * filmed on the BV6600). And what numbers the copies -- the scroll -- moves only by the frame's time times the scroll
+     * The phone shows it: three returns from an app and the screen off and on again, the same buildings
+     * (filmed on the BV6600). And what numbers the copies -- the scroll -- moves only by the frame's time times the scroll
      * speed, a frame's time capped at half a second, in the one renderer an engine builds.
      */
     @Test
@@ -446,7 +446,7 @@ class StorefrontStreetTest {
             assertTrue("${file.name} counts a round of the street", !text.contains("streetRound") && !text.contains("nextStreetRound"))
         }
         assertTrue(source("SceneObjectRenderer.kt").contains("StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA, streetDeckB"))
-        // Nothing renumbers the copies but the scroll itself (v5.14C): the accumulator a copy is counted from is set once,
+        // Nothing renumbers the copies but the scroll itself: the accumulator a copy is counted from is set once,
         // to 0, and only ever grows by a frame's time times the scroll speed -- at *Scroll speed* 0 % it never moves -- and
         // a frame's time is capped at half a second on both paths, so a wallpaper that comes back after an hour moves on by
         // half a second's scroll; and the engine builds its renderer once, keeping it over a new surface.
@@ -464,11 +464,11 @@ class StorefrontStreetTest {
     }
 
     /**
-     * On a built-in street every building takes the identity v5.13B gave it, whatever the plan does with the
-     * places (v5.13B2 moved them all): its people, its colour and its figure stay. Six identities, all
+     * On a built-in street every building keeps the identity recorded for it, whatever the plan does with the
+     * places (the plan moves them all): its people, its colour and its figure stay. Six identities, all
      * different; and on a layout that is not a built-in street's own, the restaurant, the school and the bar
-     * take the first place of their row as it stands. That they are the ones v5.13B gave is
-     * `WindowPeopleCountTest`'s, which counts their people and colour against v5.13B's.
+     * take the first place of their row as it stands. That they are the recorded ones is
+     * `WindowPeopleCountTest`'s, which counts their people and colour against its recorded tables.
      */
     @Test
     fun `each building has an identity of its own, in its home's row, on every built-in street`() {
@@ -490,7 +490,7 @@ class StorefrontStreetTest {
 
     /**
      * On a random theme too, with places wherever its towers fell: no two of the six share an identity's
-     * seed -- the case the read-only review of v5.13B found: one place, in the school's band, made the
+     * seed -- the case this guards: one place, in the school's band, making the
      * restaurant (moved half a tile from it) the fire station's twin (moved half a tile from its home).
      */
     @Test

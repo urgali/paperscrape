@@ -32,7 +32,7 @@ import kotlin.math.abs
  *
  * ### The proportion, as an assertion
  *
- * The near traffic lane is at 0.862 of screen height and the near pavement at 0.807, so a driver
+ * The near traffic lane is at 0.782 of screen height and the near pavement at 0.727, so a driver
  * stands nearer the viewer than any pedestrian -- and is still drawn smaller, because a head seen
  * through a pane is set back inside a body. Too small, a driver reads as a child; too large, the
  * head presses against the roof line. The proportion judged here is the occupant's share of its

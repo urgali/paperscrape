@@ -8,29 +8,26 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * That the traffic goldens actually contain traffic, and that they would notice if it changed
- * (**v3.8 Filone 3**).
+ * That the traffic goldens actually contain traffic, and that they would notice if it changed.
  *
- * ### Why a golden alone was not enough
+ * ### Why a golden alone is not enough
  *
  * `SceneGoldenTest.trafficDay` compares `traffic-day.png` pixel by pixel, which pins the frame —
- * but it would pin an empty road just as happily, and for seventeen releases that is exactly what
- * every golden did. A comparison against a committed file cannot tell you *what is in* the file.
+ * but it would pin an empty road just as happily. A comparison against a committed file cannot
+ * tell you *what is in* the file.
  *
  * So this suite asserts the property the golden is supposed to have, independently of the golden:
  * [VehiclePresence] reads the finished frame and counts how much of the road band is not tarmac.
  * It shares no arithmetic with the renderer, so it cannot agree with a bug by inheriting it.
  *
- * ### What is measured
+ * ### What is checked
  *
- * | scene | tarmac uniformity | vehicle runs |
- * |---|---|---|
- * | `day` (no warm-up) | 92.2% | **0** |
- * | `night` (no warm-up) | 92.2% | **0** |
- * | `traffic-day` | 79.0% | **4** |
- * | `traffic-night` | 79.0% | **4** |
- *
- * The first two rows are the gap this closes, still measurable because those scenes are unchanged.
+ * The near row below the road (decision 96) reaches over the road's lower edge and into the near lane,
+ * and [VehiclePresence] reads that as a vehicle standing still, so the vehicles are counted on a copy of
+ * the traffic scenes with the trees, houses, places and parasols off -- the same warm-up, the same cars --
+ * and against that copy with its cars off too. `traffic-day` and `traffic-night` hold at least three
+ * vehicle runs and less than 85 % uniform tarmac, and `traffic-day` both lanes occupied and neither with the cars off;
+ * `day`, without a warm-up, holds no run its car-less copy does not. Every reading is logged under `TRAFFIC`.
  */
 @RunWith(AndroidJUnit4::class)
 class TrafficGoldenTest {
@@ -43,14 +40,61 @@ class TrafficGoldenTest {
         return result
     }
 
+    /**
+     * [scene] with only its cars over the road band: the trees, the houses, the places and the parasols off, so the near
+     * row below the road (decision 96) puts nothing there -- with them on, a near crown reaches the near lane's body and the
+     * road's lower edge and reads as a vehicle standing still. The warm-up is the scene's, so the same cars are there.
+     */
+    private fun carsOnly(scene: GoldenScene) = GoldenScene(
+        name = "${scene.name}-cars-only",
+        dayPhase = scene.dayPhase,
+        sceneSeconds = scene.sceneSeconds,
+        warmUpFrames = scene.warmUpFrames,
+        warmUpDeltaSeconds = scene.warmUpDeltaSeconds,
+        themeId = scene.themeId,
+        weather = scene.weather,
+        customise = {
+            scene.customise(it).let { c ->
+                c.copy(
+                    trees = c.trees.copy(visible = false),
+                    houses = c.houses.copy(visible = false),
+                    buildings = c.buildings.copy(visible = false),
+                    parasols = c.parasols.copy(visible = false),
+                )
+            }
+        },
+    )
+
+    /** [scene] with its cars turned off: no road is painted, and what covers the road band then is not a vehicle. */
+    private fun withoutCars(scene: GoldenScene) = GoldenScene(
+        name = "${scene.name}-no-cars",
+        dayPhase = scene.dayPhase,
+        sceneSeconds = scene.sceneSeconds,
+        themeId = scene.themeId,
+        weather = scene.weather,
+        customise = { scene.customise(it).let { c -> c.copy(cars = c.cars.copy(visible = false)) } },
+    )
+
+    /**
+     * The runs of [scene]'s road band clear of everything the same scene shows there with its cars off: the near row below
+     * the road (decision 96) reaches over the road's lower edge here and there -- a tree's crown, a turret's roof -- and
+     * [VehiclePresence] reads that as a vehicle standing still.
+     */
+    private fun vehicles(scene: GoldenScene, result: VehiclePresence.Result): List<IntRange> {
+        val standing = measure(withoutCars(scene)).runs
+        return result.runs.filter { run -> standing.none { it.first <= run.last && it.last >= run.first } }
+    }
+
     // -- the vehicles are really there ------------------------------------------------------------
 
     @Test
     fun trafficDayHasVehiclesOnTheRoad() {
-        val result = measure(SharedGoldenScenes.trafficDay())
+        val scene = carsOnly(SharedGoldenScenes.trafficDay())
+        val result = measure(scene)
+        val vehicles = vehicles(scene, result)
         assertTrue(
-            "expected several vehicles on the road, found ${result.runs.size}",
-            result.runs.size >= 3,
+            "expected several vehicles on the road, found ${vehicles.size} (${result.runs.size} runs)",
+            vehicles.size >= 3,
         )
         assertTrue(
             "the road band is ${"%.1f".format(result.tarmacFraction * 100)}% uniform tarmac, " +
@@ -61,27 +105,52 @@ class TrafficGoldenTest {
 
     @Test
     fun trafficNightHasVehiclesOnTheRoad() {
-        val result = measure(SharedGoldenScenes.trafficNight())
-        assertTrue("expected several vehicles, found ${result.runs.size}", result.runs.size >= 3)
+        val scene = carsOnly(SharedGoldenScenes.trafficNight())
+        val result = measure(scene)
+        val vehicles = vehicles(scene, result)
+        assertTrue("expected several vehicles, found ${vehicles.size} (${result.runs.size} runs)", vehicles.size >= 3)
         assertTrue(result.tarmacFraction < 0.85)
     }
 
     /**
-     * **The gap, still measurable.** The scenes that existed before v3.8 have an empty road, and
-     * that is not a criticism of them — it is why the traffic scenes had to be added rather than
-     * an existing one reused.
+     * **The empty road of the other scenes.** The golden scenes without a warm-up have an empty
+     * road, and that is not a criticism of them — it is why the traffic scenes are scenes of their
+     * own rather than an existing one reused.
      */
     @Test
     fun theScenesWithoutWarmUpStillHaveAnEmptyRoad() {
+        // Decision 96 of `DESIGN_NOTES.md` §12: the near row's tree crowns below the road reach over its lower edge here and
+        // there, so the road band of `day` is read against the same scene with the cars turned off, where no road
+        // is painted: what covers the band in both is not a vehicle, and beyond it `day` adds only the centre line's dashes.
         val day = measure(SharedGoldenScenes.day())
-        assertEquals("day should have no vehicles at all", 0, day.runs.size)
-        assertTrue("an empty road is near-uniform tarmac", day.tarmacFraction > 0.9)
+        val noCars = measure(
+            GoldenScene(
+                name = "day-no-cars",
+                dayPhase = GoldenScene.day(),
+                customise = { it.copy(cars = it.cars.copy(visible = false)) },
+            ),
+        )
+        assertEquals("day should have no vehicles at all", noCars.runs, day.runs)
+        assertTrue(
+            "an empty road is tarmac and its dashes: ${day.nonTarmacFraction} not tarmac, ${noCars.nonTarmacFraction} with the cars off",
+            day.nonTarmacFraction < noCars.nonTarmacFraction + 0.05,
+        )
     }
 
-    /** Both lanes, so a regression confined to one of them cannot hide. */
+    /**
+     * Both lanes, so a regression confined to one of them cannot hide; and neither reads occupied with the cars off, so
+     * what fills them is a vehicle and not the near row reaching over the road.
+     */
     @Test
     fun bothLanesAreOccupied() {
-        val bitmap = SceneGolden.render(SharedGoldenScenes.trafficDay())
+        val scene = carsOnly(SharedGoldenScenes.trafficDay())
+        val empty = SceneGolden.render(withoutCars(scene))
+        val emptyLanes = VehiclePresence.occupiedLanes(empty)
+        empty.recycle()
+        Log.i(TAG, "traffic-day with its cars off, occupied lanes: $emptyLanes")
+        assertTrue("the far lane reads occupied with the cars off", !emptyLanes.first)
+        assertTrue("the near lane reads occupied with the cars off", !emptyLanes.second)
+        val bitmap = SceneGolden.render(scene)
         val lanes = VehiclePresence.occupiedLanes(bitmap)
         bitmap.recycle()
         Log.i(TAG, "traffic-day occupied lanes: $lanes")
@@ -97,25 +166,23 @@ class TrafficGoldenTest {
      * A golden is only worth its bytes if a plausible defect changes enough pixels to trip it. Each
      * case below perturbs the scene the way a real regression would and measures the difference
      * against the committed frame, as a fraction of the whole frame — against
-     * [LOOSE_BUDGET_BEFORE_V4_31], the budget this golden carried until v4.31.
+     * [LOOSE_FRAME_BUDGET], a loose budget of 0.002 of the frame.
      *
      * These are perturbations of the *scene*, not of the renderer: a mutated renderer cannot be
      * expressed from a test. What they show is the sensitivity the frame has to the traffic in it,
      * which is the property in question.
      *
-     * **The bar is the budget this golden used to have, not the one it has now.** v4.31 took
-     * [SceneGolden.MAX_DIFFERING_FRACTION] to zero, and measuring a regression against zero
-     * demonstrates only that it moves one pixel, which is not a demonstration. So the comparison
-     * below stays at the **0.002** the gate carried until then -- 576 pixels of a 360x800 frame --
-     * and therefore keeps saying what it always said: each of these defects would be caught even
-     * by the loose gate. Tightening the gate can only make that more true, never less, which is
-     * why pinning the old number here is a floor under the claim rather than a stale copy of a
-     * constant.
+     * **The bar is a loose budget, not the gate's.** [SceneGolden.MAX_DIFFERING_FRACTION] is zero,
+     * and measuring a regression against zero demonstrates only that it moves one pixel, which is
+     * not a demonstration. So the comparison below is at **0.002** -- 576 pixels of a 360x800
+     * frame -- and says that each of these defects would be caught even by a loose gate. The gate
+     * at zero can only make that more true, never less, which is why the loose number here is a
+     * floor under the claim rather than a copy of a constant.
      */
     @Test
     fun theGoldenWouldNoticeIfTheTrafficChanged() {
         val reference = SceneGolden.render(SharedGoldenScenes.trafficDay())
-        val budget = LOOSE_BUDGET_BEFORE_V4_31
+        val budget = LOOSE_FRAME_BUDGET
 
         data class Case(val label: String, val scene: GoldenScene)
         val cases = listOf(
@@ -191,11 +258,11 @@ class TrafficGoldenTest {
         const val TAG = "TRAFFIC"
 
         /**
-         * The whole-frame budget until v4.31: 0.002 of a 360x800 frame, i.e. 576 pixels.
+         * A loose whole-frame budget: 0.002 of a 360x800 frame, i.e. 576 pixels.
          *
-         * Kept as the bar for the regression demonstration above, deliberately **not** read from
-         * [SceneGolden.MAX_DIFFERING_FRACTION] any more. See that test's doc.
+         * The bar for the regression demonstration above, deliberately **not** read from
+         * [SceneGolden.MAX_DIFFERING_FRACTION], which is zero. See that test's doc.
          */
-        const val LOOSE_BUDGET_BEFORE_V4_31 = 0.002
+        const val LOOSE_FRAME_BUDGET = 0.002
     }
 }
