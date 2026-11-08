@@ -15,10 +15,10 @@ import org.junit.Test
 /**
  * The repaired road, on the pixels.
  *
- * `SavedThemeCarLayoutTest` proves the data is repaired. This proves the repair is the thing a
- * user sees: a `beach` override with no cars renders without a road, the same override after the
- * load-time repair renders with one, and the only thing that still legitimately takes the road
- * away is the user switching Cars off.
+ * `SavedThemeCarLayoutTest` proves the data is repaired. This checks what a user sees: a `beach`
+ * override stored with no cars draws its road (a street with no car is given ten, decision 104),
+ * the same override after the load-time repair holds the built-in's cars and draws them and the
+ * road, and with a car at some hour only the user switching Cars off takes the road away.
  *
  * The road is measured rather than compared against a golden: a whole-frame tolerance is too
  * coarse to be trusted with a question this specific.
@@ -86,9 +86,9 @@ class BeachRoadRepairTest {
     }
 
     /**
-     * How many pixels the vehicles paint, isolated by density -- never by visibility. The bottom
-     * of the density range keeps one car, so this is the paint of the *other* nine of the ten
-     * candidates -- still orders of magnitude above the threshold it is compared with.
+     * How many pixels the vehicles paint, isolated by density -- never by visibility. At 0 % no
+     * car drives (decision 104) and the road stays (beach's night density is above 0 %), so this
+     * is the paint of all ten candidates, orders of magnitude above the threshold it is compared with.
      */
     private fun vehiclePixels(): Int {
         val none = render(carsDensity = 0f)
@@ -100,15 +100,16 @@ class BeachRoadRepairTest {
         return n
     }
 
-    // ------------------------------------------------------------------ the defect, as pixels
+    // ------------------------------------------------------------------ an override stored with no cars, as pixels
 
+    /**
+     * A street with no car is given the built-in streets' ten (`SceneObjectCatalog.withEveryCategory`, decision 104), so a
+     * beach override saved with none draws its road even before the load repairs it.
+     */
     @Test
-    fun aDamagedBeachOverrideRendersWithoutARoad() {
+    fun aDamagedBeachOverrideStillRendersItsRoad() {
         CustomThemeRegistry.update(damagedBeach())
-        assertFalse(
-            "a beach override with no cars still drew a road -- the fixture is not reproducing the defect",
-            roadIsOnScreen(render()),
-        )
+        assertTrue("a beach override with no cars drew no road", roadIsOnScreen(render()))
     }
 
     @Test
@@ -125,13 +126,13 @@ class BeachRoadRepairTest {
         assertTrue("the repaired beach shows no traffic at 100%", vehiclePixels() > 500)
     }
 
-    /** And the one thing that is still allowed to take the road away is the user's own switch. */
+    /** With a car at some hour, the road goes only when the user switches Cars off (decision 104). */
     @Test
     fun aRepairedBeachStillLosesItsRoadWhenTheUserSwitchesCarsOff() {
         CustomThemeRegistry.update(customThemeDataFromJsonString(damagedBeach().toJsonString()))
         assertTrue("cars on: no road", roadIsOnScreen(render(carsVisible = true)))
         assertFalse("cars off: the road is still drawn", roadIsOnScreen(render(carsVisible = false)))
-        // ...and not when they merely turn the density down: density never takes the road away
+        // ...and not when they turn the day's density down: beach's night density is above 0 %, so a car drives at night
         assertTrue("density 10%: the road went away", roadIsOnScreen(render(carsDensity = 0.1f)))
         assertTrue("density 0%: the road went away", roadIsOnScreen(render(carsDensity = 0f)))
     }

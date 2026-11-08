@@ -10,10 +10,11 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **The scene lifted and the near row below the road** (`DESIGN_NOTES.md` §12, decision 96): every line of the ground 0.08
- * of the screen higher, the projection's ratios unchanged, and under the road the street seen a second time -- its houses,
- * trees, parasols and decorations and the shops' group, at a fixed size, with a pavement of its own -- planned from the
- * whole layout ([SceneObjectCatalog.nearRowOf]) and dealt its shops two in a row never alike ([SceneObjectCatalog.nearShopAt]).
+ * **The scene lifted and the near row below the road** (`DESIGN_NOTES.md` §12, decisions 96 and 105): every line of the
+ * ground 0.08 of the screen higher, the projection's ratios unchanged, and under the road the street seen again -- its
+ * houses, trees, parasols and decorations twice, every place among its houses with the six buildings, at a fixed size, with
+ * a pavement of its own -- planned from the whole layout ([SceneObjectCatalog.nearRowOf]) and dealt its buildings two in a
+ * row never alike and never the one above ([SceneObjectCatalog.nearBuildingAt]).
  */
 class NearRowTest {
 
@@ -93,39 +94,50 @@ class NearRowTest {
     private fun builtIn(id: String) = SceneObjectCatalog.layoutFor(id, ThemeCatalog.byId(id).accentColor)
 
     @Test
-    fun `the near row repeats the street a third of a tile on, without its towers and places`() {
+    fun `the near row repeats the street twice, a third of a tile on and half a tile further, without its towers`() {
         for (theme in ThemeCatalog.ALL) {
             val layout = builtIn(theme.id)
             val plan = SceneObjectCatalog.nearRowOf(layout)
             assertTrue(theme.id, plan.objects.isNotEmpty())
+            val passes = IntArray(2)
             for (e in plan.objects) {
                 assertTrue(theme.id, e.source in layout.staticObjects)
                 assertFalse("${theme.id}: a tower or a place in the near row", e.spec.type == SceneObjectType.SKYSCRAPER)
-                assertEquals(theme.id, (e.source.tileFractionX + SceneObjectCatalog.NEAR_ROW_SHIFT) % 1f, e.spec.tileFractionX, 0f)
+                val first = (e.source.tileFractionX + SceneObjectCatalog.NEAR_ROW_SHIFT) % 1f
+                val second = (first + SceneObjectCatalog.NEAR_ROW_SECOND_PASS) % 1f
+                val pass = when (e.spec.tileFractionX) { first -> 0; second -> 1; else -> -1 }
+                assertTrue("${theme.id}: ${e.spec.type} at ${e.spec.tileFractionX} on neither pass", pass >= 0)
+                passes[pass]++
                 assertEquals(theme.id, e.source.depthFraction, e.spec.depthFraction, 0f)
                 assertEquals(theme.id, e.source.type, e.spec.type)
                 if (e.spec.type == SceneObjectType.HOUSE) assertEquals(StaticSceneObject.UNDEALT, e.spec.silhouette)
             }
+            assertTrue("${theme.id}: both passes stand: ${passes.toList()}", passes[0] > 0 && passes[1] > 0)
             // Every kind the street has, but the buildings, is in it.
             val kinds = layout.staticObjects.map { it.type }.toSet() - SceneObjectType.SKYSCRAPER
             assertEquals(theme.id, kinds, plan.objects.map { it.spec.type }.toSet())
+            // Every house of the street stands on each pass where no place's front stops it: none is left out for another.
+            val houses = layout.staticObjects.filter { it.type == SceneObjectType.HOUSE }
+            for (h in houses) {
+                val shown = plan.objects.count { it.source === h }
+                val acrossAPlace = (0..1).count { k ->
+                    val x = ((h.tileFractionX + SceneObjectCatalog.NEAR_ROW_SHIFT) % 1f + k * SceneObjectCatalog.NEAR_ROW_SECOND_PASS) % 1f
+                    val spec = h.copy(tileFractionX = x, silhouette = StaticSceneObject.UNDEALT)
+                    plan.shops.any { shop -> spec.depthFraction > shop.depthFraction && overlap(spec, extent(spec), shop, extent(shop)) > 0f }
+                }
+                assertEquals("${theme.id}: the house at ${h.tileFractionX}", 2 - acrossAPlace, shown)
+            }
         }
     }
 
     @Test
-    fun `two shops of the street's places, nearest half a tile apart, and only the shops' group stands there`() {
+    fun `every place of the street stands there, and the six buildings take turns, never two alike in a row nor the one above`() {
         for (theme in ThemeCatalog.ALL) {
             val layout = builtIn(theme.id)
             val places = StorefrontStreet.places(layout)
             val plan = SceneObjectCatalog.nearRowOf(layout)
-            assertEquals(theme.id, 2, plan.shops.size)
-            assertTrue(theme.id, plan.shopSources.all { it in places })
-            val d = kotlin.math.abs(plan.shopSources[1].tileFractionX - plan.shopSources[0].tileFractionX)
-            val gap = minOf(d, 1f - d)
-            for (i in places.indices) for (j in i + 1 until places.size) {
-                val dd = places[j].tileFractionX - places[i].tileFractionX
-                assertTrue("${theme.id}: a pair nearer half a tile", minOf(dd, 1f - dd) <= gap + 1e-6f)
-            }
+            assertEquals(theme.id, places.size, plan.shops.size)
+            assertEquals(theme.id, places.toSet(), plan.shopSources.toSet())
             for (k in plan.shops.indices) {
                 assertEquals((plan.shopSources[k].tileFractionX + SceneObjectCatalog.NEAR_ROW_SHIFT) % 1f, plan.shops[k].tileFractionX, 0f)
             }
@@ -133,69 +145,105 @@ class NearRowTest {
         val scratch = IntArray(3)
         for (seed in listOf(0, 1, -7, "autumn".hashCode(), "city".hashCode(), 123456789)) {
             var previous: Storefront? = null
+            val seen = HashSet<Storefront>()
             for (place in -60..600) {
-                val shop = SceneObjectCatalog.nearShopAt(seed, place, scratch)
-                assertEquals("seed $seed place $place", StorefrontGroup.SHOPS, shop.group)
-                assertTrue("seed $seed: twice in a row at $place", shop != previous)
-                assertEquals("the same place, the same shop", shop, SceneObjectCatalog.nearShopAt(seed, place, IntArray(3)))
-                previous = shop
+                val free = SceneObjectCatalog.nearInHalf(seed, place, 0, scratch)!!
+                assertTrue("seed $seed: twice in a row at $place", free != previous)
+                assertEquals("the same place, the same building", free, SceneObjectCatalog.nearInHalf(seed, place, 0, IntArray(3)))
+                previous = free
+                seen += free
+                // Whatever stands over it, never that; none only where its whole half does.
+                for (over in 0 until (1 shl 6)) {
+                    val dealt = SceneObjectCatalog.nearInHalf(seed, place, over, scratch)
+                    if (dealt == null) {
+                        // Its half: the buildings it takes when every other one stands over it.
+                        val half = (0 until 6).filter { o -> SceneObjectCatalog.nearInHalf(seed, place, 63 xor (1 shl o), scratch)?.ordinal == o }
+                        assertEquals("seed $seed place $place: none under $over", 3, half.count { over and (1 shl it) != 0 })
+                    } else {
+                        assertEquals("seed $seed place $place: $dealt under $over", 0, over and (1 shl dealt.ordinal))
+                    }
+                }
             }
-            // Each deck of three holds all three.
-            for (deck in -5..50) {
-                assertEquals(3, (0 until 3).map { SceneObjectCatalog.nearShopAt(seed, deck * 3 + it, scratch) }.toSet().size)
-            }
+            assertEquals("seed $seed: all six come round", Storefront.ALL.toSet(), seen)
         }
     }
 
     /**
-     * **On the screen, never the same shop twice in a row** (decision 96): copy after copy along the scroll, each near place
-     * drawing what the renderer deals it -- `nearShopAt(seed, placeIndex(copy, rank, places))` at `copy + shops[rank].tileFractionX`
-     * --, read in the order the places stand, on the twelve built-in streets and on random ones. A place moved past the
-     * tile's end stands first in its copy.
+     * **On the screen** (decision 105), copy after copy along the scroll: each near place drawing what the renderer deals it,
+     * read in the order the places stand, on the twelve built-in streets and on random ones -- never the same building
+     * twice in a row, and never the building of a street place whose drawn width shares a pixel of the screen's width
+     * with it, measured here apart from the plan: the street's place at its depth, the near place at the near row's size.
      */
     @Test
-    fun `the near shops on the screen are never the same twice in a row`() {
+    fun `below the road a building is never the one before it nor the one above it on the screen`() {
         // A random theme with more than one car needs Android's HSV on the JVM: those are skipped, and the ones read counted.
         val random = (1..600).mapNotNull { n -> runCatching { "random:$n" to SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull() }
         assertTrue("random streets read: ${random.size} of 600", random.size >= 300)
         val streets = ThemeCatalog.ALL.map { it.id to builtIn(it.id) } + random
         val scratch = IntArray(3)
         var checked = 0
+        var overs = 0
+        var crowded = 0
         for ((id, layout) in streets) {
             val plan = SceneObjectCatalog.nearRowOf(layout)
+            val places = StorefrontStreet.places(layout)
             val n = plan.shops.size
-            if (n < 2) continue
+            if (n < 1) continue
             checked++
+            val seed = id.hashCode()
+            fun street(copy: Int, rank: Int) = StorefrontStreet.storefrontAt(seed, StorefrontStreet.placeIndex(copy, rank, places.size))
+            val deal = SceneObjectCatalog.StreetDeal { copy, rank -> street(copy, rank) }
+            fun near(copy: Int, rank: Int): Storefront = SceneObjectCatalog.nearBuilding(seed, plan, copy, rank, deal, scratch)
             val shown = (-3 until 40).flatMap { copy -> (0 until n).map { rank -> copy to rank } }
                 .sortedBy { (copy, rank) -> copy + plan.shops[rank].tileFractionX.toDouble() }
-                .map { (copy, rank) -> SceneObjectCatalog.nearShopAt(id.hashCode(), StorefrontStreet.placeIndex(copy, rank, n), scratch) }
-            for (i in 1 until shown.size) assertTrue("$id: ${shown[i]} twice in a row on the screen", shown[i] != shown[i - 1])
+            for (i in 1 until shown.size) {
+                assertTrue("$id: twice in a row on the screen", near(shown[i].first, shown[i].second) != near(shown[i - 1].first, shown[i - 1].second))
+            }
+            for ((copy, rank) in shown) {
+                val nearShop = plan.shops[rank]
+                val nearReach = extent(nearShop)
+                val dealt = near(copy, rank)
+                for (j in places.indices) for (dc in -1..1) {
+                    val p = places[j]
+                    val boxes = SceneObjectCatalog.occluderBoxes(p)
+                    val px = p.tileFractionX * 2160f
+                    val d = (copy + dc + p.tileFractionX - copy - nearShop.tileFractionX) * 2160f
+                    val left = maxOf(nearReach[0], d + boxes.minOf { it[0] - px })
+                    val right = minOf(nearReach[1], d + boxes.maxOf { it[2] - px })
+                    if (right > left) {
+                        overs++
+                        assertTrue("$id copy $copy rank $rank: $dealt under the same", dealt != street(copy + dc, j))
+                    }
+                }
+            }
+            if (plan.above.any { it.size > 4 }) crowded++
         }
-        assertTrue("streets with two near shops checked: $checked, of them random ${checked - 12}", checked >= 12 + 10)
+        assertTrue("streets checked: $checked, of them random ${checked - 12}", checked >= 12 + 10)
+        assertTrue("near places with a street place over them: $overs", overs > 100)
+        println("streets with three street places over one near place: $crowded")
     }
 
-    /** No shop's front is crossed in the near row, and no two houses stand one over the other, measured as the plan does. */
+    /** No place's front is crossed in the near row by what stands in front of it, measured as the plan does. */
     @Test
-    fun `a near shop's front is clear and no two near houses cover half of each other`() {
+    fun `a near place's front is clear of what stands in front of it`() {
         val streets = ThemeCatalog.ALL.map { it.id to builtIn(it.id) } +
             (1..300).mapNotNull { n -> runCatching { "random:$n" to SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull() }
+        var behind = 0
         for ((id, layout) in streets) {
             val plan = SceneObjectCatalog.nearRowOf(layout)
             for (shop in plan.shops) {
                 val front = extent(shop)
                 for (e in plan.objects) {
-                    val reach = extent(e.spec)
-                    assertEquals("$id: ${e.spec.type} at ${e.spec.tileFractionX} across the shop at ${shop.tileFractionX}", 0f, overlap(e.spec, reach, shop, front), 0.01f)
+                    val o = overlap(e.spec, extent(e.spec), shop, front)
+                    if (e.spec.depthFraction > shop.depthFraction) {
+                        assertEquals("$id: ${e.spec.type} at ${e.spec.tileFractionX} across the place at ${shop.tileFractionX}", 0f, o, 0.01f)
+                    } else if (o > 0f) {
+                        behind++
+                    }
                 }
             }
-            val houses = plan.objects.filter { it.spec.type == SceneObjectType.HOUSE }
-            for (i in houses.indices) for (j in i + 1 until houses.size) {
-                val a = extent(houses[i].spec)
-                val b = extent(houses[j].spec)
-                val narrower = minOf(a[1] - a[0], b[1] - b[0])
-                assertTrue("$id: two near houses over each other", overlap(houses[i].spec, a, houses[j].spec, b) <= narrower / 2f + 0.01f)
-            }
         }
+        assertTrue("what stands behind a place stays: $behind", behind > 0)
     }
 
     @Test
@@ -277,5 +325,31 @@ class NearRowTest {
             dir = dir.parentFile
         }
         error("$suffix not found")
+    }
+
+    /**
+     * Where the three buildings of a place's half all stand over it -- three street places over one near place -- it takes
+     * one of the other half that neither neighbour holds ([SceneObjectCatalog.nearBuilding]).
+     */
+    @Test
+    fun `a near place under its whole half takes the other half, never a neighbour's`() {
+        val place = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = 0.6f, tileFractionX = 0.2f)
+        val shops = listOf(place, place.copy(tileFractionX = 0.5f), place.copy(tileFractionX = 0.8f))
+        // Near place 0 (copy 0, rank 0) under the street's ranks 0, 1 and 2 of its own copy.
+        val plan = SceneObjectCatalog.NearRowPlan(emptyList(), shops, shops, arrayOf(intArrayOf(0, 0, 1, 0, 2, 0), intArrayOf(), intArrayOf()))
+        val scratch = IntArray(3)
+        for (seed in listOf(0, 1, -7, 99, "autumn".hashCode())) {
+            // The street deals, over near place 0, the three buildings of its half.
+            val half = (0 until 6).map { Storefront.ALL[it] }.filter { b ->
+                SceneObjectCatalog.nearInHalf(seed, 0, 63 xor (1 shl b.ordinal), scratch) == b
+            }
+            assertEquals(3, half.size)
+            val deal = SceneObjectCatalog.StreetDeal { _, rank -> half[rank] }
+            val dealt = SceneObjectCatalog.nearBuilding(seed, plan, 0, 0, deal, scratch)
+            assertTrue("seed $seed: $dealt is over it", dealt !in half)
+            val before = SceneObjectCatalog.nearBuilding(seed, plan, -1, 2, deal, scratch)
+            val after = SceneObjectCatalog.nearBuilding(seed, plan, 0, 1, deal, scratch)
+            assertTrue("seed $seed: $dealt beside $before and $after", dealt != before && dealt != after)
+        }
     }
 }

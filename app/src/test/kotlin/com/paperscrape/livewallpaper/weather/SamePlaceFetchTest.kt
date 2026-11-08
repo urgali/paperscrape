@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.weather
 
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,19 +25,47 @@ class SamePlaceFetchTest {
     private fun north(northMetres: Double) = DeviceLocationFix(florence.latitude + northMetres / 111_200.0, florence.longitude)
 
     @Test
-    fun `a fix a few metres from the last request's is the same place, and waits for the hour`() {
-        for (metres in listOf(0.0, 5.0, 50.0, 500.0, 5_000.0, 10_900.0)) {
+    fun `a phone's fix up to 3 km from the last request's is the same place, and waits for the hour`() {
+        for (metres in listOf(0.0, 5.0, 50.0, 500.0, 2_000.0, 2_990.0)) {
             assertFalse("$metres m", LiveWeatherSchedule.movedToAnotherPlace(north(metres), florence))
         }
     }
 
     @Test
-    fun `a fix farther than 11 km away is another place, and is asked for at once`() {
-        for (metres in listOf(11_200.0, 20_000.0, 300_000.0)) {
+    fun `a phone's fix farther than 3 km away is another place, and is asked for at once`() {
+        for (metres in listOf(3_010.0, 5_000.0, 20_000.0, 300_000.0)) {
             assertTrue("$metres m", LiveWeatherSchedule.movedToAnotherPlace(north(metres), florence))
         }
-        // Milan, about 250 km from Florence, is another place; a fix 5 km away, as Fiesole is, is not (the test above).
+        // Milan, about 250 km from Florence, is another place; a fix 2 km away is not (the test above).
         assertTrue(LiveWeatherSchedule.movedToAnotherPlace(DeviceLocationFix(45.4642, 9.19), florence))
+    }
+
+    /** A written place moved more than 10 m is a change the user made: asked at once, however near (decision 101). */
+    @Test
+    fun `a written place moved more than 10 m is another place, asked at once`() {
+        for (metres in listOf(11.0, 200.0, 2_000.0, 300_000.0)) {
+            assertTrue("$metres m", LiveWeatherSchedule.movedToAnotherPlace(north(metres), florence, written = true))
+        }
+        for (metres in listOf(0.0, 5.0, 9.0)) {
+            assertFalse("$metres m", LiveWeatherSchedule.movedToAnotherPlace(north(metres), florence, written = true))
+        }
+        val saved = DeviceLocationFix(florence.latitude.toFloat().toDouble(), florence.longitude.toFloat().toDouble())
+        assertFalse("read back as a float, written", LiveWeatherSchedule.movedToAnotherPlace(saved, florence, written = true))
+    }
+
+    /**
+     * A pass takes the position the phone holds (decision 101) when it is 30 minutes old or less and 100 m or more from the
+     * one kept, or none is kept.
+     */
+    @Test
+    fun `a pass takes the position the phone holds, fresh and moved`() {
+        val min = 60_000L
+        assertTrue(LiveWeatherSchedule.takesHeldPosition(north(5_000.0), 30 * min, florence))
+        assertFalse("too old", LiveWeatherSchedule.takesHeldPosition(north(5_000.0), 30 * min + 1, florence))
+        assertTrue(LiveWeatherSchedule.takesHeldPosition(north(101.0), 0L, florence))
+        assertFalse("too near", LiveWeatherSchedule.takesHeldPosition(north(99.0), 0L, florence))
+        assertTrue("none kept", LiveWeatherSchedule.takesHeldPosition(north(0.0), 0L, null))
+        assertEquals(3.0, LiveWeatherSchedule.SAME_PLACE_KM, 0.0)
     }
 
     @Test

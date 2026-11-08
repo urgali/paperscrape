@@ -177,8 +177,8 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("theme"))
     val layoutJson = root.optJSONObject("layout")
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
-    // A street exported before v5.6 has no school; it gets the one the store gives a theme it saved
-    // then (`addMissingSchool`). Guarded like the store's step: a street that cannot
+    // A street exported with no school gets the one the store gives a theme saved without it
+    // (`addMissingSchool`). Guarded like the store's step: a street that cannot
     // be read whole is left as it came, and the line below decides whether it imports.
     runCatching { addMissingSchool(layoutJson.optJSONArray("staticObjects")) }
     val layout = runCatching { sceneObjectLayoutFromJson(layoutJson) }.getOrNull()
@@ -188,7 +188,7 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
     // The customization block gets the same `runCatching` as the theme and the layout above, as in
     // `parseAppBackup`: unguarded, a malformed block would throw out of the import instead of
     // refusing it (`ImportParserFuzzTest`).
-    val customization = runCatching { sceneCustomizationFromJson(root.optJSONObject("customization"), theme) }
+    val customization = runCatching { sceneCustomizationFromJson(root.optJSONObject("customization"), theme, layout) }
         .getOrNull()
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("customization"))
 

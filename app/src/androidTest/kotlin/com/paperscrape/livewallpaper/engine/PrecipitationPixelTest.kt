@@ -137,9 +137,12 @@ class PrecipitationPixelTest {
         return n.toDouble() / (w * h)
     }
 
-    /** How much of the band the effect falls through actually has something in it. */
+    /**
+     * How much of the band the effect falls through actually has something in it: from where the rain is born, the cloud
+     * band's middle ([CloudBand.precipitationOriginY]: the clouds follow the sun, decision 106), to the frame's foot.
+     */
     private fun spread(m: Array<BooleanArray>, w: Int, h: Int): Pair<Double, Int> {
-        val bandTop = (h * 0.20f).toInt()
+        val bandTop = CloudBand.precipitationOriginY(w, h, SceneCustomization.DEFAULT.sky.sunCloudHeight).toInt()
         val cols = 6
         val rows = 12
         val cellW = w / cols

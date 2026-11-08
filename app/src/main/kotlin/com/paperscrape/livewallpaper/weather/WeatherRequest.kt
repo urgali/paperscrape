@@ -21,7 +21,7 @@ internal object WeatherRequest {
      * GPS fix (the mode a user can pick explicitly) left the device at full float precision:
      * several decimal places past anything the answer depends on, sent hourly, to a third party.
      *
-     * Nothing is lost by rounding. Open-Meteo resolves to roughly an 11 km grid and the other two
+     * Nothing is lost by rounding. Open-Meteo resolves to a grid of 2 to 11 km and the other two
      * are no finer, so two decimals is already well inside one cell -- the same forecast comes
      * back. What changes is only how precisely a request describes where its sender was standing.
      */

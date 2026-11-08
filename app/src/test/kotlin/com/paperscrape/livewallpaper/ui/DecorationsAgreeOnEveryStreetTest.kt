@@ -5,6 +5,7 @@ import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.DistantHousesConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.StorefrontStreet
@@ -17,19 +18,28 @@ import org.junit.Test
 
 /**
  * **The settings, the setters and the reading of stored data agree on the Halloween and the Christmas decorations, on
- * every street** (`DESIGN_NOTES.md` §12, decisions 40 and 77): a switch the settings let the user turn on reads on after
- * the tap, and no switch is held off by one that cannot be turned off.
+ * every street tried** (`DESIGN_NOTES.md` §12, decisions 40 and 77): a switch the settings let the user turn on reads on
+ * after the tap, and no switch is held off by one that cannot be turned off.
  *
- * The streets are the catalogue's: `random:<n>` built on the JVM with no accent colour (a second car's colour is Android's
- * HSV, so the ones that need it are passed over), and the twelve built-in ones.
+ * The streets: `random:<n>` as it was born, built by hand ([randomStreet]) on the JVM with no accent colour (a second car's
+ * colour is Android's HSV, so the ones that need it are passed over), and the twelve built-in ones as the catalogue lays them.
  */
 class DecorationsAgreeOnEveryStreetTest {
 
     @Before
     fun clearRegistry() = CustomThemeRegistry.update(CustomThemeData.EMPTY)
 
-    /** The street of `random:<n>` as the catalogue lays it, or null where the JVM cannot build it. */
-    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching { SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull()
+    /**
+     * The street `random:<n>` was born with, built by hand (its own objects, the trees decision 97 gives it through
+     * [SceneObjectCatalog.withTrees], its seasonal decorations): the street the lines of a theme that lacks a category
+     * read, which the catalogue does not lay ([SceneObjectCatalog.withEveryCategory] adds them; the guard that stays).
+     * Null where the JVM cannot build it.
+     */
+    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching {
+        val id = "random:$n"
+        val born = SceneObjectCatalog.withTrees(RandomSceneGenerator.generateLayout(id, 0), id)
+        born.copy(staticObjects = born.staticObjects + SceneObjectCatalog.seasonalDecorationCandidates(id))
+    }.getOrNull()
 
     private fun SceneObjectLayout.hasPlace() = staticObjects.any { StorefrontStreet.isPlace(it) }
 

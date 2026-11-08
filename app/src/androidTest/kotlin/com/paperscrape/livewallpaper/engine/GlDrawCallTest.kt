@@ -341,6 +341,8 @@ class GlDrawCallTest {
                 customise = { base ->
                     base.copy(
                         christmasBuildingLightsEnabled = true, christmasTreeLightsEnabled = true, christmasFirsEnabled = true,
+                        // The fireworks, which a switch lights on every theme (decision 103).
+                        fireworksEnabled = true,
                         people = base.people.copy(visible = true, density = 1f),
                         peopleNightDensity = 1f,
                         distantHouses = DistantHousesConfig(visible = true, density = 1f),

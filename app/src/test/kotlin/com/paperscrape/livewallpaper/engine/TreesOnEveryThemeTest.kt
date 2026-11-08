@@ -12,8 +12,11 @@ import org.junit.Test
 /**
  * **Trees can be switched on on every theme** (`DESIGN_NOTES.md` §12, decision 97): a random, saved or imported theme whose
  * street has no tree and no palm is given ten from its own seed by the built-in streets' rule
- * ([SceneObjectCatalog.withTrees]), thinned by the Trees page's *Density*; the twelve built-in streets, and every street with trees or
- * palms, are left as they are; and no added tree stands with its trunk across a place's front.
+ * ([SceneObjectCatalog.withTrees]), thinned by the Trees page's *Density*, and a random theme whose own trees keep none at
+ * the factory amount is given the ten beside its own, and another seed's ten where none of those stands. Held here: a bare street gets ten, and a street with trees or palms,
+ * not random, is left as it is; the twelve built-in streets are left as they are, ten trees each; every random street the
+ * catalogue lays has trees and keeps what it was born with; no added tree stands with its trunk across a place's front; a
+ * save keeps its trees. That a random theme's trees stand as it ships is held by `RandomThemesShowWhatIsOnTest`.
  */
 class TreesOnEveryThemeTest {
 
@@ -49,7 +52,7 @@ class TreesOnEveryThemeTest {
     }
 
     @Test
-    fun `the twelve built-in streets are as they were`() {
+    fun `the twelve built-in streets are left as they are, ten trees each`() {
         for (theme in ThemeCatalog.ALL) {
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
             assertEquals(theme.id, layout, SceneObjectCatalog.withTrees(layout, theme.id))
@@ -57,7 +60,7 @@ class TreesOnEveryThemeTest {
         }
     }
 
-    /** Four random themes in ten are born with no tree (the generator is not changed); as the catalogue lays them, all have trees. */
+    /** About four random themes in ten are born with no tree, as the generator rolls them; as the catalogue lays them, all have trees. */
     @Test
     fun `every random theme has trees, its generation untouched`() {
         var bornBare = 0
@@ -69,7 +72,7 @@ class TreesOnEveryThemeTest {
             assertTrue("random:$k has no tree", laid.treeCount() > 0)
             if (born.treeCount() == 0) {
                 bornBare++
-                assertTrue("random:$k: up to ten added, those across a door left out", laid.treeCount() in 1..10)
+                assertTrue("random:$k: ten added, and another ten where none of those stands, those across a door left out", laid.treeCount() in 1..20)
                 // Everything it was born with is still there.
                 assertTrue(laid.staticObjects.containsAll(born.staticObjects))
             }
@@ -101,15 +104,18 @@ class TreesOnEveryThemeTest {
     }
 
     /**
-     * A theme saved with *Show Trees* off stores no tree (`snapshotEntry` keeps what stands): loaded, it is given trees, and
-     * the switch, off as it was saved, keeps them off until it is turned on; turned on, they stand. The *Show Trees* line
-     * is a theme with trees' line.
+     * A theme saved with *Show Trees* off stores its ten trees (`snapshotEntry` keeps every candidate, decision 102); one
+     * stored with no tree is given trees when loaded, and the switch, off as it was saved, keeps them off until it is turned
+     * on; turned on, they stand. The *Show Trees* line is a theme with trees' line.
      */
     @Test
-    fun `a theme saved with no tree gets trees, off until Show Trees is turned on`() {
+    fun `a theme saved with trees off keeps them, and one stored with no tree gets trees, off until Show Trees is turned on`() {
         val autumn = defaultCustomizationFor("autumn")
-        val entry = snapshotEntry("custom:bare", "Autumn without trees", "autumn", autumn.copy(trees = autumn.trees.copy(visible = false)), "autumn")
-        assertEquals("the save keeps no tree", 0, entry.layout.treeCount())
+        val saved = snapshotEntry("custom:bare", "Autumn without trees", "autumn", autumn.copy(trees = autumn.trees.copy(visible = false)), "autumn")
+        assertEquals("a save keeps every candidate, the trees off among them (decision 102)", 10, saved.layout.treeCount())
+        // The same theme stored with no tree.
+        val entry = saved.copy(layout = saved.layout.copy(staticObjects = saved.layout.staticObjects.filter { it.type != SceneObjectType.TREE }))
+        assertEquals("the entry stores no tree", 0, entry.layout.treeCount())
         CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
         val street = SceneObjectCatalog.layoutFor(entry.id, 0)
         assertTrue("up to ten, those across a door left out", street.treeCount() in 1..10)

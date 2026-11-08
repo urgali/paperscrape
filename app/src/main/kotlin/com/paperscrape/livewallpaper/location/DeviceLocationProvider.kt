@@ -30,6 +30,9 @@ data class DeviceLocationFix(val latitude: Double, val longitude: Double)
  */
 data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean)
 
+/** A position the phone already holds and how old it is, in ms ([DeviceLocationProvider.heldFix]). */
+data class HeldFix(val fix: DeviceLocationFix, val ageMillis: Long)
+
 /**
  * One position, asked for when something actually needs it.
  *
@@ -144,6 +147,18 @@ class DeviceLocationProvider(private val context: Context) {
                 DeviceFixAnswer(live ?: cached?.toFix(), consulted = true)
             }
         }
+    }
+
+    /**
+     * The position the phone already holds for [kind] and its age in ms, **without a request**: no radio is started, the
+     * throttle is not asked and not told (`DESIGN_NOTES.md` §12, decision 101). Null without the permission or with none
+     * held. What another app's request left behind is how the weather follows the phone between the hourly requests.
+     */
+    fun heldFix(kind: DeviceLocationKind): HeldFix? {
+        if (!hasPermission(kind)) return null
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        val cached = lastKnown(manager, kind) ?: return null
+        return HeldFix(cached.toFix(), cached.ageMillis())
     }
 
     private fun isEnabled(manager: LocationManager, kind: DeviceLocationKind): Boolean = try {

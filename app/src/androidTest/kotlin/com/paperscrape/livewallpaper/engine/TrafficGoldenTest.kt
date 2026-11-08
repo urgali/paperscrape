@@ -119,15 +119,16 @@ class TrafficGoldenTest {
      */
     @Test
     fun theScenesWithoutWarmUpStillHaveAnEmptyRoad() {
-        // Decision 96 of `DESIGN_NOTES.md` §12: the near row's tree crowns below the road reach over its lower edge here and
-        // there, so the road band of `day` is read against the same scene with the cars turned off, where no road
-        // is painted: what covers the band in both is not a vehicle, and beyond it `day` adds only the centre line's dashes.
+        // Decisions 96 and 105 of `DESIGN_NOTES.md` §12: the near row's tree crowns below the road reach over its lower edge
+        // here and there, so the road band of `day` is read against the same scene with no car on the road kept empty (both
+        // densities at 0 %, *Keep the road* on, decision 104): the same tarmac under the same crowns, so what covers the band
+        // in both is not a vehicle, and beyond it `day` adds nothing.
         val day = measure(SharedGoldenScenes.day())
         val noCars = measure(
             GoldenScene(
                 name = "day-no-cars",
                 dayPhase = GoldenScene.day(),
-                customise = { it.copy(cars = it.cars.copy(visible = false)) },
+                customise = { it.copy(cars = it.cars.copy(density = 0f), carsNightDensity = 0f, keepRoad = true) },
             ),
         )
         assertEquals("day should have no vehicles at all", noCars.runs, day.runs)

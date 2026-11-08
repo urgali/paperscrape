@@ -16,9 +16,8 @@ import org.junit.runner.RunWith
  *
  * ### Why this exists
  *
- * The v4.21 snow audit confirmed all five building types and all three plants carry a winter
- * overlay, but it confirmed it by reading `drawStaticObject`'s branches one by one -- which is
- * exactly how a *sixth* building type would ship bare: nothing fails when a new variant's draw
+ * Reading `drawStaticObject`'s branches one by one can confirm that every building type and every
+ * plant carries a winter overlay, and it is exactly how a new building type would ship bare: nothing fails when a new variant's draw
  * function simply never mentions `winterColorsEnabled`. This test states the coverage as a rule
  * over [SceneSpace.SceneVariant] itself, so a variant added tomorrow fails here until somebody
  * either gives it snow or writes down why it has none.
@@ -71,11 +70,11 @@ class BuildingRoofSnowTest {
             .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
             .toSet()
         // The ground floor (or the tower's body): the first fixed card of the first slot, which
-        // every deal of the family places, so it is always on screen to measure against. Since
-        // v5.11 the tower's body is one of three heights by a coin of its own, so the reference
-        // is whichever of the three the deal gave it.
+        // every deal of the family places, so it is always on screen to measure against. The
+        // tower's body is one of three heights by a coin of its own, so the reference is
+        // whichever of the three the deal gave it.
         //
-        // **A building among the houses is measured against its walls** (v5.13, `walls`): the six are one
+        // **A building among the houses is measured against its walls** (`walls`): the six are one
         // piece each, and the fire station's fixed card holds the lamp over its tower's roof, above the
         // snow on the roof's slopes; each wall mask -- the block's and the tower's -- ends at its roofline.
         val first = family.slots.first()
@@ -117,7 +116,7 @@ class BuildingRoofSnowTest {
         SceneSpace.SceneVariant.BUNNY to "an animal, not a structure",
         SceneSpace.SceneVariant.EASTER_EGG to "an Easter decoration; no theme shows it in winter",
         SceneSpace.SceneVariant.PUMPKIN to "a Halloween decoration; no theme shows it in winter",
-        // v5.16: the scarecrow, fixed art on a pole, as the pumpkin at its feet.
+        // The scarecrow: fixed art on a pole, as the pumpkin at its feet.
         SceneSpace.SceneVariant.SCARECROW to "a Halloween decoration; no theme shows it in winter",
     )
 
@@ -138,7 +137,7 @@ class BuildingRoofSnowTest {
     }
 
     /**
-     * **A place among the houses wears the snow of whichever building stands in it** (v5.13): the street
+     * **A place among the houses wears the snow of whichever building stands in it**: the street
      * deals any of the six to any place ([StorefrontStreet]), so each place is rendered once per building,
      * scrolled to the first copy of it the street gives that building, and asked for that building's snow.
      */
@@ -169,19 +168,22 @@ class BuildingRoofSnowTest {
         val winter = render(layout, winter = true, christmas = christmas, offset = offset)
         val plain = render(layout, winter = false, christmas = christmas, offset = offset)
 
-        val caps = winter.filter { it.resId in roofed.snow }
+        val caps = winter.withIndex().filter { it.value.resId in roofed.snow }
         assertTrue(
             "$label should wear one of ${roofed.snow.joinToString { nameOf(it) }} in winter",
             caps.isNotEmpty(),
         )
-
-        val refs = winter.filter { it.resId in roofed.reference }
         assertTrue(
             "$label should blit its reference ${roofed.reference.joinToString { nameOf(it) }}",
-            refs.isNotEmpty(),
+            winter.any { it.resId in roofed.reference },
         )
-        for (cap in caps) {
-            val ref = refs.minByOrNull { kotlin.math.abs(it.rect.centerX() - cap.rect.centerX()) }!!
+        for ((index, cap) in caps) {
+            // Its own building's reference: the one drawn last before it. A building draws its ground floor, then its
+            // pieces, then their snow, and a plant its trunk before its crown; the nearest on the screen can be another
+            // building's -- the street's buildings stand close and overlap, and the near row below the road (decisions 96
+            // and 105) draws them again, its roofs reaching over the road.
+            val ref = winter.subList(0, index).lastOrNull { it.resId in roofed.reference }
+                ?: throw AssertionError("$label: ${nameOf(cap.resId)} is drawn before any reference")
             val roofline = if (roofed.aboveTop) ref.rect.top else ref.rect.centerY()
             assertTrue(
                 "$label: ${nameOf(cap.resId)} top ${cap.rect.top} should clear its " +
@@ -224,9 +226,8 @@ class BuildingRoofSnowTest {
             listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.40f, 0.25f))
         SceneSpace.SceneVariant.BAR ->
             listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.70f, 0.25f))
-        // v5.6F: the middle third of the shop band. This test's own doc said a *sixth* building
-        // type is exactly what would ship bare, and it caught the school by deriving its coverage
-        // from `NeighbourhoodTable.FAMILIES.keys` -- it only needed somewhere to stand.
+        // The middle third of the shop band: the coverage comes from `NeighbourhoodTable.FAMILIES.keys`,
+        // so a new building type is asked for its snow here once it has somewhere to stand.
         SceneSpace.SceneVariant.SCHOOL ->
             listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.55f, 0.25f))
         SceneSpace.SceneVariant.HOUSE_SMALL -> listOf(houseResolving(SceneSpace.SceneVariant.HOUSE_SMALL))
@@ -333,7 +334,7 @@ class BuildingRoofSnowTest {
             matrix.preRotate(degrees)
         }
 
-        // A sprite cut to a box (v5.12, a person walking out of a window) is recorded as the blit it is.
+        // A sprite cut to a box (a person walking out of a window) is recorded as the blit it is.
         override fun drawSpriteClipped(
             resId: Int,
             source: SpriteSource,

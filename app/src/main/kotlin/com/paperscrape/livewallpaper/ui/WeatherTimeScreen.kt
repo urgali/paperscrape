@@ -213,14 +213,20 @@ internal fun WeatherTimeScreen(
                             "Available while the scene follows real time. At a fixed hour, sunrise and sunset are " +
                                 "6:00 and 20:00."
                         // What `LocationRequestThrottle` does, in its words: once an hour while the phone
-                        // answers, and 5, 15 and 30 minutes after a search that finds nothing.
+                        // answers, and 5, 15 and 30 minutes after a search that finds nothing; and between, the
+                        // position the phone holds read with no request (`DeviceLocationProvider.heldFix`), the
+                        // weather asked past `LiveWeatherSchedule.SAME_PLACE_KM` (decision 101).
                         locationMode == LocationMode.GPS ->
                             "Uses the GPS receiver for a precise position, never continuously: once an hour " +
-                                "at most. If a search finds nothing, it tries again after 5, 15 and 30 minutes."
+                                "at most. If a search finds nothing, it tries again after 5, 15 and 30 minutes. " +
+                                "In between, the position the phone already knows is read for free, and new " +
+                                "weather is asked as soon as you have moved more than 3 km."
                         locationMode == LocationMode.NETWORK ->
                             "Uses cell towers and Wi-Fi for an approximate position - enough to know your " +
                                 "town, and the GPS receiver is never started. Once an hour at most; if nothing " +
-                                "comes, it tries again after 5, 15 and 30 minutes."
+                                "comes, it tries again after 5, 15 and 30 minutes. In between, the position the " +
+                                "phone already knows is read for free, and new weather is asked as soon as you " +
+                                "have moved more than 3 km."
                         locationMode == LocationMode.CUSTOM ->
                             "A place you pick yourself. Costs no battery and needs no location permission."
                         else -> "Used for precise sunrise and sunset times, and for Live Weather. One source at a time."

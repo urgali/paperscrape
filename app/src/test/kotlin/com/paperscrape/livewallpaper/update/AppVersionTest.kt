@@ -42,6 +42,14 @@ class AppVersionTest {
     }
 
     @Test
+    fun `the minor is a number, so 5 dot 19 is newer than 5 dot 18, 5 dot 9 and 5 dot 1`() {
+        assertTrue(v("5.19") > v("5.18"))
+        assertTrue(v("5.19") > v("5.9"))
+        assertTrue(v("5.19") > v("5.1"))
+        assertTrue(v("v5.19") > v("v5.18"))
+    }
+
+    @Test
     fun `an older release is not an update`() {
         assertTrue(v("1.9") <= v("2.0"))
     }

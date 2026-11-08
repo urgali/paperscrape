@@ -9,7 +9,7 @@ data class ObjectVariantConfig(
     val visible: Boolean,
     /**
      * 0f..1f: for static categories the fraction of candidate slots that render, each slot keeping itself by a stable
-     * hash ([keepCandidate]); for cars an explicit **count**, 1 car at 0f and every slot at 1f, since ten candidates
+     * hash ([keepCandidate]); for cars an explicit **count**, none at 0f and every slot at 1f, since ten candidates
      * are too few for independent thresholds to approximate a density ([CarSelection]).
      */
     val density: Float,
@@ -103,9 +103,10 @@ data class SkyConfig(
     val colorSunriseLow: Int,
     val colorSunsetLow: Int,
     /**
-     * How high the sun and moon's arc rises, as a fraction of screen height, and with it how high the cloud band sits
-     * (`PaperRenderer.cloudBandTop`): one value, because a sun peaking low under high clouds reads as two skies.
-     * Stored in scene terms, [SUN_CLOUD_HEIGHT_MIN]..[SUN_CLOUD_HEIGHT_MAX]; the slider shows it as 0-100%.
+     * How high the sun and moon's arc rises, and with it how high the cloud band sits ([CloudBand.topFor]): one value,
+     * because a sun peaking low under high clouds reads as two skies. Stored in scene terms,
+     * [SUN_CLOUD_HEIGHT_MIN]..[SUN_CLOUD_HEIGHT_MAX], which the slider shows as 0-100% and every reader spreads over the
+     * arc the screen has room for ([SunArc.rise], decision 106).
      */
     val sunCloudHeight: Float,
     /** Who owns the High pair. The two sky bands are two colours, so they toggle separately. */
@@ -264,6 +265,20 @@ data class SceneCustomization(
      */
     val carsNightDensity: Float = DEFAULT_CARS_NIGHT_DENSITY,
     /**
+     * *Show shops and public buildings* (`DESIGN_NOTES.md` decision 102): whether the six buildings among the houses -- the
+     * restaurant, the bar, the shop, the school, the fire station and the police station, taking turns in the street's
+     * places -- stand, below the road too; they need *Show Buildings* on as well ([keepCandidate]). On as every theme
+     * ships, off on a random theme born with no place among the houses ([offWhereBornWithout]).
+     */
+    val placesVisible: Boolean = true,
+    /**
+     * *Keep the road* (`DESIGN_NOTES.md` decision 104): whether the road stays when no car drives at any hour -- *Show
+     * Cars* off, or both densities at 0 % -- empty, or is taken away and the meadow runs to the houses
+     * (`SceneObjectRenderer.drawsRoad`). While a car drives at some hour the road is there whatever it says. Off as every
+     * theme ships; data written before it existed reads it as the road that data drew ([keepRoadAsDrawnBefore]).
+     */
+    val keepRoad: Boolean = false,
+    /**
      * Whether the shops -- the restaurant, the bar and the shop -- keep opening hours. **Off by default, and off is
      * every shop always open**, its glass lit at night and its people at their windows, the hours below inert (editable
      * only while this is on). See [BusinessHours] for what open and closed do, and why the houses never keep hours.
@@ -402,6 +417,12 @@ data class SceneCustomization(
     val headlessHorsemanEnabled: Boolean = false,
     // Santa's sleigh, a per-theme switch whose default is the theme's `hasSantaSleigh` (defaultCustomizationFor).
     val santaEnabled: Boolean = false,
+    /**
+     * *Fireworks* (`DESIGN_NOTES.md` decision 103): bursts over the town at night (`FireworkEffect`, while the day is under
+     * a third lit). A per-theme switch, as [santaEnabled] is, on any theme; its default is the theme's `hasFireworks`
+     * ([defaultCustomizationFor]): on as New Year's Eve ships and on a random theme born with fireworks, off on every other.
+     */
+    val fireworksEnabled: Boolean = false,
     // The seasonal decorations, any of them on any theme ("Seasons & decorations").
     val snowmen: ObjectVariantConfig,
     val gifts: ObjectVariantConfig,
@@ -646,6 +667,15 @@ const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 const val DEFAULT_CARS_NIGHT_DENSITY = 1f
 
 /**
+ * *Keep the road* for data written before the switch existed (a store, a saved theme, a theme file, a backup): the road
+ * that data drew. Such data drew one car at 0 %, so with *Show Cars* on its road was always drawn: read as on where both
+ * densities are at 0 %, the road stays, empty, with no car (`DESIGN_NOTES.md` decision 104), and off elsewhere, where the
+ * cars' own road is the same with it off.
+ */
+fun keepRoadAsDrawnBefore(carsVisible: Boolean, dayDensity: Float, nightDensity: Float): Boolean =
+    carsVisible && dayDensity <= 0f && nightDensity <= 0f
+
+/**
  * Whether the night by day is in force: *Night sky by day* on, with the Halloween moon it is drawn with (*Halloween* and
  * *Moon* on). The renderer draws by it (`PaperRenderer.nightOverDay`) and the settings say so by it
  * (`SettingsUiModel.nightSkyByDay`, and *Show Sun*, *Show Birds* and *Show Rainbow*, which it stops by day).
@@ -706,12 +736,12 @@ object DecorationExclusion {
         housesStand(c, layout) || placesStand(c, layout)
 
     /**
-     * Whether the places among the houses stand, where the six buildings take turns: *Show Buildings* on -- they stand while
-     * it is, whatever the towers' amount -- on a street that has one ([StorefrontStreet.isPlace]). A random theme or a
-     * saved one can have none; without the layout, *Show Buildings* stands for it.
+     * Whether the places among the houses stand, where the six buildings take turns: *Show Buildings* and *Show shops and
+     * public buildings* on -- they stand while both are, whatever the towers' amount -- on a street that has one
+     * ([StorefrontStreet.isPlace]).
      */
     fun placesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
-        c.buildings.visible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
+        c.buildings.visible && c.placesVisible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
 
     /** Whether a house stands: one of [layout]'s kept ([standsAny]), or without the layout the houses on and above 0 %. */
     fun housesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
@@ -737,8 +767,10 @@ object DecorationExclusion {
      * nothing to hang on when the other was turned on, or a payload was written by hand.
      *
      * **Whether a side goes is read with *Show Buildings* on standing for the places, whatever the street has**
-     * ([christmasDrawn], [halloweenDrawn]): the gallery card draws its three shops while *Show Buildings* is on, on any
-     * street (`ThemePreviewScene`), so it would draw both sides there. **Which side stays is the one that hangs on the
+     * ([christmasDrawn], [halloweenDrawn]): the gallery card draws its three shops while *Show Buildings* is on, with
+     * *Show shops and public buildings*, on any street (`ThemePreviewScene`), so it would draw both sides there; read
+     * without that second switch it can only take a side as drawn where it hangs on nothing, which the rule below then
+     * turns off, changing no picture. **Which side stays is the one that hangs on the
      * street** ([christmasOn], [halloweenOn], the settings' and the setters' rule), so a switch the settings let the user
      * turn on reads on, and the other, which hangs on nothing there, reads off with its reason and holds nothing. When both
      * hang, or neither, the side the theme ships on stays ([themeDefaults]: Halloween on the Halloween theme), and on
@@ -970,7 +1002,7 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENS
     if (spec.type == SceneObjectType.SKYSCRAPER &&
         spec.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
     ) {
-        return true
+        return placesVisible
     }
     // The scarecrows stand in the snowmen's places, so by the snowmen's fraction they would keep exactly the snowmen's:
     // a coin of their own decides ([scarecrowFraction]).
@@ -1210,6 +1242,7 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
         sun = SceneCustomization.DEFAULT.sun.copy(color = theme.sunColor),
         moon = SceneCustomization.DEFAULT.moon.copy(color = theme.moonColor),
         santaEnabled = theme.hasSantaSleigh,
+        fireworksEnabled = theme.hasFireworks,
         buildings = builtInTowerColours(themeId) ?: SceneCustomization.DEFAULT.buildings,
         shops = builtInShopColours(themeId) ?: SceneCustomization.DEFAULT.shops,
         publics = builtInPublicColours(themeId) ?: SceneCustomization.DEFAULT.publics,
@@ -1344,9 +1377,55 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
             buildings = base.buildings.copy(density = 1f),
             houses = base.houses.copy(density = 0.3f),
         )
-        // Any other id (the user's own, random, imported): its groups start from colours chosen against its ground.
-        else -> if (themeId in BUILT_IN_TOWER_COLOURS) base else base.withStartingBuildingColours(theme)
+        // Any other id (the user's own, random, imported): its groups start from colours chosen against its ground; a
+        // random theme with what its street was born without off.
+        else -> {
+            val own = if (themeId in BUILT_IN_TOWER_COLOURS) base else base.withStartingBuildingColours(theme)
+            if (RandomSceneGenerator.isRandomThemeId(themeId)) own.offWhereBornWithout(RandomSceneGenerator.born(themeId)) else own
+        }
     }
+}
+
+/**
+ * A random theme's starting switches over what its street was born without (`DESIGN_NOTES.md` decisions 102 and 104): the
+ * catalogue gives every street every category (`SceneObjectCatalog.withEveryCategory`), and what this street did not roll
+ * starts off, so the theme looks as it was born until the user turns it on (but for the trees, houses and parasols it is given
+ * where its own keep none, decision 97) -- houses and parasols off where it rolled none,
+ * the buildings off where it rolled no tower and no place, the *Towers* amount at 0 % where it rolled places and no tower,
+ * *Show shops and public buildings* off where it rolled no place, the cars off where it rolled none.
+ */
+internal fun SceneCustomization.offWhereBornWithout(born: RandomSceneGenerator.Born): SceneCustomization =
+    offWhereStreetLacks(born.staticObjects, born.carCount)
+
+/** [offWhereBornWithout] over a street of [staticObjects] and [carCount] cars. */
+internal fun SceneCustomization.offWhereStreetLacks(staticObjects: List<StaticSceneObject>, carCount: Int): SceneCustomization {
+    fun has(type: SceneObjectType) = staticObjects.any { it.type == type }
+    val towers = staticObjects.any { it.type == SceneObjectType.SKYSCRAPER && !StorefrontStreet.isPlace(it) }
+    val places = staticObjects.any { StorefrontStreet.isPlace(it) }
+    return copy(
+        houses = if (has(SceneObjectType.HOUSE)) houses else houses.copy(visible = false),
+        parasols = if (has(SceneObjectType.PARASOL)) parasols else parasols.copy(visible = false),
+        buildings = when {
+            towers -> buildings
+            places -> buildings.copy(density = 0f)
+            else -> buildings.copy(visible = false)
+        },
+        placesVisible = placesVisible && places,
+        cars = if (carCount > 0) cars else cars.copy(visible = false),
+    )
+}
+
+/**
+ * Settings written before every street had every category and before *Keep the road* (a store, a saved theme, a theme
+ * file, a backup), read as the scene they drew (`DESIGN_NOTES.md` decisions 102 and 104). Over a street of no built-in
+ * ([SceneObjectCatalog.streetDrawnBefore]: a random theme's, or one saved or imported from it), a category it lacked drew
+ * nothing whatever its switch said, and with the one the catalogue gives it reads off ([offWhereStreetLacks]), so
+ * nothing it lacked appears by itself; a street saved from a built-in gets back the built-in's own candidates, which the same coins
+ * keep standing or not as before. *Keep the road* reads as the road it drew ([keepRoadAsDrawnBefore]).
+ */
+internal fun SceneCustomization.readAsDrawnBefore(street: SceneObjectLayout?): SceneCustomization {
+    val c = if (street == null) this else offWhereStreetLacks(street.staticObjects, street.cars.size)
+    return c.copy(keepRoad = keepRoadAsDrawnBefore(c.cars.visible, c.cars.density, c.carsNightDensity))
 }
 
 /**
@@ -1572,6 +1651,7 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         bunnies.structurallyEquals(other.bunnies) &&
         easterEggs.structurallyEquals(other.easterEggs) &&
         pumpkins.structurallyEquals(other.pumpkins) &&
+        placesVisible == other.placesVisible &&
         palmsEnabled == other.palmsEnabled &&
         palmsInsteadOfTrees == other.palmsInsteadOfTrees &&
         scarecrows.structurallyEquals(other.scarecrows) &&

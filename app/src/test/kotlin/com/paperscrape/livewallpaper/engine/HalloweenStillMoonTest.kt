@@ -13,8 +13,8 @@ import java.io.File
  *
  * In force exactly with *Halloween*, *Moon* and its own switch, whatever *Show Sun*, *Horror sky* and the night by day; its
  * row greyed with the reason otherwise, the choice kept. Where it stands: in the middle, under the cloud band, its middle
- * always over the hills' highest crest and its foot too from a *Sun/Cloud Height* of 20 % up (below it the foot goes
- * behind the highest crests, decision 86), following *Sun/Cloud Height* from its lowest to its highest; within the screen
+ * always over the hills' highest crest and its foot too from a *Sun/Cloud Height* of 68 % up (below it the foot goes
+ * behind the highest crests, decisions 86 and 106), following *Sun/Cloud Height* from its lowest to its highest; within the screen
  * at every scroll (decision 19).
  * When: with the night by day at every hour, all out; without, never with the sun, coming out after sunset and fading
  * before sunrise where it stands, with the sun's times of a fixed hour (6:00 and 20:00) and of a short day of a real place
@@ -49,11 +49,12 @@ class HalloweenStillMoonTest {
     }
 
     @Test
-    fun `it stands in the middle under the clouds, its middle always above the hills and its foot from 20 percent up, following Sun and cloud height`() {
+    fun `it stands in the middle under the clouds, its middle always above the hills and its foot from 68 percent up, following Sun and cloud height`() {
         val radius = w * PaperRenderer.CELESTIAL_RADIUS_FRACTION * 2f
-        assertEquals("0.37 of the height as the slider comes", 0.37f, StillMoon.centreY(w, h, 0.42f) / h, 0.005f)
+        // Under the clouds, which follow the sun (decision 106): from 0.53 of the height at the slider's foot to 0.457 at its top.
+        assertEquals("0.484 of the height as the slider comes", 0.484f, StillMoon.centreY(w, h, 0.42f) / h, 0.005f)
         assertEquals("0.53 at its lowest", 0.53f, StillMoon.centreY(w, h, SUN_CLOUD_HEIGHT_MIN) / h, 0.005f)
-        assertEquals("0.28 at its highest", 0.28f, StillMoon.centreY(w, h, SUN_CLOUD_HEIGHT_MAX) / h, 0.005f)
+        assertEquals("0.457 at its highest", 0.457f, StillMoon.centreY(w, h, SUN_CLOUD_HEIGHT_MAX) / h, 0.005f)
         var last = Float.MAX_VALUE
         for (k in 0..50) {
             val height = SUN_CLOUD_HEIGHT_MIN + (SUN_CLOUD_HEIGHT_MAX - SUN_CLOUD_HEIGHT_MIN) * k / 50f
@@ -61,15 +62,15 @@ class HalloweenStillMoonTest {
                 val cy = StillMoon.centreY(sw, sh, height)
                 val r = sw * PaperRenderer.CELESTIAL_RADIUS_FRACTION * 2f
                 val label = "${sw}x$sh at $height"
-                assertTrue("$label: its top under the cloud band", cy - r >= CloudBand.topFor(sh, height) + CloudBand.heightFor(sh) - 0.5f)
-                // Over the hills' highest crest from a Sun/Cloud height of 20 % (the arc's 0.2) up; under it, the ground
-                // lifted (decision 96), its foot goes behind the highest crests, never its middle.
+                assertTrue("$label: its top under the cloud band", cy - r >= CloudBand.topFor(sw, sh, height) + CloudBand.heightFor(sh) - 0.5f)
+                // Over the hills' highest crest from the stored 0.44 (68 % of the slider) up; under it, standing under the
+                // clouds that follow the sun (decision 106), its foot goes behind the highest crests, never its middle.
                 val crest = sh * (SceneSpace.HILL_LAYER_TOP_FRACTION +
                     SceneSpace.HILL_LAYER_HEIGHT_FRACTION * (SceneSpace.HILL_CREST_CENTRE_FRACTION - SceneSpace.HILL_CREST_MAX_AMPLITUDE_FRACTION))
-                if (height >= 0.2f) assertTrue("$label: its foot over the hills' highest crest", cy + r < crest)
+                if (height >= 0.44f) assertTrue("$label: its foot over the hills' highest crest", cy + r < crest)
                 assertTrue("$label: its middle over the hills' highest crest", cy < crest)
                 // The renderer turns the arc's height back into px as `horizon - y x rise`: the same place.
-                val rise = height.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX) * sh
+                val rise = SunArc.rise(height, sw, sh) * sh
                 assertEquals(label, cy, sh * PaperRenderer.HORIZON_Y_FRACTION_OF_ARC - StillMoon.arcY(sw, sh, height) * rise, 0.01f)
             }
             val cy = StillMoon.centreY(w, h, height)

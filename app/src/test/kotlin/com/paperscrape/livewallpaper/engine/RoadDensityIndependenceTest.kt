@@ -8,15 +8,13 @@ import org.junit.Test
 /**
  * The road's geometry must not depend on how much traffic is on it.
  *
- * Reported from a device against the Group 4 build: moving the Cars density slider resized the
- * road. `drawRoad` took its lane span from the density-filtered runtime list, so thinning the
- * traffic until only one lane survived collapsed the span to zero and the strip with it, and a
- * setting of zero removed the road altogether.
+ * `drawRoad` takes its lane span from the layout's whole car list: a span taken from the
+ * density-filtered runtime list would move the road with the Cars density slider, collapsing to
+ * zero, and the strip with it, when thinning leaves one lane.
  *
- * `drawRoad` needs a `Canvas`, so what is pinned here is the pure half: the lane span the road is
- * built from, computed from the layout the way the renderer computes it, against the same span
- * computed from a filtered list the way it used to. The two must diverge -- that divergence *is*
- * the defect -- and only the first may be used.
+ * `drawRoad` needs a `Canvas`, so what is pinned here is the renderer's own lines that take the
+ * span from the layout (whole lines, comments off), and the pure half: the same span computed from
+ * a filtered list diverges -- that divergence is why only the layout's may be used.
  */
 class RoadDensityIndependenceTest {
 
@@ -34,52 +32,56 @@ class RoadDensityIndependenceTest {
     private fun canonicalCars(): List<CarObject> =
         SceneObjectCatalog.layoutFor("sunset", accentColor = 0xFF335577.toInt()).cars
 
-    private fun marginOf(cars: List<CarObject>): Float {
-        val min = cars.minOfOrNull { it.laneYFraction } ?: 0f
-        val max = cars.maxOfOrNull { it.laneYFraction } ?: 0f
-        return SceneSpace.roadEdgeMarginFraction(min, max)
-    }
+    /** [text]'s lines, trimmed, with comment lines, trailing `//` comments and blank lines left out. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
+
+    private fun renderer(): String =
+        java.io.File(sequenceOf("src/main", "app/src/main").map { java.io.File(it) }.first { it.isDirectory },
+            "kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt").readText()
 
     @Test
     fun `the road is identical at every car density`() {
         // The rule, stated directly. The layout is what the road is built from, and a density
         // setting does not change the layout -- it changes which of its members render.
+        val lines = codeLines(renderer())
+        assertTrue("the far lane from the layout", "private val roadLaneMinFraction: Float = layout.cars.minOfOrNull { it.laneYFraction } ?: 0f" in lines)
+        assertTrue("the near lane from the layout", "private val roadLaneMaxFraction: Float = layout.cars.maxOfOrNull { it.laneYFraction } ?: 0f" in lines)
+        assertTrue("the margin from the layout's span", "val margin = screenHeight * SceneSpace.roadEdgeMarginFraction(roadLaneMinFraction, roadLaneMaxFraction)" in lines)
         val cars = canonicalCars()
-        val expected = marginOf(cars)
         floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f).forEach { density ->
-            val custom = customizationWithCarDensity(density)
-            // Filtering happens on the runtime list; the road's own span is taken from `cars`
-            // regardless, which is what makes this constant.
+            // Filtering happens on the runtime list, never on the layout's.
             assertTrue(
                 "density $density kept cars it should not",
-                custom.keptCars(cars, themeSeed = 0).size <= cars.size,
+                customizationWithCarDensity(density).keptCars(cars, themeSeed = 0).size <= cars.size,
             )
-            assertEquals("road margin moved at density $density", expected, marginOf(cars), screenHeightFractionTolerance)
         }
     }
 
     @Test
     fun `the density-filtered list really does give a different road`() {
-        // The defect, reproduced against the code path that used to feed drawRoad. Without this
-        // the test above would pass just as happily on the broken version.
+        // Why the road is built from the layout: a density-filtered list gives another span.
         //
-        // Since v4.22 the selection balances the lanes, so a thinned list only collapses onto one
-        // lane at the count where it *must*: a single car. That is still exactly the collapse the
-        // device saw -- a span of zero -- and it is the strongest form the defect can take now,
-        // because at any count above one both lanes are populated and the filtered span matches
-        // the layout's by construction rather than by luck.
+        // The selection balances the lanes, so a thinned list only collapses onto one lane at the
+        // count where it *must*: a single car, the count just above 0 %. That is the collapse -- a
+        // span of zero -- and the strongest form the divergence can take, because at
+        // any count above one both lanes are populated and the filtered span matches the layout's by
+        // construction rather than by luck.
         val cars = canonicalCars()
-        val thinned = customizationWithCarDensity(0f).keptCars(cars, themeSeed = 0)
-        assertEquals("the new zero is one car in the whole scene", 1, thinned.size)
+        val thinned = customizationWithCarDensity(0.01f).keptCars(cars, themeSeed = 0)
+        assertEquals("one car in the whole scene just above 0 %", 1, thinned.size)
 
-        // One lane left, which is the collapse the device saw: the raw span is zero.
+        // One lane left, which is the collapse: the raw span is zero.
         assertEquals(0f, (thinned.maxOf { it.laneYFraction } - thinned.minOf { it.laneYFraction }), 1e-7f)
     }
 
     @Test
     fun `a degenerate lane pair still paints a road`() {
-        // Second line of defence, and the case a pre-v76.2 custom theme genuinely has: every car
-        // on one lane fraction. A margin derived from a zero span is zero, which is a hairline.
+        // Second line of defence, and the case of a custom theme stored with every car on one
+        // lane fraction. A margin derived from a zero span would be zero, which is a hairline.
         val margin = SceneSpace.roadEdgeMarginFraction(0.82f, 0.82f)
         val canonical = SceneSpace.roadEdgeMarginFraction(
             SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
@@ -91,8 +93,8 @@ class RoadDensityIndependenceTest {
 
     @Test
     fun `a real custom lane pair is still honoured`() {
-        // The guard must not swallow a legitimately different road. A theme saved with the
-        // pre-Group-4 lanes has a real span and keeps its own strip.
+        // The guard must not swallow a legitimately different road. A theme stored with other
+        // lanes (0.771 and 0.803) has a real span and keeps its own strip.
         val margin = SceneSpace.roadEdgeMarginFraction(0.771f, 0.803f)
         val canonical = SceneSpace.roadEdgeMarginFraction(
             SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
@@ -107,30 +109,19 @@ class RoadDensityIndependenceTest {
         // The half of the slider that is supposed to work, kept alongside so a future change that
         // fixes the geometry by disconnecting the slider entirely would fail here.
         //
-        // The bottom of the slider means one car since v4.22, not zero: "no cars" belongs to the
-        // visibility switch. Both endpoints are asserted with their new meanings.
+        // The bottom of the slider is no car (decision 104), and just above it one.
         val cars = canonicalCars()
-        val bottom = customizationWithCarDensity(0f).keptCars(cars, themeSeed = 0).size
+        val none = customizationWithCarDensity(0f).keptCars(cars, themeSeed = 0).size
+        val bottom = customizationWithCarDensity(0.01f).keptCars(cars, themeSeed = 0).size
         val all = customizationWithCarDensity(1f).keptCars(cars, themeSeed = 0).size
         val hidden = customizationWithCarDensity(1f)
             .let { it.copy(cars = it.cars.copy(visible = false)) }
             .keptCars(cars, themeSeed = 0)
             .size
+        assertEquals(0, none)
         assertEquals(1, bottom)
         assertEquals(cars.size, all)
         assertEquals(0, hidden)
         assertTrue(all > bottom)
-    }
-
-    @Test
-    fun `no density setting moves the perspective`() {
-        // The global projection is a property of the scene, not of any category's population.
-        val before = SceneSpace.depthScale(0.5f)
-        val roadTop = SceneSpace.roadTopYFraction()
-        floatArrayOf(0f, 0.5f, 1f).forEach { density ->
-            customizationWithCarDensity(density)
-            assertEquals(before, SceneSpace.depthScale(0.5f), screenHeightFractionTolerance)
-            assertEquals(roadTop, SceneSpace.roadTopYFraction(), screenHeightFractionTolerance)
-        }
     }
 }

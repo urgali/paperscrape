@@ -5,14 +5,11 @@ package com.paperscrape.livewallpaper.engine
  *
  * **Why this is its own object.** Three things in the sky have to agree about where the clouds are:
  * the clouds themselves, the rain that falls from them, and the lightning that comes out of them.
- * Two of them read the band from the same arithmetic; the third had a constant of its own -- a bolt
- * began at a flat 8 % of screen height while the band, at the default arc, starts at 15 % and is
- * 16 % tall. So every bolt was born roughly half a band *above* the cloud it was supposed to come
- * out of, hanging from the top edge of the sky with nothing over it, and at 26-40 % of screen height
- * it was also taller than the entire cloud layer. A live render showed both halves of that: bolts
- * that were giants, coming out of the top of the sky.
+ * A bolt given a constant of its own -- a flat share of the screen's height -- is born above the
+ * cloud it should come out of, hanging from the top edge of the sky, and taller than the whole
+ * cloud layer.
  *
- * Duplicating the band arithmetic in three call sites is what let one of them drift, so the band's
+ * Duplicating the band arithmetic in three call sites lets one of them drift, so the band's
  * top and height are written once here and the bolt's origin is *derived* from them rather than
  * sitting beside them, and so is the rain's ([precipitationOriginY], which
  * `PaperRenderer.drawPrecipitation` starts its drops on). Pure float arithmetic on primitives
@@ -35,31 +32,38 @@ object CloudBand {
     const val LIGHTNING_DEPTH_FRACTION = 0.6f
 
     /**
-     * The top of the band, in pixels.
+     * The top of the band, in pixels, on a [screenWidth] x [screenHeight] screen.
      *
-     * The clouds follow the sun: a low arc puts them low in the sky, a high one lifts them toward
-     * the top. v2.11 computed `0.08 + (1 - height) * 0.15`, which over the whole slider moved the
-     * band by 0.075 of screen height -- about 7 % -- and read on a device as a control that did
-     * nothing. The band now spans a range the eye can actually see, while landing within about
-     * 2 % of screen height (0.150 against 0.167) of the old position at the default height (0.42),
-     * so existing scenes are not rearranged by the fix.
+     * **The clouds follow the sun** (`DESIGN_NOTES.md` §12, decision 106): a low arc puts them low in the sky, a high one
+     * lifts them toward the top, and at every value of the slider the band stands under the top of the sun's arc
+     * ([SunArc.rise]) as far as it stood under it at that value with the arc rising as far as the stored value:
+     * `0.36 + 0.5 * stored - rise` of the screen: the band's top 0.03 of the screen under the sun's middle at the top of
+     * the arc as the slider comes (the stored 0.42), 0.12 under it at the slider's top, and 0.13 above it at its foot,
+     * where the band's top is at 0.31 of the screen.
      *
-     * Stays clear of the horizon at every setting: the lowest band top is 0.31 and the band is
-     * 0.16 tall, ending at 0.47 against a horizon at 0.62.
+     * Stays clear of the horizon at every setting and on every screen: the lowest band top is 0.31 ([LOWEST_TOP]) and the
+     * band is 0.16 tall, ending at 0.47 against the arc's horizon at 0.54.
      */
-    fun topFor(screenHeight: Int, sunCloudHeight: Float): Float {
-        val height = sunCloudHeight.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
-        return screenHeight * (0.06f + (SUN_CLOUD_HEIGHT_MAX - height) * 0.5f)
+    fun topFor(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float {
+        val stored = sunCloudHeight.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
+        return screenHeight * (0.36f + 0.5f * stored - SunArc.rise(stored, screenWidth, screenHeight)).coerceAtMost(LOWEST_TOP)
     }
+
+    /**
+     * The lowest the band's top goes, a share of the screen's height: where it stands at the slider's foot on every screen.
+     * On a screen much wider than tall the arc has little room ([SunArc.highest]) and the rule above would take the band
+     * lower as the slider rises, under the arc's horizon; there it stops here, its foot 0.07 above that horizon.
+     */
+    private const val LOWEST_TOP = 0.31f
 
     /** How tall the band is, in pixels. */
     fun heightFor(screenHeight: Int): Float = screenHeight * HEIGHT_FRACTION
 
     /** Where precipitation starts falling: the band's middle, the same line the clouds are hung on. */
-    fun precipitationOriginY(screenHeight: Int, sunCloudHeight: Float): Float =
-        topFor(screenHeight, sunCloudHeight) + heightFor(screenHeight) * 0.5f
+    fun precipitationOriginY(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float =
+        topFor(screenWidth, screenHeight, sunCloudHeight) + heightFor(screenHeight) * 0.5f
 
     /** Where a bolt's top edge sits: inside the band, past its middle. */
-    fun lightningOriginY(screenHeight: Int, sunCloudHeight: Float): Float =
-        topFor(screenHeight, sunCloudHeight) + heightFor(screenHeight) * LIGHTNING_DEPTH_FRACTION
+    fun lightningOriginY(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float =
+        topFor(screenWidth, screenHeight, sunCloudHeight) + heightFor(screenHeight) * LIGHTNING_DEPTH_FRACTION
 }

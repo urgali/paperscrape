@@ -24,10 +24,10 @@ import org.junit.Test
 
 /**
  * **A switch of the street on a theme whose street has none of its things reads off and locked, says so, and a tap
- * writes nothing** (`DESIGN_NOTES.md` §12, decision 40). A random theme rolls three to six
- * objects and a saved theme keeps only what stood when it was saved, so its street can have no house, tower or parasol
- * at any amount. A tree or a palm it always has: a random, saved or imported street with neither is given trees
- * (decision 97), so the tree-less street is built here by hand, its trees taken out. There *Show Trees* (and Houses, Parasols) reads off
+ * writes nothing** (`DESIGN_NOTES.md` §12, decision 40). No street the catalogue lays has none (decision 102); the rule
+ * stays as the guard, held here on streets built by hand: the street a random theme rolls, three to six objects, which can
+ * have no house, tower or parasol at any amount. A tree or a palm it always has: a random, saved or imported street with
+ * neither is given trees (decision 97), so the tree-less street has its trees taken out by hand. There *Show Trees* (and Houses, Parasols) reads off
  * whatever is stored, its line says "This theme has no trees.", and a tap writes neither
  * the flag nor the amount: the stored choice stays. The rows of World & scene say the same, *Tower opening hours* and the
  * *Towers & offices* row say there is no tower, and *Palms* that there is no tree to stand in. **The buildings too**: on a
@@ -38,8 +38,9 @@ import org.junit.Test
  * On the twelve built-in themes every street has all five and its places, so no row changes state or line there; and
  * every street has all seven seasonal decorations, so their switches need no such line.
  *
- * The streets are the catalogue's: `random:<n>` built on the JVM with no accent colour (a second car's colour is Android's
- * HSV, so the ones that need it are passed over), and a theme saved from Autumn by the gallery's own `snapshotEntry`.
+ * The random streets are built by hand ([randomStreet]) from `random:<n>` on the JVM with no accent colour (a second car's
+ * colour is Android's HSV, so the ones that need it are passed over); a theme saved from Autumn by the gallery's own
+ * `snapshotEntry` is laid by the catalogue.
  */
 class SwitchesOverAThemeWithNoneTest {
 
@@ -49,8 +50,17 @@ class SwitchesOverAThemeWithNoneTest {
     @After
     fun clearRegistryAfter() = CustomThemeRegistry.update(CustomThemeData.EMPTY)
 
-    /** The street of `random:<n>` as the catalogue lays it, or null where the JVM cannot build it. */
-    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching { SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull()
+    /**
+     * The street `random:<n>` was born with, built by hand (its own objects, the trees decision 97 gives it through
+     * [SceneObjectCatalog.withTrees], its seasonal decorations): the street the lines of a theme that lacks a category
+     * read, which the catalogue does not lay ([SceneObjectCatalog.withEveryCategory] adds them; the guard that stays).
+     * Null where the JVM cannot build it.
+     */
+    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching {
+        val id = "random:$n"
+        val born = SceneObjectCatalog.withTrees(RandomSceneGenerator.generateLayout(id, 0), id)
+        born.copy(staticObjects = born.staticObjects + SceneObjectCatalog.seasonalDecorationCandidates(id))
+    }.getOrNull()
 
     /** The first random theme whose street is [wanted], with its street. */
     private fun firstRandom(what: String, wanted: (SceneObjectLayout) -> Boolean): Pair<String, SceneObjectLayout> {
@@ -61,7 +71,7 @@ class SwitchesOverAThemeWithNoneTest {
         throw AssertionError("no random theme up to random:2000 $what")
     }
 
-    /** The first random theme whose street the generator rolls with no tree and no palm, with its street as the catalogue lays it. */
+    /** The first random theme whose street the generator rolls with no tree and no palm, with its street as [randomStreet] builds it. */
     private fun firstRandomBornWithoutTrees(): Pair<String, SceneObjectLayout> {
         for (n in 1..2000) {
             val born = runCatching { RandomSceneGenerator.generateLayout("random:$n", 0) }.getOrNull() ?: continue
@@ -95,7 +105,7 @@ class SwitchesOverAThemeWithNoneTest {
     @Test
     fun `a random theme born with no tree has trees, and Show Trees reads on`() {
         val (id, street) = firstRandomBornWithoutTrees()
-        assertTrue("$id: the catalogue planted no tree", street.hasAny(DecorationExclusion.TREE_TYPES))
+        assertTrue("$id: withTrees planted no tree", street.hasAny(DecorationExclusion.TREE_TYPES))
         assertEquals(10, street.staticObjects.count { it.type == SceneObjectType.TREE })
         val c = SceneCustomization.DEFAULT
         val standing = SettingsUiModel.standing(street, c)
@@ -132,31 +142,32 @@ class SwitchesOverAThemeWithNoneTest {
         assertEquals("This theme has no trees, and palms stand where the trees do.", SettingsUiModel.PALMS_NO_TREES_ON_THIS_THEME_LINE)
     }
 
-    /** Autumn saved with its houses off keeps none (`snapshotEntry`): turned on again in the saved theme, none comes. */
+    /** Autumn saved with its houses off (`snapshotEntry`), or stored with no house: the street has Autumn's houses, off, and a tap brings them. */
     @Test
-    fun `on a theme saved with no house, Show Houses reads off and locked, and the stored choice stays`() {
+    fun `on a theme saved with its houses off, the houses are there, off as saved, and a tap brings them`() {
         val autumn = defaultCustomizationFor("autumn")
-        val entry = snapshotEntry("custom:no-houses", "Autumn without houses", "autumn", autumn.copy(houses = autumn.houses.copy(visible = false)), "autumn")
-        CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
-        val street = SceneObjectCatalog.layoutFor(entry.id, 0)
-        assertFalse("the saved street keeps no house", street.hasAny(DecorationExclusion.HOUSE_TYPES))
-        for (visible in listOf(false, true)) for (amount in amounts) {
-            val c = entry.customization.copy(houses = entry.customization.houses.copy(visible = visible, density = amount))
-            val standing = SettingsUiModel.standing(street, c)
-            val what = "Show Houses ${if (visible) "on" else "off"} at $amount"
-            assertFalse(what, standing.themeHasHouses)
-            assertTrue("$what: the trees are there", standing.themeHasTrees)
-            val shown = SettingsUiModel.amountSwitch(c.houses.visible, c.houses.density, standing.houses, standing.themeHasHouses)
-            assertFalse(what, shown.shownOn)
-            assertTrue(what, shown.noneOnThisTheme)
-            assertFalse("$what: a line naming an amount", shown.noneAtZero || shown.noneAtThisAmount)
-            val tap = SettingsUiModel.amountTap(true, c.houses.density, autumn.houses.density, standing.houses, standing.themeHasHouses)
-            assertEquals(what, AmountTap.NoneOnThisTheme, tap)
-            assertEquals(what, 0, writes(tap))
+        val saved = snapshotEntry("custom:no-houses", "Autumn without houses", "autumn", autumn.copy(houses = autumn.houses.copy(visible = false)), "autumn")
+        // As saved, and as data that stores no house: the catalogue lays Autumn's houses either way (decision 102).
+        val before = saved.copy(layout = saved.layout.copy(staticObjects = saved.layout.staticObjects.filter { it.type != SceneObjectType.HOUSE }))
+        for (entry in listOf(saved, before)) {
+            CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
+            val street = SceneObjectCatalog.layoutFor(entry.id, 0)
+            assertTrue("the saved street has its houses", street.hasAny(DecorationExclusion.HOUSE_TYPES))
+            val off = SettingsUiModel.standing(street, entry.customization)
+            assertTrue(off.themeHasHouses)
+            assertFalse("off as saved", SettingsUiModel.amountSwitch(entry.customization.houses.visible, entry.customization.houses.density, off.houses, off.themeHasHouses).shownOn)
+            val tap = SettingsUiModel.amountTap(true, entry.customization.houses.density, autumn.houses.density, off.houses, off.themeHasHouses)
+            assertEquals(AmountTap.SetVisible(true), tap)
+            val on = entry.customization.copy(houses = entry.customization.houses.copy(visible = true))
+            val standing = SettingsUiModel.standing(street, on)
+            assertTrue("turned on, they stand", SettingsUiModel.amountSwitch(true, on.houses.density, standing.houses, standing.themeHasHouses).shownOn)
+            // The built-in's own houses, in their places: the street saved from Autumn gets Autumn's.
+            val autumnHouses = SceneObjectCatalog.layoutFor("autumn", 0).staticObjects.filter { it.type == SceneObjectType.HOUSE }
+            assertEquals(autumnHouses.map { it.depthFraction }.sorted(), street.staticObjects.filter { it.type == SceneObjectType.HOUSE }.map { it.depthFraction }.sorted())
         }
-        assertFalse("the saved theme stores its houses off", entry.customization.houses.visible)
+        assertFalse("the saved theme stores its houses off", saved.customization.houses.visible)
+        // The line of a street that lacks them stays only as the guard no street of the app reaches.
         assertEquals("This theme has no houses.", SettingsUiModel.noneOnThisThemeLine("houses"))
-        assertEquals("This theme has no houses", SettingsUiModel.noneOnThisThemeSummary("houses"))
     }
 
     @Test
@@ -251,7 +262,7 @@ class SwitchesOverAThemeWithNoneTest {
         assertFalse(id, s.themeHasTowers)
         assertEquals("The shops and the public buildings: this theme has no towers", buildingsSwitchLine(s.themeHasPlaces, s.themeHasTowers))
         assertEquals(
-            "This theme has no towers. The shops and the public buildings among the houses always stay while Show Buildings is on.",
+            "This theme has no towers. The shops and the public buildings among the houses stay at every amount while Show Buildings and Show shops and public buildings are on.",
             buildingsDensityLine(s.themeHasPlaces, s.themeHasTowers),
         )
         assertEquals("This theme has no towers", SettingsUiModel.towersRowSummary(true, 0.65f, true, 9f, 20f, s.towers, s.themeHasTowers, s.themeHasPlaces))
@@ -392,9 +403,9 @@ class SwitchesOverAThemeWithNoneTest {
     }
 
     /**
-     * **Every street has all seven seasonal decorations**, so their switches never meet a theme with none: the catalogue
-     * lays their candidates on every random street (`seasonalDecorationCandidates`) and on every saved one
-     * (`withSeasonalDecorations`). If this stops being true, their switches need the line the street's categories have.
+     * **Every street has all seven seasonal decorations**, so their switches never meet a theme with none: a random street
+     * holds the catalogue's candidates (`seasonalDecorationCandidates`, added by [randomStreet]) and the catalogue lays them
+     * on a saved one (`withSeasonalDecorations`). If this stops being true, their switches need the line the street's categories have.
      */
     @Test
     fun `every random and saved street has every seasonal decoration`() {
@@ -434,8 +445,8 @@ class SwitchesOverAThemeWithNoneTest {
             "val noneOnTheme = shown.noneOnThisTheme",
             "checked = if (noneOnTheme) false else if (noneAtZero) shown.shownOn else config.visible,",
             "} else if (!noneOnTheme) {",
-            "SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme),",
-            "val leadsToBuildings = placesOnTheme && !buildingsVisible",
+            "SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),",
+            "val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)",
             "noneOnTheme -> SettingsUiModel.noneOnThisThemeLine(title.lowercase())",
             "enabled = !noneOnTheme,",
             "SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId), stands, onTheme),",
@@ -456,8 +467,8 @@ class SwitchesOverAThemeWithNoneTest {
             "onTheme = towersOnTheme || placesOnTheme,",
             "switchSubtitle = buildingsSwitchLine(placesOnTheme, towersOnTheme),",
             "buildingsDensityLine(placesOnTheme, towersOnTheme),",
-            "SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme)",
-            "SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme)",
+            "SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)",
+            "SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)",
             "SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(group))",
             "} else if (!palms.interactive && palmsOnlyFirs && onlyFirsEvenAtFull) {",
             "SettingsUiModel.PALMS_ONLY_FIRS_ON_THIS_THEME_LINE",
@@ -478,7 +489,9 @@ class SwitchesOverAThemeWithNoneTest {
         for (onTheme in listOf("onTheme = housesOnTheme,", "onTheme = treesOnTheme,", "onTheme = parasolsOnTheme,")) {
             assertEquals("one section passes $onTheme", 1, world.count { it.contains(onTheme) })
         }
-        assertEquals("the Towers & offices, Shops and Public buildings rows pass the places", 3, world.count { it == "placesOnTheme = standing.themeHasPlaces," })
+        assertEquals("the Towers & offices row passes the places", 1, world.count { it == "placesOnTheme = standing.themeHasPlaces," })
+        assertEquals("the Shops and Public buildings rows pass the places and their switch", 2,
+            world.count { it == "placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible," })
         assertTrue(lines("ui/SettingsScreen.kt").contains("val standing = SettingsUiModel.standing(themeLayout, customization)"))
         val seasons = lines("ui/SeasonsScreen.kt")
         assertTrue(seasons.contains("\"Christmas firs\" to SettingsUiModel.christmasFirs(customization.christmasFirsEnabled, customization, themeLayout).shownOn,"))

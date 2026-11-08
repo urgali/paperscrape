@@ -222,6 +222,9 @@ class FrameAllocationTest {
         Scene("halloween-cobwebs-turning", "halloween", 19.6f, customise = { it.copy(nightSkyByDayEnabled = false) }),
         Scene("everything-on-evening", "city", 21f, customise = everything),
         Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
+        // The switches of decisions 103 and 104: the fireworks on a theme that does not ship them, the road kept with no car.
+        Scene("autumn-fireworks-night", "autumn", 1f, events = true, customise = { it.copy(fireworksEnabled = true) }),
+        Scene("autumn-empty-road-noon", "autumn", 12f, customise = { it.copy(cars = it.cars.copy(density = 0f), carsNightDensity = 0f, keepRoad = true) }),
         Scene(
             "live-storm", "sunset", 13f,
             weather = LiveWeatherSnapshot(

@@ -16,14 +16,31 @@ import org.junit.Test
  * road), the traffic then drains as cars finish their pass, and dragging it back up pops nothing
  * in -- the returning cars drive in from the edges.
  *
- * The scene is the traffic golden's own: `sunset` at midday, warmed the
- * [SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES] that put four vehicles on the road. The near row below the road
- * (decision 96) reaches over the road's lower edge here and there -- a tree's crown, a turret's roof -- and
- * [VehiclePresence] reads it as vehicles standing still: where the traffic drains, the cars are counted as the runs
- * clear of what the same scene shows over its road band with its cars off ([standing]). A crown's edge moves by a
- * pixel or two from frame to frame, so clear means not touching.
+ * The scene is the traffic golden's own -- `sunset` at midday, warmed the [SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES]
+ * that put four vehicles on the road -- with its trees, houses, parasols and buildings off ([carsOnly]): the near row
+ * below the road (decisions 96 and 105) reaches over the road's lower edge and the near lane, and [VehiclePresence] reads
+ * it as vehicles standing still. The cars are counted as the runs clear of what the same copy shows over its road band
+ * with its cars off ([standing]).
  */
 class CarCountOffScreenApplyTest {
+
+    private companion object {
+        /** [c] with nothing standing on the street or below the road: only the road and its cars. */
+        fun carsOnly(c: SceneCustomization) = c.copy(
+            trees = c.trees.copy(visible = false),
+            houses = c.houses.copy(visible = false),
+            buildings = c.buildings.copy(visible = false),
+            parasols = c.parasols.copy(visible = false),
+            placesVisible = false,
+        )
+
+        fun carsOnly(scene: GoldenScene) = GoldenScene(
+            name = "${scene.name}-cars-only", dayPhase = scene.dayPhase, sceneSeconds = scene.sceneSeconds,
+            warmUpFrames = scene.warmUpFrames, warmUpDeltaSeconds = scene.warmUpDeltaSeconds,
+            themeId = scene.themeId, weather = scene.weather,
+            customise = { carsOnly(scene.customise(it)) },
+        )
+    }
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
@@ -35,7 +52,7 @@ class CarCountOffScreenApplyTest {
             SceneGolden.HEIGHT,
             InstrumentationRegistry.getInstrumentation().targetContext,
         )
-        private val scene = SharedGoldenScenes.trafficDay()
+        private val scene = carsOnly(SharedGoldenScenes.trafficDay())
         private var clock = SceneTime(scene.sceneSeconds)
 
         init {
@@ -67,13 +84,16 @@ class CarCountOffScreenApplyTest {
         (SceneObjectCatalog.CAR_LOOP_SPAN / farSpeed * 30f * 1.2f).toInt()
     }
 
-    /** The road band's runs with the cars off: what stands over the band, not a vehicle. */
+    /**
+     * The road band's runs with no car on it: what stands over the band, not a vehicle. Both densities at 0 % with *Keep the
+     * road* on, so the road is drawn, empty (decision 104); with the cars off and the switch off there would be no road.
+     */
     private val standing: List<IntRange> by lazy {
         val bitmap = SceneGolden.render(
             GoldenScene(
                 name = "traffic-day-no-cars",
                 dayPhase = GoldenScene.day(),
-                customise = { it.copy(cars = it.cars.copy(visible = false)) },
+                customise = { carsOnly(it).copy(cars = it.cars.copy(density = 0f), carsNightDensity = 0f, keepRoad = true) },
             ),
         )
         VehiclePresence.measure(bitmap).runs.also { bitmap.recycle() }
@@ -104,25 +124,19 @@ class CarCountOffScreenApplyTest {
     }
 
     @Test
-    fun theTrafficDrainsToOneCarAsPassesComplete() {
+    fun theTrafficDrainsToNoCarAsPassesComplete() {
         val scene = LiveScene()
         scene.setCarDensity(0f)
         repeat(drainFrames) { scene.frame(1f / 30f) }
 
-        // Across one further full loop, no frame may show more than the one kept car, and it
-        // must actually be seen driving through.
-        var seen = 0
+        // Across one further full loop no frame shows a car: at 0 % none drives (decision 104); the road stays, the night's
+        // density above 0 (`SceneObjectRenderer.drawsRoad`).
         var maxRuns = 0
         repeat(drainFrames) {
             scene.frame(1f / 30f)
-            if (it % 10 == 0) {
-                val runs = vehicles(scene.bitmap)
-                maxRuns = maxOf(maxRuns, runs.size)
-                if (runs.isNotEmpty()) seen++
-            }
+            if (it % 10 == 0) maxRuns = maxOf(maxRuns, vehicles(scene.bitmap).size)
         }
-        assertTrue("more than one car on screen after draining to count 1 (max $maxRuns)", maxRuns <= 1)
-        assertTrue("the one kept car never crossed the screen", seen > 0)
+        assertEquals("a car on screen after draining to 0 %", 0, maxRuns)
     }
 
     @Test

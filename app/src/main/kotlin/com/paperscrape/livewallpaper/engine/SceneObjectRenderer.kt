@@ -61,8 +61,8 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     var place: Int = -1
 
     /**
-     * Whether this place is one of the near row's, below the road: the restaurant, the bar and the shop take turns in
-     * it ([SceneObjectCatalog.nearShopAt]), each with its runtime in [SceneObjectRenderer]'s near shops.
+     * Whether this place is one of the near row's, below the road: the six buildings take turns in it, never the one over
+     * it ([SceneObjectCatalog.nearBuilding]), each with its runtime in [SceneObjectRenderer]'s near buildings.
      */
     var nearShop = false
 
@@ -155,18 +155,16 @@ class SceneObjectRenderer(
     private val nearPlan: SceneObjectCatalog.NearRowPlan = SceneObjectCatalog.nearRowOf(layout)
 
     /**
-     * The near row's restaurant, bar and shop, one runtime each at its [Storefront.ordinal] (the other three null): of
-     * their own, apart from the street's six, so a shop below the road has its own colour coin, people and doorway, and is
-     * never the twin of one behind it. Its identity is the street's building's, half a tile along. Null on a street with no
-     * place among the houses.
+     * The near row's six buildings, one runtime each at its [Storefront.ordinal]: of their own, apart from the street's
+     * six, so a building below the road has its own colour coin, people and doorway, and is never the twin of one behind
+     * it. Its identity is the street's building's, half a tile along. Null on a street with no place among the houses.
      */
-    private val nearShops: Array<StaticRuntime?>? = if (nearPlan.shops.isEmpty()) null else StorefrontStreet.identities(
+    private val nearShops: Array<StaticRuntime>? = if (nearPlan.shops.isEmpty()) null else StorefrontStreet.identities(
         layout, themeId.takeIf { CustomThemeRegistry.overrideLayoutFor(it) == null },
     )?.let { identities ->
         val deal = NeighbourhoodComposer.Deal()
         Array(Storefront.ALL.size) { k ->
             val storefront = Storefront.ALL[k]
-            if (storefront.group != StorefrontGroup.SHOPS) return@Array null
             val identity = identities[k]
             StaticRuntime(identity.copy(tileFractionX = (identity.tileFractionX + 0.5f) % 1f)).also {
                 it.storefront = storefront
@@ -175,7 +173,7 @@ class SceneObjectRenderer(
         }
     }
 
-    /** Scratch for [SceneObjectCatalog.nearShopAt] on the draw path. */
+    /** Scratch for [SceneObjectCatalog.nearBuilding] on the draw path. */
     private val nearShopDeck = IntArray(3)
 
     /**
@@ -221,8 +219,8 @@ class SceneObjectRenderer(
 
     /**
      * The near row's runtimes, back to front by their own depths in the street: the objects the switches and amounts keep
-     * of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its shops while *Show Buildings* keeps the
-     * street's places. Built with [staticRuntimes], from the same inputs.
+     * of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its places, where the six buildings take turns,
+     * while the street's stand (*Show Buildings* and *Show shops and public buildings*). Built with [staticRuntimes], from the same inputs.
      */
     private var nearRuntimes: List<StaticRuntime> = buildNearRuntimes()
 
@@ -485,11 +483,17 @@ class SceneObjectRenderer(
             SceneColour.blendArgb(ROAD_COLOR_NIGHT, ROAD_COLOR_DAY, dayBlend.coerceIn(0f, 1f))
 
         /**
-         * Whether a scene draws its road: its layout has lanes and the Cars category is on; density is
-         * not consulted ([drawRoad]). The gallery card asks this too.
+         * Whether a scene draws its road ([drawRoad]): its layout has lanes, and a car drives at some hour -- *Show
+         * Cars* on and either density above 0 % ([carsDriveAtSomeHour]) -- or *Keep the road* is on
+         * (`DESIGN_NOTES.md` decision 104). Decided by the settings, not by the hour: with cars by day and none at
+         * night the road stays all day. The gallery card asks this too.
          */
         fun drawsRoad(layout: SceneObjectLayout, customization: SceneCustomization): Boolean =
-            layout.cars.isNotEmpty() && customization.cars.visible
+            layout.cars.isNotEmpty() && (carsDriveAtSomeHour(customization) || customization.keepRoad)
+
+        /** Whether a car drives at some hour: *Show Cars* on and the day or the night density above 0 % ([CarSelection.countFor]). */
+        fun carsDriveAtSomeHour(customization: SceneCustomization): Boolean =
+            customization.cars.visible && (customization.cars.density > 0f || customization.carsNightDensity > 0f)
 
         /**
          * Whether any tree may stand as a fir: *Christmas firs* on. The gallery card asks this before it
@@ -1775,11 +1779,11 @@ class SceneObjectRenderer(
                 settle = settle,
             )
         }
-        // The near row's shops, whether a place shows them or not.
+        // The near row's six buildings, whether a place shows them or not.
         val near = nearShops
         if (near != null) {
             for (index in near.indices) {
-                val r = near[index] ?: continue
+                val r = near[index]
                 val doorway = r.doorway ?: continue
                 val roster = r.roster ?: continue
                 val layout = r.windowLayout ?: continue
@@ -2076,7 +2080,8 @@ class SceneObjectRenderer(
      * advance by [shiftXWrapped], the shift the nearest row scrolls by, so they flow with everything.
      */
     private fun drawRoad(canvas: SceneCanvas, dayBlend: Float, screenWidth: Float, screenHeight: Float, shiftXWrapped: Float, tileWidth: Float) {
-        // Density is not consulted: the road is terrain, and a slider does not move terrain.
+        // Whether a car drives at some hour, or Keep the road ([drawsRoad]); where the road stands is terrain, which no
+        // slider moves.
         if (!drawsRoad(layout, customization)) return
 
         // The layout's lane span ([roadLaneMinFraction]), never the density-filtered [carRuntimes].
@@ -2119,6 +2124,14 @@ class SceneObjectRenderer(
     }
 
     /**
+     * The building the street's place of rank `rank` deals in its copy `copy` ([StorefrontStreet.storefrontAt]), for the near
+     * row's ([SceneObjectCatalog.nearBuilding]): made once, so the draw path allocates nothing.
+     */
+    private val streetDeal = SceneObjectCatalog.StreetDeal { copy, rank ->
+        StorefrontStreet.storefrontAt(themeSeed, StorefrontStreet.placeIndex(copy, rank, places.size), streetDeckA, streetDeckB)
+    }
+
+    /**
      * Paints one tile copy of an object at [x]/[y], at [effectiveScale]. No culling here: [draw] culls
      * with the extent of this same scale, or an object would be culled at one size and drawn at another.
      */
@@ -2136,15 +2149,13 @@ class SceneObjectRenderer(
         canvas.translate(x, y)
         canvas.scale(effectiveScale, effectiveScale)
 
-        // A place of the near row draws the shop its deck deals this copy ([SceneObjectCatalog.nearShopAt]), with that
-        // shop's own runtime ([nearShops]).
+        // A place of the near row draws the building its deck deals this copy, never one the street's places over it deal
+        // in their copies, nor its neighbours' ([SceneObjectCatalog.nearBuilding]), with that building's own runtime
+        // ([nearShops]).
         val nearBuildings = nearShops
         if (r.nearShop && nearBuildings != null) {
-            val shop = SceneObjectCatalog.nearShopAt(
-                themeSeed, StorefrontStreet.placeIndex(copy, r.place, nearPlan.shops.size), nearShopDeck,
-            )
-            val runtime = nearBuildings[shop.ordinal]
-            if (runtime != null) drawNeighbourhoodBuilding(canvas, runtime, elapsed, dayBlend, variantFor(r.spec), shop)
+            val shop = SceneObjectCatalog.nearBuilding(themeSeed, nearPlan, copy, r.place, streetDeal, nearShopDeck)
+            drawNeighbourhoodBuilding(canvas, nearBuildings[shop.ordinal], elapsed, dayBlend, variantFor(r.spec), shop)
             canvas.restore()
             return
         }

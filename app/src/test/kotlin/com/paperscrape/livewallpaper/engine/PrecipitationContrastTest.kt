@@ -59,7 +59,7 @@ class PrecipitationContrastTest {
     private val FAILING_WORST_GAP = 0.00f
 
     /** The median of the same measurement, kept because the gate is *not* derived from it. */
-    private val MEDIAN_SKY_GAP = 28.62f
+    private val MEDIAN_SKY_GAP = 29.33f
 
     /** The signal arm: the median separation the same drop makes against the hills. */
     private val SIGNAL_HILL_GAP = 26.94f
@@ -68,10 +68,10 @@ class PrecipitationContrastTest {
     private val SNOW_WORST_GAP = 19.13f
 
     /** The largest CIELab distance the correction is measured to carry the theme's own rain. */
-    private val WORST_COLOUR_SHIFT = 16.19f
+    private val WORST_COLOUR_SHIFT = 13.73f
 
-    /** And the blood rain's: darker, so further on the darkest skies (measured 2026-10-22). */
-    private val BLOOD_WORST_COLOUR_SHIFT = 20.55f
+    /** And the blood rain's: darker, so further on the darkest skies. */
+    private val BLOOD_WORST_COLOUR_SHIFT = 17.88f
 
     // ------------------------------------------------------------------ what the scene paints
 
@@ -97,9 +97,10 @@ class PrecipitationContrastTest {
 
     /**
      * The stretch a drop's colour is held off: the cloud band's middle — `drawPrecipitation`'s
-     * own `fallStartY` — down to [PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION], at the default cloud height.
+     * own `fallStartY` — down to [PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION], at the default cloud height, on a
+     * screen twice as tall as wide (the band follows the arc's rise, which reads the screen's shape: [SunArc]).
      */
-    private val fallTopFraction = CloudBand.precipitationOriginY(1000, SceneCustomization.DEFAULT.sky.sunCloudHeight) / 1000f
+    private val fallTopFraction = CloudBand.precipitationOriginY(500, 1000, SceneCustomization.DEFAULT.sky.sunCloudHeight) / 1000f
     private val horizonFraction = PaperRenderer.PRECIPITATION_SKY_BOTTOM_FRACTION
     private val heights = (0..12).map { fallTopFraction + (horizonFraction - fallTopFraction) * it / 12f }
 
@@ -242,7 +243,7 @@ class PrecipitationContrastTest {
      *
      * Autumn at 08:00 with the cloud cover at 90 % and rain falling. It measures **5.97** when the
      * cover and the rain come from Live Weather — which also weathers the sky through
-     * `StormAtmosphere.dimSky`, and is what brings the two together — and 19.38 when the rain is
+     * `StormAtmosphere.dimSky`, and is what brings the two together — and 22.31 when the rain is
      * the theme's own manual setting, where the sky is not weathered at all. Both are recorded
      * because the difference is the whole reason the sweep covers all three weathers rather than
      * one: the same theme at the same hour fails or does not fail depending on which
@@ -265,7 +266,7 @@ class PrecipitationContrastTest {
         assertEquals(
             "Autumn 08:00 with the rain set by hand no longer measures what it did; the pair of " +
                 "numbers is the evidence that the weather path is what brings the two together",
-            19.38f, manualBefore, 0.2f,
+            22.31f, manualBefore, 0.2f,
         )
         assertTrue(
             "the reported case is no longer corrected: %.2f".format(liveAfter),
@@ -338,9 +339,9 @@ class PrecipitationContrastTest {
             touched < sits.size / 3,
         )
         // **What the correction is allowed to cost, pinned as a fact rather than described.**
-        // The largest carry is New Year at 08:40, where `#7EB2DF` is drawn `#6189AB`: the same
-        // blue, held down, because that theme's sky spans the drop's own brightness from the cloud
-        // band down to 0.60 of the screen and one colour has to clear all of it. If a future change makes the
+        // The largest carry over the sweep is 13.73 of CIELab ([WORST_COLOUR_SHIFT]) between the
+        // theme's rain and the colour drawn for it, on the situation whose sky asks the most of one
+        // colour that has to clear every height of it. If a change makes the
         // correction louder than this, it is a change to how the rain looks and has to be judged
         // as one rather than absorbed.
         assertEquals(

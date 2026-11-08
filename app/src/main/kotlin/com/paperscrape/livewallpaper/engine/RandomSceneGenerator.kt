@@ -84,7 +84,7 @@ object RandomSceneGenerator {
     )
 
     /**
-     * [objects] with at most [StorefrontStreet.RUN] places among the houses (v5.13B2): a building candidate of
+     * [objects] with at most [StorefrontStreet.RUN] places among the houses: a building candidate of
      * the shop band past the fourth, in the order they were rolled, stands on the skyline instead, its depth
      * scaled into the towers' band. The street never puts a building twice in four places in a row, so a tile
      * of four places or fewer never shows two alike on a screen; a random theme rolls up to six objects, and five
@@ -102,7 +102,16 @@ object RandomSceneGenerator {
         }
     }
 
-    fun generateLayout(themeId: String, accentColor: Int): SceneObjectLayout {
+    /**
+     * What a random theme's street is born with, without its cars' colours: its static objects, as [generateLayout]
+     * places them, and how many cars it rolls. Reads no colour, so it runs on the JVM for every id, where
+     * [generateLayout] needs Android's HSV for a theme of two cars. What the catalogue gives a street born without a
+     * category starts off ([born] in `defaultCustomizationFor`, `DESIGN_NOTES.md` decisions 102 and 104).
+     */
+    internal class Born(val staticObjects: List<StaticSceneObject>, val carCount: Int, internal val rnd: Random)
+
+    /** The street [themeId] is born with ([Born]); the random sequence is [generateLayout]'s, which goes on from it. */
+    internal fun born(themeId: String): Born {
         // XOR a constant so the layout's random sequence diverges from the theme's, even though
         // both start from the same seed — avoids the two generators "rhyming" (e.g. always
         // picking the first object when the theme also picked its first hue option).
@@ -112,9 +121,8 @@ object RandomSceneGenerator {
         val staticObjects = (0 until objectCount).map {
             StaticSceneObject(
                 type = OBJECT_POOL.random(rnd),
-                // The full 0..1 range. It used to stop at 0.375 because anything lower was
-                // painted over by the road; SceneSpace places the object band above the road by
-                // construction, so the cap has nothing left to protect against.
+                // The full 0..1 range: SceneSpace places the object band above the road by
+                // construction, so no depth is painted over by the road and none needs a cap.
                 depthFraction = rnd.nextFloat(),
                 tileFractionX = rnd.nextFloat(),
                 // A relative size variation around 1, not a size -- see StaticSceneObject.scale.
@@ -124,8 +132,14 @@ object RandomSceneGenerator {
         }
 
         val carCount = rnd.nextInt(0, 3)
-        val placed = atMostFourPlaces(staticObjects)
-        val rolled = (0 until carCount).map { index ->
+        return Born(atMostFourPlaces(staticObjects), carCount, rnd)
+    }
+
+    fun generateLayout(themeId: String, accentColor: Int): SceneObjectLayout {
+        val born = born(themeId)
+        val rnd = born.rnd
+        val placed = born.staticObjects
+        val rolled = (0 until born.carCount).map { index ->
             // Lane, speed and direction are the canonical ones, not rolls of their own. A random
             // lane y put chaos-theme cars on a band of their own that the road was then stretched
             // to cover, and a random speed inside a lane is what makes a queue collapse into a

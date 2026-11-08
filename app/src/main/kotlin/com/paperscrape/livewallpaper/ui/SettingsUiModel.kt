@@ -247,19 +247,17 @@ data class RainOrSnowUiState(
  * A *Show X* switch with an amount slider beside it -- density, intensity, opacity, number -- for a thing the wallpaper
  * draws none of at 0 (`DESIGN_NOTES.md` §12, decision 40): at 0 % the switch reads off and says so, and the "decorations
  * on" counts follow it. The stored visibility is kept; raising the slider brings it back, and so does a tap ([amountTap]).
- * Not for the categories that keep something at 0: the buildings (the places among the houses), the cars (one car,
- * `CarSelection`), the people ([people]) and the mountains (at least one).
+ * Not for the categories that keep something at 0 or read two amounts: the buildings (the places among the houses), the
+ * cars ([cars], a day and a night amount), the people ([people]) and the mountains (at least one).
  *
  * **Above 0 % a category of the street can keep nothing**: `keepCandidate` has no minimum fraction, so at a few per cent
  * a theme may keep none (trees at 4 %, towers at 10 %). Their switch is told whether one stands ([StandingObjects]) and
  * reads off, with its line, when none does (decision 40).
  *
- * **A theme's street can have none of a category at all**: a random theme rolls three to six objects, and a saved theme
- * keeps only what stood when it was saved, so no amount stands a house, a tower or a parasol it lacks; trees are given to
- * such a street (decision 97), and lack only where every one given would cross a place's front
- * ([StandingObjects.themeHasTrees] and the three like it). There the switch reads off and locked whatever is stored, its
- * line says the theme has none, and a tap writes nothing ([AmountTap.NoneOnThisTheme]): the stored visibility and amount
- * are left as they are.
+ * **A street that has none of a category at all** reads the switch off and locked whatever is stored, its line says the
+ * theme has none, and a tap writes nothing ([AmountTap.NoneOnThisTheme]). Every street the app lays has every category
+ * (decision 102: `SceneObjectCatalog.withEveryCategory`), so this is the reading of a street made by hand, kept as a guard
+ * ([StandingObjects.themeHasTrees] and the three like it).
  *
  * @property shownOn visible, and something drawn: the amount above 0 and, for a category of the street, one standing.
  * @property noneAtZero the amount is 0, and that -- not the switch -- is why nothing is drawn.
@@ -283,8 +281,8 @@ data class AmountSwitchUiState(
  *
  * [themeHasHouses], [themeHasTowers], [themeHasTrees] and [themeHasParasols] say whether the street has one at all: one
  * stands at 100 %. [themeHasPlaces] says whether it has a place among the houses, where the six buildings -- the shops
- * and the public buildings -- take turns. Every built-in street has all five; a random theme rolls three to six objects
- * and a saved one keeps only what stood when it was saved, so either can have none, and then no amount brings one. The
+ * and the public buildings -- take turns. Every street the app lays has all five (decision 102); a street made by hand
+ * can have none, and then no amount brings one. The
  * seven decorations are not asked: every street the catalogue lays has all their candidates (`SceneObjectCatalog.layoutFor`).
  * [onlyFirsEvenAtFull]: with the Palms switch on, every tree the street keeps at 100 % would stand as a Christmas fir, so
  * no density puts a palm anywhere ([com.paperscrape.livewallpaper.engine.keepsOnlyFirsUnderPalms]).
@@ -1057,9 +1055,12 @@ object SettingsUiModel {
      * switch is, since they stand by it (decision 40). On a street with no place among the houses
      * ([placesOnTheme], [StandingObjects.themeHasPlaces]) none of the six stands at any setting, and the line says so.
      */
-    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean, placesOnTheme: Boolean): String =
+    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): String =
         if (!placesOnTheme) {
             noneOnThisThemeLine(groupThings(group))
+        } else if (buildingsVisible && !placesVisible) {
+            "Off - they stand while $PLACES_SWITCH is on, on the $TOWERS_PAGE page. Tap here to go to it; " +
+                "your choices below are kept."
         } else if (buildingsVisible) {
             "${groupBuildings(group)}. Along the street the six buildings among the houses take turns in its " +
                 "places as the scenery scrolls. Each randomly uses Color 1 or Color 2, and blends into " +
@@ -1084,18 +1085,31 @@ object SettingsUiModel {
     /** The name of the page *Show Buildings* is on: the towers'. */
     const val TOWERS_PAGE = "Towers & offices"
 
+    /** The switch of the six buildings among the houses (decision 102), on the [TOWERS_PAGE] page under *Show Buildings*. */
+    const val PLACES_SWITCH = "Show shops and public buildings"
+
+    /** The line under [PLACES_SWITCH] while *Show Buildings* is on. */
+    const val PLACES_LINE = "The restaurant, the bar, the shop, the school, the fire station and the police station take turns " +
+        "among the houses, below the road too."
+
+    /** The line under [PLACES_SWITCH] with *Show Buildings* off. */
+    const val PLACES_LOCKED_LINE = "Needs Show Buildings on; your choice is kept until then."
+
+    /** [PLACES_SWITCH]: its stored choice while *Show Buildings* is on, off and locked with it off. */
+    fun placesSwitch(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState = dependentSwitch(stored, buildingsVisible)
+
     /**
      * *Shop opening hours* and *Public building opening hours* (`DESIGN_NOTES.md` §12, decision 62): on only while the
      * group's buildings stand (decision 40). They stand while *Show Buildings* is on, whatever the Towers
      * amount (`SceneCustomization.keepCandidate`), on a street with places among the houses ([placesOnTheme]): so that
      * switch alone holds them, and on a street with none nothing does. The stored choice is kept.
      */
-    fun shopHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean): DependentSwitchUiState =
-        dependentSwitch(stored, available = placesOnTheme && buildingsVisible)
+    fun shopHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && buildingsVisible && placesVisible)
 
     /** The public buildings' hours, by [shopHours]' rule. */
-    fun publicHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean): DependentSwitchUiState =
-        dependentSwitch(stored, available = placesOnTheme && buildingsVisible)
+    fun publicHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && buildingsVisible && placesVisible)
 
     /**
      * A group's hours as its row in *Landscape* says them: "always open", or "open 09:00-20:00".
@@ -1140,11 +1154,14 @@ object SettingsUiModel {
         open: Float,
         close: Float,
         placesOnTheme: Boolean,
+        placesVisible: Boolean = true,
     ): String =
         if (!placesOnTheme) {
             noneOnThisThemeSummary(groupThings(group))
         } else if (!buildingsVisible) {
             "Off - Show Buildings is off"
+        } else if (!placesVisible) {
+            "Off - $PLACES_SWITCH is off"
         } else {
             when (group) {
                 StorefrontGroup.SHOPS -> "Restaurant, bar and shop, ${hoursSummary(hoursEnabled, open, close)}"
@@ -1303,6 +1320,39 @@ object SettingsUiModel {
     const val NO_PEOPLE_AT_ZERO_LINE = "None at 0% by day and by night - tap to bring them back"
 
     /**
+     * *Show Cars*, as *Show people*: a car drives by the day density by day and the night one at night
+     * (`CarSelection.densityAt`), and at 0 % none (`CarSelection.countFor`, decision 104), so with both at 0 % no car
+     * drives at any hour -- off then, and said, the stored values kept; a tap brings the day density back to the theme's
+     * own ([carsTap]).
+     */
+    fun cars(visible: Boolean, dayDensity: Float, nightDensity: Float): AmountSwitchUiState = people(visible, dayDensity, nightDensity)
+
+    /** What a tap on *Show Cars* writes, as [peopleTap]. */
+    fun carsTap(wanted: Boolean, dayDensity: Float, nightDensity: Float, defaultDayDensity: Float): AmountTap =
+        peopleTap(wanted, dayDensity, nightDensity, defaultDayDensity)
+
+    /** The line under *Show Cars* while a car drives at some hour, or while it is off. */
+    const val CARS_LINE = "Cars drive along the road, in both directions."
+
+    /** The line under *Show Cars* with both densities at 0 % ([cars]). */
+    const val NO_CARS_AT_ZERO_LINE = "None at 0% by day and by night - tap to bring them back"
+
+    /** The lines under *Keep the road* (decision 104), word for word. */
+    const val ROAD_WITH_CARS_LINE = "The road is always there while cars drive on it."
+    const val ROAD_KEPT_LINE = "The road stays, with no cars on it."
+    const val ROAD_TAKEN_LINE = "With no cars, the road is taken away and the meadow runs to the houses."
+
+    /**
+     * The line under *Keep the road*: while a car drives at some hour the road is there whatever the switch says
+     * (`SceneObjectRenderer.drawsRoad`); with none, what the switch does to it.
+     */
+    fun keepRoadLine(c: com.paperscrape.livewallpaper.engine.SceneCustomization): String = when {
+        com.paperscrape.livewallpaper.engine.SceneObjectRenderer.carsDriveAtSomeHour(c) -> ROAD_WITH_CARS_LINE
+        c.keepRoad -> ROAD_KEPT_LINE
+        else -> ROAD_TAKEN_LINE
+    }
+
+    /**
      * The amount a tap restores where the theme's own is 0 as well: the middle of the slider. No
      * built-in theme ships one of these controls at 0, so it is a backstop.
      */
@@ -1344,6 +1394,7 @@ object SettingsUiModel {
             christmasTreeDecoration(c.christmasTreeLightsEnabled, c, layout).shownOn,
             christmasFirs(c.christmasFirsEnabled, c, layout).shownOn,
             c.santaEnabled,
+            c.fireworksEnabled,
             c.halloweenEnabled,
             laughingMoon(c).shownOn,
             nightSkyByDay(c).shownOn,
@@ -1442,7 +1493,7 @@ object SettingsUiModel {
      */
     fun decorationsResetMessage(themeName: String): String =
         "This puts everything on this screen back to how $themeName ships: the seasonal palette and its " +
-            "snow or leaf piles, and every winter, Christmas, Halloween, Easter and spring decoration, " +
+            "snow or leaf piles, and every winter, Christmas, New Year's Eve, Halloween, Easter and spring decoration, " +
             "with its density and colours. The rest of the scene and your other themes are not affected."
 
     /**

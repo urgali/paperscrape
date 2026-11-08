@@ -8,7 +8,7 @@
 // in front of them -- and the maintainer's instruction is to close them by raising the
 // version, not by narrowing what the dependency-submission workflow reports to GitHub.
 //
-// Raising AGP to 9.4.0 (see `plugins` below) does most of the work by itself. What it does not
+// Raising AGP to 9.4.1 (see `plugins` below) does most of the work by itself. What it does not
 // reach is forced here. `force` rather than a constraint because these are *someone else's*
 // transitives: a constraint states a floor that a stronger declaration downstream can still lose
 // to, while `force` is unconditional, which is what a CVE fix has to be.
@@ -33,7 +33,7 @@ buildscript {
             //
             // Two MODERATE alerts first patched in 1.84 -- CVE-2026-5588 (bcpkix) and
             // CVE-2026-0636 (bcprov) -- are covered too,
-            // because 1.85 is past 1.84. AGP 9.4.0 still only brings 1.80.2 by itself, which is
+            // because 1.85 is past 1.84. AGP 9.4.1 still only brings 1.80.2 by itself, which is
             // enough for the CRITICAL CVE-2025-14813 on bcprov and for nothing since.
             //
             // bcpkix and bcutil carry no alert of their own at 1.84; they are raised with bcprov
@@ -54,8 +54,8 @@ buildscript {
             force("org.jdom:jdom2:2.0.6.1")
 
             // CVE-2025-48924 (MODERATE), uncontrolled recursion in ClassUtils, reached through
-            // commons-compress. First patched in 3.18.0; 3.20.0 is current.
-            force("org.apache.commons:commons-lang3:3.20.0")
+            // commons-compress. First patched in 3.18.0.
+            force("org.apache.commons:commons-lang3:3.21.0")
 
             // CVE-2020-13956 (MODERATE), URI parsing. `httpmime:4.5.6` asks for `httpclient:4.5.6`
             // and on this classpath conflict resolution already lifts it to 4.5.14 -- but it does
@@ -66,7 +66,7 @@ buildscript {
 
             // CVE-2026-102554 / GHSA-xxph-c9ww-hj94 (HIGH), unbounded allocation when a
             // CompactHashMap, CompactHashSet or MapMakerInternalMap is deserialized, in every Guava
-            // from 4.0 through 33.7.1. AGP 9.4.0 and lint-gradle 32.4.0 bring 18.0, 32.0.1-jre,
+            // from 4.0 through 33.7.1. AGP 9.4.1 and lint-gradle 32.4.1 bring 18.0, 32.0.1-jre,
             // 33.3.1-jre and 33.4.0-jre onto this classpath; 33.7.2-jre is the first patched
             // release, and the same force is in `app/build.gradle.kts` for `androidLintTool`.
             force("com.google.guava:guava:33.7.2-jre")
@@ -76,29 +76,28 @@ buildscript {
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    // **AGP 9.4.0 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty: AGP 9.3.1
+    // **AGP 9.4.1 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty: AGP 9.3.1
     // creates eleven `unified-test-platform-*` configurations on `:app`, two of which resolve
     // `com.google.testing.platform:core` and `io.grpc:grpc-netty`, and Netty comes in under those -- six `io.netty`
-    // artifacts with alerts of their own. AGP 9.4.0 has a single `unified-test-platform-gradle-work-action` that resolves
+    // artifacts with alerts of their own. AGP 9.4.1 has a single `unified-test-platform-gradle-work-action` that resolves
     // neither gRPC nor Netty: `:app:dependencies` holds no Netty line. There is no Netty declaration of ours to raise; the
     // newer AGP is the supported way to change what AGP drags in.
     //
-    // 9.4.0 is the current *stable* AGP. 9.5.0 exists only as alpha and is deliberately not taken.
-    id("com.android.application") version "9.4.0" apply false
+    // 9.4.1, not 9.5.x: a new release is taken once it is two weeks old and no alert names it.
+    id("com.android.application") version "9.4.1" apply false
     // org.jetbrains.kotlin.android intentionally NOT applied -- AGP 9.0+ provides built-in Kotlin
     // support, replacing this plugin. See https://developer.android.com/build/migrate-to-built-in-kotlin
     //
-    // **2.4.20 for CVE-2026-53914**, unsafe deserialization in the Kotlin build cache
+    // **2.4.20 or later for CVE-2026-53914**, unsafe deserialization in the Kotlin build cache
     // (MODERATE). The alert names `org.jetbrains.kotlin:kotlin-gradle-plugin`, which this project
     // never applies and never declares -- it arrives as an AGP transitive at 2.2.10 and is then
     // lifted to whatever this Compose plugin asks for, because the two share a version line. So
     // the version that closes the alert is this one, and raising it is what actually moves KGP.
     //
     // Dependabot reports the first patched version as `2.4.20-Beta1`. That is the first build
-    // containing the fix, not the only one: `2.4.20` final is released and is the current latest,
-    // it sorts above the Beta, and it is what is taken here. No pre-release version enters the
-    // toolchain.
-    id("org.jetbrains.kotlin.plugin.compose") version "2.4.20" apply false
+    // containing the fix, not the only one: 2.4.21, a later final release of the same line, sorts
+    // above the Beta and is what is taken here. No pre-release version enters the toolchain.
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
 }
 
 tasks.register("clean", Delete::class) {

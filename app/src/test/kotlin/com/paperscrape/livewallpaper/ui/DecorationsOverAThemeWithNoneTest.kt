@@ -5,7 +5,9 @@ import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.DecorationExclusion
 import com.paperscrape.livewallpaper.engine.DistantHousesConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
+import com.paperscrape.livewallpaper.engine.keepCandidate
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneObjectType
 import com.paperscrape.livewallpaper.engine.StorefrontStreet
@@ -21,9 +23,10 @@ import org.junit.Test
 
 /**
  * **A decoration that hangs on something the theme's street has none of says so, reads off, and its line names only the
- * ways that would help there** (`DESIGN_NOTES.md` §12, decision 40). A random theme rolls three
- * to six objects and a saved theme keeps only what stood when it was saved, so a street can have no house, no place
- * among the houses (where the shops stand) or no building at all, at any amount. A tree or a palm it always has: a
+ * ways that would help there** (`DESIGN_NOTES.md` §12, decision 40). No street the catalogue lays lacks them (decision
+ * 102); the rule stays as the guard, held on streets built by hand: a random theme's street as it was born, three to six
+ * objects, and a saved street cut to what stood when it was saved, which can have no house, no place among the houses
+ * (where the shops stand) or no building at all, at any amount. A tree or a palm it always has: a
  * random, saved or imported street with neither is given trees (decision 97), so the tree-less street is built here by
  * hand, its trees taken out. On it *Lights on the trees* and *Christmas firs* -- on the trees alone -- say the theme has none; *Halloween decorations* -- on the houses or the shops --
  * and *Lights on the buildings* -- on the houses, the buildings or the houses on the mountains -- read off whatever *Show
@@ -31,9 +34,9 @@ import org.junit.Test
  * switch or an amount that would not help. The home screen's count follows the switches.
  *
  * Only what the settings already offer is called, the lines compared as written, so the class reads the same code
- * the rows draw from. The streets are the catalogue's: `random:<n>` built on the JVM with no accent colour (a second car's
- * colour is Android's HSV, so the ones that need it are passed over), and a theme saved from Autumn by the gallery's own
- * `snapshotEntry`.
+ * the rows draw from. The streets are built by hand: [randomStreet] from `random:<n>` on the JVM with no accent colour (a
+ * second car's colour is Android's HSV, so the ones that need it are passed over), and [savedBefore] from a theme saved
+ * from Autumn by the gallery's own `snapshotEntry`; the built-in ones are the catalogue's.
  */
 class DecorationsOverAThemeWithNoneTest {
 
@@ -43,8 +46,28 @@ class DecorationsOverAThemeWithNoneTest {
     @After
     fun clearRegistryAfter() = CustomThemeRegistry.update(CustomThemeData.EMPTY)
 
-    /** The street of `random:<n>` as the catalogue lays it, or null where the JVM cannot build it. */
-    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching { SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull()
+    /**
+     * [entry]'s street cut by hand to what stood when it was saved, and every seasonal decoration's candidate -- the
+     * street the lines of a theme that lacks a category read, which a save does not make (it keeps every candidate,
+     * decision 102) nor the catalogue lay.
+     */
+    private fun savedBefore(entry: com.paperscrape.livewallpaper.engine.CustomThemeEntry): SceneObjectLayout = entry.layout.copy(
+        staticObjects = entry.layout.staticObjects.filter {
+            SceneObjectCatalog.isSeasonalDecorationCandidate(it) || entry.customization.keepCandidate(it, entry.layout.densityScheme)
+        },
+    )
+
+    /**
+     * The street `random:<n>` was born with, built by hand (its own objects, the trees decision 97 gives it through
+     * [SceneObjectCatalog.withTrees], its seasonal decorations): the street the lines of a theme that lacks a category
+     * read, which the catalogue does not lay ([SceneObjectCatalog.withEveryCategory] adds them; the guard that stays).
+     * Null where the JVM cannot build it.
+     */
+    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching {
+        val id = "random:$n"
+        val born = SceneObjectCatalog.withTrees(RandomSceneGenerator.generateLayout(id, 0), id)
+        born.copy(staticObjects = born.staticObjects + SceneObjectCatalog.seasonalDecorationCandidates(id))
+    }.getOrNull()
 
     /** The first random theme whose street is [wanted], with its street. */
     private fun firstRandom(what: String, wanted: (SceneObjectLayout) -> Boolean): Pair<String, SceneObjectLayout> {
@@ -76,7 +99,7 @@ class DecorationsOverAThemeWithNoneTest {
     /**
      * On a street with no tree, *Lights on the trees* and *Christmas firs* read off and say the theme has none. A random,
      * saved or imported theme is given trees where it has none (`DESIGN_NOTES.md` §12, decision 97), so the street is a
-     * random one with its trees taken out by hand, and the theme as the catalogue lays it lights its trees.
+     * random one with its trees taken out by hand, and the same street with its trees lights them.
      */
     @Test
     fun `on a street with no tree, Lights on the trees and Christmas firs read off and say the theme has none`() {
@@ -165,15 +188,15 @@ class DecorationsOverAThemeWithNoneTest {
         }
     }
 
-    /** Autumn saved with its houses and its buildings off: the saved street keeps neither (`snapshotEntry`). */
+    /** Autumn saved with its houses and its buildings off, its street cut to what stood ([savedBefore]): it holds neither. */
     @Test
     fun `on a theme saved with no house and no building, the Halloween decorations say the theme has neither`() {
         val autumn = defaultCustomizationFor("autumn")
         val bare = autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false))
         val entry = snapshotEntry("custom:no-houses-no-buildings", "Bare Autumn", "autumn", bare, "autumn")
         CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
-        val street = SceneObjectCatalog.layoutFor(entry.id, 0)
-        assertFalse("the saved street keeps no house", street.hasAny(DecorationExclusion.HOUSE_TYPES))
+        val street = savedBefore(entry)
+        assertFalse("the street cut to what stood has no house", street.hasAny(DecorationExclusion.HOUSE_TYPES))
         assertFalse("nor a building", street.hasAny(setOf(SceneObjectType.SKYSCRAPER)))
         assertTrue("its trees are there", street.hasAny(DecorationExclusion.TREE_TYPES))
         // The user turns the houses and the buildings back on in the saved theme, and the decorations.
@@ -206,7 +229,7 @@ class DecorationsOverAThemeWithNoneTest {
         val noHouses = autumn.copy(houses = autumn.houses.copy(visible = false))
         val entry = snapshotEntry("custom:no-houses", "Autumn without houses", "autumn", noHouses, "autumn")
         CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
-        val street = SceneObjectCatalog.layoutFor(entry.id, 0)
+        val street = savedBefore(entry)
         assertFalse(street.hasAny(DecorationExclusion.HOUSE_TYPES))
         assertTrue("the places are saved", street.hasPlace())
         for (housesOn in listOf(true, false)) {
@@ -376,14 +399,14 @@ class DecorationsOverAThemeWithNoneTest {
             )
             assertLights("no houses, houses ${if (housesOn) "on" else "off"}", "Needs the buildings or the mountains on in World & " +
                 "scene: this theme has no houses. Your choice is kept until then.", noMountain(c, atZero = false),
-                SceneObjectCatalog.layoutFor(noHouses.id, 0))
+                savedBefore(noHouses))
         }
         val bareOn = bare.customization.copy(
             houses = bare.customization.houses.copy(visible = true, density = 1f),
             buildings = bare.customization.buildings.copy(visible = true),
         )
         assertLights("no houses, no buildings", "Needs the mountains on in World & scene: this theme has no houses and no " +
-            "buildings. Your choice is kept until then.", noMountain(bareOn, atZero = false), SceneObjectCatalog.layoutFor(bare.id, 0))
+            "buildings. Your choice is kept until then.", noMountain(bareOn, atZero = false), savedBefore(bare))
         // Towers and no place, every tower thinned away.
         val towersLow = none.copy(houses = houses(true, 0.01f), buildings = buildings(true, 0f))
         val (withHouses, towers) = firstRandom("with a tower and a house, no place, and no house standing at 1 %") {

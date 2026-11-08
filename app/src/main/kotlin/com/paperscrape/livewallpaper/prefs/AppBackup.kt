@@ -411,7 +411,8 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
         // `birds.colors` entry that is not an object (`getJSONObject` in
         // `sceneCustomizationFromJson`), and it is here so a throwing accessor added downstream
         // gets a refused document instead of a vanished app.
-        customizations[id] = runCatching { sceneCustomizationFromJson(entry, theme) }.getOrNull()
+        val layout = overrides[id]?.layout ?: customThemes.firstOrNull { it.id == id }?.layout
+        customizations[id] = runCatching { sceneCustomizationFromJson(entry, theme, layout) }.getOrNull()
             ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
     }
 

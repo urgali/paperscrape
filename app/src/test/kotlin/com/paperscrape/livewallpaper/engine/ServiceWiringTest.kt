@@ -39,7 +39,18 @@ class ServiceWiringTest {
     fun `the loop asks for new conditions for another place, when the hour is up, or at a showing`() {
         val lines = codeLines(engine)
         assertFalse("the bit-for-bit comparison", engine.contains("fix != lastWeatherFetchLocation"))
-        assertTrue("val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation)" in lines)
+        assertTrue("val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation, written = source.deviceKind == null)" in lines)
+        // Every pass reads the position the phone holds, without a request, and takes it when fresh and moved (decision 101).
+        val held = lines.indexOf("locationProvider().heldFix(kind)?.let { held ->")
+        assertTrue("the held position read on the pass", held >= 0)
+        assertEquals(
+            listOf(
+                "if (LiveWeatherSchedule.takesHeldPosition(held.fix, held.ageMillis, lastLocationFix)) {",
+                "updateSunTimesFromLocation(held.fix, isDeviceFix = true)",
+            ),
+            lines.subList(held + 1, held + 3),
+        )
+        assertTrue("only with the position allowed, and not at a fixed hour", "if (kind != null && deviceAccess?.mayUsePosition == true && settings.syncWithRealTime) {" in lines)
         assertTrue(
             "val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)" in lines,
         )

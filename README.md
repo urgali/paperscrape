@@ -13,7 +13,7 @@ PaperScrape replaces your home screen background with a small landscape that kee
 moving on its own.
 
 - **A live wallpaper**, not a static image. Hills, a lake, a village and a road, drawn
-  every frame; under the road the street seen again, nearer: houses, trees, the restaurant, the bar and the shop,
+  every frame; under the road the whole town seen again, nearer: houses, trees, the shops and the public buildings,
   decorations and people walking.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
@@ -48,9 +48,12 @@ moving on its own.
   same ones. Small houses far away on the mountains can be
   turned on, in the houses' colours, on both sides of the mountains. (The umbrellas people carry follow the rain and have no switch
   of their own.) A switch reads on only while what it promises happens: one that can do nothing -- at an amount where
-  nothing stands, or on a random or saved theme whose street has no houses, parasols, towers or shops at all --
-  reads off with a line that says why, and your choice is kept. Trees can be turned on on every theme: a random or saved
-  theme with none is given its own.
+  nothing stands -- reads off with a line that says why, and your choice is kept. Everything can be turned on on every
+  theme: a random, saved or imported theme is given the houses, trees, parasols, towers, shops and public buildings and
+  cars its street lacks; on a random theme they start off where it was born without them (not the trees), a saved theme
+  keeps the switches it was saved with, and a random theme shows trees as it comes; with houses or parasols on, a random theme
+  shows some too, given more where its own would all be thinned out. The shops and the public buildings among the houses
+  have a switch of their own, under *Show Buildings*.
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
@@ -60,7 +63,7 @@ moving on its own.
   either the Christmas decorations or the Halloween ones, never both: the first turned on stays, and the
   other's switch says the first are on. A decoration with nothing to hang on — no tree for the trees'
   lights and the firs, no house or shop for the Halloween decorations, and no house, other building
-  or house on the mountains for the buildings' lights — reads off, and its line says what to turn on, or that the theme has none. The firs
+  or house on the mountains for the buildings' lights — reads off, and its line says what to turn on. The firs
   grow among leafy trees only: on a street of palms (Beach, Desert) they need *Palms* off.
 - **Halloween**, with a switch for each thing. *Halloween* carves a jack-o'-lantern's face into the
   full moon, lit from inside, strips the trees to bare branches, withers the palms and carves a face on
@@ -98,16 +101,20 @@ moving on its own.
   or the chosen provider needs a key it does not have or refuses the one it has, it says so and falls back to the
   theme's own weather rather than quietly asking the other service. A request the provider refuses is asked again at
   the next hourly refresh. When the wallpaper comes back on screen and the last update is an hour old or more, the
-  weather is asked for at once, and again within seconds if the network is not up yet. The rain falls from the clouds and only from
+  weather is asked for at once, and again within seconds if the network is not up yet. The weather is asked for again at
+  once for a new custom location, and for the phone's position once it has moved more than 3 km: that position is the one
+  the phone already knows, read with no request every couple of minutes while the wallpaper is on screen, so it is new at
+  once only when another app, a map say, has asked for it. The rain falls from the clouds and only from
   them: with the theme's clouds off or at 0 % nothing falls and no storm flashes, a forecast of rain under a clear sky is drawn
   with a few clouds to fall from, and as the last clouds go the rain stops with them. The drops are thin strokes with
   square ends.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
   on (the Christmas theme starts with it on); the Headless Horseman, the same way, throwing pumpkins on fire from his
-  hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks,
-  lightning and birds.
+  hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks at
+  night, with a switch of their own on every theme (New Year's Eve starts with them on); lightning and birds. *Sun/Cloud
+  Height* takes the sun and the moon as high as the screen has room for, the clouds below them.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
-  its lowest a single sporadic car — with a night amount of its own that the road fades to at
+  0 % no car, and *Keep the road* says whether the road stays, empty, or gives way to the meadow — with a night amount of its own that the road fades to at
   dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
   the shop) and the school can each be given opening hours of their own, kept to the minute: outside
   them the blinds are down (on a tower, in its entrance hall), a shutter is down over the front door, nobody stands at the glass, and the

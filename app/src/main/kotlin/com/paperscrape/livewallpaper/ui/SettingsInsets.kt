@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.safeDrawing
@@ -128,6 +129,9 @@ fun ProvideSettingsBottomInset(content: @Composable () -> Unit) {
  * The height to give a settings dialog's content: [SettingsInsets.dialogHeight] of the activity's window and the
  * insets the activity measured.
  */
+// `Configuration.screenHeightDp` on purpose: only the stand-in while the activity's window is not measured yet
+// ([SettingsInsets.dialogHeight]); `LocalWindowInfo` inside a dialog would read the dialog's own window, not the activity's.
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 internal fun settingsDialogHeight(): Dp = SettingsInsets.dialogHeight(
     activityWindowHeight = LocalSettingsWindowHeight.current,

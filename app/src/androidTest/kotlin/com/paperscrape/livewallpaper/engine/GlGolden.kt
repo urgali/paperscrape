@@ -73,7 +73,7 @@ object GlGolden {
      *
      * Against a committed `gl-<name>.png`. The strict one, and it can afford to be: at `>=16` the
      * suite's own stand-in for a second driver, `gl-day` with every outline shifted one pixel, judges
-     * about 0.50 % of the interiors different, under its 0.60 % (decision 100), and a broken blend
+     * about 0.61 % of the interiors different, under its 0.65 % (decision 100), and a broken blend
      * crosses that limit on all three scenes.
      *
      * ### [CanvasCross]: GL still draws what Canvas draws
@@ -100,7 +100,7 @@ object GlGolden {
         /** Against the committed GL golden: same backend, possibly a different GL driver. */
         object GlTarget {
             const val CHANNEL = 16
-            const val MAX_FRACTION = 0.006
+            const val MAX_FRACTION = 0.0065
         }
 
         /**

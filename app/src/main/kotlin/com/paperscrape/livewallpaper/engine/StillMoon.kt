@@ -1,7 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * The still Halloween moon (v5.17, *Moon stays in place*; the maintainer's *«aggiungi toggle per halloween di mettere la luna
+ * The still Halloween moon (*Moon stays in place*; the maintainer's *«aggiungi toggle per halloween di mettere la luna
  * zucca in posizione fixed in cielo senza farle fare il giro di sole e luna»* of 2026-10-23 and, of the three places
  * photographed, *«L3: bassa sui tetti»*, 2026-10-24): while it is in force ([SceneCustomization.stillMoonActive]) and it is
  * the moon that is up, the carved moon stands in the middle of the screen, low over the roofs under the clouds, instead of
@@ -13,8 +13,8 @@ package com.paperscrape.livewallpaper.engine
  *   stands as the night comes and fades before the day ([alpha]: `1 - dayBlend / 0.5`) -- in its twilight a little
  *   transparent, the stars seen through it.
  * - **Its place follows *Sun/Cloud Height***, as the clouds do ([centreY]): its middle [UNDER_CLOUDS_RADII] of its radius
- *   under the cloud band's foot ([CloudBand]), 0.37 of the screen's height on the BV6600 with the slider as it comes (64 %,
- *   the arc's 0.42).
+ *   under the cloud band's foot ([CloudBand]), which follows the sun (decision 106), so it is seen under the clouds at
+ *   every value: 0.48 of the screen's height on the BV6600 with the slider as it comes (64 %, the stored 0.42).
  *
  * Pure, as [NightOverDay]: the renderer keeps one instance a phase it is given.
  */
@@ -30,13 +30,14 @@ internal object StillMoon {
     const val OUT_BY_DAY_BLEND = 0.5f
 
     /** Where its middle stands, px from the top of a [screenWidth] x [screenHeight] screen, the slider at [sunCloudHeight]. */
-    fun centreY(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float =
-        CloudBand.topFor(screenHeight, sunCloudHeight) + CloudBand.heightFor(screenHeight) +
-            screenWidth * PaperRenderer.CELESTIAL_RADIUS_FRACTION * 2f * UNDER_CLOUDS_RADII
+    fun centreY(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float {
+        return CloudBand.topFor(screenWidth, screenHeight, sunCloudHeight) + CloudBand.heightFor(screenHeight) +
+            SunArc.radiusPx(screenWidth) * UNDER_CLOUDS_RADII
+    }
 
     /** The same place as the arc's height (0 the horizon), as `PaperRenderer.drawCelestialBody` turns it back into px. */
     fun arcY(screenWidth: Int, screenHeight: Int, sunCloudHeight: Float): Float {
-        val rise = sunCloudHeight.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
+        val rise = SunArc.rise(sunCloudHeight, screenWidth, screenHeight)
         return (screenHeight * PaperRenderer.HORIZON_Y_FRACTION_OF_ARC - centreY(screenWidth, screenHeight, sunCloudHeight)) /
             (rise * screenHeight)
     }

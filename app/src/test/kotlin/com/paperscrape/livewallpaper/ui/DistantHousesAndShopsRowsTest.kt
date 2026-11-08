@@ -101,12 +101,12 @@ class DistantHousesAndShopsRowsTest {
         assertTrue(BUILDINGS_COLOUR_LINE.contains("towers' colours"))
         assertTrue(HOUSES_COLOUR_LINE.contains("distant houses"))
         val shops = functionLines(codeLines("ui/SceneCategorySections.kt"), "internal fun StorefrontGroupSection(")
-        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme),"))
+        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),"))
         assertTrue(
             "the line leads to Buildings only where turning them on would bring the group",
             shops.contains("modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,"),
         )
-        assertTrue(shops.contains("val leadsToBuildings = placesOnTheme && !buildingsVisible"))
+        assertTrue(shops.contains("val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)"))
         assertTrue(shops.contains("onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },"))
     }
 

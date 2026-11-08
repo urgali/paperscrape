@@ -7,13 +7,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The cars' night density (v4.22 Phase 3): the pedestrians' model, replicated exactly.
+ * The cars' night density: the pedestrians' model, replicated exactly.
  *
  * Three halves are pinned. The **blend**: the density in force crossfades linearly on `dayBlend`
  * through the same [PeopleDensity.at] the pedestrians use, and feeds the count — there is no
- * parallel threshold. The **upgrade rule**: a payload or preference store from before the field
- * existed resolves the night density to its own daytime value, so the scene after the update is
- * the scene before it. And the **selection consequence**: because the blended density enters
+ * parallel threshold. The **upgrade rule**: a payload or preference store with no night key
+ * resolves the night density to its own daytime value, so an update keeps the scene the stored
+ * settings drew. And the **selection consequence**: because the blended density enters
  * [CarSelection.countFor], the night-time road is always a *subset* of the day-time road at any
  * blend (nesting), never a reshuffle.
  */
@@ -64,17 +64,17 @@ class CarNightDensityTest {
         }
         // And the two ends are the two counts the sliders ask for.
         assertEquals(10, CarSelection.keptMask(inventory, CarSelection.densityAt(1f, 0f, 1f), seed).count { it })
-        assertEquals(1, CarSelection.keptMask(inventory, CarSelection.densityAt(1f, 0f, 0f), seed).count { it })
+        assertEquals("the night at 0 %: no car (decision 104)", 0, CarSelection.keptMask(inventory, CarSelection.densityAt(1f, 0f, 0f), seed).count { it })
     }
 
     // ---------------------------------------------------------------- the upgrade rule
 
     @Test
-    fun `a customization payload from before v4_22 keeps its own daytime traffic at night`() {
+    fun `a customization payload with no night key keeps its own daytime traffic at night`() {
         val defaults = SceneCustomization.DEFAULT
         val saved = defaults.copy(cars = defaults.cars.copy(density = 0.4f))
         val json = JSONObject(saved.toJson().toString())
-        // What a pre-v4.22 build wrote: no night key, no opening hours of either shape.
+        // A payload with no night key and no opening hours of either shape.
         json.remove("carsNightDensity")
         for (key in listOf("business", "shop", "tower")) {
             json.remove("${key}HoursEnabled")

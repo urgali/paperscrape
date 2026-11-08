@@ -219,32 +219,58 @@ object LiveWeatherSchedule {
         runs && (!WeatherRepository.providerFor(provider).requiresApiKey || apiKey.isNotBlank())
 
     /**
-     * Whether [fix] is **another place** than [lastFetchFor], the position the last fetch was made for: farther than
-     * [SAME_PLACE_KM], or no fetch made for any. A fix a few metres from the last -- a try after a search that found
-     * nothing, another app's newer cached position, the saved position read back as a float -- is the same place to
-     * the weather, and its fetch waits for the hourly one: new conditions there arrive up to an hour later. Null
-     * [fix]: nowhere to fetch for.
+     * Whether [fix] is **another place** than [lastFetchFor], the position the last fetch was made for, so the weather is
+     * asked at once (`DESIGN_NOTES.md` §12, decision 101): a [written] place (*Custom location*) moved more than
+     * [WRITTEN_PLACE_KM], a change the user made; the phone's position moved more than [SAME_PLACE_KM]; or no fetch made
+     * for any. Closer is the same place to the weather -- the phone's fix trembles by some hundred metres, the saved place
+     * comes back as a float -- and its fetch waits for the hourly one. Null [fix]: nowhere to fetch for.
      */
     fun movedToAnotherPlace(
         fix: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
         lastFetchFor: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
-    ): Boolean = fix != null && (lastFetchFor == null || !isSamePlace(fix, lastFetchFor))
+        written: Boolean = false,
+    ): Boolean = fix != null && (lastFetchFor == null || kmBetween(fix, lastFetchFor) > if (written) WRITTEN_PLACE_KM else SAME_PLACE_KM)
 
     /**
-     * How far apart two positions may be and still be **the same place** to the weather: about one
-     * cell of the coarsest provider grid. [WeatherRequest.coordinate] records it -- Open-Meteo
-     * resolves to roughly an 11 km grid and the other two are no finer -- so within this distance
-     * the conditions for one position are the conditions for the other.
+     * How far apart two of the phone's positions may be and still be **the same place** to the weather (decision 101):
+     * 3 km, under the 2 to 11 km cells Open-Meteo's best match uses over Europe, and over what the phone's fix trembles by
+     * standing still -- some hundred metres by GPS, up to a few km by the network. Within it the conditions are the
+     * last fetch's, and a failed fetch keeps them ([heldAfterFetch]).
      */
-    const val SAME_PLACE_KM = 11.0
+    const val SAME_PLACE_KM = 3.0
 
-    /** The two positions are within [SAME_PLACE_KM] of each other (equirectangular; exact enough at this scale). */
-    fun isSamePlace(a: com.paperscrape.livewallpaper.location.DeviceLocationFix, b: com.paperscrape.livewallpaper.location.DeviceLocationFix): Boolean {
+    /** A written place moved farther than this, 10 m, is a change the user made: another place, asked at once (decision 101). */
+    const val WRITTEN_PLACE_KM = 0.01
+
+    /** The two positions are within [SAME_PLACE_KM] of each other. */
+    fun isSamePlace(a: com.paperscrape.livewallpaper.location.DeviceLocationFix, b: com.paperscrape.livewallpaper.location.DeviceLocationFix): Boolean =
+        kmBetween(a, b) <= SAME_PLACE_KM
+
+    /** The distance between two positions, in km (equirectangular; exact enough at these scales). */
+    fun kmBetween(a: com.paperscrape.livewallpaper.location.DeviceLocationFix, b: com.paperscrape.livewallpaper.location.DeviceLocationFix): Double {
         val kmPerDegree = 111.2
         val dLat = (a.latitude - b.latitude) * kmPerDegree
         val dLon = (a.longitude - b.longitude) * kmPerDegree * kotlin.math.cos(Math.toRadians((a.latitude + b.latitude) / 2.0))
-        return dLat * dLat + dLon * dLon <= SAME_PLACE_KM * SAME_PLACE_KM
+        return kotlin.math.sqrt(dLat * dLat + dLon * dLon)
     }
+
+    /**
+     * Whether a pass takes the position the phone already holds for the chosen source, read without a request
+     * (`DeviceLocationProvider.heldFix`, decision 101): no older than [HELD_MAX_AGE_MS], and [HELD_MOVE_KM] or more from
+     * the one the loop keeps (or none kept). Another app that asked the phone where it is -- a map, a navigator -- has
+     * left it there; no radio is started for it.
+     */
+    fun takesHeldPosition(
+        held: com.paperscrape.livewallpaper.location.DeviceLocationFix,
+        heldAgeMillis: Long,
+        kept: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
+    ): Boolean = heldAgeMillis <= HELD_MAX_AGE_MS && (kept == null || kmBetween(held, kept) >= HELD_MOVE_KM)
+
+    /** How old a position the phone holds may be for a pass to take it: 30 minutes (decision 101). */
+    const val HELD_MAX_AGE_MS = 30 * 60 * 1000L
+
+    /** How far a held position must be from the one kept for a pass to take it: 100 m (decision 101). */
+    const val HELD_MOVE_KM = 0.1
 
     /**
      * The snapshot the loop holds after a fetch for [fetchedFor]: what it [fetched], or -- when

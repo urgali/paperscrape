@@ -443,56 +443,6 @@ class HalloweenOrChristmasDecorationsTest {
         }
     }
 
-    /**
-     * **A switch the settings take reads back on, on a saved street with no place among the houses** (decisions 40 and
-     * 77): the Halloween theme saved over with *Show Buildings* off keeps no tower and no place (`snapshotEntry`); then
-     * *Reset Buildings to default* turns *Show Buildings* back on, the houses go off and the houses on the mountains on.
-     * The Halloween decorations, stored on, hang on nothing there, so *Lights on the buildings* takes the tap, and the
-     * store's reader keeps it on: the side that hangs on the street. Never both on, or the gallery card would draw the two
-     * on its shops. With the houses back both hang, the Halloween theme's side stays, a switch that can be turned off, and
-     * the lights wait greyed with their reason.
-     */
-    @Test
-    fun `on a saved street with no place, Lights on the buildings taken beside decorations that hang on nothing reads on`() = runBlocking {
-        val halloween = defaultCustomizationFor("halloween")
-        val entry = snapshotEntry("halloween", "Halloween", "halloween", halloween.copy(buildings = halloween.buildings.copy(visible = false)), "halloween")
-        CustomThemeRegistry.update(CustomThemeData(overrides = mapOf("halloween" to entry)))
-        try {
-            val street = DecorationExclusion.streetOf("halloween")
-            assertTrue("the saved street keeps its houses", street.staticObjects.any { it.type == SceneObjectType.HOUSE })
-            assertFalse("and no tower or place", street.staticObjects.any { it.type == SceneObjectType.SKYSCRAPER })
-            prefs.resetCategory(ObjectCategory.BUILDINGS, "halloween")
-            prefs.setCategoryVisible(ObjectCategory.HOUSES, false, "halloween")
-            prefs.setDistantHousesDensity(0.5f, "halloween")
-            prefs.setDistantHousesVisible(true, "halloween")
-            prefs.setMountainDensity(true, 1f, "halloween")
-            prefs.setMountainVisible(true, true, "halloween")
-            val before = of("halloween")
-            assertTrue("Show Buildings back on", before.buildings.visible)
-            assertTrue("the decorations stored on", before.halloweenDecorationsEnabled)
-            val free = SettingsUiModel.christmasBuildingDecoration(before.christmasBuildingLightsEnabled, before, street)
-            assertTrue("Lights on the buildings takes a tap", free.interactive && !free.shownOn && !free.blockedByTheOther)
-
-            prefs.setChristmasBuildingLightsEnabled(true, "halloween")
-            val after = of("halloween")
-            assertTrue("the tap reads back on", after.christmasBuildingLightsEnabled)
-            assertTrue(SettingsUiModel.christmasBuildingDecoration(after.christmasBuildingLightsEnabled, after, street).shownOn)
-            assertFalse("never both on: the card would draw the two on its shops", after.halloweenDecorationsEnabled)
-            val decorations = SettingsUiModel.halloweenDecorations(after, street)
-            assertFalse(decorations.shownOn || decorations.interactive)
-            assertEquals("Needs the houses on in World & scene: this theme has no shops. Your choice is kept until then.", decorations.needsLine)
-
-            prefs.setCategoryVisible(ObjectCategory.HOUSES, true, "halloween")
-            val both = of("halloween")
-            assertTrue("the Halloween theme's side", both.halloweenDecorationsEnabled)
-            assertFalse(both.christmasBuildingLightsEnabled)
-            val decorationsBack = SettingsUiModel.halloweenDecorations(both, street)
-            assertTrue("on, and free to go off", decorationsBack.shownOn && decorationsBack.interactive)
-            assertTrue(SettingsUiModel.christmasBuildingDecoration(both.christmasBuildingLightsEnabled, both, street).blockedByTheOther)
-        } finally {
-            CustomThemeRegistry.update(CustomThemeData.EMPTY)
-        }
-    }
 
     /** `ui/SeasonsScreen.kt`'s lines, trimmed, without comments: a line comment cut off, a KDoc or block comment line dropped. */
     private fun seasonsScreenLines(): List<String> {

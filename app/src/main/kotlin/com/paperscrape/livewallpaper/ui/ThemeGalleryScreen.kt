@@ -46,7 +46,6 @@ import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.asSaved
-import com.paperscrape.livewallpaper.engine.keepCandidate
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -615,15 +614,13 @@ internal fun snapshotEntry(
         themeCustomizations = themeCustomizations,
     )
     val layout = SceneObjectLayout(
-        // Thinned by the rule the source layout is drawn with, and saved with that rule, so what stood on screen is
-        // saved. The seasonal decorations' candidates are all saved, standing or not: by them the catalogue finds the
-        // theme they were dealt for, and the saved theme's sliders reach every one
-        // ([SceneObjectCatalog.isSeasonalDecorationCandidate]; `DESIGN_NOTES.md` §12, decision 89).
-        staticObjects = rawLayout.staticObjects.filter {
-            SceneObjectCatalog.isSeasonalDecorationCandidate(it) || activeCustomization.keepCandidate(it, rawLayout.densityScheme)
-        },
+        // **Every candidate is saved, standing or not**, as the cars are, with the rule the source layout is thinned by:
+        // the saved switches and amounts decide what stands, so the saved theme looks as it did on screen and every
+        // switch and slider reaches every candidate (`DESIGN_NOTES.md` §12, decision 102). By the seasonal decorations'
+        // candidates the catalogue finds the theme they were dealt for (decision 89).
+        staticObjects = rawLayout.staticObjects,
         densityScheme = rawLayout.densityScheme,
-        // **The cars are saved whole, not filtered**: the road is terrain (`SceneObjectRenderer.hasRoad` is
+        // **The cars are saved whole, not filtered**: the road is terrain (`SceneObjectRenderer.drawsRoad` needs
         // `layout.cars.isNotEmpty()`, and the lane pair comes from the whole list, `SceneSpace.roadEdgeMarginFraction`),
         // so a list thinned at save would lose the road for good, at 10 % or with Cars off. The saved theme still shows
         // the same traffic: `keptCars` applies `activeCustomization` to the full list at render time

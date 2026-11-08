@@ -301,6 +301,8 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     // own daytime density (PeopleDensity.resolveNightDensity's rule).
     put("peopleNightDensity", peopleNightDensity.toDouble())
     put("carsNightDensity", carsNightDensity.toDouble())
+    put("keepRoad", keepRoad)
+    put("placesVisible", placesVisible)
     // The opening hours, in three groups; a payload without them reads the defaults (off), and one with
     // the single `businessHours*` setting reads it into each group (`sceneCustomizationFromJson`).
     put("shopHoursEnabled", shopHoursEnabled)
@@ -420,6 +422,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("bloodRainEnabled", bloodRainEnabled)
     put("headlessHorsemanEnabled", headlessHorsemanEnabled)
     put("santaEnabled", santaEnabled)
+    put("fireworksEnabled", fireworksEnabled)
 }
 
 /**
@@ -458,6 +461,9 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
     val shopHoursEnabled = json.optBoolean("shopHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.shopHoursEnabled))
     val shopOpenHour = json.optFinite("shopOpenHour", json.optFinite("businessOpenHour", defaults.shopOpenHour))
     val shopCloseHour = json.optFinite("shopCloseHour", json.optFinite("businessCloseHour", defaults.shopCloseHour))
+    val cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars
+    // Without a night key the night is the payload's own day, not the default's (both night densities).
+    val carsNightDensity = json.optFinite("carsNightDensity", cars.density)
     return SceneCustomization(
         houses = json.optJSONObject("houses")?.let { objectVariantConfigFromJson(it, defaults.houses) } ?: defaults.houses,
         buildings = buildings,
@@ -470,7 +476,7 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
         // ([publicsCarriedOver]); without a theme, the shops'.
         publics = json.optJSONObject("publics")?.let { objectVariantConfigFromJson(it, shops) }
             ?: publicsCarriedOver(shops, theme),
-        cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars,
+        cars = cars,
         parasols = json.optJSONObject("parasols")?.let { objectVariantConfigFromJson(it, defaults.parasols) } ?: defaults.parasols,
         // A missing category is not a changed one: the default, with no schema step.
         people = json.optJSONObject("people")?.let { objectVariantConfigFromJson(it, defaults.people) } ?: defaults.people,
@@ -479,12 +485,10 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
             json.optJSONObject("people")?.optFinite("density", defaults.people.density)
                 ?: defaults.people.density,
         ),
-        // Without a night key the night is the payload's own day, not the default's (both night densities).
-        carsNightDensity = json.optFinite(
-            "carsNightDensity",
-            json.optJSONObject("cars")?.optFinite("density", defaults.cars.density)
-                ?: defaults.cars.density,
-        ),
+        carsNightDensity = carsNightDensity,
+        // A payload without it was written before *Keep the road* existed: [readAsDrawnBefore] below.
+        keepRoad = json.optBoolean("keepRoad", false),
+        placesVisible = json.optBoolean("placesVisible", asItStarts.placesVisible),
         // A payload with `businessHours*` alone, the one setting for shops and towers, gives it to each group
         // without a field of its own: whoever had the hours on finds them on in both, at the same hours.
         shopHoursEnabled = shopHoursEnabled,
@@ -660,6 +664,8 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
         bloodRainEnabled = json.optBoolean("bloodRainEnabled", asItStarts.bloodRainEnabled),
         headlessHorsemanEnabled = json.optBoolean("headlessHorsemanEnabled", asItStarts.headlessHorsemanEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),
+        // A payload without it (written before the switch existed) reads the theme's own: fireworks where the theme had them.
+        fireworksEnabled = json.optBoolean("fireworksEnabled", asItStarts.fireworksEnabled),
     ).let { read ->
         // Both sides read on by their amounts: judged on the street, where a category above 0 % can keep nothing. Only then
         // is the street worked out -- the saved theme's own, or the one [theme] draws.
@@ -669,6 +675,9 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
             null
         }
         DecorationExclusion.resolved(read, asItStarts, street)
+    }.let { read ->
+        // Written before *Keep the road* existed: read as the scene it drew (decisions 102 and 104).
+        if (json.has("keepRoad")) read else read.readAsDrawnBefore(SceneObjectCatalog.streetDrawnBefore(theme?.id, layout))
     }
 }
 
@@ -978,7 +987,7 @@ fun CustomThemeData.toJsonString(): String {
  *
  * Files written by an older save path hold `rawLayout.cars.filter { keepCar(it) }`, so a theme saved
  * with Cars low or off has an **empty or thinned car list**: empty, it loses the road
- * (`SceneObjectRenderer.hasRoad`) and all traffic for good while the settings say "On - 100%";
+ * (`SceneObjectRenderer.drawsRoad`) and all traffic for good while the settings say "On - 100%";
  * thinned, its traffic is capped for ever, one car deriving the painted road from half a lane pair.
  *
  * **The guard is narrow**: an override of a built-in that defines cars

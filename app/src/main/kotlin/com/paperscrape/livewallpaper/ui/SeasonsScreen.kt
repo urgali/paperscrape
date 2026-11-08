@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import com.paperscrape.livewallpaper.ui.icons.filled.Tune
 import com.paperscrape.livewallpaper.ui.icons.outlined.AcUnit
 import com.paperscrape.livewallpaper.ui.icons.outlined.CardGiftcard
+import com.paperscrape.livewallpaper.ui.icons.outlined.Celebration
 import com.paperscrape.livewallpaper.ui.icons.outlined.DarkMode
 import com.paperscrape.livewallpaper.ui.icons.outlined.Egg
 import com.paperscrape.livewallpaper.ui.icons.outlined.LocalFlorist
@@ -31,15 +32,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * The five seasons decorations are grouped under. Presentation only; no flag knows about it.
+ * The seasons decorations are grouped under. Presentation only; no flag knows about it.
  *
- * No sixth, Summer: the Palms switch would be all it held, and that switch is on the Trees page of
+ * No Summer: the Palms switch would be all it held, and that switch is on the Trees page of
  * World & scene (`DESIGN_NOTES.md` §12, decision 39): the palms stand in the trees' places, so they
  * are set where the trees are. A Summer row would count nothing and open an empty page.
  */
 private enum class Season(val title: String) {
     WINTER("Winter"),
     CHRISTMAS("Christmas"),
+    NEW_YEAR("New Year's Eve"),
     HALLOWEEN("Halloween"),
     EASTER("Easter"),
     SPRING("Spring"),
@@ -166,6 +168,9 @@ internal fun SeasonsScreen(
                 "Santa" to customization.santaEnabled,
                 "Gifts" to shown(customization.gifts, standing.gifts),
             )) { openSeason = Season.CHRISTMAS }
+            SeasonRow(Season.NEW_YEAR, Icons.Outlined.Celebration, listOf(
+                "Fireworks" to customization.fireworksEnabled,
+            )) { openSeason = Season.NEW_YEAR }
             SeasonRow(Season.HALLOWEEN, Icons.Outlined.DarkMode, listOf(
                 "Halloween" to customization.halloweenEnabled,
                 "Laughing moon" to SettingsUiModel.laughingMoon(customization).shownOn,
@@ -197,7 +202,7 @@ internal fun SeasonsScreen(
 
     if (confirmDecorationsReset) {
         // **What this screen shows, and nothing else** (decision 42): the palette and the piles under
-        // it, the five seasons' decorations with their densities and colours, and their switches -- in
+        // it, the six seasons' decorations with their densities and colours, and their switches -- in
         // one write (`WallpaperPrefs.resetDecorations`), after asking. Not the palms, whose switch is on
         // the Trees page of World & scene: "Reset Trees to default" takes them. resetAllCategories()
         // would also wipe this theme's houses, trees and the rest, which is not what "reset" means
@@ -315,6 +320,15 @@ private fun SeasonDetailScreen(
                     )
                     DecorationRows("Gifts", customization.gifts, standing.gifts, ObjectCategory.GIFTS, forThemeId, prefs, scope) { openOptions = it }
                 }
+                Season.NEW_YEAR -> {
+                    // A plain switch on every theme (decision 103): nothing it needs can be missing, so it is never greyed.
+                    SettingsSwitchRow(
+                        title = "Fireworks",
+                        supporting = FIREWORKS_LINE,
+                        checked = customization.fireworksEnabled,
+                        onCheckedChange = { scope.launch { prefs.setFireworksEnabled(it, forThemeId) } },
+                    )
+                }
                 Season.HALLOWEEN -> {
                     SettingsSwitchRow(
                         title = "Halloween",
@@ -408,6 +422,7 @@ private fun SeasonDetailScreen(
                 Season.WINTER -> "Snow on trees, roofs and clothing is the Winter palette, on the previous screen."
                 Season.CHRISTMAS -> "The Christmas lights and firs work with any palette, including none. They and the " +
                     "Halloween decorations are never on together: the first turned on stays."
+                Season.NEW_YEAR -> "Fireworks are available on any theme, not only the New Year's Eve one."
                 Season.HALLOWEEN -> "Halloween and Horror sky are independent of each other and of the palette. The " +
                     "Halloween decorations and the Christmas ones are never on together: the first turned on stays."
                 Season.EASTER -> "Both are available on any theme, not only the Easter one."
@@ -461,6 +476,9 @@ internal const val LAUGHING_MOON_LINE =
 internal const val NIGHT_SKY_BY_DAY_LINE =
     "The whole scene stays night all day: the Halloween moon takes the sun's place, lit windows and night colours. " +
         "The shops keep their real opening hours."
+/** The line under *Fireworks* (decision 103). */
+internal const val FIREWORKS_LINE = "Fireworks burst over the town at night."
+
 internal const val STILL_MOON_LINE =
     "The Halloween moon stays still, low over the roofs under the clouds, instead of crossing the sky. " +
         "Without Night sky by day it comes out after sunset and fades before sunrise, where it stands."

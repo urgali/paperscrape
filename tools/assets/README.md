@@ -38,7 +38,7 @@ python3 -m paperscrape_assets probe  # must report matches_expected: true
 ```
 
 The toolchain those pins name: **resvg_py 0.4.0** (the rasteriser), **Pillow 13.0.0** and **numpy 2.4.4**, on the
-system's Python (3.14.8). Add `-B` to every `python3` command of this file, the `probe`
+system's Python (3.14.9 on 2026-11-08). Add `-B` to every `python3` command of this file, the `probe`
 above included (`python3 -B …`), so no `__pycache__` is left in the tree.
 
 There is no installed `paperscrape-assets` command: every command below is

@@ -320,8 +320,8 @@ object SceneSpace {
     // ---- The near row, below the road ----------------------------------------------------
 
     /*
-     * Under the road the street is seen a second time, nearer (`DESIGN_NOTES.md` §12, decision 96): the
-     * street's own houses, trees, palms, parasols and decorations, with the shops, on one line of feet
+     * Under the road the street is seen again, nearer (`DESIGN_NOTES.md` §12, decisions 96 and 105): the
+     * street's own houses, trees, palms, parasols and decorations twice, with every place among its houses, on one line of feet
      * between [NEAR_ROW_FEET_TOP_Y_FRACTION] and [NEAR_ROW_FEET_BOTTOM_Y_FRACTION], and a pavement of
      * people in front of them. They are drawn at a **fixed** share of the size table's size,
      * [NEAR_ROW_SIZE], not at the projection of where they stand, which would make them 1.3 to 1.7

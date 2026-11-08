@@ -16,15 +16,16 @@ import org.junit.Test
  */
 class RainOriginTest {
 
+    private val screenWidth = 1080
     private val screenHeight = 2424
 
     @Test
     fun `the rain starts on the middle line of the cloud band at every height of the arc`() {
         for (step in 0..20) {
             val arc = SUN_CLOUD_HEIGHT_MIN + (SUN_CLOUD_HEIGHT_MAX - SUN_CLOUD_HEIGHT_MIN) * step / 20f
-            val top = CloudBand.topFor(screenHeight, arc)
+            val top = CloudBand.topFor(screenWidth, screenHeight, arc)
             val bottom = top + CloudBand.heightFor(screenHeight)
-            assertEquals("the rain's start at arc $arc", (top + bottom) / 2f, CloudBand.precipitationOriginY(screenHeight, arc), 0.01f)
+            assertEquals("the rain's start at arc $arc", (top + bottom) / 2f, CloudBand.precipitationOriginY(screenWidth, screenHeight, arc), 0.01f)
         }
     }
 
@@ -37,7 +38,7 @@ class RainOriginTest {
         val lines = body.lines().map { it.substringBefore("//").trim() }.filter { it.isNotEmpty() }
         assertTrue(
             "drawPrecipitation does not start its rain at CloudBand.precipitationOriginY",
-            "val fallStartY = CloudBand.precipitationOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)" in lines,
+            "val fallStartY = CloudBand.precipitationOriginY(screenWidth, screenHeight, sceneCustomization.sky.sunCloudHeight)" in lines,
         )
         assertEquals("fallStartY is worked out more than once", 1, lines.count { it.startsWith("val fallStartY") })
         assertTrue("the renderer works the band out again for its rain", lines.none { "cloudBandTopFor(" in it || "cloudBandHeightFor(" in it })

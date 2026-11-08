@@ -204,7 +204,7 @@ class FallingLeafContinuityTest {
             target.bind(android.graphics.Canvas(bitmap))
             try {
                 val renderer = PaperRenderer(PHONE_WIDTH, PHONE_HEIGHT, context)
-                renderer.theme = theme
+                renderer.theme = theme.copy(id = CUSTOM_ID)
                 renderer.sceneCustomization = customization
                 renderer.scrollSpeed = 0f
                 renderer.swipeScrollEnabled = false
@@ -231,15 +231,19 @@ class FallingLeafContinuityTest {
 
     private fun tree(xFraction: Float) = StaticSceneObject(SceneObjectType.TREE, TREE_DEPTH, xFraction)
 
-    /** [layout] saved over the theme, with [customization], so a renderer of the theme draws it. */
+    /**
+     * [layout] as a theme of the user's own, with [customization], so a renderer of [CUSTOM_ID] draws it: its trees as they
+     * are. Saved over a built-in theme the catalogue would give it back the built-in's trees (`SceneObjectCatalog`,
+     * decision 102); a theme of no built-in is given houses, towers, places and parasols, but keeps its own trees.
+     */
     private fun installLayout(layout: List<StaticSceneObject>, customization: SceneCustomization) {
-        val theme = ThemeCatalog.byId(THEME_ID)
+        val theme = ThemeCatalog.byId(THEME_ID).copy(id = CUSTOM_ID)
         CustomThemeRegistry.update(
             CustomThemeData(
-                overrides = mapOf(
-                    THEME_ID to CustomThemeEntry(
-                        id = THEME_ID,
-                        name = theme.displayName,
+                customThemes = listOf(
+                    CustomThemeEntry(
+                        id = CUSTOM_ID,
+                        name = "Leaves",
                         theme = theme,
                         layout = SceneObjectLayout(staticObjects = layout, cars = emptyList()),
                         customization = customization,
@@ -281,7 +285,7 @@ class FallingLeafContinuityTest {
         try {
             val recorder = RecordingSceneCanvas()
             val renderer = PaperRenderer(WIDTH, HEIGHT, context)
-            renderer.theme = theme
+            renderer.theme = theme.copy(id = CUSTOM_ID)
             renderer.sceneCustomization = customization
             renderer.liveWeatherOverride = null
             renderer.homeScreenOffset = offset
@@ -428,6 +432,7 @@ class FallingLeafContinuityTest {
         const val PHONE_WIDTH = 720
         const val PHONE_HEIGHT = 1440
         const val THEME_ID = "autumn"
+        const val CUSTOM_ID = "custom:leaves"
         const val AT_SECONDS = 50.0
         const val EPSILON = 0.01f
 

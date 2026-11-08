@@ -6,10 +6,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The distributed car count that replaced the per-candidate threshold (v4.22).
+ * The distributed car count: a density picks how many of the candidates drive, spread over the road.
  *
  * Three claims are pinned, each with its derivation in the test that asserts it:
- * the endpoints (0 -> one car, 1 -> every slot), the two selection properties (maximum spacing
+ * the endpoints (0 -> no car, decision 104; 1 -> every slot), the two selection properties (maximum spacing
  * at every count, nesting between counts), and the seed rule (lane and slot of the sporadic car
  * vary by theme, never by anything derived from a candidate's own ten-valued identity).
  */
@@ -28,21 +28,22 @@ class CarSelectionTest {
     // ---------------------------------------------------------------- the endpoints
 
     @Test
-    fun `density zero keeps exactly one car and density one keeps every slot`() {
+    fun `density zero keeps no car, just above it one, and density one keeps every slot`() {
         for (available in 1..10) {
-            assertEquals("0f on $available cars", 1, CarSelection.countFor(0f, available))
+            assertEquals("0f on $available cars (decision 104)", 0, CarSelection.countFor(0f, available))
+            assertEquals("0.001f on $available cars", 1, CarSelection.countFor(0.001f, available))
             assertEquals("1f on $available cars", available, CarSelection.countFor(1f, available))
         }
         assertEquals("an empty inventory has nothing to keep", 0, CarSelection.countFor(0.5f, 0))
     }
 
     /**
-     * The linear curve, written out: `1 + round(d * 9)` on the full inventory. The table is the
-     * formula evaluated by hand, so a curve change fails here with the numbers side by side.
+     * The linear curve, written out: none at 0, `1 + round(d * 9)` above it on the full inventory. The table is
+     * the formula evaluated by hand, so a curve change fails here with the numbers side by side.
      */
     @Test
     fun `the count is the linear formula on the full inventory`() {
-        val expected = mapOf(0f to 1, 0.1f to 2, 0.35f to 4, 0.5f to 6, 0.65f to 7, 1f to 10)
+        val expected = mapOf(0f to 0, 0.01f to 1, 0.1f to 2, 0.35f to 4, 0.5f to 6, 0.65f to 7, 1f to 10)
         for ((density, count) in expected) {
             assertEquals("at $density", count, CarSelection.countFor(density, 10))
         }
@@ -55,7 +56,7 @@ class CarSelectionTest {
             for (step in 0..100) {
                 val count = CarSelection.countFor(step / 100f, available)
                 assertTrue("count fell from $previous at step $step", count >= previous)
-                assertTrue(count in 1..available)
+                assertTrue(count in (if (step == 0) 0..0 else 1..available))
                 previous = count
             }
         }
@@ -171,13 +172,14 @@ class CarSelectionTest {
 
     // ---------------------------------------------------------------- inventories and the config
 
-    /** A custom theme saved by an older build can carry fewer than ten cars; the endpoints and
+    /** A custom theme's stored street can carry fewer than ten cars; the endpoints and
      * the nesting mean the same thing on its own inventory. */
     @Test
-    fun `a partial inventory keeps one car at zero and all of itself at one`() {
+    fun `a partial inventory keeps no car at zero and all of itself at one`() {
         val partial = SceneObjectCatalog.canonicaliseTraffic(cars().take(6))
         for (seed in seeds) {
-            assertEquals(1, CarSelection.keptMask(partial, 0f, seed).count { it })
+            assertEquals(0, CarSelection.keptMask(partial, 0f, seed).count { it })
+            assertEquals(1, CarSelection.keptMask(partial, 0.01f, seed).count { it })
             assertEquals(6, CarSelection.keptMask(partial, 1f, seed).count { it })
             var previous = BooleanArray(partial.size)
             for (step in 0..20) {
@@ -196,7 +198,8 @@ class CarSelectionTest {
         assertTrue(config(1f, visible = false).keptCars(inventory, 0).isEmpty())
         val kept = config(1f).keptCars(inventory, 0)
         assertEquals("full density keeps the whole inventory, in inventory order", inventory, kept)
-        assertEquals(1, config(0f).keptCars(inventory, 0).size)
+        assertEquals(0, config(0f).keptCars(inventory, 0).size)
+        assertEquals(1, config(0.01f).keptCars(inventory, 0).size)
     }
 
     // ---------------------------------------------------------------- the off-screen rule

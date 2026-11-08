@@ -18,7 +18,17 @@ import org.junit.Test
  */
 class DecorationsOnAStreetWithNoPlaceTest {
 
-    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching { SceneObjectCatalog.layoutFor("random:$n", 0) }.getOrNull()
+    /**
+     * The street `random:<n>` was born with, as data stored before every street had every category describes it (its own
+     * objects, the trees decision 97 gives it, its seasonal decorations): the street the lines of a theme that lacks a
+     * category read, which the catalogue does not lay ([SceneObjectCatalog.withEveryCategory]; the guard that stays).
+     * Null where the JVM cannot build it.
+     */
+    private fun randomStreet(n: Int): SceneObjectLayout? = runCatching {
+        val id = "random:$n"
+        val born = SceneObjectCatalog.withTrees(RandomSceneGenerator.generateLayout(id, 0), id)
+        born.copy(staticObjects = born.staticObjects + SceneObjectCatalog.seasonalDecorationCandidates(id))
+    }.getOrNull()
 
     @Test
     fun `on a random street with no house and no building, Show Buildings holds the Christmas side off neither`() {

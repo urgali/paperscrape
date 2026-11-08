@@ -22,8 +22,8 @@ import java.io.File
  * **Every line says what its control does** (`DESIGN_NOTES.md` §12, decision 45).
  *
  * Each line is held to the rule it describes, not to itself: the buildings' slider to
- * [keepCandidate], the cars' bottom to [CarSelection.countFor] and their switch to
- * [SceneObjectRenderer.drawsRoad], the birds' shares to [BirdsConfig.pickColor], the Christmas firs' line to
+ * [keepCandidate], the cars' bottom to [CarSelection.countFor], the road's lines to the Cars page's *Keep the road* row
+ * (the rule, [SceneObjectRenderer.drawsRoad], is `KeepTheRoadTest`'s), the birds' shares to [BirdsConfig.pickColor], the Christmas firs' line to
  * [SceneObjectRenderer.standsAsFir], *Swipe scroll* to what the wallpaper records ([SwipeReport]), and
  * the sliders that lock to the switch above them.
  */
@@ -43,34 +43,34 @@ class LinesSayWhatTheyDoTest {
         // So the slider is called what it moves, and the line says what stays.
         val world = source("ui/WorldSceneScreen.kt")
         assertTrue(world.contains("""densityLabel = "Towers","""))
-        assertTrue(BUILDINGS_DENSITY_LINE.contains("towers") && BUILDINGS_DENSITY_LINE.contains("shops") && BUILDINGS_DENSITY_LINE.contains("always stay"))
+        assertTrue(BUILDINGS_DENSITY_LINE.contains("towers") && BUILDINGS_DENSITY_LINE.contains("shops") && BUILDINGS_DENSITY_LINE.contains("stay at every amount"))
         // Off is off: with Show Buildings off nothing stands, which is why the line names the switch.
         val off = c.copy(buildings = c.buildings.copy(visible = false))
         assertTrue(shops.none { off.keepCandidate(it, layout.densityScheme) })
-        assertTrue(BUILDINGS_DENSITY_LINE.contains("while Show Buildings is on"))
+        assertTrue(BUILDINGS_DENSITY_LINE.contains("while Show Buildings and Show shops and public buildings are on"))
     }
 
     // ---------------------------------------------------------------- the cars
 
     @Test
-    fun `the cars' bottom says one car, because one car drives`() {
-        assertEquals("the rule: one car at 0 %", 1, CarSelection.countFor(0f, 10))
-        assertEquals("0% - one car", carDensityValue(0f))
+    fun `the cars' bottom says 0 percent, because no car drives there`() {
+        assertEquals("the rule: no car at 0 % (decision 104)", 0, CarSelection.countFor(0f, 10))
+        assertEquals("0%", carDensityValue(0f))
         assertEquals("1%", carDensityValue(0.01f))
         assertEquals("100%", carDensityValue(1f))
     }
 
     @Test
-    fun `Show Cars off takes the road away, and its line says so`() {
-        val layout = SceneObjectCatalog.layoutFor("city", ThemeCatalog.byId("city").accentColor)
-        val on = defaultCustomizationFor("city")
-        val off = on.copy(cars = on.cars.copy(visible = false))
-        assertTrue(SceneObjectRenderer.drawsRoad(layout, on))
-        assertFalse("the rule: no road with the cars off", SceneObjectRenderer.drawsRoad(layout, off))
+    fun `the Cars page says what the road does, with a Keep the road row`() {
         val world = source("ui/WorldSceneScreen.kt")
-        assertTrue(world.contains("""switchSubtitle = "Off takes the cars and the road away","""))
-        assertFalse("the line that called it an empty road", world.contains("an empty road is \" +"))
+        assertFalse("the line that sent the user to Show Cars for no cars", world.contains("keeps one last car driving"))
+        assertFalse(world.contains("Off takes the cars and the road away"))
+        assertTrue(world.contains("title = \"Keep the road\","))
+        assertTrue(world.contains("subtitle = SettingsUiModel.keepRoadLine(customization),"))
         assertTrue(world.contains("densityValue = ::carDensityValue,"))
+        assertEquals("The road is always there while cars drive on it.", SettingsUiModel.ROAD_WITH_CARS_LINE)
+        assertEquals("The road stays, with no cars on it.", SettingsUiModel.ROAD_KEPT_LINE)
+        assertEquals("With no cars, the road is taken away and the meadow runs to the houses.", SettingsUiModel.ROAD_TAKEN_LINE)
     }
 
     // ---------------------------------------------------------------- the birds

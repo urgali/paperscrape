@@ -41,6 +41,8 @@ import com.paperscrape.livewallpaper.engine.RainbowConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
 import com.paperscrape.livewallpaper.engine.publicsCarriedOver
+import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
+import com.paperscrape.livewallpaper.engine.readAsDrawnBefore
 import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
 import com.paperscrape.livewallpaper.engine.themeKnownAs
 import com.paperscrape.livewallpaper.engine.toJson
@@ -286,6 +288,13 @@ class WallpaperPrefs internal constructor(
          */
         val PEOPLE_NIGHT_DENSITY = floatPreferencesKey("people_night_density")
         val CARS_NIGHT_DENSITY = floatPreferencesKey("cars_night_density")
+        /**
+         * *Keep the road* (`SceneCustomization.keepRoad`). A store without it was written before the switch existed and
+         * reads as the road it drew (`keepRoadAsDrawnBefore`); the first edit of a theme writes it ([pinKeepRoad]).
+         */
+        val KEEP_ROAD = booleanPreferencesKey("keep_road")
+        /** *Show shops and public buildings* (`SceneCustomization.placesVisible`). */
+        val PLACES_VISIBLE = booleanPreferencesKey("places_visible")
 
         /**
          * The opening hours, in three groups: the towers', the shops' (the restaurant, the bar and the
@@ -462,6 +471,7 @@ class WallpaperPrefs internal constructor(
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
+        val FIREWORKS_ENABLED = booleanPreferencesKey("fireworks_enabled")
 
         /**
          * The Halloween switches. Absent, each reads as the theme's own: on in the Halloween theme, off in every other --
@@ -617,6 +627,8 @@ class WallpaperPrefs internal constructor(
             stored = prefs[Keys.CARS_NIGHT_DENSITY],
             dayDensity = prefs[Keys.density(ObjectCategory.CARS)] ?: defaults.cars.density,
         ),
+        keepRoad = prefs[Keys.KEEP_ROAD] ?: false,
+        placesVisible = prefs[Keys.PLACES_VISIBLE] ?: defaults.placesVisible,
         shopHoursEnabled = shopHoursEnabled,
         shopOpenHour = shopOpenHour,
         shopCloseHour = shopCloseHour,
@@ -746,7 +758,12 @@ class WallpaperPrefs internal constructor(
             bloodRainEnabled = prefs[Keys.BLOOD_RAIN_ENABLED] ?: defaults.bloodRainEnabled,
             headlessHorsemanEnabled = prefs[Keys.HEADLESS_HORSEMAN_ENABLED] ?: defaults.headlessHorsemanEnabled,
             santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
-        ).let { DecorationExclusion.resolvedOn(it, defaults, themeId) }
+            fireworksEnabled = prefs[Keys.FIREWORKS_ENABLED] ?: defaults.fireworksEnabled,
+        ).let { DecorationExclusion.resolvedOn(it, defaults, themeId) }.let { read ->
+            // A store without *Keep the road* was written before it existed: read as the scene it drew (decisions 102
+            // and 104), until the first edit writes what it reads ([pinKeepRoad]).
+            if (prefs[Keys.KEEP_ROAD] != null) read else read.readAsDrawnBefore(SceneObjectCatalog.streetDrawnBefore(themeId))
+        }
     }
 
     /**
@@ -856,6 +873,8 @@ class WallpaperPrefs internal constructor(
         variant(ObjectCategory.SCARECROWS, c.scarecrows)
         this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
         this[Keys.CARS_NIGHT_DENSITY] = c.carsNightDensity
+        this[Keys.KEEP_ROAD] = c.keepRoad
+        this[Keys.PLACES_VISIBLE] = c.placesVisible
         this[Keys.SHOP_HOURS_ENABLED] = c.shopHoursEnabled
         this[Keys.SHOP_OPEN_HOUR] = c.shopOpenHour
         this[Keys.SHOP_CLOSE_HOUR] = c.shopCloseHour
@@ -950,6 +969,7 @@ class WallpaperPrefs internal constructor(
         this[Keys.BLOOD_RAIN_ENABLED] = c.bloodRainEnabled
         this[Keys.HEADLESS_HORSEMAN_ENABLED] = c.headlessHorsemanEnabled
         this[Keys.SANTA_ENABLED] = c.santaEnabled
+        this[Keys.FIREWORKS_ENABLED] = c.fireworksEnabled
     }
 
 
@@ -1212,6 +1232,14 @@ class WallpaperPrefs internal constructor(
             it[Keys.PEOPLE_NIGHT_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
+
+    /** *Show shops and public buildings* (`SceneCustomization.placesVisible`). */
+    suspend fun setPlacesVisible(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.PLACES_VISIBLE, enabled, forThemeId)
+
+    /** *Keep the road* (`SceneCustomization.keepRoad`). */
+    suspend fun setKeepRoad(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.KEEP_ROAD, enabled, forThemeId)
 
     /** The night-time car density. The daytime one is `setCategoryDensity(CARS, ...)`. */
     suspend fun setCarsNightDensity(density: Float, forThemeId: String) =
@@ -1726,12 +1754,16 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
+    /** *Fireworks*, a plain per-theme switch as [setSantaEnabled]. */
+    suspend fun setFireworksEnabled(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.FIREWORKS_ENABLED, enabled, forThemeId)
+
     /**
      * **"Reset decorations to defaults"**: everything Seasons & decorations shows, in one write, back to
      * the theme's own on [forThemeId] only (`DESIGN_NOTES.md` decision 42) -- the seasonal palette and the
      * snow and leaf piles, the seven decorations with their densities and colours
-     * ([ObjectCategory.DECORATIONS]), and the switches: the three Christmas ones, Santa, Halloween and its
-     * six, the horror sky, the flowers. Not the palms, whose switch is on the Trees page ([resetCategory]).
+     * ([ObjectCategory.DECORATIONS]), and the switches: the three Christmas ones, Santa, the fireworks, Halloween
+     * and its six, the horror sky, the flowers. Not the palms, whose switch is on the Trees page ([resetCategory]).
      *
      * **Removed, not set false**: a reset means "forget what I chose", and the theme's own default may
      * be on (Winter, Christmas, New Year and Autumn turn their palettes on, Christmas its Santa).
@@ -1747,6 +1779,7 @@ class WallpaperPrefs internal constructor(
         prefs.remove(Keys.CHRISTMAS_TREE_LIGHTS_ENABLED)
         prefs.remove(Keys.CHRISTMAS_FIRS_ENABLED)
         prefs.remove(Keys.SANTA_ENABLED)
+        prefs.remove(Keys.FIREWORKS_ENABLED)
         prefs.remove(Keys.FLOWERS_ENABLED)
         prefs.remove(Keys.HALLOWEEN_ENABLED)
         prefs.remove(Keys.HORROR_SKY_ENABLED)
@@ -1778,8 +1811,14 @@ class WallpaperPrefs internal constructor(
         // older setting into the groups' keys ([carryHoursOver], [carryPublicsOver]), so removing one
         // group's keys leaves the others'.
         if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
-        if (category == ObjectCategory.CARS) prefs.remove(Keys.CARS_NIGHT_DENSITY)
+        if (category == ObjectCategory.CARS) {
+            prefs.remove(Keys.CARS_NIGHT_DENSITY)
+            // As the theme ships it, written: without a key the store would read as one written before the switch
+            // existed ([readAsDrawnBefore]), which reads the other categories' switches too.
+            prefs[Keys.KEEP_ROAD] = defaultCustomizationFor(forThemeId).keepRoad
+        }
         if (category == ObjectCategory.BUILDINGS) {
+            prefs.remove(Keys.PLACES_VISIBLE)
             prefs.remove(Keys.TOWER_HOURS_ENABLED)
             prefs.remove(Keys.TOWER_OPEN_HOUR)
             prefs.remove(Keys.TOWER_CLOSE_HOUR)
@@ -1847,6 +1886,8 @@ class WallpaperPrefs internal constructor(
         // Per-theme keys outside the per-category loop.
         remove(Keys.PEOPLE_NIGHT_DENSITY)
         remove(Keys.CARS_NIGHT_DENSITY)
+        remove(Keys.KEEP_ROAD)
+        remove(Keys.PLACES_VISIBLE)
         remove(Keys.SHOP_HOURS_ENABLED)
         remove(Keys.SHOP_OPEN_HOUR)
         remove(Keys.SHOP_CLOSE_HOUR)
@@ -1936,6 +1977,7 @@ class WallpaperPrefs internal constructor(
         remove(Keys.BLOOD_RAIN_ENABLED)
         remove(Keys.HEADLESS_HORSEMAN_ENABLED)
         remove(Keys.SANTA_ENABLED)
+        remove(Keys.FIREWORKS_ENABLED)
     }
 
     /**
@@ -1957,6 +1999,7 @@ class WallpaperPrefs internal constructor(
             carryShopsOver(forThemeId)
             carryHoursOver()
             carryPublicsOver(forThemeId)
+            pinKeepRoad(forThemeId)
             return
         }
         // **Archive, do not destroy**: the scratch is the only place an edit lives until the theme is
@@ -1980,6 +2023,27 @@ class WallpaperPrefs internal constructor(
         // Written by this build, whose writer gives the shops and the public buildings keys of their own.
         this[Keys.SCRATCH_KNOWS_SHOPS] = true
         this[Keys.SCRATCH_KNOWS_PUBLICS] = true
+        pinKeepRoad(forThemeId)
+    }
+
+    /**
+     * A scratch written before *Keep the road* existed, written as it reads ([readAsDrawnBefore]) where that differs from
+     * its keys -- *Keep the road* and the switches and *Towers* amount of the categories its street lacked, the six
+     * buildings' among them -- once, before
+     * the first edit lands. Without it the store would go on being read as the scene it drew: a user who later took both
+     * car densities to 0 % would find the road kept, when the switch is off as every theme ships, and a category written
+     * on would appear at the first edit (`DESIGN_NOTES.md` decisions 102 and 104).
+     */
+    private fun MutablePreferences.pinKeepRoad(themeId: String) {
+        if (this[Keys.KEEP_ROAD] != null) return
+        val read = readFlatCustomization(this, themeId)
+        this[Keys.KEEP_ROAD] = read.keepRoad
+        this[Keys.visible(ObjectCategory.HOUSES)] = read.houses.visible
+        this[Keys.visible(ObjectCategory.PARASOLS)] = read.parasols.visible
+        this[Keys.visible(ObjectCategory.BUILDINGS)] = read.buildings.visible
+        this[Keys.density(ObjectCategory.BUILDINGS)] = read.buildings.density
+        this[Keys.PLACES_VISIBLE] = read.placesVisible
+        this[Keys.visible(ObjectCategory.CARS)] = read.cars.visible
     }
 
     /**

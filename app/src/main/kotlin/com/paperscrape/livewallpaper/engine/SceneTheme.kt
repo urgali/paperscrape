@@ -29,7 +29,7 @@ data class SceneTheme(
     val starColor: Int,
     val accentColor: Int, // generated cars' stored colour (recoloured by the customization)
 
-    /** When true, PaperRenderer periodically launches a firework burst at night. */
+    /** Whether the theme ships with fireworks: the default of its *Fireworks* switch (`SceneCustomization.fireworksEnabled`, decision 103). */
     val hasFireworks: Boolean = false,
 
     /**

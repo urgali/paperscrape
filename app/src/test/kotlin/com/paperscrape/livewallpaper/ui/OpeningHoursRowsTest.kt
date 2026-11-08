@@ -63,8 +63,8 @@ class OpeningHoursRowsTest {
         // The shops' and the public buildings' page: one composable, each group's own rule and setters.
         val groups = functionLines(screen, "private fun StorefrontGroupSubScreen(")
         assertTrue(groups.contains("title = if (shops) \"Shop opening hours\" else \"Public building opening hours\","))
-        assertTrue(groups.contains("SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme)"))
-        assertTrue(groups.contains("SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme)"))
+        assertTrue(groups.contains("SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)"))
+        assertTrue(groups.contains("SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)"))
         for ((slot, pair) in listOf(
             "onEnabled" to ("setShopHoursEnabled" to "setPublicHoursEnabled"),
             "onOpen" to ("setShopOpenHour" to "setPublicOpenHour"),

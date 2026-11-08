@@ -1170,7 +1170,7 @@ class PaperRenderer(
         objectRenderer.rainingNow = rainingNow   // who has an umbrella up
         objectRenderer.draw(canvas, objectGroundGeometry, dayPhase.dayBlend, elapsedSeconds, screenWidth.toFloat(), screenHeight.toFloat(), dayPhase.hour24)
 
-        val fireworksEnabled = theme.hasFireworks && dayPhase.dayBlend < 0.35f
+        val fireworksEnabled = sceneCustomization.fireworksEnabled && dayPhase.dayBlend < 0.35f
         fireworkEffect.update(deltaSeconds, fireworksEnabled, screenWidth.toFloat(), screenHeight.toFloat())
         // The three effects draw through member lambdas reading [effectCanvas] and [effectElapsed]: a lambda that
         // captures `canvas` is a new object every frame, and nothing may be allocated on the frame path.
@@ -1320,8 +1320,8 @@ class PaperRenderer(
         val margin = screenWidth * CELESTIAL_MARGIN_FRACTION
         val cx = margin + dayPhase.celestialX * (screenWidth - 2 * margin) + offsetX
         val horizonY = screenHeight * HORIZON_Y_FRACTION_OF_ARC
-        val riseHeight = screenHeight * sceneCustomization.sky.sunCloudHeight
-            .coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
+        // The slider spread over the arc this screen has room for (decision 106).
+        val riseHeight = screenHeight * SunArc.rise(sceneCustomization.sky.sunCloudHeight, screenWidth, screenHeight)
         var cy = horizonY - dayPhase.celestialY * riseHeight
         // The Halloween moon laughing ([LaughingMoon]) hops a little, its glow with it; the lake's light reads its x,
         // which the laugh does not move.
@@ -1569,7 +1569,7 @@ class PaperRenderer(
 
     /** [CloudBand]'s arithmetic, which three layers must agree on. */
     private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float =
-        CloudBand.topFor(screenHeight, sunCloudHeight)
+        CloudBand.topFor(screenWidth, screenHeight, sunCloudHeight)
 
     private fun cloudBandHeightFor(screenHeight: Int): Float = CloudBand.heightFor(screenHeight)
 
@@ -1764,7 +1764,7 @@ class PaperRenderer(
         val fallSpeed = if (isRain) 1.3f else 0.09f
         // The band's middle, the line drawClouds' `laneY` is built around: [CloudBand.precipitationOriginY], which the
         // tests of the band and of the rain's contrast measure.
-        val fallStartY = CloudBand.precipitationOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)
+        val fallStartY = CloudBand.precipitationOriginY(screenWidth, screenHeight, sceneCustomization.sky.sunCloudHeight)
         // The sky's brightness at the two ends of the stretch a drop crosses with sky behind it, from the band's
         // middle down to [PRECIPITATION_SKY_BOTTOM_FRACTION]: `skyAbove` is a lerp and luma is linear, so these two bound
         // the stretch.
@@ -1949,7 +1949,7 @@ class PaperRenderer(
         // x, its top inside the cloud band past the middle ([CloudBand.lightningOriginY]), so only the fork shows.
         val boltHeight = screenHeight * lightningBoltHeightFraction
         val scale = boltHeight / LIGHTNING_BOLT_HEIGHT_UNITS
-        val boltTop = CloudBand.lightningOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)
+        val boltTop = CloudBand.lightningOriginY(screenWidth, screenHeight, sceneCustomization.sky.sunCloudHeight)
         canvas.save()
         canvas.translate(screenWidth * lightningBoltXFraction, boltTop)
         canvas.scale(scale, scale)

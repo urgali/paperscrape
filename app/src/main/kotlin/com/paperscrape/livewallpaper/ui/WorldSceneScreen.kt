@@ -217,7 +217,7 @@ internal fun WorldSceneScreen(
                 supporting = SettingsUiModel.storefrontRowSummary(
                     StorefrontGroup.SHOPS, customization.buildings.visible,
                     customization.shopHoursEnabled, customization.shopOpenHour, customization.shopCloseHour,
-                    placesOnTheme = standing.themeHasPlaces,
+                    placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible,
                 ),
                 icon = Icons.Outlined.Storefront,
                 onClick = { activeSection = "shops" },
@@ -227,7 +227,7 @@ internal fun WorldSceneScreen(
                 supporting = SettingsUiModel.storefrontRowSummary(
                     StorefrontGroup.PUBLIC, customization.buildings.visible,
                     customization.publicHoursEnabled, customization.publicOpenHour, customization.publicCloseHour,
-                    placesOnTheme = standing.themeHasPlaces,
+                    placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible,
                 ),
                 icon = Icons.Outlined.AccountBalance,
                 onClick = { activeSection = "publics" },
@@ -286,7 +286,7 @@ internal fun WorldSceneScreen(
         SettingsGroup {
             SettingsNavigationRow(
                 title = "Cars",
-                supporting = densitySummary(customization.cars.visible, customization.cars.density),
+                supporting = carsSummary(customization.cars.visible, customization.cars.density, customization.carsNightDensity),
                 icon = Icons.Outlined.DirectionsCar,
                 onClick = { activeSection = "cars" },
             )
@@ -454,8 +454,8 @@ private fun densitySummary(visible: Boolean, density: Float): String =
 
 /** The line under the buildings' slider (decision 45): what it thins, and what stays. */
 internal const val BUILDINGS_DENSITY_LINE =
-    "Thins out the towers behind the houses. The shops and the public buildings among the houses always " +
-        "stay while Show Buildings is on."
+    "Thins out the towers behind the houses. The shops and the public buildings among the houses stay at " +
+        "every amount while Show Buildings and Show shops and public buildings are on."
 
 /** What *Show Buildings* shows and hides: every building that is not a house, the three groups. */
 internal const val BUILDINGS_SWITCH_LINE =
@@ -479,8 +479,8 @@ internal fun buildingsSwitchLine(placesOnTheme: Boolean, towersOnTheme: Boolean)
 internal fun buildingsDensityLine(placesOnTheme: Boolean, towersOnTheme: Boolean): String = when {
     placesOnTheme && towersOnTheme -> BUILDINGS_DENSITY_LINE
     towersOnTheme -> "Thins out the towers behind the houses."
-    placesOnTheme -> "This theme has no towers. The shops and the public buildings among the houses always stay while " +
-        "Show Buildings is on."
+    placesOnTheme -> "This theme has no towers. The shops and the public buildings among the houses stay at every amount " +
+        "while Show Buildings and Show shops and public buildings are on."
     else -> SettingsUiModel.noneOnThisThemeLine("towers")
 }
 
@@ -495,13 +495,10 @@ internal const val HOUSES_COLOUR_LINE =
         "The distant houses on the mountains wear these colours too."
 
 /**
- * A car density as the slider prints it (decision 45): the per cent, and at the bottom "one car",
- * because `CarSelection.countFor` keeps one car driving at 0 %.
+ * A car density as the slider prints it: the per cent. At 0 % no car drives at that hour (`CarSelection.countFor`,
+ * decision 104), as every amount at 0 % is none, so the bottom needs no words of its own.
  */
-internal fun carDensityValue(density: Float): String {
-    val percent = (density * 100).toInt()
-    return if (percent <= 0) "0% - one car" else "$percent%"
-}
+internal fun carDensityValue(density: Float): String = "${(density * 100).toInt()}%"
 
 /** The stars' density, or 0 where it places no star at all (`PaperRenderer.starCountFor`). */
 private fun starsDrawnAmount(density: Float): Float = if (PaperRenderer.starCountFor(density) == 0) 0f else density
@@ -537,6 +534,11 @@ private fun streetSummary(things: String, visible: Boolean, amount: Float, stand
     } else {
         amountSummary(visible, amount, stands)
     }
+
+/** The Cars row: their day density, or -- both densities at 0 % -- that no car drives ([SettingsUiModel.cars]). */
+private fun carsSummary(visible: Boolean, dayDensity: Float, nightDensity: Float): String =
+    if (visible && SettingsUiModel.cars(visible, dayDensity, nightDensity).noneAtZero) "None at 0% by day and by night"
+    else densitySummary(visible, dayDensity)
 
 /** The People row: their day density, or -- both densities at 0 % -- that nobody walks ([SettingsUiModel.people]). */
 private fun peopleSummary(visible: Boolean, dayDensity: Float, nightDensity: Float): String =
@@ -916,7 +918,8 @@ private fun HousesSubScreen(customization: SceneCustomization, housesStand: Bool
 /**
  * The towers' page: *Show Buildings*, which
  * shows or hides every building that is not a house -- the towers and the six buildings among the
- * houses, one candidate pool -- the Towers amount, the towers' opening hours and their colours.
+ * houses, one candidate pool -- the Towers amount with its line under it, *Show shops and public
+ * buildings* (decision 102), the towers' opening hours and their colours.
  */
 @Composable
 private fun TowersSubScreen(customization: SceneCustomization, towersStand: Boolean, towersOnTheme: Boolean, placesOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
@@ -936,12 +939,22 @@ private fun TowersSubScreen(customization: SceneCustomization, towersStand: Bool
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Towers",
             afterDensity = {
+                // The line about the Towers amount, right under it.
                 Text(
                     buildingsDensityLine(placesOnTheme, towersOnTheme),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // The towers' own opening hours, under the amount of what keeps them.
+                // The six buildings among the houses, a switch of their own under Show Buildings (decision 102).
+                val places = SettingsUiModel.placesSwitch(customization.placesVisible, customization.buildings.visible)
+                SettingSwitchRow(
+                    title = SettingsUiModel.PLACES_SWITCH,
+                    subtitle = if (places.interactive) SettingsUiModel.PLACES_LINE else SettingsUiModel.PLACES_LOCKED_LINE,
+                    checked = places.shownOn,
+                    enabled = places.interactive,
+                    onCheckedChange = { scope.launch { prefs.setPlacesVisible(it, forThemeId) } },
+                )
+                // The towers' own opening hours, under the switches and the amount that keep them.
                 OpeningHoursGroup(
                     title = "Tower opening hours",
                     line = TOWER_HOURS_LINE,
@@ -998,6 +1011,7 @@ private fun StorefrontGroupSubScreen(
             group = group,
             config = if (shops) customization.shops else customization.publics,
             buildingsVisible = customization.buildings.visible,
+            placesVisible = customization.placesVisible,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             onGoToBuildings = onGoToTowers,
@@ -1013,9 +1027,9 @@ private fun StorefrontGroupSubScreen(
                         SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(group))
                     },
                     state = if (shops) {
-                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme)
+                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)
                     } else {
-                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme)
+                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)
                     },
                     openHour = if (shops) customization.shopOpenHour else customization.publicOpenHour,
                     closeHour = if (shops) customization.shopCloseHour else customization.publicCloseHour,
@@ -1110,7 +1124,8 @@ private const val PUBLIC_HOURS_LINE =
 
 /** The shops' or the public buildings' line while no building of the group stands to keep the hours. */
 private const val STOREFRONT_HOURS_LOCKED_LINE =
-    "Needs Show Buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your choice is kept until then."
+    "Needs Show Buildings and Show shops and public buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your " +
+        "choice is kept until then."
 
 /** Under each group's two hours: kept to the minute (`BusinessHours`, decision 68). */
 private const val HOURS_CLOCK_LINE =
@@ -1392,18 +1407,41 @@ private fun ParasolsSubScreen(customization: SceneCustomization, parasolsStand: 
 private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Cars", onBack) {
-        // **What the two ends do, said** (decision 45): at 0 % one car still drives (`CarSelection.countFor`
-        // is 1 at the bottom), so the slider says "one car" there; and *Show Cars* off takes the road away
-        // with the cars (`SceneObjectRenderer.drawsRoad`).
+        // **What the two ends do, said** (decision 104): at 0 % no car drives at that hour (`CarSelection.countFor`), so
+        // with both densities at 0 % *Show Cars* reads off and says so, as *Show people* does (`SettingsUiModel.cars`);
+        // and *Keep the road* under it says what the road does while no car drives (`SceneObjectRenderer.drawsRoad`).
+        val cars = customization.cars
+        val carsShown = SettingsUiModel.cars(cars.visible, cars.density, customization.carsNightDensity)
         ObjectCategorySection(
-            title = "Cars", config = customization.cars, category = ObjectCategory.CARS,
+            title = "Cars", config = cars, category = ObjectCategory.CARS,
             forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
-            // Not one of the street's categories a theme can lack ([StandingObjects]): a plain switch.
+            // Not one of the street's categories a theme can lack ([StandingObjects]).
             stands = true, onTheme = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Day density",
             densityValue = ::carDensityValue,
-            switchSubtitle = "Off takes the cars and the road away",
+            visibilitySwitch = {
+                SettingSwitchRow(
+                    title = "Show Cars",
+                    subtitle = if (cars.visible && carsShown.noneAtZero) SettingsUiModel.NO_CARS_AT_ZERO_LINE else SettingsUiModel.CARS_LINE,
+                    checked = carsShown.shownOn,
+                    onCheckedChange = { wanted ->
+                        scope.applyAmountTap(
+                            SettingsUiModel.carsTap(wanted, cars.density, customization.carsNightDensity, defaultDensityOf(ObjectCategory.CARS, forThemeId)),
+                            setVisible = { prefs.setCategoryVisible(ObjectCategory.CARS, it, forThemeId) },
+                            setAmount = { prefs.setCategoryDensity(ObjectCategory.CARS, it, forThemeId) },
+                        )
+                    },
+                )
+                // A plain switch: the road with no car on it, kept or taken away; its line says which, and that with a
+                // car driving the road is there whatever it says.
+                SettingSwitchRow(
+                    title = "Keep the road",
+                    subtitle = SettingsUiModel.keepRoadLine(customization),
+                    checked = customization.keepRoad,
+                    onCheckedChange = { scope.launch { prefs.setKeepRoad(it, forThemeId) } },
+                )
+            },
             afterDensity = {
                 // The night half of the pair, in the People screen's own shape: the twin slider
                 // directly under the day one, and a line saying how the two meet.
@@ -1416,9 +1454,8 @@ private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String,
                 )
                 Text(
                     "The road fills and empties across dusk and dawn, one car at a time and " +
-                        "always off screen - a car never pops into the middle of the road. The " +
-                        "bottom of either slider keeps one last car driving; for no cars at all, " +
-                        "turn Show Cars off, which takes the road away too.",
+                        "always off screen - a car never pops into the middle of the road. At 0% " +
+                        "no car drives at that hour.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

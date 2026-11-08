@@ -100,17 +100,19 @@ internal fun ObjectCategorySection(
      * there the parent row only summarises -- so they keep it, and the default is `true`.
      */
     showVisibilitySwitch: Boolean = true,
+    /**
+     * The category's own switch row, drawn where the *Show X* switch would be: the cars', which reads both densities
+     * as the people's does and has *Keep the road* under it. Null draws the plain *Show X*.
+     */
+    visibilitySwitch: (@Composable () -> Unit)? = null,
     /** What the density slider calls itself -- "Day density" where a night twin sits beside it. */
     densityLabel: String = "Density",
     /**
      * How the density slider prints its value: the per cent, or the caller's words for an end that
-     * means something else -- the cars' "0% - one car".
+     * means something else.
      */
     densityValue: (Float) -> String = { "${(it * 100).toInt()}%" },
-    /**
-     * The line under *Show X* when it is not the 0 % one: "X can appear in every theme", or the
-     * caller's -- the cars', which take the road with them.
-     */
+    /** The line under *Show X* when it is not the 0 % one: "X can appear in every theme", or the caller's. */
     switchSubtitle: String? = null,
     /**
      * Whether at 0 % density the wallpaper draws none of this category -- houses, trees, parasols, the
@@ -147,7 +149,9 @@ internal fun ObjectCategorySection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showTitle) SectionTitle(title)
 
-        if (showVisibilitySwitch) {
+        if (visibilitySwitch != null) {
+            visibilitySwitch()
+        } else if (showVisibilitySwitch) {
             val shown = SettingsUiModel.amountSwitch(config.visible, config.density, stands, onTheme)
             val atZero = noneAtZero && shown.noneAtZero
             val noneOnTheme = shown.noneOnThisTheme
@@ -251,6 +255,8 @@ internal fun StorefrontGroupSection(
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
     onGoToBuildings: () -> Unit,
+    /** *Show shops and public buildings* (decision 102), on the page *Show Buildings* is on. */
+    placesVisible: Boolean = true,
     /** The group's opening hours, between the line and the colours, as the towers' are on theirs. */
     openingHours: @Composable () -> Unit = {},
     /**
@@ -262,10 +268,10 @@ internal fun StorefrontGroupSection(
     val category = if (group == StorefrontGroup.SHOPS) ObjectCategory.SHOPS else ObjectCategory.PUBLICS
     val title = storefrontGroupTitle(group)
     // A tap goes to Show Buildings only where turning it on would bring the group.
-    val leadsToBuildings = placesOnTheme && !buildingsVisible
+    val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme),
+            SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),
             style = MaterialTheme.typography.bodySmall,
             color = if (leadsToBuildings) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,

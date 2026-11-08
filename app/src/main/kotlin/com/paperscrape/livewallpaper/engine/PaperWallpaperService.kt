@@ -649,6 +649,18 @@ class PaperWallpaperService : WallpaperService() {
                         // (`DeviceLocationAccess.mayUsePosition`), and no try is counted.
                         val source = LocationSource.of(settings)
                         val deviceAccess = source.deviceKind?.let { deviceAccess(it) }
+                        // **Between two requests the weather follows the phone** (`DESIGN_NOTES.md` §12, decision 101):
+                        // every pass reads the position the phone already holds for the source, without a request and
+                        // without a radio, and takes it when it is fresh and has moved; another place asks the weather
+                        // below. Not at a fixed hour, where no position counts (decision 41).
+                        val kind = source.deviceKind
+                        if (kind != null && deviceAccess?.mayUsePosition == true && settings.syncWithRealTime) {
+                            locationProvider().heldFix(kind)?.let { held ->
+                                if (LiveWeatherSchedule.takesHeldPosition(held.fix, held.ageMillis, lastLocationFix)) {
+                                    updateSunTimesFromLocation(held.fix, isDeviceFix = true)
+                                }
+                            }
+                        }
                         // Live Weather runs only over a scene that follows real time: a fixed hour has no
                         // "now" to fetch for, as the settings screen says (`LiveWeatherUiState.canBeTurnedOn`).
                         val liveWeatherRuns = LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)
@@ -686,10 +698,10 @@ class PaperWallpaperService : WallpaperService() {
                             SolarDaySchedule.Action.NOTHING -> Unit
                         }
                         val fix = lastLocationFix
-                        // Two reasons to fetch: the hourly timer (the conditions are stale), and another
-                        // place, farther than LiveWeatherSchedule.SAME_PLACE_KM from the last fetch's (they
-                        // are the wrong conditions). A fix a few metres away is the same place, and waits.
-                        val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation)
+                        // Two reasons to fetch: the hourly timer (the conditions are stale), and another place
+                        // (they are the wrong conditions): a written place moved at all, the phone's farther than
+                        // LiveWeatherSchedule.SAME_PLACE_KM from the last fetch's. Closer is the same place, and waits.
+                        val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation, written = source.deviceKind == null)
                         val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
                         val provider = settings.weatherProvider
                         val generationAtStart = weatherInputsGeneration

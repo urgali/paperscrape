@@ -458,17 +458,20 @@ object ThemePreviewScenes {
                 items += tower(40f, ROW_TOWERS, 0.38f, 0)
                 items += tower(296f, ROW_TOWERS, 0.34f, 2)
             }
-            items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
-                SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
-                storefronts[0])
+            // The street's places, with *Show shops and public buildings* (decision 102).
+            if (c.placesVisible) {
+                items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
+                    SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
+                    storefronts[0])
+            }
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, hour, seed)
         }
-        if (c.buildings.visible) {
+        if (c.buildings.visible && c.placesVisible) {
             items += buildingItem(176f, ROW_SCHOOL, 0.40f,
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed,
@@ -479,7 +482,7 @@ object ThemePreviewScenes {
                 SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, hour, seed)
         }
-        if (c.buildings.visible) {
+        if (c.buildings.visible && c.placesVisible) {
             items += buildingItem(300f, ROW_BAR, 0.42f,
                 SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed,
@@ -584,7 +587,9 @@ object ThemePreviewScenes {
         }
         // Parasols are deliberately absent: the renderer draws them procedurally, with no sprite, and a
         // stand-in would show something the scene does not contain. `ThemePreviewTruthTest` names the exception.
-        if (theme.hasFireworks) {
+        // The fireworks as the wallpaper draws them: their switch, and only at night (decision 103). The card's night stays
+        // the theme's own (`hasFireworks`, above), so New Year's Eve with the switch off is a night card without them.
+        if (c.fireworksEnabled && night) {
             backdrop += PreviewItem(212f, 46f, 0.55f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFFFD166.toInt())))
             backdrop += PreviewItem(258f, 66f, 0.42f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFEF7DA8.toInt())))
             backdrop += PreviewItem(160f, 70f, 0.34f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFF8AD6F0.toInt())))
