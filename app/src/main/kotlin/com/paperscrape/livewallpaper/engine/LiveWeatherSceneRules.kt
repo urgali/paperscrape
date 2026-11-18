@@ -102,4 +102,12 @@ object LiveWeatherSceneRules {
      */
     fun wavesOnLake(raining: Boolean, stormActive: Boolean, snowing: Boolean): Boolean =
         raining || (stormActive && !snowing)
+
+    /**
+     * Whether the rainbow may show under the forecast (decision 108): **not while it brings rain, snow or a
+     * thunderstorm** ([forecastFalling], [forecastStorm]); in a forecast with nothing falling, as its switch and the hour
+     * say. With no forecast drawn -- Live Weather off, or waiting -- this is not asked: the theme's own weather and its
+     * rainbow are the user's, as they set them.
+     */
+    fun rainbowUnderForecast(forecastFalling: Boolean, forecastStorm: Boolean): Boolean = !forecastFalling && !forecastStorm
 }

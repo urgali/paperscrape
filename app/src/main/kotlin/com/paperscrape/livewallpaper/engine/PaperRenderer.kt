@@ -89,6 +89,9 @@ class PaperRenderer(
      */
     private val cloudCoverFade = CloudCoverFade(CLOUD_POOL_SIZE)
 
+    /** How much of the rainbow Live Weather lets through, eased like a cloud's opacity ([RainbowFade], decision 110). */
+    private val rainbowFade = RainbowFade()
+
     /**
      * This frame's cloud cover as drawn, or `NaN` when Live Weather is not driving (not a `Float?`, which would box
      * every frame). Set once a frame by [updateWeatherPredicates]; read by [drawClouds] and [stormStrength].
@@ -1158,7 +1161,7 @@ class PaperRenderer(
         }
         drawClouds(canvas, dayPhase, elapsedSeconds, deltaSeconds)
         // Behind the mountains and hills, which occlude its base ([drawRainbow]).
-        drawRainbow(canvas, dayPhase)
+        drawRainbow(canvas, dayPhase, deltaSeconds)
         drawMountains(canvas, dayPhase)
         drawBirds(canvas, dayPhase, elapsedSeconds)
         // Depth order: the lake before the hills, whose wavy silhouette paints over the water's flat edge.
@@ -1702,12 +1705,23 @@ class PaperRenderer(
      * A paper-cutout rainbow: the `rainbow_arc` sprite, six concentric bands, scaled to the screen's width. Its base
      * stands on [SceneSpace.GROUND_SOLID_TOP_Y_FRACTION], the mountains' base without a lake, and it is drawn before
      * the mountains and hills so their silhouettes cover its base, as a rainbow rises from behind distant terrain.
+     * Not while the forecast drawn brings rain, snow or a thunderstorm ([LiveWeatherSceneRules.rainbowUnderForecast]),
+     * and it leaves and comes back with the forecast over [CloudCoverFade.FADE_SECONDS], as a cloud does ([RainbowFade],
+     * decision 110): when the forecast starts or stops rain, snow or a thunderstorm, and when the forecast leaves the
+     * scene. Its own switch and opacity act at once.
      */
-    private fun drawRainbow(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
+    private fun drawRainbow(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, deltaSeconds: Float) {
+        // The weather's permission, eased every frame whether or not the rainbow is drawn, so it follows the forecast
+        // while the switch is off too. With no forecast drawn the theme's rainbow is the user's (decision 108).
+        val live = liveWeatherOverride
+        val weatherLevel = rainbowFade.levelToward(
+            live == null || LiveWeatherSceneRules.rainbowUnderForecast(live.precipitationType != null, live.isThunderstorm),
+            deltaSeconds,
+        )
         val rainbow = sceneCustomization.rainbow
         if (!rainbow.visible) return
-        // A daylight thing: it fades out toward night as the stars fade in.
-        val visibility = (dayPhase.dayBlend * 1.4f).coerceIn(0f, 1f) * rainbow.opacity.coerceIn(0f, 1f)
+        // A daylight thing: it fades out toward night as the stars fade in. A settled weather level is exactly 1 or 0.
+        val visibility = (dayPhase.dayBlend * 1.4f).coerceIn(0f, 1f) * rainbow.opacity.coerceIn(0f, 1f) * weatherLevel
         if (visibility <= 0f) return
 
         val baseYFraction = SceneSpace.GROUND_SOLID_TOP_Y_FRACTION

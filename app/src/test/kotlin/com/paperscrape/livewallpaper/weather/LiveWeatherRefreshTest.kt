@@ -15,7 +15,8 @@ import org.junit.Test
  *
  * The guarantee: turning Live Weather on with a location already available must not wait for the
  * hourly refresh. What this pins is the rule that makes it so, [LiveWeatherInputs.changed]: every
- * setting that decides whether and where a request can be made, across every provider and key.
+ * setting that decides whether and where a request can be made -- the switch, the provider and the selected provider's
+ * key, for every provider and every key.
  */
 class LiveWeatherRefreshTest {
 
@@ -49,15 +50,58 @@ class LiveWeatherRefreshTest {
     }
 
     /**
-     * Every provider's key counts: entering the WeatherAPI.com key is the one thing that turns "no
-     * requests are being made" into "requests can be made", and a rule that compares only the
-     * toggle and Open-Meteo's key misses it.
+     * The selected provider's key counts: entering the WeatherAPI.com key with WeatherAPI.com selected is the one thing
+     * that turns "no requests are being made" into "requests can be made". Another provider's key does not: no request
+     * reads it, so typing it neither asks again nor drops the forecast on screen (decision 108).
      */
     @Test
-    fun `entering either provider's key forces a fetch`() {
-        val on = withLocation.copy(liveWeatherEnabled = true)
-        assertTrue(LiveWeatherInputs.changed(on, on.copy(liveWeatherApiKey = "k")))
-        assertTrue(LiveWeatherInputs.changed(on, on.copy(weatherApiComApiKey = "k")))
+    fun `only the selected provider's key forces a fetch`() {
+        val keys = listOf<(WallpaperSettings, String) -> WallpaperSettings>(
+            { s, k -> s.copy(liveWeatherApiKey = k) },
+            { s, k -> s.copy(weatherApiComApiKey = k) },
+            { s, k -> s.copy(openWeatherApiKey = k) },
+        )
+        val keyOf = mapOf(
+            WeatherProviderId.OPEN_METEO to 0,
+            WeatherProviderId.WEATHER_API_COM to 1,
+            WeatherProviderId.OPEN_WEATHER to 2,
+        )
+        for (provider in WeatherProviderId.entries) {
+            val on = withLocation.copy(liveWeatherEnabled = true, weatherProviderId = provider.storageId)
+            keys.forEachIndexed { index, withKey ->
+                val selected = keyOf.getValue(provider) == index
+                // Entered, changed and cleared: each of the three is a change of that key.
+                val entered = withKey(on, "test-key")
+                val changed = withKey(entered, "test-key-2")
+                for ((before, after) in listOf(on to entered, entered to changed, entered to on)) {
+                    assertEquals(
+                        "provider ${provider.storageId}, key $index",
+                        selected,
+                        LiveWeatherInputs.changed(before, after),
+                    )
+                }
+            }
+        }
+    }
+
+    /** A change of provider is a change whatever the keys hold: the conditions on screen came from the other service. */
+    @Test
+    fun `a change of provider forces a fetch with every key as it was`() {
+        val keyed = withLocation.copy(
+            liveWeatherEnabled = true,
+            liveWeatherApiKey = "test-key",
+            weatherApiComApiKey = "test-key",
+            openWeatherApiKey = "test-key",
+        )
+        for (from in WeatherProviderId.entries) for (to in WeatherProviderId.entries) {
+            if (from == to) continue
+            for (base in listOf(withLocation.copy(liveWeatherEnabled = true), keyed)) {
+                assertTrue(
+                    "${from.storageId} -> ${to.storageId}",
+                    LiveWeatherInputs.changed(base.copy(weatherProviderId = from.storageId), base.copy(weatherProviderId = to.storageId)),
+                )
+            }
+        }
     }
 
     @Test

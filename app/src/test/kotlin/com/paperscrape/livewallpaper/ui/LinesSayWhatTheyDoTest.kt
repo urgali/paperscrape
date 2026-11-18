@@ -32,7 +32,7 @@ class LinesSayWhatTheyDoTest {
     // ---------------------------------------------------------------- the buildings
 
     @Test
-    fun `the buildings' slider thins the towers and the shops stay, as its words say`() {
+    fun `the towers' slider and switch move the towers and the shops stay, as their words say`() {
         val c = defaultCustomizationFor("city").let { it.copy(buildings = it.buildings.copy(density = 0f)) }
         val layout = SceneObjectCatalog.layoutFor("city", ThemeCatalog.byId("city").accentColor)
         val buildings = layout.staticObjects.filter { it.type == SceneObjectType.SKYSCRAPER }
@@ -40,14 +40,21 @@ class LinesSayWhatTheyDoTest {
         assertTrue(shops.isNotEmpty() && towers.isNotEmpty())
         assertTrue("at 0 % every shop stands", shops.all { c.keepCandidate(it, layout.densityScheme) })
         assertTrue("and no tower", towers.none { c.keepCandidate(it, layout.densityScheme) })
-        // So the slider is called what it moves, and the line says what stays.
+        // So the slider and the switch are called what they move, and the lines say it.
         val world = source("ui/WorldSceneScreen.kt")
-        assertTrue(world.contains("""densityLabel = "Towers","""))
-        assertTrue(BUILDINGS_DENSITY_LINE.contains("towers") && BUILDINGS_DENSITY_LINE.contains("shops") && BUILDINGS_DENSITY_LINE.contains("stay at every amount"))
-        // Off is off: with Show Buildings off nothing stands, which is why the line names the switch.
-        val off = c.copy(buildings = c.buildings.copy(visible = false))
-        assertTrue(shops.none { off.keepCandidate(it, layout.densityScheme) })
-        assertTrue(BUILDINGS_DENSITY_LINE.contains("while Show Buildings and Show shops and public buildings are on"))
+        // Whole lines, the comments taken off: a line commented out does not count.
+        val worldLines = world.lines().map { it.substringBefore("//").trim() }
+        assertTrue(worldLines.contains("""densityLabel = "Towers","""))
+        assertTrue(worldLines.contains("""title = "Towers", config = customization.buildings, category = ObjectCategory.BUILDINGS,"""))
+        assertEquals("Thins out the towers behind the houses.", TOWERS_DENSITY_LINE)
+        assertEquals(
+            "The towers and offices behind the houses. The shops and the public buildings have a switch each, on their pages.",
+            TOWERS_SWITCH_LINE,
+        )
+        // Show Towers off takes the towers, and no shop: those have their own switches (decision 109).
+        val off = c.copy(buildings = c.buildings.copy(visible = false, density = 1f))
+        assertTrue(shops.all { off.keepCandidate(it, layout.densityScheme) })
+        assertTrue(towers.none { off.keepCandidate(it, layout.densityScheme) })
     }
 
     // ---------------------------------------------------------------- the cars

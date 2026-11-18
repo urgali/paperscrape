@@ -7,7 +7,8 @@ import com.paperscrape.livewallpaper.ui.icons.filled.Code
 import com.paperscrape.livewallpaper.ui.icons.filled.Save
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
-import com.paperscrape.livewallpaper.ui.icons.outlined.Save
+import com.paperscrape.livewallpaper.ui.icons.outlined.SaveAlt
+import com.paperscrape.livewallpaper.ui.icons.outlined.FileOpen
 import com.paperscrape.livewallpaper.ui.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Refresh
 import com.paperscrape.livewallpaper.ui.icons.outlined.SystemUpdate
@@ -479,14 +480,14 @@ internal fun AdvancedScreen(
                 supporting = "Everything: your settings, every theme you have customised, and every " +
                     "theme you have saved. Keep the file safe -- it contains your weather API keys " +
                     "and your custom location.",
-                icon = Icons.Outlined.Save,
+                icon = Icons.Outlined.SaveAlt,
                 onClick = { confirmExport = true },
             )
             SettingsRow(
                 title = "Import app backup",
                 supporting = "Replaces your current settings and themes with the ones in the file. " +
                     "You will see what it contains before anything changes.",
-                icon = Icons.Outlined.Restore,
+                icon = Icons.Outlined.FileOpen,
                 onClick = { importLauncher.launchOrSay(arrayOf("application/json", "text/plain", "*/*"), context, MissingApp.FILE_PICKER) },
             )
         }

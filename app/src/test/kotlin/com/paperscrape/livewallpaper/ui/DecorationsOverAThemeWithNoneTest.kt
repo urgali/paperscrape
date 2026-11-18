@@ -149,7 +149,7 @@ class DecorationsOverAThemeWithNoneTest {
     }
 
     @Test
-    fun `on a random theme with no house and no place, the Halloween decorations read off whatever Show Buildings says`() {
+    fun `on a random theme with no house and no place, the Halloween decorations read off whatever the buildings' switches say`() {
         val (id, street) = firstRandom("without a house or a place") { !it.hasAny(DecorationExclusion.HOUSE_TYPES) && !it.hasPlace() }
         println("$id: no house and no place on its street")
         for (buildingsOn in listOf(true, false)) for (housesOn in listOf(true, false)) {
@@ -192,7 +192,7 @@ class DecorationsOverAThemeWithNoneTest {
     @Test
     fun `on a theme saved with no house and no building, the Halloween decorations say the theme has neither`() {
         val autumn = defaultCustomizationFor("autumn")
-        val bare = autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false))
+        val bare = autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false)
         val entry = snapshotEntry("custom:no-houses-no-buildings", "Bare Autumn", "autumn", bare, "autumn")
         CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(entry)))
         val street = savedBefore(entry)
@@ -220,8 +220,8 @@ class DecorationsOverAThemeWithNoneTest {
 
     /**
      * Autumn saved with its houses off and its buildings on keeps its places: the shops can carry the decorations, so with
-     * the buildings off the line says to turn them on, and that the theme has no houses; with them on the switch reads as
-     * stored.
+     * the shops off the line says to turn them on, and that the theme has no houses; with them on the switch reads as
+     * stored, and the public buildings, which wear none, do not.
      */
     @Test
     fun `on a theme saved with no house but with its places, the line names the buildings alone`() {
@@ -235,7 +235,7 @@ class DecorationsOverAThemeWithNoneTest {
         for (housesOn in listOf(true, false)) {
             val c = entry.customization.copy(
                 houses = entry.customization.houses.copy(visible = housesOn, density = 0.5f),
-                buildings = entry.customization.buildings.copy(visible = false),
+                buildings = entry.customization.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false,
                 distantHouses = entry.customization.distantHouses.copy(visible = false),
                 halloweenDecorationsEnabled = true,
                 christmasBuildingLightsEnabled = false, christmasTreeLightsEnabled = false, christmasFirsEnabled = false,
@@ -243,14 +243,16 @@ class DecorationsOverAThemeWithNoneTest {
             val off = SettingsUiModel.halloweenDecorations(c, street)
             assertFalse(off.shownOn)
             assertEquals(
-                "This theme has no houses, and the buildings are off. Turn the buildings on in World & scene; your choice is " +
+                "This theme has no houses, and the shops are off. Turn the shops on in World & scene; your choice is " +
                     "kept until then.",
                 off.needsLine,
             )
             assertLights("lights, houses ${if (housesOn) "on" else "off"}", "Needs the buildings or the distant houses on in " +
                 "World & scene: this theme has no houses. Your choice is kept until then.", c, street)
-            val shops = SettingsUiModel.halloweenDecorations(c.copy(buildings = c.buildings.copy(visible = true)), street)
+            val shops = SettingsUiModel.halloweenDecorations(c.copy(shopsVisible = true), street)
             assertTrue("the shops carry them", shops.shownOn)
+            val publics = SettingsUiModel.halloweenDecorations(c.copy(publicsVisible = true), street)
+            assertFalse("the public buildings wear none", publics.shownOn)
             assertNull(shops.needsLine)
         }
     }
@@ -273,7 +275,7 @@ class DecorationsOverAThemeWithNoneTest {
         }
     }
 
-    /** Towers and no place, Show Buildings on and every tower thinned away: raising the Towers is the way. */
+    /** Towers and no place, Show Towers on and every tower thinned away: raising the Towers is the way. */
     @Test
     fun `on a random theme with towers and no place, Lights on the buildings says to raise the towers`() {
         val low = none.copy(houses = houses(true, 0.01f), buildings = buildings(true, 0f))
@@ -337,7 +339,7 @@ class DecorationsOverAThemeWithNoneTest {
 
     /**
      * **The houses on the mountains already on, and no mountain to stand on: the line names the mountains, not them.**
-     * Autumn as it ships, the houses and *Show Buildings* off, the distant houses on at 50 % and both mountain layers off
+     * Autumn as it ships, the houses and the buildings' switches off, the distant houses on at 50 % and both mountain layers off
      * or at 0 %: turning the distant houses on would change nothing, turning a mountain on would. With the distant houses
      * off, mountains or not, the way is still their switch, which leads to the mountains where there are none.
      */
@@ -345,7 +347,7 @@ class DecorationsOverAThemeWithNoneTest {
     fun `with the distant houses on and no mountain shown, Lights on the buildings names the mountains`() {
         val autumn = defaultCustomizationFor("autumn")
         val street = SceneObjectCatalog.layoutFor("autumn", ThemeCatalog.byId("autumn").accentColor)
-        val off = autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false))
+        val off = autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false)
         for (atZero in listOf(false, true)) {
             val what = "autumn, mountains ${if (atZero) "at 0 %" else "off"}"
             assertLights(what, "Needs the houses, the buildings or the mountains on in World & scene. Your choice is kept until " +
@@ -357,7 +359,7 @@ class DecorationsOverAThemeWithNoneTest {
         assertLights("autumn, distant houses off, mountains on", "Needs the houses, the buildings or the distant houses on in " +
             "World & scene. Your choice is kept until then.", off.copy(distantHouses = DistantHousesConfig(visible = false, density = 0.5f)), street)
         // The houses on at an amount that keeps none, on a street with houses and places.
-        val low = autumn.copy(houses = autumn.houses.copy(visible = true, density = 0.01f), buildings = autumn.buildings.copy(visible = false))
+        val low = autumn.copy(houses = autumn.houses.copy(visible = true, density = 0.01f), buildings = autumn.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false)
         val (id, keepsNone) = firstRandom("with a house and a place, and no house standing at 1 %") {
             it.hasAny(DecorationExclusion.HOUSE_TYPES) && it.hasPlace() && !SettingsUiModel.standing(it, low).houses
         }
@@ -390,12 +392,12 @@ class DecorationsOverAThemeWithNoneTest {
         val autumn = defaultCustomizationFor("autumn")
         val noHouses = snapshotEntry("custom:no-houses", "Autumn without houses", "autumn", autumn.copy(houses = autumn.houses.copy(visible = false)), "autumn")
         val bare = snapshotEntry("custom:no-houses-no-buildings", "Bare Autumn", "autumn",
-            autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false)), "autumn")
+            autumn.copy(houses = autumn.houses.copy(visible = false), buildings = autumn.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false), "autumn")
         CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(noHouses, bare)))
         for (housesOn in listOf(true, false)) {
             val c = noHouses.customization.copy(
                 houses = noHouses.customization.houses.copy(visible = housesOn, density = 0.5f),
-                buildings = noHouses.customization.buildings.copy(visible = false),
+                buildings = noHouses.customization.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false,
             )
             assertLights("no houses, houses ${if (housesOn) "on" else "off"}", "Needs the buildings or the mountains on in World & " +
                 "scene: this theme has no houses. Your choice is kept until then.", noMountain(c, atZero = false),

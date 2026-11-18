@@ -49,6 +49,23 @@ class AppVersionTest {
         assertTrue(v("v5.19") > v("v5.18"))
     }
 
+    /**
+     * **5.20 is not 5.2**: the minor is the number 20, so the 5.20 is newer than the 5.19 installed, than 5.9 and than the
+     * 5.2 of 2026 (`release-notes/v5.2.md`), and "5.20" prints back as itself, not as 5.2.
+     */
+    @Test
+    fun `5 dot 20 is newer than 5 dot 19, 5 dot 9 and 5 dot 2, and is not 5 dot 2`() {
+        assertTrue(v("5.20") > v("5.19"))
+        assertTrue(v("v5.20") > v("v5.19"))
+        assertTrue(v("5.20") > v("5.9"))
+        assertTrue(v("5.20") > v("5.2"))
+        assertTrue(v("5.2") < v("5.20"))
+        assertTrue(v("5.19") < v("5.20"))
+        assertTrue(v("5.20") != v("5.2"))
+        assertEquals(20, v("5.20").minor)
+        assertEquals("5.20", v("v5.20").toString())
+    }
+
     @Test
     fun `an older release is not an update`() {
         assertTrue(v("1.9") <= v("2.0"))

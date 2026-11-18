@@ -23,11 +23,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /*
  * The `Icons.Outlined` icons the settings draw that `material-icons-core` does not hold (AccountBalance, AcUnit,
- * Apartment, CardGiftcard, Celebration, Cloud, Cottage, DarkMode, DirectionsCar, Egg, FileOpen, Filter, FilterDrama,
- * Flare, House, Landscape, LocalFlorist, Park, Restore, Save, Schedule, StarBorder, Storefront, SystemUpdate, Terrain,
- * WaterDrop, Waves, WbSunny), from `androidx.compose.material:material-icons-extended` 1.7.8 (The Android Open Source
- * Project, Apache License 2.0): each path is that library's, call for call and number for number, so each icon draws
- * the same pixels as the library's.
+ * Apartment, BeachAccess, CalendarMonth, CardGiftcard, Celebration, Cloud, CloudDownload, Cottage, DarkMode,
+ * DirectionsCar, Egg, FileOpen, Flare, House, Landscape, LocalFlorist, Looks, Park, Restore, SaveAlt, Schedule,
+ * StarBorder, Storefront, SystemUpdate, Terrain, WaterDrop, Waves, WbSunny), from
+ * `androidx.compose.material:material-icons-extended` 1.7.8 (The Android Open Source Project, Apache License 2.0):
+ * each path is that library's, call for call and number for number, so each icon draws the same pixels as the
+ * library's.
  */
 
 internal val Icons.Outlined.AccountBalance: ImageVector
@@ -224,6 +225,124 @@ internal val Icons.Outlined.Apartment: ImageVector
 
 private var _apartment: ImageVector? = null
 
+internal val Icons.Outlined.BeachAccess: ImageVector
+    get() {
+        _beachAccess?.let { return it }
+        return materialIcon(name = "Outlined.BeachAccess") {
+            materialPath {
+                moveTo(21.0f, 19.57f)
+                lineToRelative(-1.427f, 1.428f)
+                lineToRelative(-6.442f, -6.442f)
+                lineToRelative(1.43f, -1.428f)
+                close()
+                moveTo(13.12f, 3.0f)
+                curveToRelative(-2.58f, 0.0f, -5.16f, 0.98f, -7.14f, 2.95f)
+                lineToRelative(-0.01f, 0.01f)
+                curveToRelative(-3.95f, 3.95f, -3.95f, 10.36f, 0.0f, 14.31f)
+                lineToRelative(14.3f, -14.31f)
+                curveTo(18.3f, 3.99f, 15.71f, 3.0f, 13.12f, 3.0f)
+                close()
+                moveTo(6.14f, 17.27f)
+                curveTo(5.4f, 16.03f, 5.0f, 14.61f, 5.0f, 13.12f)
+                curveToRelative(0.0f, -0.93f, 0.16f, -1.82f, 0.46f, -2.67f)
+                curveToRelative(0.19f, 1.91f, 0.89f, 3.79f, 2.07f, 5.44f)
+                lineToRelative(-1.39f, 1.38f)
+                close()
+                moveTo(8.98f, 14.43f)
+                curveTo(7.63f, 12.38f, 7.12f, 9.93f, 7.6f, 7.6f)
+                curveToRelative(0.58f, -0.12f, 1.16f, -0.18f, 1.75f, -0.18f)
+                curveToRelative(1.8f, 0.0f, 3.55f, 0.55f, 5.08f, 1.56f)
+                lineToRelative(-5.45f, 5.45f)
+                close()
+                moveTo(10.45f, 5.46f)
+                curveToRelative(0.85f, -0.3f, 1.74f, -0.46f, 2.67f, -0.46f)
+                curveToRelative(1.49f, 0.0f, 2.91f, 0.4f, 4.15f, 1.14f)
+                lineToRelative(-1.39f, 1.39f)
+                curveToRelative(-1.65f, -1.18f, -3.52f, -1.88f, -5.43f, -2.07f)
+                close()
+            }
+        }.also { _beachAccess = it }
+    }
+
+private var _beachAccess: ImageVector? = null
+
+internal val Icons.Outlined.CalendarMonth: ImageVector
+    get() {
+        _calendarMonth?.let { return it }
+        return materialIcon(name = "Outlined.CalendarMonth") {
+            materialPath {
+                moveTo(19.0f, 4.0f)
+                horizontalLineToRelative(-1.0f)
+                verticalLineTo(2.0f)
+                horizontalLineToRelative(-2.0f)
+                verticalLineToRelative(2.0f)
+                horizontalLineTo(8.0f)
+                verticalLineTo(2.0f)
+                horizontalLineTo(6.0f)
+                verticalLineToRelative(2.0f)
+                horizontalLineTo(5.0f)
+                curveTo(3.89f, 4.0f, 3.01f, 4.9f, 3.01f, 6.0f)
+                lineTo(3.0f, 20.0f)
+                curveToRelative(0.0f, 1.1f, 0.89f, 2.0f, 2.0f, 2.0f)
+                horizontalLineToRelative(14.0f)
+                curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
+                verticalLineTo(6.0f)
+                curveTo(21.0f, 4.9f, 20.1f, 4.0f, 19.0f, 4.0f)
+                close()
+                moveTo(19.0f, 20.0f)
+                horizontalLineTo(5.0f)
+                verticalLineTo(10.0f)
+                horizontalLineToRelative(14.0f)
+                verticalLineTo(20.0f)
+                close()
+                moveTo(19.0f, 8.0f)
+                horizontalLineTo(5.0f)
+                verticalLineTo(6.0f)
+                horizontalLineToRelative(14.0f)
+                verticalLineTo(8.0f)
+                close()
+                moveTo(9.0f, 14.0f)
+                horizontalLineTo(7.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(14.0f)
+                close()
+                moveTo(13.0f, 14.0f)
+                horizontalLineToRelative(-2.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(14.0f)
+                close()
+                moveTo(17.0f, 14.0f)
+                horizontalLineToRelative(-2.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(14.0f)
+                close()
+                moveTo(9.0f, 18.0f)
+                horizontalLineTo(7.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(18.0f)
+                close()
+                moveTo(13.0f, 18.0f)
+                horizontalLineToRelative(-2.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(18.0f)
+                close()
+                moveTo(17.0f, 18.0f)
+                horizontalLineToRelative(-2.0f)
+                verticalLineToRelative(-2.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineTo(18.0f)
+                close()
+            }
+        }.also { _calendarMonth = it }
+    }
+
+private var _calendarMonth: ImageVector? = null
+
 internal val Icons.Outlined.CardGiftcard: ImageVector
     get() {
         _cardGiftcard?.let { return it }
@@ -385,6 +504,47 @@ internal val Icons.Outlined.Cloud: ImageVector
     }
 
 private var _cloud: ImageVector? = null
+
+internal val Icons.Outlined.CloudDownload: ImageVector
+    get() {
+        _cloudDownload?.let { return it }
+        return materialIcon(name = "Outlined.CloudDownload") {
+            materialPath {
+                moveTo(19.35f, 10.04f)
+                curveTo(18.67f, 6.59f, 15.64f, 4.0f, 12.0f, 4.0f)
+                curveTo(9.11f, 4.0f, 6.6f, 5.64f, 5.35f, 8.04f)
+                curveTo(2.34f, 8.36f, 0.0f, 10.91f, 0.0f, 14.0f)
+                curveToRelative(0.0f, 3.31f, 2.69f, 6.0f, 6.0f, 6.0f)
+                horizontalLineToRelative(13.0f)
+                curveToRelative(2.76f, 0.0f, 5.0f, -2.24f, 5.0f, -5.0f)
+                curveToRelative(0.0f, -2.64f, -2.05f, -4.78f, -4.65f, -4.96f)
+                close()
+                moveTo(19.0f, 18.0f)
+                lineTo(6.0f, 18.0f)
+                curveToRelative(-2.21f, 0.0f, -4.0f, -1.79f, -4.0f, -4.0f)
+                curveToRelative(0.0f, -2.05f, 1.53f, -3.76f, 3.56f, -3.97f)
+                lineToRelative(1.07f, -0.11f)
+                lineToRelative(0.5f, -0.95f)
+                curveTo(8.08f, 7.14f, 9.94f, 6.0f, 12.0f, 6.0f)
+                curveToRelative(2.62f, 0.0f, 4.88f, 1.86f, 5.39f, 4.43f)
+                lineToRelative(0.3f, 1.5f)
+                lineToRelative(1.53f, 0.11f)
+                curveToRelative(1.56f, 0.1f, 2.78f, 1.41f, 2.78f, 2.96f)
+                curveToRelative(0.0f, 1.65f, -1.35f, 3.0f, -3.0f, 3.0f)
+                close()
+                moveTo(13.45f, 10.0f)
+                horizontalLineToRelative(-2.9f)
+                verticalLineToRelative(3.0f)
+                lineTo(8.0f, 13.0f)
+                lineToRelative(4.0f, 4.0f)
+                lineToRelative(4.0f, -4.0f)
+                horizontalLineToRelative(-2.55f)
+                close()
+            }
+        }.also { _cloudDownload = it }
+    }
+
+private var _cloudDownload: ImageVector? = null
 
 internal val Icons.Outlined.Cottage: ImageVector
     get() {
@@ -585,83 +745,6 @@ internal val Icons.Outlined.FileOpen: ImageVector
     }
 
 private var _fileOpen: ImageVector? = null
-
-internal val Icons.Outlined.Filter: ImageVector
-    get() {
-        _filter?.let { return it }
-        return materialIcon(name = "Outlined.Filter") {
-            materialPath {
-                moveTo(15.96f, 10.29f)
-                lineToRelative(-2.75f, 3.54f)
-                lineToRelative(-1.96f, -2.36f)
-                lineTo(8.5f, 15.0f)
-                horizontalLineToRelative(11.0f)
-                lineToRelative(-3.54f, -4.71f)
-                close()
-                moveTo(3.0f, 5.0f)
-                lineTo(1.0f, 5.0f)
-                verticalLineToRelative(16.0f)
-                curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-                horizontalLineToRelative(16.0f)
-                verticalLineToRelative(-2.0f)
-                lineTo(3.0f, 21.0f)
-                lineTo(3.0f, 5.0f)
-                close()
-                moveTo(21.0f, 1.0f)
-                lineTo(7.0f, 1.0f)
-                curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-                verticalLineToRelative(14.0f)
-                curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-                horizontalLineToRelative(14.0f)
-                curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-                lineTo(23.0f, 3.0f)
-                curveToRelative(0.0f, -1.1f, -0.9f, -2.0f, -2.0f, -2.0f)
-                close()
-                moveTo(21.0f, 17.0f)
-                lineTo(7.0f, 17.0f)
-                lineTo(7.0f, 3.0f)
-                horizontalLineToRelative(14.0f)
-                verticalLineToRelative(14.0f)
-                close()
-            }
-        }.also { _filter = it }
-    }
-
-private var _filter: ImageVector? = null
-
-internal val Icons.Outlined.FilterDrama: ImageVector
-    get() {
-        _filterDrama?.let { return it }
-        return materialIcon(name = "Outlined.FilterDrama") {
-            materialPath {
-                moveTo(19.35f, 10.04f)
-                curveTo(18.67f, 6.59f, 15.64f, 4.0f, 12.0f, 4.0f)
-                curveTo(9.11f, 4.0f, 6.61f, 5.64f, 5.36f, 8.04f)
-                curveTo(2.35f, 8.36f, 0.0f, 10.9f, 0.0f, 14.0f)
-                curveToRelative(0.0f, 3.31f, 2.69f, 6.0f, 6.0f, 6.0f)
-                horizontalLineToRelative(13.0f)
-                curveToRelative(2.76f, 0.0f, 5.0f, -2.24f, 5.0f, -5.0f)
-                curveToRelative(0.0f, -2.64f, -2.05f, -4.78f, -4.65f, -4.96f)
-                close()
-                moveTo(19.0f, 18.0f)
-                horizontalLineTo(6.0f)
-                curveToRelative(-2.21f, 0.0f, -4.0f, -1.79f, -4.0f, -4.0f)
-                reflectiveCurveToRelative(1.79f, -4.0f, 4.0f, -4.0f)
-                reflectiveCurveToRelative(4.0f, 1.79f, 4.0f, 4.0f)
-                horizontalLineToRelative(2.0f)
-                curveToRelative(0.0f, -2.76f, -1.86f, -5.08f, -4.4f, -5.78f)
-                curveTo(8.61f, 6.88f, 10.2f, 6.0f, 12.0f, 6.0f)
-                curveToRelative(3.03f, 0.0f, 5.5f, 2.47f, 5.5f, 5.5f)
-                verticalLineToRelative(0.5f)
-                horizontalLineTo(19.0f)
-                curveToRelative(1.65f, 0.0f, 3.0f, 1.35f, 3.0f, 3.0f)
-                reflectiveCurveToRelative(-1.35f, 3.0f, -3.0f, 3.0f)
-                close()
-            }
-        }.also { _filterDrama = it }
-    }
-
-private var _filterDrama: ImageVector? = null
 
 internal val Icons.Outlined.Flare: ImageVector
     get() {
@@ -894,6 +977,33 @@ internal val Icons.Outlined.LocalFlorist: ImageVector
 
 private var _localFlorist: ImageVector? = null
 
+internal val Icons.Outlined.Looks: ImageVector
+    get() {
+        _looks?.let { return it }
+        return materialIcon(name = "Outlined.Looks") {
+            materialPath {
+                moveTo(12.0f, 10.0f)
+                curveToRelative(-3.86f, 0.0f, -7.0f, 3.14f, -7.0f, 7.0f)
+                horizontalLineToRelative(2.0f)
+                curveToRelative(0.0f, -2.76f, 2.24f, -5.0f, 5.0f, -5.0f)
+                reflectiveCurveToRelative(5.0f, 2.24f, 5.0f, 5.0f)
+                horizontalLineToRelative(2.0f)
+                curveToRelative(0.0f, -3.86f, -3.14f, -7.0f, -7.0f, -7.0f)
+                close()
+                moveTo(12.0f, 6.0f)
+                curveTo(5.93f, 6.0f, 1.0f, 10.93f, 1.0f, 17.0f)
+                horizontalLineToRelative(2.0f)
+                curveToRelative(0.0f, -4.96f, 4.04f, -9.0f, 9.0f, -9.0f)
+                reflectiveCurveToRelative(9.0f, 4.04f, 9.0f, 9.0f)
+                horizontalLineToRelative(2.0f)
+                curveToRelative(0.0f, -6.07f, -4.93f, -11.0f, -11.0f, -11.0f)
+                close()
+            }
+        }.also { _looks = it }
+    }
+
+private var _looks: ImageVector? = null
+
 internal val Icons.Outlined.Park: ImageVector
     get() {
         _park?.let { return it }
@@ -960,44 +1070,39 @@ internal val Icons.Outlined.Restore: ImageVector
 
 private var _restore: ImageVector? = null
 
-internal val Icons.Outlined.Save: ImageVector
+internal val Icons.Outlined.SaveAlt: ImageVector
     get() {
-        _save?.let { return it }
-        return materialIcon(name = "Outlined.Save") {
+        _saveAlt?.let { return it }
+        return materialIcon(name = "Outlined.SaveAlt") {
             materialPath {
-                moveTo(17.0f, 3.0f)
-                lineTo(5.0f, 3.0f)
-                curveToRelative(-1.11f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-                verticalLineToRelative(14.0f)
-                curveToRelative(0.0f, 1.1f, 0.89f, 2.0f, 2.0f, 2.0f)
+                moveTo(19.0f, 12.0f)
+                verticalLineToRelative(7.0f)
+                lineTo(5.0f, 19.0f)
+                verticalLineToRelative(-7.0f)
+                lineTo(3.0f, 12.0f)
+                verticalLineToRelative(7.0f)
+                curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
                 horizontalLineToRelative(14.0f)
                 curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-                lineTo(21.0f, 7.0f)
-                lineToRelative(-4.0f, -4.0f)
+                verticalLineToRelative(-7.0f)
+                horizontalLineToRelative(-2.0f)
                 close()
-                moveTo(19.0f, 19.0f)
-                lineTo(5.0f, 19.0f)
-                lineTo(5.0f, 5.0f)
-                horizontalLineToRelative(11.17f)
-                lineTo(19.0f, 7.83f)
-                lineTo(19.0f, 19.0f)
-                close()
-                moveTo(12.0f, 12.0f)
-                curveToRelative(-1.66f, 0.0f, -3.0f, 1.34f, -3.0f, 3.0f)
-                reflectiveCurveToRelative(1.34f, 3.0f, 3.0f, 3.0f)
-                reflectiveCurveToRelative(3.0f, -1.34f, 3.0f, -3.0f)
-                reflectiveCurveToRelative(-1.34f, -3.0f, -3.0f, -3.0f)
-                close()
-                moveTo(6.0f, 6.0f)
-                horizontalLineToRelative(9.0f)
-                verticalLineToRelative(4.0f)
-                lineTo(6.0f, 10.0f)
+                moveTo(13.0f, 12.67f)
+                lineToRelative(2.59f, -2.58f)
+                lineTo(17.0f, 11.5f)
+                lineToRelative(-5.0f, 5.0f)
+                lineToRelative(-5.0f, -5.0f)
+                lineToRelative(1.41f, -1.41f)
+                lineTo(11.0f, 12.67f)
+                lineTo(11.0f, 3.0f)
+                horizontalLineToRelative(2.0f)
+                verticalLineToRelative(9.67f)
                 close()
             }
-        }.also { _save = it }
+        }.also { _saveAlt = it }
     }
 
-private var _save: ImageVector? = null
+private var _saveAlt: ImageVector? = null
 
 internal val Icons.Outlined.Schedule: ImageVector
     get() {

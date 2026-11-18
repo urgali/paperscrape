@@ -302,6 +302,10 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("peopleNightDensity", peopleNightDensity.toDouble())
     put("carsNightDensity", carsNightDensity.toDouble())
     put("keepRoad", keepRoad)
+    put("shopsVisible", shopsVisible)
+    put("publicsVisible", publicsVisible)
+    // For a release that knows one switch for the six buildings among the houses: it reads this and not the two above,
+    // on where either group stands, and draws the six while this and the towers' switch are both on (decision 109).
     put("placesVisible", placesVisible)
     // The opening hours, in three groups; a payload without them reads the defaults (off), and one with
     // the single `businessHours*` setting reads it into each group (`sceneCustomizationFromJson`).
@@ -488,7 +492,18 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
         carsNightDensity = carsNightDensity,
         // A payload without it was written before *Keep the road* existed: [readAsDrawnBefore] below.
         keepRoad = json.optBoolean("keepRoad", false),
-        placesVisible = json.optBoolean("placesVisible", asItStarts.placesVisible),
+        // Without a switch of their own, the shops and the public buildings stood while the one switch and the
+        // buildings' did (decision 109): read as that scene ([SceneCustomization.placeSwitchAsDrawnBefore]).
+        shopsVisible = if (json.has("shopsVisible")) {
+            json.optBoolean("shopsVisible", asItStarts.shopsVisible)
+        } else {
+            SceneCustomization.placeSwitchAsDrawnBefore(json.optBoolean("placesVisible", asItStarts.shopsVisible), buildings.visible)
+        },
+        publicsVisible = if (json.has("publicsVisible")) {
+            json.optBoolean("publicsVisible", asItStarts.publicsVisible)
+        } else {
+            SceneCustomization.placeSwitchAsDrawnBefore(json.optBoolean("placesVisible", asItStarts.publicsVisible), buildings.visible)
+        },
         // A payload with `businessHours*` alone, the one setting for shops and towers, gives it to each group
         // without a field of its own: whoever had the hours on finds them on in both, at the same hours.
         shopHoursEnabled = shopHoursEnabled,

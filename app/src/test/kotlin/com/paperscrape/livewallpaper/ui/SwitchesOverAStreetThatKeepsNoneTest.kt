@@ -88,9 +88,9 @@ class SwitchesOverAStreetThatKeepsNoneTest {
             val hours = SettingsUiModel.towerHours(true, buildingsVisible = true, towersAmount = 0.10f, towersStand = towersStand)
             assertFalse("$id: the hours read on over no tower", hours.shownOn)
             assertFalse(hours.interactive)
-            assertEquals("10%, no tower at this density on this theme", SettingsUiModel.towersRowSummary(true, 0.10f, true, 9f, 20f, towersStand, towersOnTheme = true, placesOnTheme = true))
+            assertEquals("10%, no tower at this density on this theme", SettingsUiModel.towersRowSummary(true, 0.10f, true, 9f, 20f, towersStand, towersOnTheme = true))
         }
-        assertEquals("10%, open 09:00-20:00", SettingsUiModel.towersRowSummary(true, 0.10f, true, 9f, 20f, towersStand = true, towersOnTheme = true, placesOnTheme = true))
+        assertEquals("10%, open 09:00-20:00", SettingsUiModel.towersRowSummary(true, 0.10f, true, 9f, 20f, towersStand = true, towersOnTheme = true))
     }
 
     /**
@@ -137,7 +137,7 @@ class SwitchesOverAStreetThatKeepsNoneTest {
         println("themes keeping no house at 3 %: $bare")
         assertTrue(bare.isNotEmpty())
         val id = bare.first()
-        val c = houses(id, 0.03f).let { it.copy(buildings = it.buildings.copy(visible = false), halloweenDecorationsEnabled = true) }
+        val c = houses(id, 0.03f).let { it.copy(buildings = it.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false, halloweenDecorationsEnabled = true) }
         val state = SettingsUiModel.halloweenDecorations(c, layout(id))
         assertFalse(state.shownOn)
         assertEquals(SettingsUiModel.NO_HOUSE_FOR_HALLOWEEN_LINE, state.needsLine)

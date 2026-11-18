@@ -150,6 +150,12 @@ enum class LiveWeatherTap {
 }
 
 /**
+ * The Clouds and the Rain and snow pages while the forecast owns their controls ([SettingsUiModel.weatherPages]): the
+ * line each page shows in their place, and what their rows in *World & scene* say.
+ */
+data class WeatherPagesUiState(val cloudsLine: String, val rainLine: String, val rowSummary: String)
+
+/**
  * The Live Weather switch: drawn **on only while real weather can drive the scene** ([shownOn]); otherwise off, with
  * the reason under it ([blocker]) and a tap that goes where it is put right (`DESIGN_NOTES.md` §12, decision 40). It
  * always accepts a tap, and the stored choice is never written to make the switch look right.
@@ -159,12 +165,12 @@ enum class LiveWeatherTap {
  *   chosen (`LiveWeatherSchedule.runs`, the loop's `fix`). The status banner's "waiting" and "not running" are about it.
  * @property blocker the first reason real weather cannot drive the scene, or [LiveWeatherBlocker.NONE].
  * @property shownOn what the switch is drawn as: [configuredOn] with no [blocker].
- * @property drivingTheScene whether real conditions are what the scene draws: this, not [configuredOn], leaves the
- *   theme's own cloud and precipitation controls out ([SettingsUiModel.forecastOwnsTheWeatherControls]) and is what
- *   "Driven by Live Weather" may claim. **Only while
+ * @property drivingTheScene whether real conditions are what the scene draws: what "Driven by Live Weather" may claim
+ *   ([SettingsUiModel.weatherPages]); the theme's own cloud and precipitation controls are left out as soon as
+ *   [shownOn] ([SettingsUiModel.forecastOwnsTheWeatherControls]). **Only while
  *   [shownOn]**: with the switch off, what the engine last published is about a Live Weather that cannot run (another
  *   wallpaper, or a fixed hour set while the settings screen covered the wallpaper), and a stale "driving" would lock
- *   World & scene's clouds behind a switch that reads off. `SettingsUiModelTest` keeps that unreachable.
+ *   World & scene's rows on a forecast behind a switch that reads off. `SettingsUiModelTest` keeps that unreachable.
  */
 data class LiveWeatherUiState(
     val configuredOn: Boolean,
@@ -599,6 +605,13 @@ object SettingsUiModel {
         return dependentSwitch(stored, available = !c.nightOverDayActive() || c.birds.nightBirds || !stored)
     }
 
+    /**
+     * The line under *Show Rainbow* while it reads on: everything it does -- the forecast's rain, snow or thunderstorm
+     * keeps it away (`LiveWeatherSceneRules.rainbowUnderForecast`, decision 108), which the switch cannot read, since the
+     * settings screen does not know the sky of the next hour.
+     */
+    const val RAINBOW_LINE = "Shown by day, except while Live Weather draws rain, snow or a thunderstorm."
+
     /** *Show Rainbow*, as its opacity shows it ([amountSwitch]). */
     fun showRainbow(c: com.paperscrape.livewallpaper.engine.SceneCustomization): DependentSwitchUiState =
         dependentSwitch(amountSwitch(c.rainbow.visible, c.rainbow.opacity).shownOn, available = !c.nightOverDayActive())
@@ -634,8 +647,8 @@ object SettingsUiModel {
 
     /**
      * The line under *Halloween decorations* while nothing carries them: the houses where the street has them, *Show
-     * Buildings* where it has places (the shops stand in them while it is on), what it lacks said. Without the street,
-     * both ways.
+     * Shops* where it has places (the shops stand in them while it is on; the public buildings wear none), what it lacks
+     * said. Without the street, both ways.
      */
     private fun halloweenDecorationsLine(
         c: com.paperscrape.livewallpaper.engine.SceneCustomization,
@@ -645,8 +658,8 @@ object SettingsUiModel {
         val places = layout == null || hasPlaces(layout)
         return when {
             !houses && !places -> NO_HOUSE_OR_SHOP_ON_THIS_THEME_LINE
-            // Places, and still no shop: Show Buildings is off.
-            !houses -> NO_HOUSES_BUILDINGS_OFF_LINE
+            // Places, and still no shop: Show Shops is off.
+            !houses -> NO_HOUSES_SHOPS_OFF_LINE
             !places -> if (housesOnWithNoneStanding(c)) NO_HOUSE_AND_NO_SHOPS_LINE else NEEDS_HOUSES_NO_SHOPS_LINE
             housesOnWithNoneStanding(c) -> NO_HOUSE_FOR_HALLOWEEN_LINE
             else -> NEEDS_HOUSES_LINE
@@ -684,8 +697,10 @@ object SettingsUiModel {
     /**
      * The line under *Lights on the buildings* while nothing carries them: **only the ways that would help on this
      * street**, and what it lacks said. The houses where it has houses (raised where they are on and none stands, else
-     * turned on); the buildings where it has places or towers (turned on, or -- *Show Buildings* on with no place and every
-     * tower thinned away -- the Towers raised); the houses on the mountains on every street, by their own switch, or by
+     * turned on); the buildings where it has places or towers -- turned on (*Show Towers*, *Show Shops*, *Show Public
+     * buildings*: "the buildings" while all three are off), or, *Show Towers* on and every tower thinned away, the Towers
+     * raised -- and, with *Show Towers* on where it has places, the buildings among the houses turned on; the houses on the mountains on every
+     * street, by their own switch, or by
      * the mountains where they are on above 0 % and no mountain is shown to stand on. Without the street, the houses and
      * the buildings both. Where every way is a switch it reads "Needs ... on" ([NEEDS_BUILDINGS_LINE]'s form), where one
      * is an amount "No house stands ..." ([NO_HOUSE_FOR_LIGHTS_LINE]'s), which names what does not carry them: the
@@ -696,12 +711,16 @@ object SettingsUiModel {
         layout: SceneObjectLayout?,
     ): String {
         val houses = layout == null || themeHas(layout, c, DecorationExclusion.HOUSE_TYPES)
-        val buildings = layout == null || hasPlaces(layout) || themeHas(layout, c, setOf(SceneObjectType.SKYSCRAPER))
+        val places = layout == null || hasPlaces(layout)
+        val towers = layout == null || themeHas(layout, c, setOf(SceneObjectType.SKYSCRAPER))
+        val buildings = places || towers
         val raiseHouses = houses && housesOnWithNoneStanding(c)
-        val raiseTowers = buildings && c.buildings.visible
+        // Here the places stand for nothing (both groups off, or none on the street): *Show Towers* on is the towers thinned.
+        val raiseTowers = towers && c.buildings.visible
         val carriers = listOfNotNull(
             "the houses".takeIf { houses && !raiseHouses },
             "the buildings".takeIf { buildings && !c.buildings.visible },
+            "the buildings among the houses".takeIf { places && c.buildings.visible },
             "the distant houses",
         )
         val noMountain = c.distantHouses.drawsAny && !c.mountainsFront.drawsAny && !c.mountainsBack.drawsAny
@@ -716,7 +735,11 @@ object SettingsUiModel {
             raiseHouses -> "No house stands at this density"
             else -> "No tower stands at this density"
         }
-        val carry = if (carriers.size == 1) "${carriers[0]} do not carry them" else "neither ${carriers[0]} nor ${carriers[1]} carry them"
+        val carry = if (carriers.size == 1) {
+            "${carriers[0]} do not carry them"
+        } else {
+            "neither ${carriers.dropLast(1).joinToString(", ")} nor ${carriers.last()} carry them"
+        }
         val raise = "Raise " + listOfNotNull("Houses".takeIf { raiseHouses }, "Towers".takeIf { raiseTowers }).joinToString(" or ")
         val ways = if (raiseHouses && raiseTowers) "$raise, or turn ${orList(turnOn)} on" else "$raise or turn ${orList(turnOn)} on"
         return "$stands on this theme${lacks.joinToString("") { ", it has $it" }}, and $carry. $ways in World & scene; " +
@@ -791,7 +814,7 @@ object SettingsUiModel {
 
     /** The line under *Halloween decorations* while the houses are off or at 0 % and no shop stands ([halloweenDecorations]). */
     const val NEEDS_HOUSES_LINE =
-        "Needs the houses or the buildings on in World & scene. Your choice is kept until then."
+        "Needs the houses or the shops on in World & scene. Your choice is kept until then."
 
     /** The line under *Lights on the buildings* while nothing stands to carry them ([christmasBuildingDecoration]). */
     const val NEEDS_BUILDINGS_LINE =
@@ -801,10 +824,10 @@ object SettingsUiModel {
     const val NO_TREE_AT_THIS_DENSITY_LINE =
         "No tree stands at this density on this theme. Raise Trees in World & scene; your choice is kept until then."
 
-    /** The line under *Halloween decorations* while the houses are on and none stands, and the buildings are off. */
+    /** The line under *Halloween decorations* while the houses are on and none stands, and the shops are off. */
     const val NO_HOUSE_FOR_HALLOWEEN_LINE =
-        "No house stands at this density on this theme, and the buildings are off. Raise Houses or turn the " +
-            "buildings on in World & scene; your choice is kept until then."
+        "No house stands at this density on this theme, and the shops are off. Raise Houses or turn the " +
+            "shops on in World & scene; your choice is kept until then."
 
     /** The line under *Lights on the buildings* while the houses are on and none stands, and nothing else carries them. */
     const val NO_HOUSE_FOR_LIGHTS_LINE =
@@ -814,9 +837,9 @@ object SettingsUiModel {
     /** The line under *Halloween decorations* on a street with no house and no place among the houses ([halloweenDecorations]). */
     const val NO_HOUSE_OR_SHOP_ON_THIS_THEME_LINE = "This theme has no houses and no shops."
 
-    /** The line under *Halloween decorations* on a street with places and no house, *Show Buildings* off. */
-    const val NO_HOUSES_BUILDINGS_OFF_LINE =
-        "This theme has no houses, and the buildings are off. Turn the buildings on in World & scene; your choice is kept " +
+    /** The line under *Halloween decorations* on a street with places and no house, *Show Shops* off. */
+    const val NO_HOUSES_SHOPS_OFF_LINE =
+        "This theme has no houses, and the shops are off. Turn the shops on in World & scene; your choice is kept " +
             "until then."
 
     /** The line under *Halloween decorations* on a street with houses and no place, the houses on and none standing. */
@@ -841,7 +864,7 @@ object SettingsUiModel {
 
     /**
      * The line under a switch whose [things] the theme's street has none of at any amount -- *Show Houses*, *Show Trees*,
-     * *Show Parasols*, *Show Buildings* ([AmountSwitchUiState.noneOnThisTheme]), *Tower opening hours* with no tower, *Lights
+     * *Show Parasols*, *Show Towers* ([AmountSwitchUiState.noneOnThisTheme]), *Tower opening hours* with no tower, *Lights
      * on the trees* and *Christmas firs* with no tree, the shops' and the public buildings' hours and pages with no place
      * among the houses: "This theme has no trees."
      */
@@ -944,11 +967,50 @@ object SettingsUiModel {
 
     /**
      * Whether the Clouds and the Rain and snow pages leave out the theme's own weather controls (*Show Clouds* and its
-     * amount, *Show Rain/Snow*, the type, the intensity, *Thunderstorm*) and say the forecast decides them: they hold the
-     * theme's values, and even greyed a switch says on or off -- *Show Clouds* off under the forecast's clouds
-     * (`LiveWeatherSceneRules.cloudDensity` gives it no vote). The colours stay: the forecast does not choose them.
+     * amount, *Show Rain/Snow*, the type, the intensity, *Thunderstorm*): **as soon as the *Live Weather* switch reads on**
+     * ([LiveWeatherUiState.shownOn], decision 108), not only while a forecast draws -- waiting for the first one, or with
+     * the service giving none, the forecast is still what will decide them, so they are not the user's to set. Left out,
+     * not greyed: they hold the theme's values, and even greyed a switch says on or off. With the switch reading off --
+     * off, or held by a blocker (a refused key, no position) -- they are back. The colours stay: the forecast does not
+     * choose them. What the pages say in their place is [weatherPages].
      */
-    fun forecastOwnsTheWeatherControls(liveWeather: LiveWeatherUiState): Boolean = liveWeather.drivingTheScene
+    fun forecastOwnsTheWeatherControls(liveWeather: LiveWeatherUiState): Boolean = liveWeather.shownOn
+
+    /**
+     * What the Clouds and the Rain and snow pages say in place of their controls while the forecast owns them
+     * ([forecastOwnsTheWeatherControls]), and what their rows in *World & scene* say: each what the scene draws at that
+     * moment (decision 40) -- the forecast ([LiveWeatherUiState.drivingTheScene]), or the theme's own weather while the
+     * first forecast is awaited ([LiveWeatherStatus.OFF]) or none is in effect (a service down, a limit, a refusal: the
+     * banner of *Weather & time* says which). Null where the controls are shown.
+     */
+    fun weatherPages(liveWeather: LiveWeatherUiState, status: LiveWeatherStatus): WeatherPagesUiState? = when {
+        !forecastOwnsTheWeatherControls(liveWeather) -> null
+        liveWeather.drivingTheScene -> WeatherPagesUiState(
+            cloudsLine = "Live Weather is drawing the clouds from the real sky right now: the forecast decides whether " +
+                "there are any and how many. $SET_THEM_HERE",
+            rainLine = "Live Weather is drawing rain, snow and thunderstorms from the real sky right now: the forecast " +
+                "decides whether anything falls, which, and how hard. $SET_THEM_HERE",
+            rowSummary = "Driven by Live Weather",
+        )
+        status == LiveWeatherStatus.OFF -> WeatherPagesUiState(
+            cloudsLine = "Live Weather is on and waiting for its first forecast. Until it arrives the scene shows this " +
+                "theme's own clouds; then the forecast decides whether there are any and how many. $SET_THEM_HERE",
+            rainLine = "Live Weather is on and waiting for its first forecast. Until it arrives the scene shows this " +
+                "theme's own rain and snow; then the forecast decides whether anything falls, which, and how hard. " +
+                SET_THEM_HERE,
+            rowSummary = "Live Weather on - waiting for the first forecast",
+        )
+        else -> WeatherPagesUiState(
+            cloudsLine = "Live Weather is on, but no forecast is in effect right now - Weather & time says why - so the " +
+                "scene shows this theme's own clouds until one arrives. $SET_THEM_HERE",
+            rainLine = "Live Weather is on, but no forecast is in effect right now - Weather & time says why - so the " +
+                "scene shows this theme's own rain and snow until one arrives. $SET_THEM_HERE",
+            rowSummary = "Live Weather on - no forecast right now",
+        )
+    }
+
+    /** The end of each [weatherPages] line: where the controls are. */
+    private const val SET_THEM_HERE = "Turn Live Weather off in Weather & time to set them here."
 
     /**
      * The line under a weather provider's key row in Weather & time's Advanced group: **"Required - not
@@ -1050,25 +1112,43 @@ object SettingsUiModel {
         }
 
     /**
-     * The line at the top of the Shops and the Public buildings pages: which buildings the group is, that the six take
-     * turns in the street's places and that the colours are the group's -- or, with *Show Buildings* off, where that
-     * switch is, since they stand by it (decision 40). On a street with no place among the houses
-     * ([placesOnTheme], [StandingObjects.themeHasPlaces]) none of the six stands at any setting, and the line says so.
+     * The line under the group's switch at the top of the Shops and the Public buildings pages: which buildings the group
+     * is, that the six take turns in the street's places and that the colours are the group's -- or, with the group's
+     * switch ([groupVisible]: *Show Shops*, *Show Public buildings*) off, that it is, and that what is below is kept
+     * (decision 40). On a street with no place among the houses ([placesOnTheme], [StandingObjects.themeHasPlaces]) none
+     * of the six stands at any setting, and the line says so.
      */
-    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): String =
+    fun storefrontGroupLine(group: StorefrontGroup, placesOnTheme: Boolean, groupVisible: Boolean): String =
         if (!placesOnTheme) {
             noneOnThisThemeLine(groupThings(group))
-        } else if (buildingsVisible && !placesVisible) {
-            "Off - they stand while $PLACES_SWITCH is on, on the $TOWERS_PAGE page. Tap here to go to it; " +
-                "your choices below are kept."
-        } else if (buildingsVisible) {
+        } else if (!groupVisible) {
+            GROUP_OFF_LINE
+        } else {
             "${groupBuildings(group)}. Along the street the six buildings among the houses take turns in its " +
                 "places as the scenery scrolls. Each randomly uses Color 1 or Color 2, and blends into " +
                 "its night version as it gets dark."
-        } else {
-            "Off - they stand while Show Buildings is on, on the $TOWERS_PAGE page. Tap here to go to it; " +
-                "your choices below are kept."
         }
+
+    /** [storefrontGroupLine] with the group's switch off. */
+    const val GROUP_OFF_LINE = "Off - turn the switch above on; your choices below are kept."
+
+    /** The switch at the top of a group's page (decision 109): *Show Shops*, *Show Public buildings*. */
+    fun groupSwitchTitle(group: StorefrontGroup): String = when (group) {
+        StorefrontGroup.SHOPS -> "Show Shops"
+        StorefrontGroup.PUBLIC -> "Show Public buildings"
+    }
+
+    /** The line under [groupSwitchTitle]: what the switch shows, and what stands in its turns while it is off. */
+    fun groupSwitchLine(group: StorefrontGroup): String = when (group) {
+        StorefrontGroup.SHOPS -> "The restaurant, the bar and the shop take turns with the public buildings among the houses, " +
+            "below the road too. Off, their turns stay empty."
+        StorefrontGroup.PUBLIC -> "The school, the fire station and the police station take turns with the shops among the " +
+            "houses, below the road too. Off, their turns stay empty."
+    }
+
+    /** The line under a group's opening hours while its switch is off: the switch is above them, on the same page. */
+    fun groupHoursLockedLine(group: StorefrontGroup): String =
+        "Needs ${groupSwitchTitle(group)} on, above; your choice is kept until then."
 
     /** Who a group of the buildings among the houses is, as its page and its row say it. */
     fun groupBuildings(group: StorefrontGroup): String = when (group) {
@@ -1082,34 +1162,22 @@ object SettingsUiModel {
         StorefrontGroup.PUBLIC -> "public buildings"
     }
 
-    /** The name of the page *Show Buildings* is on: the towers'. */
+    /** The name of the page *Show Towers* is on: the towers'. */
     const val TOWERS_PAGE = "Towers & offices"
-
-    /** The switch of the six buildings among the houses (decision 102), on the [TOWERS_PAGE] page under *Show Buildings*. */
-    const val PLACES_SWITCH = "Show shops and public buildings"
-
-    /** The line under [PLACES_SWITCH] while *Show Buildings* is on. */
-    const val PLACES_LINE = "The restaurant, the bar, the shop, the school, the fire station and the police station take turns " +
-        "among the houses, below the road too."
-
-    /** The line under [PLACES_SWITCH] with *Show Buildings* off. */
-    const val PLACES_LOCKED_LINE = "Needs Show Buildings on; your choice is kept until then."
-
-    /** [PLACES_SWITCH]: its stored choice while *Show Buildings* is on, off and locked with it off. */
-    fun placesSwitch(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState = dependentSwitch(stored, buildingsVisible)
 
     /**
      * *Shop opening hours* and *Public building opening hours* (`DESIGN_NOTES.md` §12, decision 62): on only while the
-     * group's buildings stand (decision 40). They stand while *Show Buildings* is on, whatever the Towers
-     * amount (`SceneCustomization.keepCandidate`), on a street with places among the houses ([placesOnTheme]): so that
-     * switch alone holds them, and on a street with none nothing does. The stored choice is kept.
+     * group's buildings stand (decision 40). They stand while the group's own switch is on ([groupVisible]: *Show Shops*,
+     * *Show Public buildings*), whatever *Show Towers* and the Towers amount say (`SceneCustomization.keepCandidate`), on a
+     * street with places among the houses ([placesOnTheme]): so that switch alone holds them, and on a street with none
+     * nothing does. The stored choice is kept.
      */
-    fun shopHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): DependentSwitchUiState =
-        dependentSwitch(stored, available = placesOnTheme && buildingsVisible && placesVisible)
+    fun shopHours(stored: Boolean, placesOnTheme: Boolean, groupVisible: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && groupVisible)
 
     /** The public buildings' hours, by [shopHours]' rule. */
-    fun publicHours(stored: Boolean, buildingsVisible: Boolean, placesOnTheme: Boolean, placesVisible: Boolean = true): DependentSwitchUiState =
-        dependentSwitch(stored, available = placesOnTheme && buildingsVisible && placesVisible)
+    fun publicHours(stored: Boolean, placesOnTheme: Boolean, groupVisible: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = placesOnTheme && groupVisible)
 
     /**
      * A group's hours as its row in *Landscape* says them: "always open", or "open 09:00-20:00".
@@ -1119,11 +1187,9 @@ object SettingsUiModel {
         if (!enabled || open == close) "always open" else "open ${clockText(open)}-${clockText(close)}"
 
     /**
-     * The *Towers & offices* row: off, or the amount and the hours -- or, above 0 % with no tower kept on this
+     * The *Towers & offices* row: off, none at 0 %, or the amount and the hours -- or, above 0 % with no tower kept on this
      * theme ([towersStand], [StandingObjects.towers]), that none stands; on a street with no tower at all
-     * ([towersOnTheme], [StandingObjects.themeHasTowers]), that, the amount and the hours being about nothing; and on one
-     * with no building at all -- no tower and no place ([placesOnTheme]) -- that, whatever *Show Buildings* says, since
-     * its switch is locked.
+     * ([towersOnTheme], [StandingObjects.themeHasTowers]), that, whatever *Show Towers* says, since its switch is locked.
      */
     fun towersRowSummary(
         visible: Boolean,
@@ -1133,35 +1199,32 @@ object SettingsUiModel {
         close: Float,
         towersStand: Boolean,
         towersOnTheme: Boolean,
-        placesOnTheme: Boolean,
     ): String = when {
-        !towersOnTheme && !placesOnTheme -> noneOnThisThemeSummary("buildings")
-        !visible -> "Off"
         !towersOnTheme -> noneOnThisThemeSummary("towers")
+        !visible -> "Off"
+        // At 0 % *Show Towers* reads off and says so (decision 40): no tower stands, and the places are not its.
+        amount <= 0f -> "None at 0%"
         amount > 0f && !towersStand -> "${(amount * 100).toInt()}%, no tower at this density on this theme"
         else -> "${(amount * 100).toInt()}%, ${hoursSummary(hoursEnabled && amount > 0f, open, close)}"
     }
 
     /**
-     * The *Shops* and *Public buildings* rows: the group's buildings and hours, or -- *Show
-     * Buildings* off -- that they are off and why; on a street with no place among the houses ([placesOnTheme]), that the
-     * theme has none of them.
+     * The *Shops* and *Public buildings* rows: the group's buildings and hours, or -- the group's switch off
+     * ([groupVisible]) -- "Off", as every row of a switch that is off; on a street with no place among the houses
+     * ([placesOnTheme]), that the theme has none of them.
      */
     fun storefrontRowSummary(
         group: StorefrontGroup,
-        buildingsVisible: Boolean,
         hoursEnabled: Boolean,
         open: Float,
         close: Float,
         placesOnTheme: Boolean,
-        placesVisible: Boolean = true,
+        groupVisible: Boolean,
     ): String =
         if (!placesOnTheme) {
             noneOnThisThemeSummary(groupThings(group))
-        } else if (!buildingsVisible) {
-            "Off - Show Buildings is off"
-        } else if (!placesVisible) {
-            "Off - $PLACES_SWITCH is off"
+        } else if (!groupVisible) {
+            "Off"
         } else {
             when (group) {
                 StorefrontGroup.SHOPS -> "Restaurant, bar and shop, ${hoursSummary(hoursEnabled, open, close)}"
@@ -1181,7 +1244,7 @@ object SettingsUiModel {
     }
 
     /**
-     * *Tower opening hours*: on only while there are towers to keep them -- *Show Buildings* on and a tower kept
+     * *Tower opening hours*: on only while there are towers to keep them -- *Show Towers* on and a tower kept
      * at the Towers amount ([towersStand], [StandingObjects.towers]): at a few per cent a theme can keep none, and at
      * 0 % none does. See [shopHours].
      */
@@ -1285,8 +1348,8 @@ object SettingsUiModel {
 
     /**
      * Whether [layout] has a place among the houses ([StorefrontStreet.isPlace]), where the six buildings take turns --
-     * the three shops among them. The places stand at every amount while *Show Buildings* is on (`keepCandidate`), so
-     * this is whether a shop can stand at all.
+     * the three shops among them. The places stand at every amount while *Show Shops* or *Show Public buildings* is on
+     * (`keepCandidate`), so this is whether a shop can stand at all.
      */
     private fun hasPlaces(layout: SceneObjectLayout): Boolean = layout.staticObjects.any { StorefrontStreet.isPlace(it) }
 

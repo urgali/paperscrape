@@ -5,12 +5,14 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 /**
  * Which settings a Live Weather fetch actually depends on.
  *
- * Extracted and made pure because "does this change require a fetch now, rather than at the next
- * hourly tick" is the rule the immediate-refresh guarantee rests on, and it is the kind of rule
- * that quietly rots: v2.13's version compared the toggle and the Open-Meteo key, which was
- * complete at the time and stopped being complete the moment a second provider and a second key
- * existed. Listing the inputs in one place, with a test over it, is what keeps the next one from
- * being forgotten.
+ * Pure, and in one place, because "does this change require a fetch now, rather than at the next hourly tick" is the rule
+ * the immediate-refresh guarantee rests on: listing the inputs here, with a test over them, is what keeps one from being
+ * forgotten when a provider or a key is added.
+ *
+ * The inputs are the switch, the provider and **the selected provider's key**
+ * ([WallpaperSettings.apiKeyForWeatherProvider]), the one a request is made with. The key of a provider not selected is
+ * not an input: typing it changes no request, so it neither forces a fetch nor drops the forecast on screen (decision
+ * 108). The two are tied by that one property, which the request reads too, so the key compared is always the key sent.
  *
  * The location is deliberately **not** here. A change of location is handled by the loop's own
  * "these are the wrong conditions entirely" comparison against the coordinates the last fetch was
@@ -19,19 +21,17 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 object LiveWeatherInputs {
 
     /**
-     * True when any setting a fetch can depend on has changed (the switch, the provider, or any
-     * provider's key, including one that is not selected), so the cached hourly timer must be
-     * ignored and a request made now.
+     * True when a setting the next fetch depends on has changed -- the switch, the provider, or the key of the provider
+     * selected in [next] -- so the cached hourly timer must be ignored and a request made now.
      *
-     * Switching the feature on is the obvious case. Switching provider is the same thing by
-     * another route -- the conditions on screen came from a service the user has just stopped
-     * using. Entering a key is too: the selected provider may have been unable to send anything
-     * at all until that moment.
+     * Switching the feature on is the obvious case. Switching provider is the same thing by another route -- the
+     * conditions on screen came from a service the user has just stopped using -- and is a change whatever the keys
+     * say. Entering the selected provider's key is too: that provider may have been unable to send anything at all
+     * until that moment. With the provider unchanged, [previous] and [next] name the same provider, so the comparison is
+     * of that provider's key alone.
      */
     fun changed(previous: WallpaperSettings, next: WallpaperSettings): Boolean =
         previous.liveWeatherEnabled != next.liveWeatherEnabled ||
             previous.weatherProviderId != next.weatherProviderId ||
-            previous.liveWeatherApiKey != next.liveWeatherApiKey ||
-            previous.weatherApiComApiKey != next.weatherApiComApiKey ||
-            previous.openWeatherApiKey != next.openWeatherApiKey
+            previous.apiKeyForWeatherProvider != next.apiKeyForWeatherProvider
 }

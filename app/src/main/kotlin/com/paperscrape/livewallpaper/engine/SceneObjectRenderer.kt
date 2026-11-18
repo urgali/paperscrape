@@ -220,7 +220,7 @@ class SceneObjectRenderer(
     /**
      * The near row's runtimes, back to front by their own depths in the street: the objects the switches and amounts keep
      * of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its places, where the six buildings take turns,
-     * while the street's stand (*Show Buildings* and *Show shops and public buildings*). Built with [staticRuntimes], from the same inputs.
+     * while the street's stand (*Show Shops* or *Show Public buildings*). Built with [staticRuntimes], from the same inputs.
      */
     private var nearRuntimes: List<StaticRuntime> = buildNearRuntimes()
 
@@ -2151,22 +2151,26 @@ class SceneObjectRenderer(
 
         // A place of the near row draws the building its deck deals this copy, never one the street's places over it deal
         // in their copies, nor its neighbours' ([SceneObjectCatalog.nearBuilding]), with that building's own runtime
-        // ([nearShops]).
+        // ([nearShops]); a turn of a group switched off stays empty (decision 109), the others' turns as they are.
         val nearBuildings = nearShops
         if (r.nearShop && nearBuildings != null) {
             val shop = SceneObjectCatalog.nearBuilding(themeSeed, nearPlan, copy, r.place, streetDeal, nearShopDeck)
-            drawNeighbourhoodBuilding(canvas, nearBuildings[shop.ordinal], elapsed, dayBlend, variantFor(r.spec), shop)
+            if (customization.groupStands(shop.group)) {
+                drawNeighbourhoodBuilding(canvas, nearBuildings[shop.ordinal], elapsed, dayBlend, variantFor(r.spec), shop)
+            }
             canvas.restore()
             return
         }
         // A place draws, at its own size, the building the street deals this copy ([StorefrontStreet]),
-        // with that building's own runtime ([storefronts]).
+        // with that building's own runtime ([storefronts]); empty in a turn of a group switched off.
         val buildings = storefronts
         if (r.place >= 0 && buildings != null) {
             val storefront = StorefrontStreet.storefrontAt(
                 themeSeed, StorefrontStreet.placeIndex(copy, r.place, places.size), streetDeckA, streetDeckB,
             )
-            drawNeighbourhoodBuilding(canvas, buildings[storefront.ordinal], elapsed, dayBlend, variantFor(r.spec), storefront)
+            if (customization.groupStands(storefront.group)) {
+                drawNeighbourhoodBuilding(canvas, buildings[storefront.ordinal], elapsed, dayBlend, variantFor(r.spec), storefront)
+            }
             canvas.restore()
             return
         }

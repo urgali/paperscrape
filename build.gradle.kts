@@ -8,7 +8,7 @@
 // in front of them -- and the maintainer's instruction is to close them by raising the
 // version, not by narrowing what the dependency-submission workflow reports to GitHub.
 //
-// Raising AGP to 9.4.1 (see `plugins` below) does most of the work by itself. What it does not
+// Raising AGP to 9.5.1 (see `plugins` below) does most of the work by itself. What it does not
 // reach is forced here. `force` rather than a constraint because these are *someone else's*
 // transitives: a constraint states a floor that a stronger declaration downstream can still lose
 // to, while `force` is unconditional, which is what a CVE fix has to be.
@@ -33,7 +33,7 @@ buildscript {
             //
             // Two MODERATE alerts first patched in 1.84 -- CVE-2026-5588 (bcpkix) and
             // CVE-2026-0636 (bcprov) -- are covered too,
-            // because 1.85 is past 1.84. AGP 9.4.1 still only brings 1.80.2 by itself, which is
+            // because 1.85 is past 1.84. AGP 9.5.1 still only brings 1.80.2 by itself, which is
             // enough for the CRITICAL CVE-2025-14813 on bcprov and for nothing since.
             //
             // bcpkix and bcutil carry no alert of their own at 1.84; they are raised with bcprov
@@ -66,25 +66,31 @@ buildscript {
 
             // CVE-2026-102554 / GHSA-xxph-c9ww-hj94 (HIGH), unbounded allocation when a
             // CompactHashMap, CompactHashSet or MapMakerInternalMap is deserialized, in every Guava
-            // from 4.0 through 33.7.1. AGP 9.4.1 and lint-gradle 32.4.1 bring 18.0, 32.0.1-jre,
-            // 33.3.1-jre and 33.4.0-jre onto this classpath; 33.7.2-jre is the first patched
-            // release, and the same force is in `app/build.gradle.kts` for `androidLintTool`.
-            force("com.google.guava:guava:33.7.2-jre")
+            // from 4.0 through 33.7.1. AGP 9.5.1 brings 18.0, 32.0.1-jre, 33.3.1-jre and 33.4.0-jre
+            // onto this classpath (lint-gradle 32.5.1 brings two of them onto `androidLintTool`, in
+            // `app/build.gradle.kts`); 33.7.2-jre is the first patched
+            // release, and 33.8.0-jre, the release after it, is what is forced here and in
+            // `app/build.gradle.kts` for `androidLintTool`.
+            force("com.google.guava:guava:33.8.0-jre")
         }
     }
 }
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    // **AGP 9.4.1 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty: AGP 9.3.1
+    // **AGP 9.5.1 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty: AGP 9.3.1
     // creates eleven `unified-test-platform-*` configurations on `:app`, two of which resolve
     // `com.google.testing.platform:core` and `io.grpc:grpc-netty`, and Netty comes in under those -- six `io.netty`
-    // artifacts with alerts of their own. AGP 9.4.1 has a single `unified-test-platform-gradle-work-action` that resolves
+    // artifacts with alerts of their own. AGP 9.5.1 has a single `unified-test-platform-gradle-work-action` that resolves
     // neither gRPC nor Netty: `:app:dependencies` holds no Netty line. There is no Netty declaration of ours to raise; the
     // newer AGP is the supported way to change what AGP drags in.
     //
-    // 9.4.1, not 9.5.x: a new release is taken once it is two weeks old and no alert names it.
-    id("com.android.application") version "9.4.1" apply false
+    // A new release is taken once it is two weeks old and no alert names it. The 5.20 takes 9.5.1, Guava
+    // 33.8.0-jre and Gradle 9.9.1 on the maintainer's word of 2026-11-16 («voglio aggiungere anche
+    // aggiornamento componenti nonostante il rilascio sia prima del 24»), before AGP 9.5.1 (2026-11-05)
+    // and Gradle 9.9.1 (2026-11-10) are two weeks old: the alerts were read again on the day they were
+    // taken, and none names any of the three.
+    id("com.android.application") version "9.5.1" apply false
     // org.jetbrains.kotlin.android intentionally NOT applied -- AGP 9.0+ provides built-in Kotlin
     // support, replacing this plugin. See https://developer.android.com/build/migrate-to-built-in-kotlin
     //

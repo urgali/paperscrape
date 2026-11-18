@@ -1,6 +1,5 @@
 package com.paperscrape.livewallpaper.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -115,9 +114,9 @@ internal fun ObjectCategorySection(
     /** The line under *Show X* when it is not the 0 % one: "X can appear in every theme", or the caller's. */
     switchSubtitle: String? = null,
     /**
-     * Whether at 0 % density the wallpaper draws none of this category -- houses, trees, parasols, the
-     * six decorations -- so the switch reads off there and says so (decision 40). Not the
-     * buildings, whose places among the houses stay at 0 %, nor the cars, one of which does.
+     * Whether at 0 % density the wallpaper draws none of this category -- houses, towers, trees, parasols,
+     * the six decorations -- so the switch reads off there and says so (decision 40). Not the cars, whose
+     * switch reads both densities on its own row.
      */
     noneAtZero: Boolean = false,
     /**
@@ -128,7 +127,7 @@ internal fun ObjectCategorySection(
     stands: Boolean,
     /**
      * Whether the theme's street has one of the category at all ([StandingObjects.themeHasTrees] and the three like it; for
-     * the buildings, a tower or a place among the houses): where it has none, no amount brings one, so the switch reads
+     * the towers, [StandingObjects.themeHasTowers]): where it has none, no amount brings one, so the switch reads
      * off and locked, says the theme has none, and writes nothing. The slider stays as its switch's stored state makes it.
      */
     onTheme: Boolean,
@@ -238,25 +237,23 @@ internal fun ObjectCategorySection(
  * four rows in *Landscape*, each with its page): the shops -- the restaurant, the bar and the shop --
  * or the public buildings -- the school, the fire station and the police station.
  *
- * **A line, the group's opening hours, its colours and a reset.** Whether the buildings stand is *Show
- * Buildings*' (one candidate pool, on the *Towers & offices* page), so there is no *Show* switch and no
- * amount here; with *Show Buildings* off the line says so and a tap on it goes to that page
- * ([onGoToBuildings], decision 40), the colours staying editable as every category's do
- * while its switch is off. "Reset Shops to default" and "Reset Public buildings to default" each put
- * back their own group's colours and hours ([WallpaperPrefs.resetCategory]).
+ * **Its switch, a line, the group's opening hours, its colours and a reset** (decision 109). *Show Shops* or *Show
+ * Public buildings*, at the top, says whether the group's buildings stand in their turns among the houses, below the
+ * road too; off, those turns stay empty and the line under it says the choices below are kept, the colours staying
+ * editable as every category's do while its switch is off. No amount: the places are never thinned. "Reset Shops to
+ * default" and "Reset Public buildings to default" each put back their own group's switch, colours and hours
+ * ([WallpaperPrefs.resetCategory]).
  */
 @Composable
 internal fun StorefrontGroupSection(
     group: StorefrontGroup,
     config: ObjectVariantConfig,
-    buildingsVisible: Boolean,
+    /** The group's own switch: *Show Shops*, *Show Public buildings* (decision 109). */
+    groupVisible: Boolean,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
-    onGoToBuildings: () -> Unit,
-    /** *Show shops and public buildings* (decision 102), on the page *Show Buildings* is on. */
-    placesVisible: Boolean = true,
     /** The group's opening hours, between the line and the colours, as the towers' are on theirs. */
     openingHours: @Composable () -> Unit = {},
     /**
@@ -267,14 +264,21 @@ internal fun StorefrontGroupSection(
 ) {
     val category = if (group == StorefrontGroup.SHOPS) ObjectCategory.SHOPS else ObjectCategory.PUBLICS
     val title = storefrontGroupTitle(group)
-    // A tap goes to Show Buildings only where turning it on would bring the group.
-    val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // On a street with no place among the houses nothing it could show: off and locked, the line says so (decision 40).
+        SettingSwitchRow(
+            title = SettingsUiModel.groupSwitchTitle(group),
+            subtitle = SettingsUiModel.groupSwitchLine(group),
+            checked = groupVisible && placesOnTheme,
+            enabled = placesOnTheme,
+            onCheckedChange = { wanted ->
+                scope.launch { if (group == StorefrontGroup.SHOPS) prefs.setShopsVisible(wanted, forThemeId) else prefs.setPublicsVisible(wanted, forThemeId) }
+            },
+        )
         Text(
-            SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),
+            SettingsUiModel.storefrontGroupLine(group, placesOnTheme, groupVisible),
             style = MaterialTheme.typography.bodySmall,
-            color = if (leadsToBuildings) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         openingHours()
         DayNightColorPair(

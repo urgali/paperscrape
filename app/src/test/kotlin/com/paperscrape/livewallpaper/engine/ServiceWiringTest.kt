@@ -54,7 +54,7 @@ class ServiceWiringTest {
         assertTrue(
             "val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)" in lines,
         )
-        val ask = lines.indexOf("if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {")
+        val ask = lines.indexOf("if (liveWeatherRuns && inputsUnchanged && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {")
         assertTrue("the request is asked for any of the three reasons, each alone: another place, the timer, a showing", ask >= 0)
         assertEquals(
             "what the request is asked under",

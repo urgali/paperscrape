@@ -31,7 +31,8 @@ class CarCountOffScreenApplyTest {
             houses = c.houses.copy(visible = false),
             buildings = c.buildings.copy(visible = false),
             parasols = c.parasols.copy(visible = false),
-            placesVisible = false,
+            shopsVisible = false,
+            publicsVisible = false,
         )
 
         fun carsOnly(scene: GoldenScene) = GoldenScene(

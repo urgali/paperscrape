@@ -310,9 +310,9 @@ class SwitchesTellTheTruthTest {
             val ways = listOf(
                 "as it ships" to base,
                 "no trees" to base.copy(trees = base.trees.copy(visible = false)),
-                "no houses, no buildings" to base.copy(houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false)),
+                "no houses, no buildings" to base.copy(houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false),
                 "nothing on the mountains either" to base.copy(
-                    houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false),
+                    houses = base.houses.copy(visible = false), buildings = base.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false,
                     distantHouses = base.distantHouses.copy(visible = false),
                 ),
             )
@@ -332,12 +332,12 @@ class SwitchesTellTheTruthTest {
             }
         }
         val noHouses = christmas.copy(
-            houses = christmas.houses.copy(visible = false), buildings = christmas.buildings.copy(visible = false),
+            houses = christmas.houses.copy(visible = false), buildings = christmas.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false,
             distantHouses = christmas.distantHouses.copy(visible = false),
         )
         assertEquals("Christmas with nothing to hang the buildings' lights on", 5, SettingsUiModel.decorationsOn(noHouses))
         val halloween = defaultCustomizationFor("halloween")
-        val bare = halloween.copy(houses = halloween.houses.copy(visible = false), buildings = halloween.buildings.copy(visible = false))
+        val bare = halloween.copy(houses = halloween.houses.copy(visible = false), buildings = halloween.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false)
         assertEquals("Halloween's decorations with no house or building", SettingsUiModel.decorationsOn(halloween) - 1, SettingsUiModel.decorationsOn(bare))
     }
 

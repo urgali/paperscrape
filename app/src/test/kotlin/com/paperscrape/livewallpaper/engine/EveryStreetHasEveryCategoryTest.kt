@@ -114,10 +114,11 @@ class EveryStreetHasEveryCategoryTest {
             assertTrue("$id: what stood still stands", shipped.containsAll(bornStanding))
             assertEquals("$id: nothing appears by itself but what is given", emptySet<StaticSceneObject>(), (shipped - bornStanding).filter { it.type !in given }.toSet())
             val places = born.staticObjects.any { StorefrontStreet.isPlace(it) }
-            assertEquals("$id: the six buildings' switch as born", places, c.placesVisible)
+            assertEquals("$id: Show Shops as born", places, c.shopsVisible)
+            assertEquals("$id: Show Public buildings as born", places, c.publicsVisible)
             if (!places && born.staticObjects.any { it.type == SceneObjectType.SKYSCRAPER }) {
                 towersNoPlace++
-                val on = c.copy(placesVisible = true)
+                val on = c.copy(shopsVisible = true, publicsVisible = true)
                 assertEquals("$id: turned on, the four places", 4, (standing(street, on) - standing(bornStreet, c)).count { StorefrontStreet.isPlace(it) })
             }
             val ownTrees = bornStreet.staticObjects.count { it.type == SceneObjectType.TREE || it.type == SceneObjectType.PALM_TREE }
@@ -130,25 +131,29 @@ class EveryStreetHasEveryCategoryTest {
         assertTrue("random themes whose own houses or parasols keep none, counted on the born data: $givenThemes", givenThemes >= 40)
     }
 
-    /** *Show shops and public buildings* holds the six buildings on the street and on the gallery card, stored and read back (below the road: `NearRowTest`). */
+    /**
+     * *Show Shops* and *Show Public buildings* hold the six buildings on the street and on the gallery card, stored and read
+     * back (below the road: `NearRowTest`; each group alone and who updates: `PlaceSwitchesTest`).
+     */
     @Test
-    fun `the six buildings' switch holds the places everywhere they stand`() {
+    fun `the six buildings' switches hold the places everywhere they stand`() {
         val autumn = SceneObjectCatalog.layoutFor("autumn", 0)
         val on = defaultCustomizationFor("autumn")
-        val off = on.copy(placesVisible = false)
+        val off = on.copy(shopsVisible = false, publicsVisible = false)
         val places = StorefrontStreet.places(autumn)
         assertTrue(places.all { on.keepCandidate(it, autumn.densityScheme) })
         assertTrue(places.none { off.keepCandidate(it, autumn.densityScheme) })
         assertTrue("the towers stay", autumn.staticObjects.any { !StorefrontStreet.isPlace(it) && it.type == SceneObjectType.SKYSCRAPER && off.keepCandidate(it, autumn.densityScheme) })
-        assertTrue("with Show Buildings off, none", places.none { on.copy(buildings = on.buildings.copy(visible = false)).keepCandidate(it, autumn.densityScheme) })
+        assertTrue("with Show Towers off, all", places.all { on.copy(buildings = on.buildings.copy(visible = false)).keepCandidate(it, autumn.densityScheme) })
         assertTrue("a change rebuilds the street", !on.staticStructurallyEquals(off))
+        assertTrue("each switch rebuilds it", !on.staticStructurallyEquals(on.copy(shopsVisible = false)) && !on.staticStructurallyEquals(on.copy(publicsVisible = false)))
         val theme = ThemeCatalog.byId("autumn")
         val cardOn = ThemePreviewScenes.forTheme(theme, on, layout = autumn)
         val cardOff = ThemePreviewScenes.forTheme(theme, off, layout = autumn)
         assertTrue("the card leaves out the three buildings", cardOff.items.size == cardOn.items.size - 3)
         // Stored and read back, in a theme file and in the settings' writer.
         assertEquals(false, sceneCustomizationFromJson(off.toJson(), theme).placesVisible)
-        assertEquals(true, sceneCustomizationFromJson(on.toJson().apply { remove("placesVisible") }, theme).placesVisible)
+        assertEquals(true, sceneCustomizationFromJson(on.toJson().apply { remove("placesVisible"); remove("shopsVisible"); remove("publicsVisible") }, theme).placesVisible)
     }
 
     /** A place added to a random street stands with its front clear, as the built-in streets' plan keeps them (decision 60). */

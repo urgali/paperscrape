@@ -13,8 +13,8 @@ PaperScrape replaces your home screen background with a small landscape that kee
 moving on its own.
 
 - **A live wallpaper**, not a static image. Hills, a lake, a village and a road, drawn
-  every frame; under the road the whole town seen again, nearer: houses, trees, the shops and the public buildings,
-  decorations and people walking.
+  every frame; under the road the town seen again, nearer and with room between: houses, trees, the shops and the public
+  buildings, decorations and people walking.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick —
@@ -52,8 +52,9 @@ moving on its own.
   theme: a random, saved or imported theme is given the houses, trees, parasols, towers, shops and public buildings and
   cars its street lacks; on a random theme they start off where it was born without them (not the trees), a saved theme
   keeps the switches it was saved with, and a random theme shows trees as it comes; with houses or parasols on, a random theme
-  shows some too, given more where its own would all be thinned out. The shops and the public buildings among the houses
-  have a switch of their own, under *Show Buildings*.
+  shows some too, given more where its own would all be thinned out. The towers, the shops and the public buildings each
+  have a switch at the top of their own page; with the shops or the public buildings off, their turns among the houses
+  stay empty.
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
@@ -107,7 +108,11 @@ moving on its own.
   once only when another app, a map say, has asked for it. The rain falls from the clouds and only from
   them: with the theme's clouds off or at 0 % nothing falls and no storm flashes, a forecast of rain under a clear sky is drawn
   with a few clouds to fall from, and as the last clouds go the rain stops with them. The drops are thin strokes with
-  square ends.
+  square ends. While Live Weather is on, the clouds and the rain and snow are the forecast's: their pages leave out their
+  controls and say what the scene draws, the forecast or, until one is in effect, the theme's own weather; their colours
+  stay yours. Changing the provider, the key of the provider in use or where the location comes from drops the old
+  forecast at once (another provider's key changes nothing). No rainbow shows under the forecast's rain, snow or
+  thunderstorm: it fades out as they begin and back in as they end, over the second and a half a cloud takes.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
   on (the Christmas theme starts with it on); the Headless Horseman, the same way, throwing pumpkins on fire from his
   hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks at

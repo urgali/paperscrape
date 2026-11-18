@@ -68,20 +68,32 @@ class DistantHousesAndShopsRowsTest {
     }
 
     @Test
-    fun `each group's line says which buildings it is, and with Buildings off why none stands and where`() {
-        val shops = SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, buildingsVisible = true, placesOnTheme = true)
+    fun `each group's line says which buildings it is, and with its switch off that it is and what is kept`() {
+        val shops = SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, placesOnTheme = true, groupVisible = true)
         assertTrue(shops.startsWith("The restaurant, the bar and the shop."))
-        val publics = SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, buildingsVisible = true, placesOnTheme = true)
+        val publics = SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, placesOnTheme = true, groupVisible = true)
         assertTrue(publics.startsWith("The school, the fire station and the police station."))
         // The street's six buildings take turns in the places, which is what each page has to say -- with no
         // number: a built-in street has five, a street saved by an older version three, a random one its own.
         for (line in listOf(shops, publics)) assertTrue(line.contains("take turns in its places as the scenery scrolls"))
         for (group in StorefrontGroup.values()) {
-            val off = SettingsUiModel.storefrontGroupLine(group, buildingsVisible = false, placesOnTheme = true)
-            assertTrue(off.startsWith("Off"))
-            assertTrue(off.contains("Show Buildings"))
-            assertTrue("it says where that switch is", off.contains(SettingsUiModel.TOWERS_PAGE))
+            val off = SettingsUiModel.storefrontGroupLine(group, placesOnTheme = true, groupVisible = false)
+            assertEquals("Off - turn the switch above on; your choices below are kept.", off)
+            assertEquals("Off", SettingsUiModel.storefrontRowSummary(group, false, 9f, 20f, placesOnTheme = true, groupVisible = false))
         }
+        // The switch on each page, and its line: what it shows, and that its turns stay empty while it is off.
+        assertEquals("Show Shops", SettingsUiModel.groupSwitchTitle(StorefrontGroup.SHOPS))
+        assertEquals("Show Public buildings", SettingsUiModel.groupSwitchTitle(StorefrontGroup.PUBLIC))
+        assertEquals(
+            "The restaurant, the bar and the shop take turns with the public buildings among the houses, below the road too. " +
+                "Off, their turns stay empty.",
+            SettingsUiModel.groupSwitchLine(StorefrontGroup.SHOPS),
+        )
+        assertEquals(
+            "The school, the fire station and the police station take turns with the shops among the houses, below the road " +
+                "too. Off, their turns stay empty.",
+            SettingsUiModel.groupSwitchLine(StorefrontGroup.PUBLIC),
+        )
     }
 
     /** The screens use the rules, and say where the colours come from. */
@@ -101,12 +113,11 @@ class DistantHousesAndShopsRowsTest {
         assertTrue(BUILDINGS_COLOUR_LINE.contains("towers' colours"))
         assertTrue(HOUSES_COLOUR_LINE.contains("distant houses"))
         val shops = functionLines(codeLines("ui/SceneCategorySections.kt"), "internal fun StorefrontGroupSection(")
-        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),"))
-        assertTrue(
-            "the line leads to Buildings only where turning them on would bring the group",
-            shops.contains("modifier = if (leadsToBuildings) Modifier.clickable(onClick = onGoToBuildings) else Modifier,"),
-        )
-        assertTrue(shops.contains("val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)"))
+        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, placesOnTheme, groupVisible),"))
+        // The group's own switch at the top of its page, wired to its own setter (decision 109).
+        assertTrue(shops.contains("title = SettingsUiModel.groupSwitchTitle(group),"))
+        assertTrue(shops.contains("scope.launch { if (group == StorefrontGroup.SHOPS) prefs.setShopsVisible(wanted, forThemeId) else prefs.setPublicsVisible(wanted, forThemeId) }"))
+        assertFalse("no tap leads to the towers' page any more", shops.any { "onGoToBuildings" in it || "leadsToBuildings" in it })
         assertTrue(shops.contains("onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },"))
     }
 

@@ -48,6 +48,8 @@ class CarNightCrossfadeTest {
                     trees = it.trees.copy(visible = false),
                     houses = it.houses.copy(visible = false),
                     buildings = it.buildings.copy(visible = false),
+                    shopsVisible = false,
+                    publicsVisible = false,
                     parasols = it.parasols.copy(visible = false),
                 )
             }

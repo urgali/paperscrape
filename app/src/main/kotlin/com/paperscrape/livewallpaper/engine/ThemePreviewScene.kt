@@ -446,7 +446,7 @@ object ThemePreviewScenes {
 
         if (c.buildings.visible) {
             if (!towersDrawn) {
-                // The street's buildings stand; no tower does.
+                // Show Towers on, and no tower kept at the Towers amount.
             } else if (cityLike) {
                 // A city's skyline is what it is for, so it keeps all four towers.
                 for ((index, x) in listOf(40f, 108f, 176f, 250f).withIndex()) {
@@ -458,20 +458,21 @@ object ThemePreviewScenes {
                 items += tower(40f, ROW_TOWERS, 0.38f, 0)
                 items += tower(296f, ROW_TOWERS, 0.34f, 2)
             }
-            // The street's places, with *Show shops and public buildings* (decision 102).
-            if (c.placesVisible) {
-                items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
-                    SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
-                    storefronts[0])
-            }
+        }
+        // The street's places, each while its building's group stands (*Show Shops*, *Show Public buildings*): a place
+        // of a group switched off stays empty, as on the wallpaper (decision 109). *Show Towers* is the towers' alone.
+        if (c.groupStands(storefronts[0].group)) {
+            items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
+                SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
+                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
+                storefronts[0])
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, hour, seed)
         }
-        if (c.buildings.visible && c.placesVisible) {
+        if (c.groupStands(storefronts[1].group)) {
             items += buildingItem(176f, ROW_SCHOOL, 0.40f,
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed,
@@ -482,7 +483,7 @@ object ThemePreviewScenes {
                 SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, hour, seed)
         }
-        if (c.buildings.visible && c.placesVisible) {
+        if (c.groupStands(storefronts[2].group)) {
             items += buildingItem(300f, ROW_BAR, 0.42f,
                 SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed,

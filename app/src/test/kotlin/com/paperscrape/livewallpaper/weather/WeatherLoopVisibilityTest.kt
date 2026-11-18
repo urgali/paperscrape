@@ -130,13 +130,13 @@ class WeatherLoopVisibilityTest {
     @Test
     fun `a showing is counted where on screen changes, and the loop asks ShowingRefresh once a pass`() {
         val change = source.substring(source.indexOf("private inline fun changingOnScreen("), source.indexOf("private var showings = 0"))
-        assertTrue(change.contains("if (onScreen && !before) showings++"))
+        assertTrue(change.contains("if (onScreen && !before) {\n                showings++"))
         assertEquals(
             1,
             Regex("""val forShowing = showingRefresh\.asks\(SystemClock\.elapsedRealtime\(\), showings, WEATHER_REFRESH_INTERVAL_MS\)""")
                 .findAll(source).count(),
         )
-        assertTrue(source.contains("if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {"))
+        assertTrue(source.contains("if (liveWeatherRuns && inputsUnchanged && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {"))
         assertTrue(source.contains("weatherTransientFailures = showingRefresh.answered("))
         assertTrue(source.contains("weatherAttemptDue = forShowing ||"))
         assertTrue(source.contains("showingRefresh.forget()"))

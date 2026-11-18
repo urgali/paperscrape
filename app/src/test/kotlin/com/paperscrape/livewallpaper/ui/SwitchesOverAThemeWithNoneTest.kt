@@ -32,8 +32,7 @@ import org.junit.Test
  * the flag nor the amount: the stored choice stays. The rows of World & scene say the same, *Tower opening hours* and the
  * *Towers & offices* row say there is no tower, and *Palms* that there is no tree to stand in. **The buildings too**: on a
  * street with no place among the houses the shops and the public buildings never stand, so their hours, rows and pages
- * say the theme has none; with no building at all *Show Buildings* is locked the same way; and the lines of the Towers page
- * name only what the street has.
+ * say the theme has none; with no tower *Show Towers* is locked the same way.
  *
  * On the twelve built-in themes every street has all five and its places, so no row changes state or line there; and
  * every street has all seven seasonal decorations, so their switches need no such line.
@@ -178,9 +177,9 @@ class SwitchesOverAThemeWithNoneTest {
             val standing = SettingsUiModel.standing(street, c)
             assertFalse(id, standing.themeHasTowers)
             assertEquals("$id at $amount", "This theme has no towers",
-                SettingsUiModel.towersRowSummary(true, amount, true, 9f, 20f, standing.towers, standing.themeHasTowers, placesOnTheme = true))
-            assertEquals("the switch is off: the row says so", "Off",
-                SettingsUiModel.towersRowSummary(false, amount, true, 9f, 20f, standing.towers, standing.themeHasTowers, placesOnTheme = true))
+                SettingsUiModel.towersRowSummary(true, amount, true, 9f, 20f, standing.towers, standing.themeHasTowers))
+            assertEquals("the switch is off and locked: the row says why", "This theme has no towers",
+                SettingsUiModel.towersRowSummary(false, amount, true, 9f, 20f, standing.towers, standing.themeHasTowers))
             val hours = SettingsUiModel.towerHours(true, buildingsVisible = true, towersAmount = amount, towersStand = standing.towers)
             assertFalse("$id at $amount: the hours read on over no tower", hours.shownOn)
             assertFalse(hours.interactive)
@@ -202,40 +201,39 @@ class SwitchesOverAThemeWithNoneTest {
     }
 
     @Test
-    fun `on a random street with no building, Show Buildings and the shops' and public buildings' rows say so`() {
+    fun `on a random street with no building, Show Towers and the shops' and public buildings' pages and rows say so`() {
         val (id, street) = firstRandom("without a building") { !it.hasAny(setOf(SceneObjectType.SKYSCRAPER)) && !it.hasAny(setOf(SceneObjectType.SKYSCRAPER), places = true) }
         for (visible in listOf(true, false)) {
             val c = SceneCustomization.DEFAULT.copy(buildings = SceneCustomization.DEFAULT.buildings.copy(visible = visible))
             val s = SettingsUiModel.standing(street, c)
-            val what = "$id, Show Buildings ${if (visible) "on" else "off"}"
+            val what = "$id, Show Towers ${if (visible) "on" else "off"}"
             assertFalse(what, s.themeHasPlaces)
             assertFalse(what, s.themeHasTowers)
-            // Show Buildings: the section's switch, given the street has neither.
-            val shown = SettingsUiModel.amountSwitch(c.buildings.visible, c.buildings.density, s.towers, s.themeHasTowers || s.themeHasPlaces)
+            // Show Towers: the section's switch, given the street has no tower.
+            val shown = SettingsUiModel.amountSwitch(c.buildings.visible, c.buildings.density, s.towers, s.themeHasTowers)
             assertTrue(what, shown.noneOnThisTheme)
             assertFalse(what, shown.shownOn)
-            assertEquals(what, "This theme has no buildings",
-                SettingsUiModel.towersRowSummary(visible, 0.65f, true, 9f, 20f, s.towers, s.themeHasTowers, s.themeHasPlaces))
-            for (stored in listOf(true, false)) {
-                assertEquals(what, DependentSwitchUiState(false, false), SettingsUiModel.shopHours(stored, visible, s.themeHasPlaces))
-                assertEquals(what, DependentSwitchUiState(false, false), SettingsUiModel.publicHours(stored, visible, s.themeHasPlaces))
+            assertEquals(what, "This theme has no towers",
+                SettingsUiModel.towersRowSummary(visible, 0.65f, true, 9f, 20f, s.towers, s.themeHasTowers))
+            for (stored in listOf(true, false)) for (group in listOf(true, false)) {
+                assertEquals(what, DependentSwitchUiState(false, false), SettingsUiModel.shopHours(stored, s.themeHasPlaces, group))
+                assertEquals(what, DependentSwitchUiState(false, false), SettingsUiModel.publicHours(stored, s.themeHasPlaces, group))
             }
             assertEquals(what, "This theme has no shops",
-                SettingsUiModel.storefrontRowSummary(StorefrontGroup.SHOPS, visible, true, 9f, 20f, s.themeHasPlaces))
+                SettingsUiModel.storefrontRowSummary(StorefrontGroup.SHOPS, true, 9f, 20f, s.themeHasPlaces, groupVisible = true))
             assertEquals(what, "This theme has no public buildings",
-                SettingsUiModel.storefrontRowSummary(StorefrontGroup.PUBLIC, visible, true, 9f, 20f, s.themeHasPlaces))
-            assertEquals(what, "This theme has no shops.", SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, visible, s.themeHasPlaces))
-            assertEquals(what, "This theme has no public buildings.", SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, visible, s.themeHasPlaces))
+                SettingsUiModel.storefrontRowSummary(StorefrontGroup.PUBLIC, true, 9f, 20f, s.themeHasPlaces, groupVisible = true))
+            assertEquals(what, "This theme has no shops.", SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, s.themeHasPlaces, groupVisible = true))
+            assertEquals(what, "This theme has no public buildings.", SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, s.themeHasPlaces, groupVisible = true))
         }
-        assertEquals("This theme has no buildings.", SettingsUiModel.noneOnThisThemeLine("buildings"))
-        assertEquals("This theme has no towers.", buildingsDensityLine(placesOnTheme = false, towersOnTheme = false))
+        assertEquals("This theme has no towers.", SettingsUiModel.noneOnThisThemeLine("towers"))
         // The hours' locked line on the group's page.
         assertEquals("This theme has no shops.", SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(StorefrontGroup.SHOPS)))
         assertEquals("This theme has no public buildings.", SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(StorefrontGroup.PUBLIC)))
     }
 
     @Test
-    fun `on a random street with towers and no place, Show Buildings shows the towers and the shops' hours read off`() {
+    fun `on a random street with towers and no place, Show Towers shows the towers and the shops' hours read off`() {
         val (id, street) = firstRandom("with a tower and no place") {
             it.hasAny(setOf(SceneObjectType.SKYSCRAPER)) && !it.hasAny(setOf(SceneObjectType.SKYSCRAPER), places = true)
         }
@@ -243,13 +241,11 @@ class SwitchesOverAThemeWithNoneTest {
         val s = SettingsUiModel.standing(street, c)
         assertTrue(id, s.themeHasTowers)
         assertFalse(id, s.themeHasPlaces)
-        val shown = SettingsUiModel.amountSwitch(true, 1f, s.towers, s.themeHasTowers || s.themeHasPlaces)
-        assertFalse("$id: Show Buildings locked though towers stand", shown.noneOnThisTheme)
-        assertEquals("The towers: this theme has no shops and no public buildings", buildingsSwitchLine(s.themeHasPlaces, s.themeHasTowers))
-        assertEquals("Thins out the towers behind the houses.", buildingsDensityLine(s.themeHasPlaces, s.themeHasTowers))
-        assertEquals("100%, always open", SettingsUiModel.towersRowSummary(true, 1f, false, 9f, 20f, s.towers, s.themeHasTowers, s.themeHasPlaces))
-        assertFalse(SettingsUiModel.shopHours(true, buildingsVisible = true, placesOnTheme = s.themeHasPlaces).shownOn)
-        assertFalse(SettingsUiModel.publicHours(true, buildingsVisible = true, placesOnTheme = s.themeHasPlaces).interactive)
+        val shown = SettingsUiModel.amountSwitch(true, 1f, s.towers, s.themeHasTowers)
+        assertFalse("$id: Show Towers locked though towers stand", shown.noneOnThisTheme)
+        assertEquals("100%, always open", SettingsUiModel.towersRowSummary(true, 1f, false, 9f, 20f, s.towers, s.themeHasTowers))
+        assertFalse(SettingsUiModel.shopHours(true, placesOnTheme = s.themeHasPlaces, groupVisible = true).shownOn)
+        assertFalse(SettingsUiModel.publicHours(true, placesOnTheme = s.themeHasPlaces, groupVisible = true).interactive)
     }
 
     @Test
@@ -260,13 +256,9 @@ class SwitchesOverAThemeWithNoneTest {
         val s = SettingsUiModel.standing(street, SceneCustomization.DEFAULT)
         assertTrue(id, s.themeHasPlaces)
         assertFalse(id, s.themeHasTowers)
-        assertEquals("The shops and the public buildings: this theme has no towers", buildingsSwitchLine(s.themeHasPlaces, s.themeHasTowers))
-        assertEquals(
-            "This theme has no towers. The shops and the public buildings among the houses stay at every amount while Show Buildings and Show shops and public buildings are on.",
-            buildingsDensityLine(s.themeHasPlaces, s.themeHasTowers),
-        )
-        assertEquals("This theme has no towers", SettingsUiModel.towersRowSummary(true, 0.65f, true, 9f, 20f, s.towers, s.themeHasTowers, s.themeHasPlaces))
-        assertTrue("the shops' hours as stored", SettingsUiModel.shopHours(true, buildingsVisible = true, placesOnTheme = s.themeHasPlaces).shownOn)
+        assertTrue("Show Towers locked", SettingsUiModel.amountSwitch(true, 0.65f, s.towers, s.themeHasTowers).noneOnThisTheme)
+        assertEquals("This theme has no towers", SettingsUiModel.towersRowSummary(true, 0.65f, true, 9f, 20f, s.towers, s.themeHasTowers))
+        assertTrue("the shops' hours as stored", SettingsUiModel.shopHours(true, placesOnTheme = s.themeHasPlaces, groupVisible = true).shownOn)
     }
 
     /**
@@ -329,7 +321,7 @@ class SwitchesOverAThemeWithNoneTest {
      * **On the twelve built-in themes no row changes**: each street has houses, towers, trees, parasols and places, so
      * every switch reads as it does with the theme's flags true (the amounts' own defaults, where they have one) and
      * the lines that say a theme has none never come. Swept over the amounts, each switch on and off, each decoration
-     * stored on and off, Show Buildings on and off.
+     * stored on and off, Show Towers on and off, each group's switch on and off.
      */
     @Test
     fun `on the twelve built-in themes no switch changes state or line`() {
@@ -342,7 +334,7 @@ class SwitchesOverAThemeWithNoneTest {
             val street = builtIn(theme.id)
             assertTrue("${theme.id} has places among its houses", street.staticObjects.any { StorefrontStreet.isPlace(it) })
             val base = defaultCustomizationFor(theme.id)
-            for (visible in listOf(true, false)) for (amount in amounts) for (stored in listOf(true, false)) for (buildingsOn in listOf(true, false)) {
+            for (visible in listOf(true, false)) for (amount in amounts) for (stored in listOf(true, false)) for (buildingsOn in listOf(true, false)) for (groupOn in listOf(true, false)) {
                 val c = base.copy(
                     houses = base.houses.copy(visible = visible, density = amount),
                     buildings = base.buildings.copy(visible = buildingsOn, density = amount),
@@ -352,21 +344,19 @@ class SwitchesOverAThemeWithNoneTest {
                     christmasBuildingLightsEnabled = stored && !buildingsOn, halloweenDecorationsEnabled = !stored,
                 )
                 val s = SettingsUiModel.standing(street, c)
-                val what = "${theme.id}, ${if (visible) "on" else "off"} at $amount, buildings ${if (buildingsOn) "on" else "off"}"
+                val what = "${theme.id}, ${if (visible) "on" else "off"} at $amount, towers ${if (buildingsOn) "on" else "off"}, groups ${if (groupOn) "on" else "off"}"
                 assertTrue("$what: a category the street lacks",
                     s.themeHasHouses && s.themeHasTowers && s.themeHasTrees && s.themeHasParasols && s.themeHasPlaces)
                 assertFalse("$what: every tree a fir", s.onlyFirsEvenAtFull)
                 // The buildings' rows and lines, as without the street.
-                assertEquals(what, BUILDINGS_SWITCH_LINE, buildingsSwitchLine(s.themeHasPlaces, s.themeHasTowers))
-                assertEquals(what, BUILDINGS_DENSITY_LINE, buildingsDensityLine(s.themeHasPlaces, s.themeHasTowers))
-                assertFalse(what, SettingsUiModel.amountSwitch(c.buildings.visible, amount, s.towers, s.themeHasTowers || s.themeHasPlaces).noneOnThisTheme)
+                assertFalse(what, SettingsUiModel.amountSwitch(c.buildings.visible, amount, s.towers, s.themeHasTowers).noneOnThisTheme)
                 for (group in StorefrontGroup.entries) {
-                    assertEquals(what, SettingsUiModel.storefrontGroupLine(group, buildingsOn, true), SettingsUiModel.storefrontGroupLine(group, buildingsOn, s.themeHasPlaces))
-                    assertEquals(what, SettingsUiModel.storefrontRowSummary(group, buildingsOn, stored, 9f, 20f, true),
-                        SettingsUiModel.storefrontRowSummary(group, buildingsOn, stored, 9f, 20f, s.themeHasPlaces))
+                    assertEquals(what, SettingsUiModel.storefrontGroupLine(group, true, groupOn), SettingsUiModel.storefrontGroupLine(group, s.themeHasPlaces, groupOn))
+                    assertEquals(what, SettingsUiModel.storefrontRowSummary(group, stored, 9f, 20f, true, groupOn),
+                        SettingsUiModel.storefrontRowSummary(group, stored, 9f, 20f, s.themeHasPlaces, groupOn))
                 }
-                assertEquals(what, SettingsUiModel.shopHours(stored, buildingsOn, true), SettingsUiModel.shopHours(stored, buildingsOn, s.themeHasPlaces))
-                assertEquals(what, SettingsUiModel.publicHours(stored, buildingsOn, true), SettingsUiModel.publicHours(stored, buildingsOn, s.themeHasPlaces))
+                assertEquals(what, SettingsUiModel.shopHours(stored, true, groupOn), SettingsUiModel.shopHours(stored, s.themeHasPlaces, groupOn))
+                assertEquals(what, SettingsUiModel.publicHours(stored, true, groupOn), SettingsUiModel.publicHours(stored, s.themeHasPlaces, groupOn))
                 for ((cfg, pair) in listOf(c.houses to (s.houses to s.themeHasHouses), c.trees to (s.trees to s.themeHasTrees), c.parasols to (s.parasols to s.themeHasParasols))) {
                     val (stands, onTheme) = pair
                     assertEquals(what, SettingsUiModel.amountSwitch(cfg.visible, cfg.density, stands), SettingsUiModel.amountSwitch(cfg.visible, cfg.density, stands, onTheme))
@@ -375,8 +365,8 @@ class SwitchesOverAThemeWithNoneTest {
                     }
                 }
                 assertEquals(what,
-                    SettingsUiModel.towersRowSummary(buildingsOn, amount, true, 9f, 20f, s.towers, true, true),
-                    SettingsUiModel.towersRowSummary(buildingsOn, amount, true, 9f, 20f, s.towers, s.themeHasTowers, s.themeHasPlaces))
+                    SettingsUiModel.towersRowSummary(buildingsOn, amount, true, 9f, 20f, s.towers, true),
+                    SettingsUiModel.towersRowSummary(buildingsOn, amount, true, 9f, 20f, s.towers, s.themeHasTowers))
                 for (row in listOf(
                     SettingsUiModel.christmasTreeDecoration(c.christmasTreeLightsEnabled, c, street),
                     SettingsUiModel.christmasTreeDecoration(c.christmasFirsEnabled, c, street),
@@ -445,8 +435,9 @@ class SwitchesOverAThemeWithNoneTest {
             "val noneOnTheme = shown.noneOnThisTheme",
             "checked = if (noneOnTheme) false else if (noneAtZero) shown.shownOn else config.visible,",
             "} else if (!noneOnTheme) {",
-            "SettingsUiModel.storefrontGroupLine(group, buildingsVisible, placesOnTheme, placesVisible),",
-            "val leadsToBuildings = placesOnTheme && !(buildingsVisible && placesVisible)",
+            "SettingsUiModel.storefrontGroupLine(group, placesOnTheme, groupVisible),",
+            "checked = groupVisible && placesOnTheme,",
+            "enabled = placesOnTheme,",
             "noneOnTheme -> SettingsUiModel.noneOnThisThemeLine(title.lowercase())",
             "enabled = !noneOnTheme,",
             "SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId), stands, onTheme),",
@@ -458,17 +449,18 @@ class SwitchesOverAThemeWithNoneTest {
             "supporting = streetSummary(\"trees\", customization.trees.visible, customization.trees.density, standing.trees, standing.themeHasTrees),",
             "supporting = streetSummary(\"parasols\", customization.parasols.visible, customization.parasols.density, standing.parasols, standing.themeHasParasols),",
             "towersOnTheme = standing.themeHasTowers,",
-            "placesOnTheme = standing.themeHasPlaces,",
+            "placesOnTheme = standing.themeHasPlaces, groupVisible = customization.shopsVisible,",
+            "placesOnTheme = standing.themeHasPlaces, groupVisible = customization.publicsVisible,",
             "\"houses\" -> HousesSubScreen(customization, standing.houses, standing.themeHasHouses, forThemeId, prefs, scope) { activeSection = null }",
-            "\"towers\" -> TowersSubScreen(customization, standing.towers, standing.themeHasTowers, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }",
-            "\"shops\" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, standing.themeHasPlaces, forThemeId, prefs, scope,",
-            "\"publics\" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, standing.themeHasPlaces, forThemeId, prefs, scope,",
+            "\"towers\" -> TowersSubScreen(customization, standing.towers, standing.themeHasTowers, forThemeId, prefs, scope) { activeSection = null }",
+            "\"shops\" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }",
+            "\"publics\" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }",
             "\"trees\" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, standing.trees, standing.themeHasTrees, standing.onlyFirsEvenAtFull, forThemeId, prefs, scope) { activeSection = null }",
-            "onTheme = towersOnTheme || placesOnTheme,",
-            "switchSubtitle = buildingsSwitchLine(placesOnTheme, towersOnTheme),",
-            "buildingsDensityLine(placesOnTheme, towersOnTheme),",
-            "SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)",
-            "SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)",
+            "onTheme = towersOnTheme,",
+            "switchSubtitle = TOWERS_SWITCH_LINE,",
+            "if (towersOnTheme) TOWERS_DENSITY_LINE else SettingsUiModel.noneOnThisThemeLine(\"towers\"),",
+            "SettingsUiModel.shopHours(customization.shopHoursEnabled, placesOnTheme, customization.shopsVisible)",
+            "SettingsUiModel.publicHours(customization.publicHoursEnabled, placesOnTheme, customization.publicsVisible)",
             "SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(group))",
             "} else if (!palms.interactive && palmsOnlyFirs && onlyFirsEvenAtFull) {",
             "SettingsUiModel.PALMS_ONLY_FIRS_ON_THIS_THEME_LINE",
@@ -481,7 +473,7 @@ class SwitchesOverAThemeWithNoneTest {
             "towersStand = standing.towers,",
             "towersStand = towersStand,",
             "forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true, stands = housesStand, onTheme = housesOnTheme, showTitle = false,",
-            "forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, stands = towersStand,",
+            "forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = towersStand,",
             "forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = treesStand, onTheme = treesOnTheme,",
             "forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = parasolsStand, onTheme = parasolsOnTheme,",
             "placesOnTheme = placesOnTheme,",
@@ -489,9 +481,11 @@ class SwitchesOverAThemeWithNoneTest {
         for (onTheme in listOf("onTheme = housesOnTheme,", "onTheme = treesOnTheme,", "onTheme = parasolsOnTheme,")) {
             assertEquals("one section passes $onTheme", 1, world.count { it.contains(onTheme) })
         }
-        assertEquals("the Towers & offices row passes the places", 1, world.count { it == "placesOnTheme = standing.themeHasPlaces," })
-        assertEquals("the Shops and Public buildings rows pass the places and their switch", 2,
-            world.count { it == "placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible," })
+        assertEquals("the Towers & offices row passes no places: it is the towers'", 0, world.count { it == "placesOnTheme = standing.themeHasPlaces," })
+        assertEquals("the Shops row passes the places and its switch", 1,
+            world.count { it == "placesOnTheme = standing.themeHasPlaces, groupVisible = customization.shopsVisible," })
+        assertEquals("the Public buildings row passes the places and its switch", 1,
+            world.count { it == "placesOnTheme = standing.themeHasPlaces, groupVisible = customization.publicsVisible," })
         assertTrue(lines("ui/SettingsScreen.kt").contains("val standing = SettingsUiModel.standing(themeLayout, customization)"))
         val seasons = lines("ui/SeasonsScreen.kt")
         assertTrue(seasons.contains("\"Christmas firs\" to SettingsUiModel.christmasFirs(customization.christmasFirsEnabled, customization, themeLayout).shownOn,"))

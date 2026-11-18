@@ -44,11 +44,11 @@ class ScreenLinesTellTheTruthTest {
     }
 
     @Test
-    fun `the Live Weather line leaves the screens to the forecast only while it drives the sky`() {
+    fun `the Live Weather line leaves the screens to the forecast while it is on, the colours the user's`() {
         val strings = repoFile("app/src/main/res/values/strings.xml").readText()
         val line = Regex("""<string name="live_weather_desc">([^<]*)</string>""").find(strings)!!.groupValues[1]
-        assertFalse("while the switch is merely on", line.contains("While on, this theme"))
-        assertTrue(line.contains("While the forecast drives the sky, this theme\\'s own Clouds and Rain and snow screens leave those to it"))
+        // As soon as the switch reads on (decision 108): the pages hide their controls whether the forecast draws or is awaited.
+        assertTrue(line.endsWith("While Live Weather is on, this theme\\'s own Clouds and Rain and snow screens leave those to it; their colours stay yours."))
     }
 
     /**

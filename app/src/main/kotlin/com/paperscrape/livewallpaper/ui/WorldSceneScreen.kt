@@ -8,15 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.paperscrape.livewallpaper.ui.icons.automirrored.outlined.DirectionsWalk
-import com.paperscrape.livewallpaper.ui.icons.filled.Air
 import com.paperscrape.livewallpaper.ui.icons.filled.SwipeLeft
 import com.paperscrape.livewallpaper.ui.icons.outlined.AccountBalance
 import com.paperscrape.livewallpaper.ui.icons.outlined.Apartment
 import com.paperscrape.livewallpaper.ui.icons.outlined.Cloud
 import com.paperscrape.livewallpaper.ui.icons.outlined.Cottage
 import com.paperscrape.livewallpaper.ui.icons.outlined.DirectionsCar
-import com.paperscrape.livewallpaper.ui.icons.outlined.Filter
-import com.paperscrape.livewallpaper.ui.icons.outlined.FilterDrama
+import com.paperscrape.livewallpaper.ui.icons.outlined.BeachAccess
+import com.paperscrape.livewallpaper.ui.icons.outlined.Looks
+import com.paperscrape.livewallpaper.ui.icons.Swallow
 import com.paperscrape.livewallpaper.ui.icons.outlined.Flare
 import com.paperscrape.livewallpaper.ui.icons.outlined.House
 import com.paperscrape.livewallpaper.ui.icons.outlined.Landscape
@@ -106,13 +106,13 @@ internal fun WorldSceneScreen(
     // `resetAllCategories` removes this theme's entire customization record, Seasons & decorations'
     // too, which is more than the button's name says.
     var confirmSceneReset by remember { mutableStateOf(false) }
-    // **What the forecast is doing, not what the switch says** ([LiveWeatherUiState.drivingTheScene],
-    // never true while Weather & time's switch reads off). While it does, the theme's own weather
-    // controls are not drawn: greyed, *Show Clouds* would read off under the forecast's clouds
-    // ([SettingsUiModel.forecastOwnsTheWeatherControls]).
+    // **As soon as Weather & time's switch reads on** the theme's own weather controls are not drawn, and the pages
+    // and their rows say what the scene draws at that moment: the forecast, or this theme's own weather while the
+    // first forecast is awaited or none is in effect ([SettingsUiModel.weatherPages], decision 108). Null: the
+    // switch reads off, and the controls are there.
     val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
     val deviceAccess = rememberDeviceLocationAccess(settings)
-    val liveWeatherDriving = SettingsUiModel.forecastOwnsTheWeatherControls(
+    val weatherPages = SettingsUiModel.weatherPages(
         SettingsUiModel.liveWeather(
             liveWeatherEnabled = settings.liveWeatherEnabled,
             followRealTime = settings.syncWithRealTime,
@@ -127,6 +127,7 @@ internal fun WorldSceneScreen(
             isTheWallpaper = isTheWallpaper,
             status = settings.liveWeather,
         ),
+        settings.liveWeather,
     )
 
     SettingsSubScreen(title = "World & scene", onBack = onBack) {
@@ -157,25 +158,21 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Clouds",
-                supporting = if (liveWeatherDriving) {
-                    "Driven by Live Weather"
-                } else {
-                    amountSummary(customization.clouds.visible, customization.clouds.density)
-                },
+                supporting = weatherPages?.rowSummary ?: amountSummary(customization.clouds.visible, customization.clouds.density),
                 icon = Icons.Outlined.Cloud,
-                supportingIsAccent = liveWeatherDriving,
+                supportingIsAccent = weatherPages != null,
                 onClick = { activeSection = "clouds" },
             )
             SettingsNavigationRow(
                 title = "Rain and snow",
                 supporting = when {
-                    liveWeatherDriving -> "Driven by Live Weather"
+                    weatherPages != null -> weatherPages.rowSummary
                     // Nothing falls without a cloud (`DESIGN_NOTES.md` §12, decision 98), whatever the switch holds.
                     !SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density) -> NO_CLOUDS_SUMMARY
                     else -> amountSummary(customization.precipitation.visible, customization.precipitation.intensity)
                 },
                 icon = Icons.Outlined.WaterDrop,
-                supportingIsAccent = liveWeatherDriving,
+                supportingIsAccent = weatherPages != null,
                 onClick = { activeSection = "precipitation" },
             )
             SettingsNavigationRow(
@@ -185,7 +182,7 @@ internal fun WorldSceneScreen(
                 } else {
                     onOffSummary(SettingsUiModel.showRainbow(customization).shownOn, "Rainbow")
                 },
-                icon = Icons.Outlined.Filter,
+                icon = Icons.Outlined.Looks,
                 onClick = { activeSection = "rainbow" },
             )
         }
@@ -207,7 +204,6 @@ internal fun WorldSceneScreen(
                     customization.towerHoursEnabled, customization.towerOpenHour, customization.towerCloseHour,
                     towersStand = standing.towers,
                     towersOnTheme = standing.themeHasTowers,
-                    placesOnTheme = standing.themeHasPlaces,
                 ),
                 icon = Icons.Outlined.Apartment,
                 onClick = { activeSection = "towers" },
@@ -215,9 +211,9 @@ internal fun WorldSceneScreen(
             SettingsNavigationRow(
                 title = storefrontGroupTitle(StorefrontGroup.SHOPS),
                 supporting = SettingsUiModel.storefrontRowSummary(
-                    StorefrontGroup.SHOPS, customization.buildings.visible,
+                    StorefrontGroup.SHOPS,
                     customization.shopHoursEnabled, customization.shopOpenHour, customization.shopCloseHour,
-                    placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible,
+                    placesOnTheme = standing.themeHasPlaces, groupVisible = customization.shopsVisible,
                 ),
                 icon = Icons.Outlined.Storefront,
                 onClick = { activeSection = "shops" },
@@ -225,9 +221,9 @@ internal fun WorldSceneScreen(
             SettingsNavigationRow(
                 title = storefrontGroupTitle(StorefrontGroup.PUBLIC),
                 supporting = SettingsUiModel.storefrontRowSummary(
-                    StorefrontGroup.PUBLIC, customization.buildings.visible,
+                    StorefrontGroup.PUBLIC,
                     customization.publicHoursEnabled, customization.publicOpenHour, customization.publicCloseHour,
-                    placesOnTheme = standing.themeHasPlaces, placesVisible = customization.placesVisible,
+                    placesOnTheme = standing.themeHasPlaces, groupVisible = customization.publicsVisible,
                 ),
                 icon = Icons.Outlined.AccountBalance,
                 onClick = { activeSection = "publics" },
@@ -268,7 +264,7 @@ internal fun WorldSceneScreen(
                 // (`PedestrianCarry`) has no control; the sub-screen says so.
                 title = "Parasols",
                 supporting = streetSummary("parasols", customization.parasols.visible, customization.parasols.density, standing.parasols, standing.themeHasParasols),
-                icon = Icons.Outlined.FilterDrama,
+                icon = Icons.Outlined.BeachAccess,
                 onClick = { activeSection = "parasols" },
             )
             SettingsNavigationRow(
@@ -303,7 +299,7 @@ internal fun WorldSceneScreen(
                 } else {
                     onOffSummary(false, "Birds")
                 },
-                icon = Icons.Filled.Air,
+                icon = Swallow,
                 onClick = { activeSection = "birds" },
             )
         }
@@ -418,15 +414,13 @@ internal fun WorldSceneScreen(
         "sunmoon" -> SunMoonSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "sky" -> SkySubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "stars" -> StarsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
-        "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
+        "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, weatherPages) { activeSection = null }
+        "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, weatherPages) { activeSection = null }
         "rainbow" -> RainbowSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "houses" -> HousesSubScreen(customization, standing.houses, standing.themeHasHouses, forThemeId, prefs, scope) { activeSection = null }
-        "towers" -> TowersSubScreen(customization, standing.towers, standing.themeHasTowers, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }
-        "shops" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, standing.themeHasPlaces, forThemeId, prefs, scope,
-            onGoToTowers = { activeSection = "towers" }) { activeSection = null }
-        "publics" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, standing.themeHasPlaces, forThemeId, prefs, scope,
-            onGoToTowers = { activeSection = "towers" }) { activeSection = null }
+        "towers" -> TowersSubScreen(customization, standing.towers, standing.themeHasTowers, forThemeId, prefs, scope) { activeSection = null }
+        "shops" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }
+        "publics" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, standing.themeHasPlaces, forThemeId, prefs, scope) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "distanthouses" -> DistantHousesSubScreen(
@@ -452,37 +446,12 @@ private fun onOffSummary(visible: Boolean, subject: String): String =
 private fun densitySummary(visible: Boolean, density: Float): String =
     if (visible) "On - ${(density * 100).toInt()}%" else "Off"
 
-/** The line under the buildings' slider (decision 45): what it thins, and what stays. */
-internal const val BUILDINGS_DENSITY_LINE =
-    "Thins out the towers behind the houses. The shops and the public buildings among the houses stay at " +
-        "every amount while Show Buildings and Show shops and public buildings are on."
+/** The line under the Towers amount (decision 45): what it thins. */
+internal const val TOWERS_DENSITY_LINE = "Thins out the towers behind the houses."
 
-/** What *Show Buildings* shows and hides: every building that is not a house, the three groups. */
-internal const val BUILDINGS_SWITCH_LINE =
-    "All the buildings that are not houses: the towers, the shops and the public buildings"
-
-/**
- * The line under *Show Buildings*: [BUILDINGS_SWITCH_LINE], or on a street that has only towers ([placesOnTheme] false)
- * or only places among the houses ([towersOnTheme] false), what it does show there and what the theme lacks. With
- * neither, the switch is locked and says so itself.
- */
-internal fun buildingsSwitchLine(placesOnTheme: Boolean, towersOnTheme: Boolean): String = when {
-    placesOnTheme && towersOnTheme -> BUILDINGS_SWITCH_LINE
-    towersOnTheme -> "The towers: this theme has no shops and no public buildings"
-    else -> "The shops and the public buildings: this theme has no towers"
-}
-
-/**
- * The line under the Towers amount: [BUILDINGS_DENSITY_LINE], less what the street does not have -- no place among the
- * houses, nothing about the shops standing; no tower, nothing to thin.
- */
-internal fun buildingsDensityLine(placesOnTheme: Boolean, towersOnTheme: Boolean): String = when {
-    placesOnTheme && towersOnTheme -> BUILDINGS_DENSITY_LINE
-    towersOnTheme -> "Thins out the towers behind the houses."
-    placesOnTheme -> "This theme has no towers. The shops and the public buildings among the houses stay at every amount " +
-        "while Show Buildings and Show shops and public buildings are on."
-    else -> SettingsUiModel.noneOnThisThemeLine("towers")
-}
+/** What *Show Towers* shows and hides: the towers alone; the shops and the public buildings have a switch each (decision 109). */
+internal const val TOWERS_SWITCH_LINE =
+    "The towers and offices behind the houses. The shops and the public buildings have a switch each, on their pages."
 
 /** The line over the Buildings colours: they are the towers'; the shops and the public buildings have their own. */
 internal const val BUILDINGS_COLOUR_LINE =
@@ -709,18 +678,17 @@ private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String
 }
 
 @Composable
-private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherDriving: Boolean, onBack: () -> Unit) {
+private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, weatherPages: WeatherPagesUiState?, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Clouds", onBack) {
-        // While a forecast drives the sky (`LiveWeatherSceneRules.cloudDensity`) the switch and the amount
-        // are not drawn: an edit would do nothing, and greyed they would say "Show Clouds" off under the
-        // forecast's clouds ([SettingsUiModel.forecastOwnsTheWeatherControls]). With the switch on and no
-        // forecast in effect (no location, no key, a failed fetch) this theme's settings are what the
-        // scene draws, so they stay. The colours stay editable: Live Weather never touches them.
-        if (liveWeatherDriving) {
+        // While *Live Weather* reads on the switch and the amount are not drawn, and the line says what the scene draws
+        // now ([SettingsUiModel.weatherPages], decision 108): the forecast decides them (`LiveWeatherSceneRules.cloudDensity`),
+        // or will once it arrives, so an edit would not be the user's to make; greyed they would say "Show Clouds" off
+        // under the forecast's clouds. With the switch reading off (off, or a blocker) they are back. The colours stay
+        // editable: Live Weather never touches them.
+        if (weatherPages != null) {
             Text(
-                "Live Weather is drawing the clouds from the real sky right now: the forecast decides whether " +
-                    "there are any and how many. Turn Live Weather off in Weather & time to set them here.",
+                weatherPages.cloudsLine,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -761,18 +729,17 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 @Composable
-private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherDriving: Boolean, onBack: () -> Unit) {
+private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, weatherPages: WeatherPagesUiState?, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     val precip = customization.precipitation
     SettingsFormSubScreen("Rain and snow", onBack) {
-        // As on the Clouds page: while a forecast drives the sky it decides visibility, type, intensity
-        // (`PaperRenderer.drawPrecipitation`) and the flashes (`LiveWeatherSceneRules.stormActive`), so
-        // those controls are not drawn ([SettingsUiModel.forecastOwnsTheWeatherControls]). Colours stay.
-        if (liveWeatherDriving) {
+        // As on the Clouds page: while *Live Weather* reads on, the forecast decides visibility, type, intensity
+        // (`PaperRenderer.drawPrecipitation`) and the flashes (`LiveWeatherSceneRules.stormActive`), or will once it
+        // arrives, so those controls are not drawn and the line says what the scene draws now
+        // ([SettingsUiModel.weatherPages]). Colours stay.
+        if (weatherPages != null) {
             Text(
-                "Live Weather is drawing rain, snow and thunderstorms from the real sky right now: the forecast " +
-                    "decides whether anything falls, which, and how hard. Turn Live Weather off in Weather & time " +
-                    "to set them here.",
+                weatherPages.rainLine,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -831,8 +798,8 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
         )
         // The lightning flashes only with a cloud in the sky, Show Rain/Snow on and Rain selected
         // (`LiveWeatherSceneRules.stormActive`): off and locked otherwise, the stored value kept. Under
-        // Live Weather not drawn: the forecast decides the flashes.
-        if (!liveWeatherDriving) {
+        // Live Weather not drawn: the forecast decides the flashes, or will.
+        if (weatherPages == null) {
             SectionTitle("Storms")
             val skyHasClouds = SettingsUiModel.skyHasClouds(customization.clouds.visible, customization.clouds.density)
             val storm = SettingsUiModel.thunderstorm(
@@ -872,6 +839,7 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
             subtitle = when {
                 !byDay.interactive -> SettingsUiModel.NIGHT_BY_DAY_LOCK_LINE
                 shown.noneAtZero -> "None at 0% opacity - tap to bring it back"
+                shown.shownOn -> SettingsUiModel.RAINBOW_LINE
                 else -> ""
             },
             checked = byDay.shownOn,
@@ -916,49 +884,39 @@ private fun HousesSubScreen(customization: SceneCustomization, housesStand: Bool
 }
 
 /**
- * The towers' page: *Show Buildings*, which
- * shows or hides every building that is not a house -- the towers and the six buildings among the
- * houses, one candidate pool -- the Towers amount with its line under it, *Show shops and public
- * buildings* (decision 102), the towers' opening hours and their colours.
+ * The towers' page: *Show Towers*, which shows or hides the towers and offices behind the houses and nothing else
+ * (the shops and the public buildings have a switch each, on their pages: decision 109), the Towers amount with its
+ * line under it, the towers' opening hours and their colours.
  */
 @Composable
-private fun TowersSubScreen(customization: SceneCustomization, towersStand: Boolean, towersOnTheme: Boolean, placesOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun TowersSubScreen(customization: SceneCustomization, towersStand: Boolean, towersOnTheme: Boolean, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen(SettingsUiModel.TOWERS_PAGE, onBack) {
-        // **The slider thins the towers only**: the buildings among the houses stand whatever it says
-        // (`SceneCustomization.keepCandidate` keeps every building candidate below
-        // `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so it is called what it moves and the line under
-        // it says what stays (decision 45). **Its colours are the towers'**: the shops and the public
-        // buildings have their own pages.
+        // **Show Towers and the slider are the towers' only**: the buildings among the houses stand by their own
+        // switches, on their pages (`SceneCustomization.keepCandidate` keeps every building candidate below
+        // `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line by them), so each is called what it moves (decisions 45 and
+        // 109). **Its colours are the towers'**: the shops and the public buildings have their own pages.
         ObjectCategorySection(
-            title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, stands = towersStand,
-            // A street with no tower and no place has no building for the switch to show.
-            onTheme = towersOnTheme || placesOnTheme,
-            switchSubtitle = buildingsSwitchLine(placesOnTheme, towersOnTheme),
+            title = "Towers", config = customization.buildings, category = ObjectCategory.BUILDINGS,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true, stands = towersStand,
+            // A street with no tower has nothing for the switch to show; at 0 %, or at an amount that keeps none, the
+            // switch reads off and says so (decision 40): the shops and the public buildings have switches of their own.
+            onTheme = towersOnTheme,
+            switchSubtitle = TOWERS_SWITCH_LINE,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Towers",
             afterDensity = {
                 // The line about the Towers amount, right under it.
                 Text(
-                    buildingsDensityLine(placesOnTheme, towersOnTheme),
+                    if (towersOnTheme) TOWERS_DENSITY_LINE else SettingsUiModel.noneOnThisThemeLine("towers"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // The six buildings among the houses, a switch of their own under Show Buildings (decision 102).
-                val places = SettingsUiModel.placesSwitch(customization.placesVisible, customization.buildings.visible)
-                SettingSwitchRow(
-                    title = SettingsUiModel.PLACES_SWITCH,
-                    subtitle = if (places.interactive) SettingsUiModel.PLACES_LINE else SettingsUiModel.PLACES_LOCKED_LINE,
-                    checked = places.shownOn,
-                    enabled = places.interactive,
-                    onCheckedChange = { scope.launch { prefs.setPlacesVisible(it, forThemeId) } },
-                )
-                // The towers' own opening hours, under the switches and the amount that keep them.
+                // The towers' own opening hours, under the switch and the amount that keep them.
                 OpeningHoursGroup(
                     title = "Tower opening hours",
                     line = TOWER_HOURS_LINE,
-                    // A street with no tower at all: neither the switch nor the amount would help. Else Show Buildings
+                    // A street with no tower at all: neither the switch nor the amount would help. Else Show Towers
                     // on and the Towers above 0 %, and still no tower kept on this theme: the amount is why.
                     lockedLine = if (!towersOnTheme) {
                         SettingsUiModel.noneOnThisThemeLine("towers")
@@ -988,9 +946,8 @@ private fun TowersSubScreen(customization: SceneCustomization, towersStand: Bool
 }
 
 /**
- * The page of the shops or of the public buildings: [StorefrontGroupSection] -- the line, the
- * group's opening hours, its colours and its reset. With *Show Buildings* off the line says so and a tap
- * opens the *Towers & offices* page, where that switch is ([onGoToTowers]).
+ * The page of the shops or of the public buildings: [StorefrontGroupSection] -- the group's switch (*Show Shops*, *Show
+ * Public buildings*: decision 109), the line, the group's opening hours, its colours and its reset.
  */
 @Composable
 private fun StorefrontGroupSubScreen(
@@ -1001,7 +958,6 @@ private fun StorefrontGroupSubScreen(
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
-    onGoToTowers: () -> Unit,
     onBack: () -> Unit,
 ) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
@@ -1010,11 +966,9 @@ private fun StorefrontGroupSubScreen(
         StorefrontGroupSection(
             group = group,
             config = if (shops) customization.shops else customization.publics,
-            buildingsVisible = customization.buildings.visible,
-            placesVisible = customization.placesVisible,
+            groupVisible = customization.groupStands(group),
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
-            onGoToBuildings = onGoToTowers,
             placesOnTheme = placesOnTheme,
             openingHours = {
                 OpeningHoursGroup(
@@ -1022,14 +976,14 @@ private fun StorefrontGroupSubScreen(
                     line = if (shops) SHOP_HOURS_LINE else PUBLIC_HOURS_LINE,
                     // A street with no place among the houses: no switch would bring the group.
                     lockedLine = if (placesOnTheme) {
-                        STOREFRONT_HOURS_LOCKED_LINE
+                        SettingsUiModel.groupHoursLockedLine(group)
                     } else {
                         SettingsUiModel.noneOnThisThemeLine(SettingsUiModel.groupThings(group))
                     },
                     state = if (shops) {
-                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)
+                        SettingsUiModel.shopHours(customization.shopHoursEnabled, placesOnTheme, customization.shopsVisible)
                     } else {
-                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)
+                        SettingsUiModel.publicHours(customization.publicHoursEnabled, placesOnTheme, customization.publicsVisible)
                     },
                     openHour = if (shops) customization.shopOpenHour else customization.publicOpenHour,
                     closeHour = if (shops) customization.shopCloseHour else customization.publicCloseHour,
@@ -1104,9 +1058,9 @@ private const val TOWER_HOURS_LINE =
 
 /** The towers' group's line while there is no tower to keep the hours. */
 private const val TOWER_HOURS_LOCKED_LINE =
-    "Needs Show Buildings on and Towers above 0%; your choice is kept until then."
+    "Needs Show Towers on and Towers above 0%; your choice is kept until then."
 
-/** The towers' group's line while Show Buildings is on and the Towers amount above 0 % keeps no tower on this theme. */
+/** The towers' group's line while Show Towers is on and the Towers amount above 0 % keeps no tower on this theme. */
 private const val TOWER_HOURS_NO_TOWER_LINE =
     "No tower stands at this density on this theme. Raise Towers above; your choice is kept until then."
 
@@ -1121,11 +1075,6 @@ private const val PUBLIC_HOURS_LINE =
     "These hours are the school's: outside them the blinds are down, the door's shutter is down and " +
         "nobody stands at the windows; at night the glass stays dark. " +
         "The fire station and the police station never close. Houses are homes and keep no hours."
-
-/** The shops' or the public buildings' line while no building of the group stands to keep the hours. */
-private const val STOREFRONT_HOURS_LOCKED_LINE =
-    "Needs Show Buildings and Show shops and public buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your " +
-        "choice is kept until then."
 
 /** Under each group's two hours: kept to the minute (`BusinessHours`, decision 68). */
 private const val HOURS_CLOCK_LINE =

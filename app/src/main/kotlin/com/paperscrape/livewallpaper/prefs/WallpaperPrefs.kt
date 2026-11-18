@@ -293,8 +293,15 @@ class WallpaperPrefs internal constructor(
          * reads as the road it drew (`keepRoadAsDrawnBefore`); the first edit of a theme writes it ([pinKeepRoad]).
          */
         val KEEP_ROAD = booleanPreferencesKey("keep_road")
-        /** *Show shops and public buildings* (`SceneCustomization.placesVisible`). */
+        /**
+         * The one switch the six buildings among the houses had before *Show Shops* and *Show Public buildings*: read only
+         * where those are absent, as the scene it drew ([placeSwitchRead]), and removed with them.
+         */
         val PLACES_VISIBLE = booleanPreferencesKey("places_visible")
+        /** *Show Shops* (`SceneCustomization.shopsVisible`, `DESIGN_NOTES.md` decision 109). */
+        val SHOPS_VISIBLE = booleanPreferencesKey("shops_visible")
+        /** *Show Public buildings* (`SceneCustomization.publicsVisible`). */
+        val PUBLICS_VISIBLE = booleanPreferencesKey("publics_visible")
 
         /**
          * The opening hours, in three groups: the towers', the shops' (the restaurant, the bar and the
@@ -505,6 +512,14 @@ class WallpaperPrefs internal constructor(
         val SCRATCH_KNOWS_PUBLICS = booleanPreferencesKey("scratch_knows_publics")
     }
 
+    /**
+     * *Show Shops* or *Show Public buildings* ([key]) in the live edit; in a store written before they existed, the one
+     * switch of before and the buildings' switch ([buildingsVisible]) read as the scene they drew
+     * (`SceneCustomization.placeSwitchAsDrawnBefore`), until the first edit writes it ([pinPlaceSwitches]).
+     */
+    private fun placeSwitchRead(prefs: Preferences, key: Preferences.Key<Boolean>, default: Boolean, buildingsVisible: Boolean): Boolean =
+        prefs[key] ?: SceneCustomization.placeSwitchAsDrawnBefore(prefs[Keys.PLACES_VISIBLE] ?: default, buildingsVisible)
+
     private fun readVariantConfig(prefs: Preferences, category: ObjectCategory, default: ObjectVariantConfig): ObjectVariantConfig =
         ObjectVariantConfig(
             visible = prefs[Keys.visible(category)] ?: default.visible,
@@ -610,9 +625,10 @@ class WallpaperPrefs internal constructor(
         // on, the side chosen first (`DecorationExclusion`).
         val halloweenDecorations = prefs[Keys.HALLOWEEN_DECORATIONS_ENABLED]
             ?: (defaults.halloweenDecorationsEnabled && !(christmasBuildingLights || christmasTreeLights || christmasFirs))
+        val buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, towersDrawnIn(prefs, defaults.buildings))
         return SceneCustomization(
             houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
-            buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, towersDrawnIn(prefs, defaults.buildings)),
+            buildings = buildings,
             shops = shops,
             publics = readPublics(prefs, defaults, shops),
             cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
@@ -628,7 +644,8 @@ class WallpaperPrefs internal constructor(
             dayDensity = prefs[Keys.density(ObjectCategory.CARS)] ?: defaults.cars.density,
         ),
         keepRoad = prefs[Keys.KEEP_ROAD] ?: false,
-        placesVisible = prefs[Keys.PLACES_VISIBLE] ?: defaults.placesVisible,
+        shopsVisible = placeSwitchRead(prefs, Keys.SHOPS_VISIBLE, defaults.shopsVisible, buildings.visible),
+        publicsVisible = placeSwitchRead(prefs, Keys.PUBLICS_VISIBLE, defaults.publicsVisible, buildings.visible),
         shopHoursEnabled = shopHoursEnabled,
         shopOpenHour = shopOpenHour,
         shopCloseHour = shopCloseHour,
@@ -874,7 +891,8 @@ class WallpaperPrefs internal constructor(
         this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
         this[Keys.CARS_NIGHT_DENSITY] = c.carsNightDensity
         this[Keys.KEEP_ROAD] = c.keepRoad
-        this[Keys.PLACES_VISIBLE] = c.placesVisible
+        this[Keys.SHOPS_VISIBLE] = c.shopsVisible
+        this[Keys.PUBLICS_VISIBLE] = c.publicsVisible
         this[Keys.SHOP_HOURS_ENABLED] = c.shopHoursEnabled
         this[Keys.SHOP_OPEN_HOUR] = c.shopOpenHour
         this[Keys.SHOP_CLOSE_HOUR] = c.shopCloseHour
@@ -1233,9 +1251,13 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** *Show shops and public buildings* (`SceneCustomization.placesVisible`). */
-    suspend fun setPlacesVisible(enabled: Boolean, forThemeId: String) =
-        setFlag(Keys.PLACES_VISIBLE, enabled, forThemeId)
+    /** *Show Shops* (`SceneCustomization.shopsVisible`). */
+    suspend fun setShopsVisible(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.SHOPS_VISIBLE, enabled, forThemeId)
+
+    /** *Show Public buildings* (`SceneCustomization.publicsVisible`). */
+    suspend fun setPublicsVisible(enabled: Boolean, forThemeId: String) =
+        setFlag(Keys.PUBLICS_VISIBLE, enabled, forThemeId)
 
     /** *Keep the road* (`SceneCustomization.keepRoad`). */
     suspend fun setKeepRoad(enabled: Boolean, forThemeId: String) =
@@ -1806,7 +1828,7 @@ class WallpaperPrefs internal constructor(
         prefs.ensureFreshPendingTheme(forThemeId)
         prefs.removeCategoryKeys(category)
         // Keys outside the per-category ones that belong to the category are reset with it: the people's
-        // and the cars' night densities, and the opening hours of the towers ("Reset Buildings"), the
+        // and the cars' night densities, and the opening hours of the towers ("Reset Towers"), the
         // shops and the public buildings. [ensureFreshPendingTheme] above has already carried the single
         // older setting into the groups' keys ([carryHoursOver], [carryPublicsOver]), so removing one
         // group's keys leaves the others'.
@@ -1817,18 +1839,21 @@ class WallpaperPrefs internal constructor(
             // existed ([readAsDrawnBefore]), which reads the other categories' switches too.
             prefs[Keys.KEEP_ROAD] = defaultCustomizationFor(forThemeId).keepRoad
         }
+        // *Reset Shops* and *Reset Public buildings* bring back their switch, written as the theme ships it: without a key
+        // the store would read the one switch of before (`placeSwitchRead`). *Reset Towers* is the towers' alone.
         if (category == ObjectCategory.BUILDINGS) {
-            prefs.remove(Keys.PLACES_VISIBLE)
             prefs.remove(Keys.TOWER_HOURS_ENABLED)
             prefs.remove(Keys.TOWER_OPEN_HOUR)
             prefs.remove(Keys.TOWER_CLOSE_HOUR)
         }
         if (category == ObjectCategory.SHOPS) {
+            prefs[Keys.SHOPS_VISIBLE] = defaultCustomizationFor(forThemeId).shopsVisible
             prefs.remove(Keys.SHOP_HOURS_ENABLED)
             prefs.remove(Keys.SHOP_OPEN_HOUR)
             prefs.remove(Keys.SHOP_CLOSE_HOUR)
         }
         if (category == ObjectCategory.PUBLICS) {
+            prefs[Keys.PUBLICS_VISIBLE] = defaultCustomizationFor(forThemeId).publicsVisible
             prefs.remove(Keys.PUBLIC_HOURS_ENABLED)
             prefs.remove(Keys.PUBLIC_OPEN_HOUR)
             prefs.remove(Keys.PUBLIC_CLOSE_HOUR)
@@ -1888,6 +1913,8 @@ class WallpaperPrefs internal constructor(
         remove(Keys.CARS_NIGHT_DENSITY)
         remove(Keys.KEEP_ROAD)
         remove(Keys.PLACES_VISIBLE)
+        remove(Keys.SHOPS_VISIBLE)
+        remove(Keys.PUBLICS_VISIBLE)
         remove(Keys.SHOP_HOURS_ENABLED)
         remove(Keys.SHOP_OPEN_HOUR)
         remove(Keys.SHOP_CLOSE_HOUR)
@@ -1999,6 +2026,7 @@ class WallpaperPrefs internal constructor(
             carryShopsOver(forThemeId)
             carryHoursOver()
             carryPublicsOver(forThemeId)
+            pinPlaceSwitches(forThemeId)
             pinKeepRoad(forThemeId)
             return
         }
@@ -2023,14 +2051,14 @@ class WallpaperPrefs internal constructor(
         // Written by this build, whose writer gives the shops and the public buildings keys of their own.
         this[Keys.SCRATCH_KNOWS_SHOPS] = true
         this[Keys.SCRATCH_KNOWS_PUBLICS] = true
+        pinPlaceSwitches(forThemeId)
         pinKeepRoad(forThemeId)
     }
 
     /**
      * A scratch written before *Keep the road* existed, written as it reads ([readAsDrawnBefore]) where that differs from
-     * its keys -- *Keep the road* and the switches and *Towers* amount of the categories its street lacked, the six
-     * buildings' among them -- once, before
-     * the first edit lands. Without it the store would go on being read as the scene it drew: a user who later took both
+     * its keys -- *Keep the road* and the switches and *Towers* amount of the categories its street lacked; the six
+     * buildings' two switches are [pinPlaceSwitches]', written just before -- once, before the first edit lands. Without it the store would go on being read as the scene it drew: a user who later took both
      * car densities to 0 % would find the road kept, when the switch is off as every theme ships, and a category written
      * on would appear at the first edit (`DESIGN_NOTES.md` decisions 102 and 104).
      */
@@ -2042,8 +2070,20 @@ class WallpaperPrefs internal constructor(
         this[Keys.visible(ObjectCategory.PARASOLS)] = read.parasols.visible
         this[Keys.visible(ObjectCategory.BUILDINGS)] = read.buildings.visible
         this[Keys.density(ObjectCategory.BUILDINGS)] = read.buildings.density
-        this[Keys.PLACES_VISIBLE] = read.placesVisible
         this[Keys.visible(ObjectCategory.CARS)] = read.cars.visible
+    }
+
+    /**
+     * A scratch written before *Show Shops* and *Show Public buildings* existed, given both as it reads them
+     * ([placeSwitchRead]: the scene it drew), once, before the first edit lands: from then on *Show Towers* is the towers'
+     * alone, and turning it off or on moves the towers and nothing else (`DESIGN_NOTES.md` decision 109).
+     * Before [pinKeepRoad], whose key would end the reading of a store older still as the scene it drew ([readAsDrawnBefore]).
+     */
+    private fun MutablePreferences.pinPlaceSwitches(themeId: String) {
+        if (this[Keys.SHOPS_VISIBLE] != null && this[Keys.PUBLICS_VISIBLE] != null) return
+        val read = readFlatCustomization(this, themeId)
+        this[Keys.SHOPS_VISIBLE] = read.shopsVisible
+        this[Keys.PUBLICS_VISIBLE] = read.publicsVisible
     }
 
     /**

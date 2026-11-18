@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import com.paperscrape.livewallpaper.ui.icons.filled.Event
+import com.paperscrape.livewallpaper.ui.icons.outlined.CalendarMonth
 import com.paperscrape.livewallpaper.ui.icons.outlined.AcUnit
 import com.paperscrape.livewallpaper.ui.icons.outlined.CardGiftcard
 import com.paperscrape.livewallpaper.ui.icons.outlined.Celebration
@@ -478,7 +478,7 @@ private fun iconFor(window: CalendarWindow): ImageVector = when (window) {
 }
 
 /** The icon the settings row for this whole screen uses. */
-internal val holidayCalendarIcon: ImageVector = Icons.Filled.Event
+internal val holidayCalendarIcon: ImageVector = Icons.Outlined.CalendarMonth
 
 private fun describeRuns(runs: List<ClosedRange<MonthDay>>): String {
     if (runs.isEmpty()) return "no days"

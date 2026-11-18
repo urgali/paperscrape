@@ -41,8 +41,8 @@ android {
         // **One release, one step.** A counter bumped twice in the making of one release is how a
         // build installed for a comparison runs into `adb install -r`'s silent refusal of a
         // downgrade.
-        versionCode = 82
-        versionName = "5.19"
+        versionCode = 83
+        versionName = "5.20"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -279,7 +279,7 @@ androidComponents {
 // The root `build.gradle.kts` forces the *plugin* classpath. AGP also puts its own tooling on
 // configurations that belong to **this project**, and `androidLintTool` -- the lint tool's
 // classpath -- is one of them. The root block does not touch it, and without this block, with
-// AGP 9.4.1 and the root forces, `./gradlew :app:dependencies` shows three alerted coordinates
+// AGP 9.5.1 and the root forces, `./gradlew :app:dependencies` shows three alerted coordinates
 // alive on exactly that configuration and nowhere else:
 //
 //   org.apache.commons:commons-lang3:3.16.0     CVE-2025-48924   (MODERATE)
@@ -288,8 +288,8 @@ androidComponents {
 //
 // plus `org.apache.httpcomponents:httpclient:4.5.6` (CVE-2020-13956), which the plugin classpath
 // lifts to 4.5.14 by ordinary conflict resolution -- so on that classpath it looks
-// fixed while `androidLintTool`, where nothing else asks for httpclient, quietly keeps 4.5.6.
-// Reading only `buildEnvironment` leaves all four alerts open.
+// fixed while `androidLintTool`, where nothing else asks for httpclient, quietly keeps 4.5.6 -- and
+// Guava 18.0 and 33.4.0-jre, below. Reading only `buildEnvironment` leaves all of them open.
 //
 // The versions match the root block deliberately: the same artifact resolving to two different
 // versions in one build is how you end up debugging a `NoSuchMethodError` that only lint sees.
@@ -302,7 +302,7 @@ androidComponents {
 // here. The two MODERATE alerts listed above are covered too: 1.85 is past the 1.84 that patched
 // them.
 //
-// **Guava is at 33.7.2-jre** on `androidLintTool` too, where lint-gradle 32.4.1 asks for 18.0 and
+// **Guava is at 33.8.0-jre** on `androidLintTool` too, where lint-gradle 32.5.1 asks for 18.0 and
 // 33.4.0-jre: CVE-2026-102554 / GHSA-xxph-c9ww-hj94 (HIGH), first patched in 33.7.2. The root
 // block carries the reasoning. The app's own classpaths hold `listenablefuture:1.0`, a separate
 // artifact with one interface, and no `guava`.
@@ -321,7 +321,7 @@ configurations.configureEach {
         force("org.bouncycastle:bcutil-jdk18on:1.85")
         force("org.apache.commons:commons-lang3:3.21.0")
         force("org.apache.httpcomponents:httpclient:4.5.14")
-        force("com.google.guava:guava:33.7.2-jre")
+        force("com.google.guava:guava:33.8.0-jre")
     }
 }
 

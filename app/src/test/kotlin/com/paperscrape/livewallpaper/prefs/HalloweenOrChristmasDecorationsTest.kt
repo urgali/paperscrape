@@ -363,7 +363,7 @@ class HalloweenOrChristmasDecorationsTest {
     /**
      * **With no house or building standing, the buildings' lights and the Halloween decorations read off and locked, and
      * hold nothing** (decisions 40, 76 and 83: greyed with their line, as the firs' switch is):
-     * with the houses and *Show Buildings* off -- the three shops are *Show Buildings*' -- *Halloween decorations* reads off,
+     * with the houses, *Show Towers*, *Show Shops* and *Show Public buildings* off -- the three shops are *Show Shops*' -- *Halloween decorations* reads off,
      * takes no tap and says what to turn on, and so does *Lights on the buildings* while no house on the mountains stands
      * either (their three bulbs are its); the stored choice untouched and back with a house. And one that reads off holds the
      * other side off neither. The Seasons screen draws the two rows, and counts them, from that rule.
@@ -373,7 +373,7 @@ class HalloweenOrChristmasDecorationsTest {
         val halloween = defaultCustomizationFor("halloween")
         val christmasTheme = defaultCustomizationFor("christmas")
         assertTrue(DecorationExclusion.halloweenDecorationsHang(halloween) && DecorationExclusion.buildingLightsHang(christmasTheme))
-        fun empty(c: SceneCustomization) = c.copy(houses = c.houses.copy(visible = false), buildings = c.buildings.copy(visible = false))
+        fun empty(c: SceneCustomization) = c.copy(houses = c.houses.copy(visible = false), buildings = c.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false)
         for (noHouses in listOf(empty(halloween), empty(halloween).copy(houses = halloween.houses.copy(density = 0f)))) {
             assertFalse(DecorationExclusion.halloweenDecorationsHang(noHouses))
             val row = SettingsUiModel.halloweenDecorations(noHouses)
@@ -384,9 +384,11 @@ class HalloweenOrChristmasDecorationsTest {
             assertFalse("holds nothing", DecorationExclusion.halloweenOn(noHouses))
             assertTrue(DecorationExclusion.christmasAllowed(noHouses))
         }
-        // The towers at 0 % leave the shops standing: the decorations have the shops.
-        val shopsOnly = empty(halloween).copy(buildings = halloween.buildings.copy(visible = true, density = 0f))
+        // Show Shops on, the towers off or at 0 %: the decorations have the shops. The public buildings alone wear none.
+        val shopsOnly = empty(halloween).copy(shopsVisible = true)
         assertTrue(SettingsUiModel.halloweenDecorations(shopsOnly).shownOn)
+        assertTrue(SettingsUiModel.halloweenDecorations(shopsOnly.copy(buildings = halloween.buildings.copy(visible = true, density = 0f))).shownOn)
+        assertFalse(SettingsUiModel.halloweenDecorations(empty(halloween).copy(publicsVisible = true)).shownOn)
         // The buildings' lights: none standing, and no house on the mountains either.
         val noBuildings = empty(christmasTheme).copy(distantHouses = christmasTheme.distantHouses.copy(visible = false))
         val lights = SettingsUiModel.christmasBuildingDecoration(noBuildings.christmasBuildingLightsEnabled, noBuildings)
@@ -401,16 +403,18 @@ class HalloweenOrChristmasDecorationsTest {
         )
         assertTrue(DecorationExclusion.buildingLightsHang(onTheMountains))
         assertTrue(SettingsUiModel.christmasBuildingDecoration(true, onTheMountains).shownOn)
-        assertEquals("Needs the houses or the buildings on in World & scene. Your choice is kept until then.", SettingsUiModel.NEEDS_HOUSES_LINE)
+        assertEquals("Needs the houses or the shops on in World & scene. Your choice is kept until then.", SettingsUiModel.NEEDS_HOUSES_LINE)
         assertEquals("Needs the houses, the buildings or the distant houses on in World & scene. Your choice is kept until then.", SettingsUiModel.NEEDS_BUILDINGS_LINE)
 
-        // On the store: Autumn with its houses and buildings off and the buildings' lights stored on -- the Halloween
+        // On the store: Autumn with its houses, towers, shops and public buildings off and the buildings' lights stored on -- the Halloween
         // decorations are not held by them, and go on as soon as there is a house.
         store.edit { it.clear() }
         prefs.setChristmasBuildingLightsEnabled(true, "autumn")
         store.edit {
             it[booleanPreferencesKey("obj_HOUSES_visible")] = false
             it[booleanPreferencesKey("obj_BUILDINGS_visible")] = false
+            it[booleanPreferencesKey("shops_visible")] = false
+            it[booleanPreferencesKey("publics_visible")] = false
         }
         assertFalse(DecorationExclusion.christmasOn(of("autumn")))
         assertTrue(of("autumn").christmasBuildingLightsEnabled)

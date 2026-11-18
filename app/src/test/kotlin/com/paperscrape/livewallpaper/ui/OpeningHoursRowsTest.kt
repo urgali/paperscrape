@@ -16,17 +16,19 @@ class OpeningHoursRowsTest {
 
     @Test
     fun `the shops' switch reads on only while the shops stand`() {
-        assertEquals(DependentSwitchUiState(shownOn = true, interactive = true), SettingsUiModel.shopHours(true, buildingsVisible = true, placesOnTheme = true))
-        assertEquals(DependentSwitchUiState(shownOn = false, interactive = true), SettingsUiModel.shopHours(false, buildingsVisible = true, placesOnTheme = true))
-        // Show Buildings off: no shop stands, so no shop keeps hours -- off and locked, the choice kept.
-        assertEquals(DependentSwitchUiState(shownOn = false, interactive = false), SettingsUiModel.shopHours(true, buildingsVisible = false, placesOnTheme = true))
+        assertEquals(DependentSwitchUiState(shownOn = true, interactive = true), SettingsUiModel.shopHours(true, placesOnTheme = true, groupVisible = true))
+        assertEquals(DependentSwitchUiState(shownOn = false, interactive = true), SettingsUiModel.shopHours(false, placesOnTheme = true, groupVisible = true))
+        // Show Shops off: no shop stands, so no shop keeps hours -- off and locked, the choice kept, and the line says where.
+        assertEquals(DependentSwitchUiState(shownOn = false, interactive = false), SettingsUiModel.shopHours(true, placesOnTheme = true, groupVisible = false))
+        assertEquals("Needs Show Shops on, above; your choice is kept until then.", SettingsUiModel.groupHoursLockedLine(com.paperscrape.livewallpaper.engine.StorefrontGroup.SHOPS))
     }
 
     @Test
     fun `the public buildings' switch reads on only while they stand`() {
-        assertEquals(DependentSwitchUiState(shownOn = true, interactive = true), SettingsUiModel.publicHours(true, buildingsVisible = true, placesOnTheme = true))
-        assertEquals(DependentSwitchUiState(shownOn = false, interactive = true), SettingsUiModel.publicHours(false, buildingsVisible = true, placesOnTheme = true))
-        assertEquals(DependentSwitchUiState(shownOn = false, interactive = false), SettingsUiModel.publicHours(true, buildingsVisible = false, placesOnTheme = true))
+        assertEquals(DependentSwitchUiState(shownOn = true, interactive = true), SettingsUiModel.publicHours(true, placesOnTheme = true, groupVisible = true))
+        assertEquals(DependentSwitchUiState(shownOn = false, interactive = true), SettingsUiModel.publicHours(false, placesOnTheme = true, groupVisible = true))
+        assertEquals(DependentSwitchUiState(shownOn = false, interactive = false), SettingsUiModel.publicHours(true, placesOnTheme = true, groupVisible = false))
+        assertEquals("Needs Show Public buildings on, above; your choice is kept until then.", SettingsUiModel.groupHoursLockedLine(com.paperscrape.livewallpaper.engine.StorefrontGroup.PUBLIC))
     }
 
     @Test
@@ -35,8 +37,8 @@ class OpeningHoursRowsTest {
         assertEquals(DependentSwitchUiState(false, false), SettingsUiModel.towerHours(true, buildingsVisible = false, towersAmount = 0.6f, towersStand = true))
         // The Towers amount at 0 % stands no tower (the shops stay): locked too.
         assertEquals(DependentSwitchUiState(false, false), SettingsUiModel.towerHours(true, buildingsVisible = true, towersAmount = 0f, towersStand = false))
-        // And the shops' switch does not care about the towers' amount: the shops stand at 0 %.
-        assertTrue(SettingsUiModel.shopHours(true, buildingsVisible = true, placesOnTheme = true).shownOn)
+        // And the shops' switch does not care about the towers' amount, nor Show Towers: the shops stand at 0 %.
+        assertTrue(SettingsUiModel.shopHours(true, placesOnTheme = true, groupVisible = true).shownOn)
     }
 
     /**
@@ -63,8 +65,8 @@ class OpeningHoursRowsTest {
         // The shops' and the public buildings' page: one composable, each group's own rule and setters.
         val groups = functionLines(screen, "private fun StorefrontGroupSubScreen(")
         assertTrue(groups.contains("title = if (shops) \"Shop opening hours\" else \"Public building opening hours\","))
-        assertTrue(groups.contains("SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)"))
-        assertTrue(groups.contains("SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible, placesOnTheme, customization.placesVisible)"))
+        assertTrue(groups.contains("SettingsUiModel.shopHours(customization.shopHoursEnabled, placesOnTheme, customization.shopsVisible)"))
+        assertTrue(groups.contains("SettingsUiModel.publicHours(customization.publicHoursEnabled, placesOnTheme, customization.publicsVisible)"))
         for ((slot, pair) in listOf(
             "onEnabled" to ("setShopHoursEnabled" to "setPublicHoursEnabled"),
             "onOpen" to ("setShopOpenHour" to "setPublicOpenHour"),
@@ -105,15 +107,15 @@ class OpeningHoursRowsTest {
         assertTrue(line, line.contains("The fire station and the police station never close"))
         assertEquals(
             "School open 09:00-20:00, fire and police station always open",
-            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.PUBLIC, true, true, 9f, 20f, placesOnTheme = true),
+            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.PUBLIC, true, 9f, 20f, placesOnTheme = true, groupVisible = true),
         )
         assertEquals(
             "School, fire and police station, always open",
-            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.PUBLIC, true, false, 9f, 20f, placesOnTheme = true),
+            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.PUBLIC, false, 9f, 20f, placesOnTheme = true, groupVisible = true),
         )
         assertEquals(
             "Restaurant, bar and shop, open 09:00-20:00",
-            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.SHOPS, true, true, 9f, 20f, placesOnTheme = true),
+            SettingsUiModel.storefrontRowSummary(com.paperscrape.livewallpaper.engine.StorefrontGroup.SHOPS, true, 9f, 20f, placesOnTheme = true, groupVisible = true),
         )
     }
 

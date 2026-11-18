@@ -73,7 +73,7 @@ class CardAtZeroTest {
     fun `the shops and a car stay on the card at zero, as on the wallpaper`() {
         val c = defaultCustomizationFor("city")
         val zero = card("city", c.copy(buildings = c.buildings.copy(density = 0f), cars = c.cars.copy(density = 0f)))
-        val none = card("city", c.copy(buildings = c.buildings.copy(visible = false), cars = c.cars.copy(visible = false)))
+        val none = card("city", c.copy(buildings = c.buildings.copy(visible = false), shopsVisible = false, publicsVisible = false, cars = c.cars.copy(visible = false)))
         assertTrue("the shops at 0 %", zero.items.size > none.items.size)
         assertTrue("a car at 0 %", zero.cars.isNotEmpty() && none.cars.isEmpty())
     }

@@ -59,6 +59,8 @@ class TrafficGoldenTest {
                     trees = c.trees.copy(visible = false),
                     houses = c.houses.copy(visible = false),
                     buildings = c.buildings.copy(visible = false),
+                    shopsVisible = false,
+                    publicsVisible = false,
                     parasols = c.parasols.copy(visible = false),
                 )
             }

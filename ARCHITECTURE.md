@@ -68,7 +68,7 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 
 | File | Responsibility |
 |---|---|
-| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed, the location moved to another place (a written place more than `LiveWeatherSchedule.WRITTEN_PLACE_KM`, 10 m; the phone's position farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 3 km, read on every pass with no request by `DeviceLocationProvider.heldFix` and taken by `LiveWeatherSchedule.takesHeldPosition`), or the wallpaper came back on screen with the last success an hour old (`ShowingRefresh`, decision 99: at once, then 5, 10 and 20 seconds after a request that found no network); the tick comes sooner when a try for the phone's position or a quick retry falls due (`SolarDaySchedule.nextPassDelayMillis`, `LiveWeatherSchedule.passDelayMillis`). Every pass is caught whole: an exception is logged and the next pass runs. The engine counts its showings (`showings`) where on screen changes. It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
+| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed, the location moved to another place (a written place more than `LiveWeatherSchedule.WRITTEN_PLACE_KM`, 10 m; the phone's position farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 3 km, read on every pass with no request by `DeviceLocationProvider.heldFix` and taken by `LiveWeatherSchedule.takesHeldPosition`), or the wallpaper came back on screen with the last success an hour old (`ShowingRefresh`, decision 99: at once, then 5, 10 and 20 seconds after a request that found no network); the tick comes sooner when a try for the phone's position or a quick retry falls due (`SolarDaySchedule.nextPassDelayMillis`, `LiveWeatherSchedule.passDelayMillis`). Every pass is caught whole: an exception is logged and the next pass runs. A change of those inputs or of the location source drops the forecast from the scene at once (`forgetPublishedWeatherStatus`, on the main thread, the renderer told through `applyLiveWeather` on the render thread), and a pass whose request was in flight keeps and draws nothing of it. Of two engines at once, the status the settings read is written by the one last on screen (`WeatherStatusWriter`, `LiveWeatherStatusWriter`). The engine counts its showings (`showings`) where on screen changes. It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
 | `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper". Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
 | `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. A tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. Each place among the houses (five on a built-in street) draws the building the street deals that copy of it (`StorefrontStreet`, by the copy's own number -- `SceneObjectRenderer.copyOf`: the place's representative copy plus `tileIndex`, the scroll's whole tiles, `scrollTileBias` taken out -- and the theme's seed, allocation-free), each of the six with a runtime of its own -- roster, windows, doorway, kept across rebuilds and advanced every frame on its group's hours -- and no place is drawn smaller than `placeScaleFloor`. Nothing about the street changes when the engine becomes visible again: a building changes only by scrolling. A shut building draws its blinds and its door's shutter (`drawShut`, `DoorShutter`); with *Lights on the buildings* on every building draws its decorations -- the roof string, the wreath, a tower's star, where the table says, through `ChristmasDecorations`, the sequence the gallery card draws them from too (`drawDecorations`) -- and with *Christmas firs* on one tree in three is the fir A (`drawFir`, `FirTable`); bulbs are discs (`SpriteBlitter.drawDisc`), wreaths blits of the atlas. |
@@ -85,8 +85,8 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 | `SceneTransform.kt` | The `save`/`restore`/`translate`/`scale`/`rotate` arithmetic, as pure testable code. |
 | `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. Of a street's ten building candidates the six of the shop band are places among the houses but one, which stays the tower it was (`buildingCandidates`: five places and five tower candidates, the towers' crowns dealt over seven tower slots, so each tower keeps the crown it had when the street had seven). The twelve built-in streets plan their five places together (`planStreets`): one in each fifth of the tile, each for the widest and the tallest of the six buildings that may stand in it, declared and on ink (`frontRects`: the 40 % rule and the trunks measured on every one of the six fronts, with both species of tree and each house as tall as it draws), never five on one screen, no spot under more than four themes' places of one row; a tree or a parasol in a place's way moves, keeping its density, its colour, its autumn tone and its kind (`relocated`). The plan is not computed when the app starts: `ShopPlanTable.kt` holds its answer. A saved street keeps its places, and on every load a place in which one of the six would be crossed or covered past the rule moves as little as it takes (`placesClearedOnSavedStreet`, called by `sceneObjectLayoutFromJson` in `CustomThemeData.kt`), and the layout remembers where the theme stored it (`SceneObjectLayout.placesAsSaved`): the six buildings take their identity from there and a save writes it back there; random themes are not planned. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
-| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, distant houses, lake, birds config. The shops have a colour pair of their own, `shops`, beside the towers' `buildings`, and the public buildings theirs, `publics`, with opening hours of their own (`publicHoursEnabled`, `publicOpenHour`, `publicCloseHour`); a house or a tower wears the pair `buildingColoursFor` gives its variant, a building among the houses its group's (`storefrontColours`, `storefrontWall`), and each built-in theme starts its towers, shops and public buildings from colours of its own (`builtInTowerColours`, `builtInShopColours`, `builtInPublicColours`). The Christmas decorations are three switches (`christmasBuildingLightsEnabled`, stored under the key of the single *Christmas lights* switch they replaced, `christmasTreeLightsEnabled`, `christmasFirsEnabled`, the other two read from that key where a payload has none of their own), Halloween has six more beside `halloweenEnabled` (`laughingMoonEnabled`, `nightSkyByDayEnabled`, `halloweenDecorationsEnabled`, `bloodRainEnabled`, `headlessHorsemanEnabled` and `stillMoonEnabled`, in force by `stillMoonActive()`) and the scarecrows a config of their own, `scarecrows` (visibility and density, their candidates the snowmen's places, `SceneObjectType.SCARECROW`, kept by a coin of their own and never written into a saved layout); `DecorationExclusion` is the one statement of "the Halloween decorations and the Christmas ones are never on together", read by the settings, the setters and every reader of stored data; a switch counts there only while it has something to hang on (`treesStand`; `firsCanStand`, false on a street of palms alone with *Palms* on, where no fir grows; `halloweenDecorationsHang` and `buildingLightsHang`, with `placesStand`: *Show Buildings* and *Show shops and public buildings* carry the six buildings only on a street with places among the houses), the same tests the settings grey a switch by. The reading of stored data (`resolved`) counts *Show Buildings* as the shops on every street, as the gallery card draws them on any with *Show shops and public buildings* on, so what is drawn does not depend on the street's places. **A value the class's defaults read lives in its companion, before `DEFAULT`** (`SCARECROWS_OFF`): a top-level value of the file read by the defaults makes a cycle with the file's values that read `DEFAULT`, and crashes the engine when it touches the class first (`FirstClassTouchedTest`). The switches `fireworksEnabled` (decision 103), `keepRoad` (104) and `placesVisible`, the six buildings among the houses (102); `offWhereBornWithout` and `readAsDrawnBefore` read a random street's and an older store's settings. |
-| `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds and the lightning flash. Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: rain from an empty sky, or a flash over a dry scene. Three layers, one rule. |
+| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, distant houses, lake, birds config. The shops have a colour pair of their own, `shops`, beside the towers' `buildings`, and the public buildings theirs, `publics`, with opening hours of their own (`publicHoursEnabled`, `publicOpenHour`, `publicCloseHour`); a house or a tower wears the pair `buildingColoursFor` gives its variant, a building among the houses its group's (`storefrontColours`, `storefrontWall`), and each built-in theme starts its towers, shops and public buildings from colours of its own (`builtInTowerColours`, `builtInShopColours`, `builtInPublicColours`). The Christmas decorations are three switches (`christmasBuildingLightsEnabled`, stored under the key of the single *Christmas lights* switch they replaced, `christmasTreeLightsEnabled`, `christmasFirsEnabled`, the other two read from that key where a payload has none of their own), Halloween has six more beside `halloweenEnabled` (`laughingMoonEnabled`, `nightSkyByDayEnabled`, `halloweenDecorationsEnabled`, `bloodRainEnabled`, `headlessHorsemanEnabled` and `stillMoonEnabled`, in force by `stillMoonActive()`) and the scarecrows a config of their own, `scarecrows` (visibility and density, their candidates the snowmen's places, `SceneObjectType.SCARECROW`, kept by a coin of their own and never written into a saved layout); `DecorationExclusion` is the one statement of "the Halloween decorations and the Christmas ones are never on together", read by the settings, the setters and every reader of stored data; a switch counts there only while it has something to hang on (`treesStand`; `firsCanStand`, false on a street of palms alone with *Palms* on, where no fir grows; `halloweenDecorationsHang` and `buildingLightsHang`, with `placesStand` and `shopsStand`: *Show Shops* and *Show Public buildings* carry their buildings only on a street with places among the houses, and the Halloween decorations hang on the shops alone of the six), the same tests the settings grey a switch by. The reading of stored data (`resolved`) counts the buildings' switches as the shops and the public buildings on every street, as the gallery card draws them on any, so what is drawn does not depend on the street's places. **A value the class's defaults read lives in its companion, before `DEFAULT`** (`SCARECROWS_OFF`): a top-level value of the file read by the defaults makes a cycle with the file's values that read `DEFAULT`, and crashes the engine when it touches the class first (`FirstClassTouchedTest`). The switches `fireworksEnabled` (decision 103), `keepRoad` (104), and `shopsVisible` and `publicsVisible`, the six buildings among the houses (109; `placesVisible`, either of them); `offWhereBornWithout` and `readAsDrawnBefore` read a random street's and an older store's settings. |
+| `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds, the lightning flash, and whether the rainbow shows (`rainbowUnderForecast`: not under the forecast's rain, snow or thunderstorm). Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: rain from an empty sky, or a flash over a dry scene. Three layers, one rule. |
 | `StormAtmosphere.kt` | How much the weather darkens the scene, and what that darkening does to a colour. One pure `strength(...) -> 0..1` feeds sky darkening, cloud darkening and sun attenuation, so the three cannot disagree about how bad the weather is. `dim` pulls a colour toward its own Rec. 601 luminance and then down, which keeps the blend relative to the theme's palette rather than substituting a storm one. Applied *on top of* the day/night colour, so the two are orthogonal and combine. |
 | `SunArc.kt` | How high the sun's and the moon's arc rises for a *Sun/Cloud Height* on a given screen: the slider spread up to where the sun and its ring stay under the status bar. The sun, the moon, the still moon and the clouds read it. |
 | `CloudBand.kt` | Where the cloud band sits and what hangs off it: the clouds, the rain's fall origin, and the lightning's origin. Pure, and separate, so all three are derived from one function and cannot drift apart: a copy of the arithmetic at each call site would let the bolts be born above the band instead of inside it. |
@@ -141,6 +141,7 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 | `FirstFrameGate.kt` | Holds an engine's first frame until its settings and saved themes have arrived, or 2 s. |
 | `ShopPlanTable.kt` | **Generated** (`ShopPlanTableTest`): where the twelve built-in streets' five places among the houses stand, and where each tree or parasol the plan moved stands -- the plan's answer computed when the table is written instead of at every start. |
 | `CloudCoverFade.kt` | How the sky gets from one cloud cover to the next without the change being a single frame: the cover itself moves at a fixed rate, and each cloud's opacity eases in or out. Both eases are linear, so they arrive and stop, and the first frame snaps, so a fresh engine and every golden draw the sky they were handed; after a frame with no cloud placed or showing (`clearSkyDrawn`) a cloud seen for the first time fades in from nothing. While any cloud is still drawn (`anythingVisible`) the sky is not cloudless, so the rain stops with the last one. |
+| `RainbowFade.kt` | How much of the rainbow Live Weather lets through, eased (decision 110): when the forecast starts or stops rain, snow or a thunderstorm, or leaves the scene, the level moves linearly to 0 or 1 over `CloudCoverFade.FADE_SECONDS`, the clouds' own constant; it arrives exactly, the first frame snaps, and it runs on the scene's clock. `PaperRenderer.drawRainbow` asks it every frame, whether or not the rainbow is drawn, and multiplies the rainbow's visibility by it; the switch and the opacity act at once, and the day/night fade is applied beside it. One float. |
 | `GlLifecyclePolicy.kt` | The GL backend's lifecycle rules as pure decisions: one render thread per engine rather than per surface, how many times a working context may be rebuilt before the engine falls back to `Canvas`, and when a memory trim may run (only with a context current); when the `Canvas` loop may run (`canvasLoopMayRun`), whether a fall-back to `Canvas` is taken (`mayFallBackToCanvas`) and what counts as visible (`countsAsVisible`). |
 | `PeopleColours.kt` | What colour each of a person's four regions wears, dealt afresh each time a walker crosses the scene and deterministic in theme, person and crossing. |
 | `PeopleLayerTable.kt` | **Generated** (`tools/generate_people_layers.py`, which also writes the artwork): which drawables make up each person, the fixed art and one weight mask per colourable region. |
@@ -288,11 +289,15 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
     The settings screen draws the *Live Weather* switch off on two of these answers
     (a refused key, no position from the phone), so the service forgets the one it published --
     and says `OFF`, "not known yet" -- whenever the inputs it was about change (`LiveWeatherInputs`
-    or the location source), and a pass whose fetch began before such a change publishes nothing;
-    otherwise a key typed in a moment ago would read "not accepted" until the wallpaper was next on
-    screen.
+    or the location source), and drops the forecast it drew in the same moment; a pass whose fetch
+    began before such a change keeps, draws and publishes nothing; otherwise a key typed in a moment
+    ago would read "not accepted" until the wallpaper was next on screen. Of two wallpaper engines at
+    once (home and lock screen apart, a second screen) only the one last on screen writes it
+    (`engine/WeatherStatusWriter.kt`).
   - `LiveWeatherInputs.kt` — which settings force an immediate fetch rather than waiting for the
-    hourly refresh. Pure, so the list cannot quietly fall behind the settings.
+    hourly refresh: the switch, the provider and the selected provider's key
+    (`WallpaperSettings.apiKeyForWeatherProvider`, the key the request is made with); another provider's key is not one
+    (decision 108). Pure, so the list cannot quietly fall behind the settings.
   - `WeatherHttp.kt` — the one `HttpURLConnection` JSON GET every provider shares, and the pure
     status → `WeatherFailure` mapping. A 400 whose body gives Open-Meteo's reason about the key
     ("The supplied API key is invalid.") is a refused key (`UNAUTHORIZED`), as a 401 is. Any other
@@ -426,7 +431,8 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
     Location row under GPS and Network (`deviceLocationRow`: working only while the phone gives the
     position, otherwise "GPS - tap to allow" and the tap to the permission dialog, PaperScrape's page
     or the location page; `afterLocationRequest` for the dialog's answer), the weather controls that
-    give way to a forecast (`forecastOwnsTheWeatherControls`), and the key rows' lines (`apiKeyLine`).
+    give way as soon as *Live Weather* reads on (`forecastOwnsTheWeatherControls`) and what the pages say
+    in their place (`weatherPages`), and the key rows' lines (`apiKeyLine`).
     It also holds the questions the resets and "Replace with current" ask (`sceneResetMessage`,
     `decorationsResetMessage`, `galleryResetMessage`, `replaceWithCurrentQuestion`), the banner of World
     & scene and Seasons (`themeEditsBanner`), the bird colours' shares (`birdColorShares`), *Swipe
@@ -1094,9 +1100,10 @@ perspectiveScaleAt(y)  = (y - 0.575) / (0.766 - 0.575)      // 1.0 at the refere
 The ground stands 0.08 of the screen high, every line of it lifted alike, so the ratios and every size are the
 projection's own; under the road the **near row** stands on lines of its own (`SceneSpace.NEAR_ROW_*`,
 `nearRowFeetYFraction`), at a fixed share of the reference size (`SceneObjectRenderer.nearScaleFor`), planned once from
-the layout (`SceneObjectCatalog.nearRowOf`): the street's houses, trees, parasols and decorations twice, a third of a tile
-on and half a tile further (`NEAR_ROW_SHIFT`, `NEAR_ROW_SECOND_PASS`), every place among its houses, in their order once
-moved, where the six buildings take turns (`nearBuilding`: never the same twice in a row on the screen, nor the building
+the layout (`SceneObjectCatalog.nearRowOf`): the street's houses, trees, parasols and decorations once, a third of a tile
+on (`NEAR_ROW_SHIFT`), a house that one nearer in the street covers by more than half of the narrower left out, two of its
+places among its houses -- the two standing nearest half a tile apart (`nearPlaces`) --, in their order once moved, where
+the six buildings take turns (`nearBuilding`: never the same twice in a row on the screen, nor the building
 of a street place over it, `NearRowPlan.above`, read through the renderer's `StreetDeal`), each place's front kept clear of
 what stands in front of it. It is drawn after the cars, its meadow first and its pavement's
 people last, a crowd of their own (`SceneObjectRenderer.Pavement`); the gallery card does not draw it.
@@ -1290,7 +1297,13 @@ a random street the same, its trees first (`withTrees`). A save keeps every cand
 street was born without starts off (`offWhereBornWithout`, over `RandomSceneGenerator.born`, which reads no colour), and
 settings written before this read as the scene they drew (`readAsDrawnBefore`, over `streetDrawnBefore`), so nothing
 appears by itself but what decision 97 gives a random street whose own trees, houses or parasols keep none at the factory
-amount: the built-in streets' ones from its own seed, and another seed's until one stands (`firstStanding`). The six buildings among the houses have a switch of their own, `SceneCustomization.placesVisible`.
+amount: the built-in streets' ones from its own seed, and another seed's until one stands (`firstStanding`). The six buildings among the houses have a switch for each group, `SceneCustomization.shopsVisible` and `publicsVisible`
+(*Show Shops*, *Show Public buildings*): a place stands while either is on, whatever *Show Towers* says, and draws empty in a
+turn of a group switched off (`SceneObjectRenderer.drawStaticObject`, `ThemePreviewScene`); data written before they
+existed reads each as the single switch of older data and *Show Buildings* both on (`placeSwitchAsDrawnBefore`), in the store
+(`WallpaperPrefs`, keys `shops_visible` and `publics_visible`, written down at the first edit by `pinPlaceSwitches`) and in a
+theme, an archive or a backup (`sceneCustomizationFromJson`), and a theme written now carries `placesVisible` (either group
+on) for a release that knows the one switch.
 
 ### Stateful vs. stateless drawing
 
@@ -1553,7 +1566,7 @@ one for each row of the size table and the nearer of two in a row (`StorefrontSt
 colours and hours, shut with blinds and a shutter -- the shutter the wallpaper's own bands
 (`DoorShutter.forEachBand`, one sequence for both) cut from the door's outline, flat cards of that shape
 (`PreviewSprite.outline`); and its towers only where the
-wallpaper keeps one (*Show Buildings* on and *Towers* above 0 %). With *Lights on the buildings* on its buildings carry the
+wallpaper keeps one (*Show Towers* on and *Towers* above 0 %); each building among the houses while its group's switch is on. With *Lights on the buildings* on its buildings carry the
 wallpaper's Christmas decorations, the points from `ChristmasDecorations`, the one sequence the wallpaper draws from too
 (`drawDecorations`, its sill strings and its distant houses' bulbs), laid out as parts marked `PreviewSprite.decoration` -- the
 bulbs as discs (`discRadius`, which the painter draws with `SpriteBlitter.drawDisc`, the circle of a Canvas), a tower's star as an
@@ -1783,8 +1796,7 @@ Two properties are worth stating because the design turns on them:
   produces a copy for drawing. That is the whole of the reversibility promise:
   switching a pair back to Manual restores exactly what was picked by hand,
   because nothing overwrote it. The settings screen shows the derived half
-  greyed and inert, the same treatment the Clouds screen gives its controls
-  while Live Weather is driving them.
+  greyed and inert.
 
 The persisted form is one string key per pair (`…_auto_mode_1`,
 `hills_auto_mode`, `sky_auto_mode_high`, …) plus the matching JSON field. Both
@@ -2223,8 +2235,8 @@ exists as a counter to work around this.
 
 | Component | Version |
 |---|---|
-| Android Gradle Plugin | 9.4.1 |
-| Gradle | 9.8.2 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.8.2) |
+| Android Gradle Plugin | 9.5.1 |
+| Gradle | 9.9.1 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.9.1) |
 | Kotlin Compose plugin | 2.4.21 |
 | Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.4.21 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
 | `compileSdk` | 37 |
@@ -2247,7 +2259,8 @@ Compose BOM `2026.09.00` (`ui`, `ui-graphics`, `material3` and `material-icons-c
 `datastore-preferences 1.3.0`, `coroutines 1.11.0`. Nothing is on an alpha, beta or rc.
 There is no `appcompat`, no `ui-tooling` (the project has no `@Preview`) and no
 `material-icons-extended`: the icons the settings draw beyond the core set are
-`ImageVector`s of the app's own in `ui/`.
+`ImageVector`s of the app's own in `ui/icons/` -- Material's paths copied from `material-icons-extended` 1.7.8, with
+its licence, and *Birds*' swallow, drawn from the scene's own `bird_body.svg` (`ui/icons/Swallow.kt`).
 
 ### Build types
 
@@ -2294,11 +2307,11 @@ There is **no third job**: CI runs no emulator, and **the instrumented tests are
 instead** — see *Testing* below.
 
 The workflows set up a Temurin JDK 17, which builds
-AGP 9.4.1 / Gradle 9.8.2; the wrapper jar matches the SHA-256 Gradle
-publishes for 9.8.2 so wrapper validation passes, and `compileSdk 37`
+AGP 9.5.1 / Gradle 9.9.1; the wrapper jar matches the SHA-256 Gradle
+publishes for 9.9.1 so wrapper validation passes, and `compileSdk 37`
 needs nothing installed: the `ubuntu-24.04` runner image ships
 `android-37.0` alongside `android-36`, and build-tools 36.0.0, which is what
-AGP 9.4.1 selects by default. The three jobs of the two workflows -- `build` and `release` above and
+AGP 9.5.1 selects by default. The three jobs of the two workflows -- `build` and `release` above and
 `dependency-submission.yml`'s -- name that image (`runs-on: ubuntu-24.04`), the
 maintainer's *«Ubuntu 24»* (2026-10-18): `ubuntu-latest` moves to Ubuntu 26.04
 between 2026-10-19 and 2026-11-19 (GitHub's announcement, `actions/runner-images#14748`), and the
@@ -2334,7 +2347,7 @@ of which `androidLintTool` is the one that matters: a version lifted on the plug
 ordinary conflict resolution can survive there. **`buildEnvironment` alone cannot tell you a fix is
 complete; `:app:dependencies` can.** The forced coordinates are Bouncy Castle's three jars, jose4j, jdom2,
 commons-lang3, httpclient and Guava (`com.google.guava:guava`, which AGP and lint-gradle bring in four
-versions and both blocks hold at `33.7.2-jre`); the APK carries no Guava, only the one-interface
+versions and both blocks hold at `33.8.0-jre`); the APK carries no Guava, only the one-interface
 `listenablefuture:1.0` artifact androidx asks for.
 
 The check that says whether the graph is clean is not a document. Resolve the graph and scan every
@@ -2345,6 +2358,9 @@ is what it mirrors:
 ./gradlew --no-daemon buildEnvironment :app:dependencies
 # then query https://api.osv.dev/v1/querybatch for each resolved group:artifact:version
 ```
+
+**Gradle itself is not in that graph, and OSV does not answer for it**: its advisories are GitHub's, for the repository
+`gradle/gradle` (`https://api.github.com/repos/gradle/gradle/security-advisories`), read before a Gradle is taken.
 
 ### Verified build
 
@@ -2520,7 +2536,7 @@ The limit is 0.50%. See `GlGolden.Tolerance` for the full table.
 Building requires a full JDK (17 recommended, matching CI), the Android SDK
 with platform 37 (Android 17) and build-tools 36, and network access to Google
 Maven and Maven Central. Platform 37 is what `compileSdk` links against;
-build-tools stays at 36.0.0, which is what AGP 9.4.1 selects by default. `README.md`'s *Build*
+build-tools stays at 36.0.0, which is what AGP 9.5.1 selects by default. `README.md`'s *Build*
 section has the minimal setup.
 
 **A phone is also required to release**, because the instrumented layer above is not run by CI and

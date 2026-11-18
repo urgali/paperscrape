@@ -1584,24 +1584,17 @@ object SceneObjectCatalog {
     const val NEAR_ROW_SHIFT = 0.31f
 
     /**
-     * How far along the tile the near row's second pass of the street stands from its first: half a tile, so the near
-     * row holds the street twice -- its houses, trees, palms, parasols and seasonal decorations at [NEAR_ROW_SHIFT] and
-     * again at [NEAR_ROW_SHIFT] plus this (`DESIGN_NOTES.md` §12, decision 105).
-     */
-    const val NEAR_ROW_SECOND_PASS = 0.5f
-
-    /**
-     * One object of the near row: [spec] is what stands there -- [source] moved along the tile, a house with its drawing
+     * One object of the near row: [spec] is what stands there -- [source] moved [NEAR_ROW_SHIFT] along the tile, a house with its drawing
      * dealt from its new place ([StaticSceneObject.UNDEALT]) -- and [source] the street's candidate it repeats, whose
      * density coin and switches decide whether it stands.
      */
     class NearRowEntry(val source: StaticSceneObject, val spec: StaticSceneObject)
 
     /**
-     * The near row of a layout (decision 105): its [objects], and its [shops] -- every place among the houses of the
-     * street, moved [NEAR_ROW_SHIFT] along the tile and in their order across the tile, where the six buildings take turns
-     * ([nearBuilding]) -- with the place each repeats in [shopSources], and in [above] the street's places that stand
-     * over each on the screen: for near place `k`, pairs of ints, the street place's rank among
+     * The near row of a layout (decision 105): its [objects], and its [shops] -- two of the street's places among the
+     * houses, half a tile apart, moved [NEAR_ROW_SHIFT] along the tile and in their order across the tile, where the six
+     * buildings take turns ([nearBuilding]) -- with the place each repeats in [shopSources], and in [above] the street's
+     * places that stand over each on the screen: for near place `k`, pairs of ints, the street place's rank among
      * [StorefrontStreet.places] and its copy less the near place's copy (-1, 0 or 1).
      */
     class NearRowPlan(
@@ -1616,13 +1609,15 @@ object SceneObjectCatalog {
      * away members of it and moves none: each member is a candidate of the street, kept or not by its own coin.
      *
      * - **What stands there**: every candidate of the street but the towers and the places among the houses -- its houses,
-     *   trees, palms, parasols and seasonal decorations -- twice, [NEAR_ROW_SHIFT] along the tile and half a tile further
-     *   ([NEAR_ROW_SECOND_PASS]); every house stands, whatever another covers of it.
-     * - **The places**: every place among the houses of the street, once, [NEAR_ROW_SHIFT] along the tile, where the six
-     *   buildings take turns ([nearBuilding]); the towers stay behind.
+     *   trees, palms, parasols and seasonal decorations -- once, [NEAR_ROW_SHIFT] along the tile.
+     * - **The places**: of the street's places among the houses, the two that stand nearest half a tile apart (the one, on
+     *   a street with one) ([nearPlaces]), [NEAR_ROW_SHIFT] along the tile, where the six buildings take turns
+     *   ([nearBuilding]); the towers stay behind.
      * - **A place's front is left clear of what stands in front of it**: a candidate nearer in the street than a place,
      *   whose drawing reaches across the place's front, is left out of the near row; what stands behind a place stays, the
      *   building in front of it.
+     * - **Two houses never stand one in front of the other**: on one line of feet two houses whose drawings overlap by
+     *   more than half of the narrower read as one house drawn twice, so the one farther back in the street is left out.
      * - **What stands over a near place** ([NearRowPlan.above]): the street's places whose drawn width shares a pixel of
      *   the screen's width with the near place's, which the near place's building never repeats.
      *
@@ -1635,14 +1630,14 @@ object SceneObjectCatalog {
         val places = StorefrontStreet.places(layout)
         // In their order across the tile once moved: a copy's places are dealt in that order ([nearBuilding]), so a
         // place moved past the tile's end comes first, and two buildings dealt one after the other stand one after the other.
-        val shopSources = places.sortedBy { nearX(it.tileFractionX) }
+        val shopSources = nearPlaces(places).sortedBy { nearX(it.tileFractionX) }
         val shops = shopSources.map { it.copy(tileFractionX = nearX(it.tileFractionX)) }
         val shopFronts = shops.map { nearExtent(it) ?: floatArrayOf(0f, 0f) }
         val kept = ArrayList<NearRowEntry>()
-        for (pass in floatArrayOf(0f, NEAR_ROW_SECOND_PASS)) for (source in layout.staticObjects) {
+        for (source in layout.staticObjects) {
             if (source.type == SceneObjectType.SKYSCRAPER) continue
             val spec = source.copy(
-                tileFractionX = (nearX(source.tileFractionX) + pass) % 1f,
+                tileFractionX = nearX(source.tileFractionX),
                 silhouette = if (source.type == SceneObjectType.HOUSE) StaticSceneObject.UNDEALT else source.silhouette,
             )
             val reach = nearExtent(spec) ?: floatArrayOf(0f, 0f)
@@ -1652,6 +1647,20 @@ object SceneObjectCatalog {
             }
             if (!acrossAPlace) kept += NearRowEntry(source, spec)
         }
+        // The houses, nearest in the street first: each keeps its place unless a house kept before it covers half of it.
+        val houses = kept.filter { it.spec.type == SceneObjectType.HOUSE }.sortedByDescending { it.source.depthFraction }
+        val standing = ArrayList<NearRowEntry>()
+        val dropped = HashSet<NearRowEntry>()
+        for (h in houses) {
+            val hReach = nearExtent(h.spec) ?: continue
+            val hidden = standing.any { o ->
+                val oReach = nearExtent(o.spec) ?: return@any false
+                val narrower = minOf(hReach[1] - hReach[0], oReach[1] - oReach[0])
+                overlapPx(h.spec.tileFractionX, hReach, o.spec.tileFractionX, oReach, tilePx) > narrower / 2f
+            }
+            if (hidden) dropped += h else standing += h
+        }
+        kept.removeAll(dropped)
         // Over each near place, the street's places sharing a pixel of its width: the street's at its own depth's size.
         val streetReach = places.map { streetExtent(it) }
         val above = Array(shops.size) { k ->
@@ -1669,6 +1678,22 @@ object SceneObjectCatalog {
 
     /** [x] moved [NEAR_ROW_SHIFT] along the tile, wrapped into `[0, 1)`. */
     private fun nearX(x: Float): Float = (x + NEAR_ROW_SHIFT) % 1f
+
+    /**
+     * Of [places] (in their order across the tile), the near row's: the two standing nearest half a tile apart, so the
+     * near row shows about one place a screen; the one of a street with one; none of a street with none.
+     */
+    internal fun nearPlaces(places: List<StaticSceneObject>): List<StaticSceneObject> {
+        if (places.size < 2) return places
+        var best = 0 to 1
+        var bestGap = -1f
+        for (i in places.indices) for (j in i + 1 until places.size) {
+            val d = places[j].tileFractionX - places[i].tileFractionX
+            val gap = minOf(d, 1f - d)
+            if (gap > bestGap + 1e-6f) { bestGap = gap; best = i to j }
+        }
+        return listOf(places[best.first], places[best.second])
+    }
 
     /**
      * How far [o]'s drawing reaches left and right of its foot in the near row, in pixels of the plan's reference screen:

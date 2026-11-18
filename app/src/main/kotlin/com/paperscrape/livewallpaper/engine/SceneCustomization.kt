@@ -220,14 +220,14 @@ data class BirdsConfig(    val visible: Boolean,
 data class SceneCustomization(
     val houses: ObjectVariantConfig,
     /**
-     * The Buildings category: whether the towers and the buildings among the houses stand, how many towers, and **the
-     * towers' colours only** (the shops wear [shops], the public buildings [publics]; `DESIGN_NOTES.md` decision 62).
+     * The Buildings category, the towers': *Show Towers*, how many towers, and **the towers' colours only** (the shops
+     * wear [shops], the public buildings [publics]; `DESIGN_NOTES.md` decision 62). The buildings among the houses stand by
+     * [shopsVisible] and [publicsVisible] (decision 109).
      */
     val buildings: ObjectVariantConfig,
     /**
      * The colours of the shops -- the restaurant, the bar and the shop (`DESIGN_NOTES.md` decision 48). **Colours
-     * only**: whether they stand is [buildings]' switch, since they are one candidate pool with the towers and two
-     * switches for the same objects could disagree; [ObjectVariantConfig.visible] and [ObjectVariantConfig.density]
+     * only**: whether they stand is [shopsVisible], a switch of its own; [ObjectVariantConfig.visible] and [ObjectVariantConfig.density]
      * here are read by nothing ([keepCandidate], [staticStructurallyEquals]) and have no control. Data without the
      * field reads the Buildings colours stored beside it, which its shops wore (`sceneCustomizationFromJson`,
      * `WallpaperPrefs.readFlatCustomization`), so a theme keeps its look.
@@ -265,12 +265,14 @@ data class SceneCustomization(
      */
     val carsNightDensity: Float = DEFAULT_CARS_NIGHT_DENSITY,
     /**
-     * *Show shops and public buildings* (`DESIGN_NOTES.md` decision 102): whether the six buildings among the houses -- the
-     * restaurant, the bar, the shop, the school, the fire station and the police station, taking turns in the street's
-     * places -- stand, below the road too; they need *Show Buildings* on as well ([keepCandidate]). On as every theme
-     * ships, off on a random theme born with no place among the houses ([offWhereBornWithout]).
+     * *Show Shops* (`DESIGN_NOTES.md` decision 109): whether the restaurant, the bar and the shop stand in their turns
+     * among the houses, below the road too. Off, a place whose turn is one of the three stays empty; the public
+     * buildings keep their own turns ([groupStands]). On as every theme ships, off on a random theme born with no place
+     * among the houses ([offWhereBornWithout]); data written before it existed reads [placeSwitchAsDrawnBefore].
      */
-    val placesVisible: Boolean = true,
+    val shopsVisible: Boolean = true,
+    /** *Show Public buildings*: the school, the fire station and the police station, as [shopsVisible] the shops. */
+    val publicsVisible: Boolean = true,
     /**
      * *Keep the road* (`DESIGN_NOTES.md` decision 104): whether the road stays when no car drives at any hour -- *Show
      * Cars* off, or both densities at 0 % -- empty, or is taken away and the meadow runs to the houses
@@ -521,7 +523,22 @@ data class SceneCustomization(
     ),
     val rainbow: RainbowConfig = RainbowConfig(visible = false, opacity = 0.8f),
 ) {
+    /** Whether a place among the houses stands at all: *Show Shops* or *Show Public buildings* on ([keepCandidate]). */
+    val placesVisible: Boolean get() = shopsVisible || publicsVisible
+
+    /** Whether the buildings of [group] stand in their turns among the houses: [shopsVisible] or [publicsVisible]. */
+    fun groupStands(group: StorefrontGroup): Boolean = if (group == StorefrontGroup.SHOPS) shopsVisible else publicsVisible
+
     companion object {
+        /**
+         * *Show Shops* or *Show Public buildings* for data written before each had a switch (`DESIGN_NOTES.md` decision
+         * 109), read as the scene that data drew: the six buildings among the houses stood while *Show shops and public
+         * buildings* ([placesVisible], the one switch) and the buildings' switch ([buildingsVisible], *Show Towers*) were
+         * both on, so each group stands where both were.
+         */
+        fun placeSwitchAsDrawnBefore(placesVisible: Boolean, buildingsVisible: Boolean): Boolean =
+            placesVisible && buildingsVisible
+
         /**
          * The scarecrows as every theme but Halloween ships them, and as data without them reads there: off, at the 50 % a
          * tap starts them at. The colours are never read ([scarecrows]).
@@ -730,18 +747,25 @@ object DecorationExclusion {
 
     /**
      * Whether a house or one of the three shops stands to carry the Halloween decorations (`HalloweenDecorations.decorates`):
-     * a house standing ([housesStand]), or the places among the houses, where the shops take turns ([placesStand]).
+     * a house standing ([housesStand]), or the shops in their turns among the houses ([shopsStand]).
      */
     fun halloweenDecorationsHang(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
-        housesStand(c, layout) || placesStand(c, layout)
+        housesStand(c, layout) || shopsStand(c, layout)
 
     /**
-     * Whether the places among the houses stand, where the six buildings take turns: *Show Buildings* and *Show shops and
-     * public buildings* on -- they stand while both are, whatever the towers' amount -- on a street that has one
-     * ([StorefrontStreet.isPlace]).
+     * Whether the places among the houses stand, where the six buildings take turns: *Show Shops* or *Show Public
+     * buildings* on ([SceneCustomization.placesVisible]) -- whatever *Show Towers* and the towers' amount say -- on a
+     * street that has one ([StorefrontStreet.isPlace]).
      */
     fun placesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
-        c.buildings.visible && c.placesVisible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
+        c.placesVisible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
+
+    /**
+     * Whether the shops stand among the houses -- *Show Shops* on, on a street with places -- the only buildings among
+     * them the Halloween decorations hang on (`HalloweenDecorations.decorates`).
+     */
+    fun shopsStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
+        c.shopsVisible && (layout == null || layout.staticObjects.any { StorefrontStreet.isPlace(it) })
 
     /** Whether a house stands: one of [layout]'s kept ([standsAny]), or without the layout the houses on and above 0 %. */
     fun housesStand(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
@@ -753,7 +777,7 @@ object DecorationExclusion {
      * to stand on).
      */
     fun buildingLightsHang(c: SceneCustomization, layout: SceneObjectLayout? = null): Boolean =
-        halloweenDecorationsHang(c, layout) || (layout != null && c.standsAny(layout, setOf(SceneObjectType.SKYSCRAPER))) ||
+        housesStand(c, layout) || placesStand(c, layout) || (layout != null && c.standsAny(layout, setOf(SceneObjectType.SKYSCRAPER))) ||
             (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))
 
     /** Whether the Halloween decorations' switch can be turned on in [c]: not while a Christmas one is on. */
@@ -766,11 +790,10 @@ object DecorationExclusion {
      * [c] with at most one side on, by what stands on [layout] (the amounts without it). Data holds both only where one had
      * nothing to hang on when the other was turned on, or a payload was written by hand.
      *
-     * **Whether a side goes is read with *Show Buildings* on standing for the places, whatever the street has**
-     * ([christmasDrawn], [halloweenDrawn]): the gallery card draws its three shops while *Show Buildings* is on, with
-     * *Show shops and public buildings*, on any street (`ThemePreviewScene`), so it would draw both sides there; read
-     * without that second switch it can only take a side as drawn where it hangs on nothing, which the rule below then
-     * turns off, changing no picture. **Which side stays is the one that hangs on the
+     * **Whether a side goes is read with the buildings' switches on standing for the places, whatever the street has**
+     * ([christmasDrawn], [halloweenDrawn]): the gallery card draws its three buildings among the houses while their groups'
+     * switches are on, on any street (`ThemePreviewScene`), so it would draw both sides there; read so, it can only take a
+     * side as drawn where it hangs on nothing, which the rule below then turns off, changing no picture. **Which side stays is the one that hangs on the
      * street** ([christmasOn], [halloweenOn], the settings' and the setters' rule), so a switch the settings let the user
      * turn on reads on, and the other, which hangs on nothing there, reads off with its reason and holds nothing. When both
      * hang, or neither, the side the theme ships on stays ([themeDefaults]: Halloween on the Halloween theme), and on
@@ -793,17 +816,18 @@ object DecorationExclusion {
     }
 
     /**
-     * [christmasOn] with *Show Buildings* on carrying the lights on any street, as on the gallery card. The firs count where
-     * one can stand ([firsCanStand]), as there: the gallery card draws the street's own species, so no fir among palms.
+     * [christmasOn] with *Show Towers*, *Show Shops* or *Show Public buildings* on carrying the lights on any street, as on
+     * the gallery card. The firs count where one can stand ([firsCanStand]), as there: the gallery card draws the street's
+     * own species, so no fir among palms.
      */
     private fun christmasDrawn(c: SceneCustomization, layout: SceneObjectLayout?): Boolean =
-        ((housesStand(c, layout) || c.buildings.visible ||
+        ((housesStand(c, layout) || c.buildings.visible || c.placesVisible ||
             (c.distantHouses.drawsAny && (c.mountainsFront.drawsAny || c.mountainsBack.drawsAny))) && c.christmasBuildingLightsEnabled) ||
             (treesStand(c, layout) && (c.christmasTreeLightsEnabled || (c.christmasFirsEnabled && firsCanStand(c, layout))))
 
-    /** [halloweenOn] with *Show Buildings* on carrying the decorations on any street, as on the gallery card. */
+    /** [halloweenOn] with *Show Shops* on carrying the decorations on any street, as on the gallery card. */
     private fun halloweenDrawn(c: SceneCustomization, layout: SceneObjectLayout?): Boolean =
-        (housesStand(c, layout) || c.buildings.visible) && c.halloweenDecorationsEnabled
+        (housesStand(c, layout) || c.shopsVisible) && c.halloweenDecorationsEnabled
 
     /**
      * [resolved] on the street [themeId] draws ([streetOf]), worked out only where both sides read on by their amounts --
@@ -993,17 +1017,19 @@ fun SceneObjectLayout.keepsOnlyFirsUnderPalms(c: SceneCustomization): Boolean {
 /** Whether this candidate slot renders under the current config. Types with no category (CAR, whose membership is a
  * count: [keptCars], [CarSelection]) are always kept.
  *
- * The places among the houses are exempt from density thinning, not from the category's switch: five a tile where the
- * six buildings take turns (`SceneObjectCatalog.buildingCandidates`), they anchor the street, and a coin over them can
- * remove the whole commercial street at the default. The buildings' density governs the towers. */
+ * The places among the houses are exempt from density thinning and from *Show Towers*: five a tile where the six
+ * buildings take turns (`SceneObjectCatalog.buildingCandidates`), they anchor the street, and a coin over them can remove
+ * the whole commercial street at the default. A place stands while *Show Shops* or *Show Public buildings* is on
+ * ([SceneCustomization.placesVisible]), and draws empty in a turn of a group switched off
+ * (`SceneObjectRenderer.drawStaticObject`). The buildings' switch and density govern the towers (decision 109). */
 fun SceneCustomization.keepCandidate(spec: StaticSceneObject, scheme: Int = DENSITY_SCHEME_FRACTION): Boolean {
     val config = configFor(spec.type) ?: return true
-    if (!config.visible) return false
     if (spec.type == SceneObjectType.SKYSCRAPER &&
         spec.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
     ) {
         return placesVisible
     }
+    if (!config.visible) return false
     // The scarecrows stand in the snowmen's places, so by the snowmen's fraction they would keep exactly the snowmen's:
     // a coin of their own decides ([scarecrowFraction]).
     if (spec.type == SceneObjectType.SCARECROW) return scarecrowFraction(spec) < config.density
@@ -1392,7 +1418,7 @@ internal fun defaultCustomizationFor(themeId: String, theme: SceneTheme): SceneC
  * starts off, so the theme looks as it was born until the user turns it on (but for the trees, houses and parasols it is given
  * where its own keep none, decision 97) -- houses and parasols off where it rolled none,
  * the buildings off where it rolled no tower and no place, the *Towers* amount at 0 % where it rolled places and no tower,
- * *Show shops and public buildings* off where it rolled no place, the cars off where it rolled none.
+ * *Show Shops* and *Show Public buildings* off where it rolled no place, the cars off where it rolled none.
  */
 internal fun SceneCustomization.offWhereBornWithout(born: RandomSceneGenerator.Born): SceneCustomization =
     offWhereStreetLacks(born.staticObjects, born.carCount)
@@ -1410,7 +1436,8 @@ internal fun SceneCustomization.offWhereStreetLacks(staticObjects: List<StaticSc
             places -> buildings.copy(density = 0f)
             else -> buildings.copy(visible = false)
         },
-        placesVisible = placesVisible && places,
+        shopsVisible = shopsVisible && places,
+        publicsVisible = publicsVisible && places,
         cars = if (carCount > 0) cars else cars.copy(visible = false),
     )
 }
@@ -1434,7 +1461,7 @@ internal fun SceneCustomization.readAsDrawnBefore(street: SceneObjectLayout?): S
  * [BuildingGroundContrast.DAY_GATE] from the hills and every mountain layer the theme shows by day,
  * [BuildingGroundContrast.NIGHT_GATE] by night (`BuildingGroundContrastTest`, which says where the gates come from).
  * The night colour is the day colour carried 55 % of the way to the scene's ink, `#15161C`, written out so the user
- * edits it like any other. **Only the start**: a theme whose look is stored keeps its colours until *Reset Buildings to
+ * edits it like any other. **Only the start**: a theme whose look is stored keeps its colours until *Reset Towers to
  * default*. The density and the switch are [SceneCustomization.DEFAULT]'s.
  */
 internal fun builtInTowerColours(themeId: String): ObjectVariantConfig? {
@@ -1651,7 +1678,8 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         bunnies.structurallyEquals(other.bunnies) &&
         easterEggs.structurallyEquals(other.easterEggs) &&
         pumpkins.structurallyEquals(other.pumpkins) &&
-        placesVisible == other.placesVisible &&
+        shopsVisible == other.shopsVisible &&
+        publicsVisible == other.publicsVisible &&
         palmsEnabled == other.palmsEnabled &&
         palmsInsteadOfTrees == other.palmsInsteadOfTrees &&
         scarecrows.structurallyEquals(other.scarecrows) &&

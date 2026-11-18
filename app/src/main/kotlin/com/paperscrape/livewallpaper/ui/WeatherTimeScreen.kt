@@ -13,6 +13,7 @@ import com.paperscrape.livewallpaper.ui.icons.filled.Key
 import com.paperscrape.livewallpaper.ui.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import com.paperscrape.livewallpaper.ui.icons.outlined.Cloud
+import com.paperscrape.livewallpaper.ui.icons.outlined.CloudDownload
 import com.paperscrape.livewallpaper.ui.icons.outlined.Schedule
 import com.paperscrape.livewallpaper.ui.icons.outlined.WaterDrop
 import androidx.compose.foundation.clickable
@@ -461,8 +462,8 @@ internal fun WeatherTimeScreen(
                 // arrives the theme's own weather shows. A missing hour or location is the switch's own
                 // line, and this banner is not shown then (`statusIsTheStory`).
                 LiveWeatherStatus.OFF -> SettingsBanner(
-                    "Waiting for the first forecast. Until it arrives the scene is on this " +
-                        "theme's own weather.",
+                    "Waiting for the first forecast. Until it arrives the scene is on this theme's own weather, and " +
+                        "its Clouds and Rain and snow screens wait for the forecast too. Their colours stay editable.",
                 )
             }
         }
@@ -473,7 +474,7 @@ internal fun WeatherTimeScreen(
                 title = "Source",
                 supporting = "Where current conditions are fetched from. Changing it keeps your " +
                     "location and every other weather setting.",
-                icon = Icons.Outlined.Cloud,
+                icon = Icons.Outlined.CloudDownload,
             )
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
                 SettingsSegmentedChoice(

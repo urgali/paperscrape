@@ -198,6 +198,9 @@ class PaperWallpaperService : WallpaperService() {
 
         private val handler = Handler(Looper.getMainLooper())
 
+        /** This engine among the process's, for [LiveWeatherStatusWriter]: which one writes the weather's status. */
+        private val engineNumber = LiveWeatherStatusWriter.numberForNewEngine()
+
         /**
          * **The engine survives its own coroutines failing, and the wallpaper survives with it.**
          *
@@ -254,7 +257,12 @@ class PaperWallpaperService : WallpaperService() {
         private inline fun changingOnScreen(change: () -> Unit) {
             val before = onScreen
             change()
-            if (onScreen && !before) showings++
+            if (onScreen && !before) {
+                showings++
+                // **The status is the one of the engine last on screen** (decision 108): one coming on screen in place of
+                // another writes its own answer at once, which the other may have written over.
+                if (!isPreview && LiveWeatherStatusWriter.shown(engineNumber)) writeWeatherStatus()
+            }
             onEngineVisibilityChanged(nowVisible = onScreen, wasVisible = before)
         }
 
@@ -389,10 +397,11 @@ class PaperWallpaperService : WallpaperService() {
         private var publishedWeatherStatus: LiveWeatherStatus? = null
 
         /**
-         * Counts [forgetPublishedWeatherStatus]: a pass whose fetch began before the inputs changed (a
-         * request with the old key in flight while the user typed a new one) publishes nothing, or its
-         * answer about the old key would land after the forgetting and stand until the wallpaper is
-         * next on screen. Main thread, like every field of the loop.
+         * Counts [forgetPublishedWeatherStatus]: a pass that began before the inputs changed asks nothing
+         * if they change while it waits for the phone's position, and keeps, draws and publishes nothing
+         * if they change while its request is in flight (the old key's answer landing after the
+         * forgetting would stand until the wallpaper is next on screen). Main thread, like every field
+         * of the loop.
          */
         private var weatherInputsGeneration = 0
 
@@ -552,7 +561,8 @@ class PaperWallpaperService : WallpaperService() {
                     settings = newSettings
                     // Every input the next fetch would use: a new provider, or the key the selected
                     // one was waiting for, is as much a reason to re-check as the switch, because the
-                    // answer on screen came from another service or from none.
+                    // answer on screen came from another service or from none. Another provider's key
+                    // is not one: no request reads it ([LiveWeatherInputs], decision 108).
                     if (LiveWeatherInputs.changed(previousSettings, newSettings)) {
                         // Makes a fetch due now: the loop only decides *whether* one is due.
                         lastWeatherFetchElapsed = Long.MIN_VALUE / 4
@@ -661,6 +671,11 @@ class PaperWallpaperService : WallpaperService() {
                                 }
                             }
                         }
+                        // The inputs this pass reads, numbered before its first wait: nothing above suspends, so the
+                        // source and the switch read above and below are the numbered ones, and a change while it
+                        // waits for the phone's position ([refreshDeviceFix]) leaves it nothing to ask, keep or draw
+                        // ([weatherInputsGeneration], decision 108).
+                        val generationAtStart = weatherInputsGeneration
                         // Live Weather runs only over a scene that follows real time: a fixed hour has no
                         // "now" to fetch for, as the settings screen says (`LiveWeatherUiState.canBeTurnedOn`).
                         val liveWeatherRuns = LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)
@@ -704,11 +719,11 @@ class PaperWallpaperService : WallpaperService() {
                         val movedSinceLastFetch = LiveWeatherSchedule.movedToAnotherPlace(fix, lastWeatherFetchLocation, written = source.deviceKind == null)
                         val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
                         val provider = settings.weatherProvider
-                        val generationAtStart = weatherInputsGeneration
                         // The outcome of a fetch made on *this* pass, or null when none was due
                         // (the meaning LiveWeatherStatus.of gives the parameter).
                         var result: WeatherFetchResult? = null
-                        if (liveWeatherRuns && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {
+                        val inputsUnchanged = generationAtStart == weatherInputsGeneration
+                        if (liveWeatherRuns && inputsUnchanged && fix != null && (movedSinceLastFetch || timerExpired || forShowing)) {
                             lastWeatherFetchElapsed = SystemClock.elapsedRealtime()
                             lastWeatherFetchLocation = fix
                             result = WeatherRepository.fetchCurrentConditions(
@@ -720,15 +735,19 @@ class PaperWallpaperService : WallpaperService() {
                             // A failure keeps the previous snapshot, so one dropped request does not
                             // revert the scene to the theme's own weather, for at most
                             // LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS and **only if it is this
-                            // place's**: after a move, a failure drops the old place's.
-                            val (held, heldFor) = LiveWeatherSchedule.heldAfterFetch(
-                                held = lastWeatherSnapshot,
-                                heldFor = lastWeatherSnapshotLocation,
-                                fetched = WeatherRepository.snapshotOf(result),
-                                fetchedFor = fix,
-                            )
-                            lastWeatherSnapshot = held
-                            lastWeatherSnapshotLocation = heldFor
+                            // place's**: after a move, a failure drops the old place's. **Not an answer about
+                            // inputs replaced while it was asked** ([weatherInputsGeneration]): the scene has
+                            // dropped their forecast ([forgetPublishedWeatherStatus]), and it is not taken back.
+                            if (generationAtStart == weatherInputsGeneration) {
+                                val (held, heldFor) = LiveWeatherSchedule.heldAfterFetch(
+                                    held = lastWeatherSnapshot,
+                                    heldFor = lastWeatherSnapshotLocation,
+                                    fetched = WeatherRepository.snapshotOf(result),
+                                    fetchedFor = fix,
+                                )
+                                lastWeatherSnapshot = held
+                                lastWeatherSnapshotLocation = heldFor
+                            }
                             // Only a transient failure earns a faster retry. A missing or rejected key,
                             // a spent quota and a refused request are answers: asking sooner changes
                             // nothing, so the normal interval stands and the status says what is wrong.
@@ -761,10 +780,13 @@ class PaperWallpaperService : WallpaperService() {
                             weatherTransientFailures = 0
                             showingRefresh.forget()
                         }
-                        applyLiveWeather(decision.snapshotForScene, decision.lapsed)
-                        // Not an answer about inputs replaced while this pass was fetching: see
-                        // [weatherInputsGeneration]. The next pass, due at once, answers for the new ones.
-                        if (generationAtStart == weatherInputsGeneration) publishWeatherStatus(decision.status)
+                        // Not an answer about inputs replaced while this pass was fetching, to the scene nor to
+                        // the settings screen: see [weatherInputsGeneration]. The next pass, due at once, answers
+                        // for the new ones.
+                        if (generationAtStart == weatherInputsGeneration) {
+                            applyLiveWeather(decision.snapshotForScene, decision.lapsed)
+                            publishWeatherStatus(decision.status)
+                        }
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (failure: Exception) {
@@ -953,6 +975,7 @@ class PaperWallpaperService : WallpaperService() {
         override fun onDestroy() {
             super.onDestroy()
             WallpaperEngineCensus.engineDestroyed(isPreview)
+            if (!isPreview) LiveWeatherStatusWriter.gone(engineNumber)
             if (canvasFallback) WallpaperEngineCensus.canvasEngineDestroyed()
             // An engine can be destroyed while still marked visible (the picker's preview usually
             // is): without this the count would never fall to zero, and the memory policy would
@@ -1126,16 +1149,24 @@ class PaperWallpaperService : WallpaperService() {
         }
 
         /**
-         * The published status was about the provider, key or location source just replaced: say "not
-         * known yet" ([LiveWeatherStatus.OFF]) until the next pass has asked again. The settings screen
-         * draws the switch off on a refused key or a phone giving no position
-         * (`SettingsUiModel.liveWeather`), and the next pass runs only once the wallpaper is on screen
-         * again, so a key just typed would go on reading "not accepted". Forgetting the memory too lets
-         * the next pass publish whatever it finds, the same answer included; OFF is also what
-         * [LiveWeatherSchedule.decide] starts from.
+         * The Live Weather switch, the provider, the key or the location source has just changed, and what was
+         * fetched and published is about the ones replaced (decision 108). **The scene drops that forecast at once**:
+         * the snapshot held is forgotten and the renderer is handed the theme's own weather now ([applyLiveWeather],
+         * which queues it on the render thread), not at the next pass, which runs only once the wallpaper is on screen
+         * again -- with the settings screen over it, the pages would say "waiting" while the old forecast still drew.
+         * The status says "not known yet" ([LiveWeatherStatus.OFF]) until the next pass has asked again: the settings
+         * screen draws the switch off on a refused key or a phone giving no position (`SettingsUiModel.liveWeather`),
+         * so a key just typed would go on reading "not accepted". Forgetting the memory too lets the next pass publish
+         * whatever it finds, the same answer included; OFF is also what [LiveWeatherSchedule.decide] starts from. A
+         * written place moved is not this: the same inputs, asked again at the next pass (decision 101).
+         *
+         * On the main thread, as every field of the loop: the settings collector calls it, on [scope].
          */
         private fun forgetPublishedWeatherStatus() {
             weatherInputsGeneration++
+            lastWeatherSnapshot = null
+            lastWeatherSnapshotLocation = null
+            applyLiveWeather(null, lapsed = false)
             publishedWeatherStatus = null
             publishWeatherStatus(LiveWeatherStatus.OFF)
         }
@@ -1147,10 +1178,19 @@ class PaperWallpaperService : WallpaperService() {
         private fun publishWeatherStatus(status: LiveWeatherStatus) {
             if (publishedWeatherStatus == status) return
             publishedWeatherStatus = status
-            // **Only the wallpaper writes the status**: the picker's preview runs its own loop, with its
-            // own snapshot and retry count, and its first failed fetch would publish FAILED over the
-            // home screen's OK. The preview still fetches and draws; it only does not write.
-            if (isPreview) return
+            writeWeatherStatus()
+        }
+
+        /**
+         * Writes [publishedWeatherStatus] where the settings screen reads it, **if this engine is the one to**: never the
+         * picker's preview, which runs its own loop, with its own snapshot and retry count, and whose first failed fetch
+         * would publish FAILED over the home screen's OK (it still fetches and draws; it only does not write); and of two
+         * wallpaper engines at once -- home and lock screen apart, a second screen -- only the one last on screen
+         * ([LiveWeatherStatusWriter], decision 108).
+         */
+        private fun writeWeatherStatus() {
+            val status = publishedWeatherStatus ?: return
+            if (isPreview || !LiveWeatherStatusWriter.mayWrite(engineNumber)) return
             scope.launch { prefs.setLiveWeatherStatus(status) }
         }
 
@@ -1202,6 +1242,9 @@ class PaperWallpaperService : WallpaperService() {
                 return
             }
             val answer = deviceFix(kind, force = userChoseDeviceSource)
+            // **An answer for a source left while it was asked is dropped**: the collector has already forgotten that
+            // source's position, and the choice made meanwhile is answered by the next pass (decision 101).
+            if (LocationSource.of(settings) != source) return
             // Spent only once the phone has really been consulted for the choice: a request the throttle or
             // a switched-off location did not let through leaves it waiting for the next pass.
             if (answer.consulted) userChoseDeviceSource = false

@@ -95,8 +95,9 @@ class ApkPackagingContractTest {
     /**
      * Nothing uses `appcompat` (the theme is the platform's), there is no `@Preview` for `ui-tooling`, and
      * the settings' icons are `material-icons-core`'s and the app's own: `material-icons-extended` would bring
-     * 11 398 classes for 39 icons into every debug build. `material-icons-core` is named, because material3
-     * does not bring it.
+     * 11 398 classes for the 40 icons `ui/icons/` copies from it (30 Outlined, 9 Filled, 1 AutoMirrored: its `val Icons.`
+     * declarations; the swallow is the app's own drawing) into every debug build. `material-icons-core` is named,
+     * because material3 does not bring it.
      */
     @Test
     fun `the build takes no library the app does not use`() {

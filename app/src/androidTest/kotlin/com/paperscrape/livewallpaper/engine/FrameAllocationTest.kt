@@ -20,7 +20,9 @@ import org.junit.runner.RunWith
  * Every built-in theme by day and by night, the lake at its busiest, rain, snow, a storm driven by Live Weather, the
  * sleigh and the fireworks, the distant houses on the mountains by day, at night and under snow, the Christmas
  * decorations of the buildings and the fir A by day and at night with the distant houses' bulbs, a shut building's
- * blinds and shutter by day, Halloween with everything it draws, and a scene with everything on at once -- the houses
+ * blinds and shutter by day, Halloween with everything it draws, the places of a group switched off drawn empty above and
+ * below the road, the rainbow on under the forecast's rain and under the theme's and fading out and in with the forecast (the
+ * counted frames start at the change, so the whole fade is counted), and a scene with everything on at once -- the houses
  * at 100 %, opening hours (the lamps and the glass of the shut shops), the lake at its busiest, the decorations and the
  * weather. Each is warmed up past the moment the traffic arrives and then drawn for [COUNTED_FRAMES] frames while ART
  * counts what this thread allocates. A frame that allocates feeds the collector at the frame rate, and its pauses show
@@ -40,10 +42,11 @@ import org.junit.runner.RunWith
  * field asked for, not one to build again at every frame.
  *
  * **Events are not frames.** A firework burst, a gift thrown from the sleigh and a sleigh setting
- * off are an object each when they happen -- every few seconds, not every frame -- so the seven
- * scenes that have them (Christmas and New Year's Eve at night, Christmas at noon and at 23:00 with
- * the distant houses -- the sleigh flies by day too -- everything on at once at Christmas, and
- * Christmas at noon and at night with the sleigh held in flight in every counted frame) are
+ * off are an object each when they happen -- every few seconds, not every frame -- so the scenes
+ * that have them (`events = true`: Christmas and New Year's Eve at night, Christmas at noon and at 23:00
+ * with the distant houses -- the sleigh flies by day too -- everything on at once at Christmas, Christmas
+ * at noon and at night with the sleigh held in flight in every counted frame, the fireworks on Autumn,
+ * and Christmas at night with the public buildings off) are
  * held to "fewer objects than a tenth of the frames" and log their exact
  * count; every other scene is held to zero.
  *
@@ -69,6 +72,12 @@ class FrameAllocationTest {
         val horsemanFlying: Boolean = false,
         /** Where the scene's clock starts: 52 s puts the Halloween moon's laugh, at 66 s, in the counted frames. */
         val startSeconds: Double = 0.0,
+        /**
+         * When true, the forecast is changed to [weatherAtCount] on the first counted frame, after the warm-up under
+         * [weather]: the counted frames then hold the rainbow's and the clouds' fades from start to end (decision 110).
+         */
+        val changesWeather: Boolean = false,
+        val weatherAtCount: LiveWeatherSnapshot? = null,
         val customise: (SceneCustomization) -> SceneCustomization = { it },
     )
 
@@ -235,6 +244,50 @@ class FrameAllocationTest {
                 fetchedAtMillis = 0L,
             ),
         ),
+        // Decisions 105, 108 and 109: the near row below the road with a group of the places off (its turns drawn empty),
+        // by day and at night with the decorations; the rainbow on under the forecast's rain (not drawn) and under the
+        // theme's own rain (drawn).
+        Scene("autumn-shops-off-noon", "autumn", 12f, customise = { it.copy(shopsVisible = false) }),
+        Scene("christmas-publics-off-night", "christmas", 1f, events = true, customise = { it.copy(publicsVisible = false) }),
+        Scene(
+            "live-rain-rainbow-on", "spring", 13f,
+            weather = LiveWeatherSnapshot(
+                precipitationType = PrecipitationType.RAIN,
+                precipitationIntensity = 0.6f,
+                cloudCoverFraction = 0.8f,
+                isThunderstorm = false,
+                fetchedAtMillis = 0L,
+            ),
+            customise = { it.copy(rainbow = it.rainbow.copy(visible = true, opacity = 0.8f)) },
+        ),
+        Scene("theme-rain-rainbow-on", "spring", 13f, customise = { rain(it).copy(rainbow = it.rainbow.copy(visible = true, opacity = 0.8f)) }),
+        // Decision 110: the rainbow fading out as the forecast's rain begins, and back in as the forecast leaves the scene
+        // with the rain on; the counted frames start at the change, so the whole fade is in them.
+        Scene(
+            "rainbow-fading-out", "spring", 13f,
+            changesWeather = true,
+            weatherAtCount = LiveWeatherSnapshot(
+                precipitationType = PrecipitationType.RAIN,
+                precipitationIntensity = 0.6f,
+                cloudCoverFraction = 0.8f,
+                isThunderstorm = false,
+                fetchedAtMillis = 0L,
+            ),
+            customise = { it.copy(rainbow = it.rainbow.copy(visible = true, opacity = 0.8f)) },
+        ),
+        Scene(
+            "rainbow-fading-in", "spring", 13f,
+            weather = LiveWeatherSnapshot(
+                precipitationType = PrecipitationType.RAIN,
+                precipitationIntensity = 0.6f,
+                cloudCoverFraction = 0.8f,
+                isThunderstorm = false,
+                fetchedAtMillis = 0L,
+            ),
+            changesWeather = true,
+            weatherAtCount = null,
+            customise = { it.copy(rainbow = it.rainbow.copy(visible = true, opacity = 0.8f)) },
+        ),
     )
 
     /** Objects this thread allocated while [block] ran. */
@@ -276,6 +329,7 @@ class FrameAllocationTest {
                 renderer.draw(NothingCanvas, dayPhase, time, FRAME)
             }
             if (scene.horsemanFlying) renderer.startHeadlessHorsemanFlightForTest()
+            if (scene.changesWeather) renderer.liveWeatherOverride = scene.weatherAtCount
             val dropsBefore = renderer.horsemanPumpkinsFallingForTest()
             var dropsSeen = 0
             val objects = allocationsDuring {
