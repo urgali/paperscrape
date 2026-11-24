@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import com.paperscrape.livewallpaper.ui.icons.filled.Key
 import com.paperscrape.livewallpaper.ui.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Refresh
 import com.paperscrape.livewallpaper.ui.icons.outlined.Cloud
 import com.paperscrape.livewallpaper.ui.icons.outlined.CloudDownload
 import com.paperscrape.livewallpaper.ui.icons.outlined.Schedule
@@ -50,7 +51,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +64,7 @@ import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.location.LocalityLabelCache
 import com.paperscrape.livewallpaper.location.LocationLabelResolver
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
+import com.paperscrape.livewallpaper.location.DeviceLocationProvider
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherProviderId
@@ -111,6 +115,45 @@ internal fun WeatherTimeScreen(
     // A refusal of the location dialog already seen on this screen: after it, a refusal the system
     // will not ask again sends the user to PaperScrape's page (`SettingsUiModel.afterLocationRequest`).
     var locationRefusalSeen by remember { mutableStateOf(false) }
+    // GPS refused on this page because the phone gave only the approximate location: said under the
+    // choice until GPS or Network is stored (`SettingsUiModel.gpsNeedsPreciseLine`).
+    var gpsRefusedForApproximate by remember { mutableStateOf(false) }
+    // **Update location now** (decision 111): the page asks the phone itself
+    // (`DeviceLocationProvider.positionNow`), in this screen's own scope. **Leaving the page during the
+    // search cancels it**: the throttle counts it as a request that found nothing
+    // (`LocationRequestThrottle.counted`), and nothing is saved. Another source chosen meanwhile cancels
+    // it too, and the row starts again idle: a position belongs to the source it was asked for.
+    val updateScope = rememberCoroutineScope()
+    var updateTap by remember { mutableStateOf(UpdateLocationTap.IDLE) }
+    var updateSearch by remember { mutableStateOf<Job?>(null) }
+    val currentLocationMode by rememberUpdatedState(locationMode)
+    // *Update weather now* tapped under a Custom place since the page opened.
+    var weatherAsked by remember { mutableStateOf(false) }
+    LaunchedEffect(locationMode) {
+        updateSearch?.cancel()
+        updateTap = UpdateLocationTap.IDLE
+        weatherAsked = false
+        if (locationMode == LocationMode.GPS || locationMode == LocationMode.NETWORK) gpsRefusedForApproximate = false
+    }
+    fun updateLocationNow(kind: DeviceLocationKind) {
+        if (updateTap == UpdateLocationTap.SEARCHING) return
+        updateTap = UpdateLocationTap.SEARCHING
+        updateSearch = updateScope.launch {
+            val found = DeviceLocationProvider(context.applicationContext).positionNow(kind)
+            if (SettingsUiModel.deviceKindFor(currentLocationMode) != kind) return@launch
+            if (found != null) {
+                prefs.setDevicePositionFoundNow(found.fix.latitude.toFloat(), found.fix.longitude.toFloat(), found.ageMillis)
+            }
+            updateTap = if (found != null) UpdateLocationTap.FOUND else UpdateLocationTap.NOT_FOUND
+        }
+    }
+    // The clock the position's age is read against, a minute at a time while the page is open.
+    val nowMillis by produceState(System.currentTimeMillis()) {
+        while (true) {
+            delay(60_000L)
+            value = System.currentTimeMillis()
+        }
+    }
     fun openPhonePage(intent: Intent) {
         runCatching { context.startActivity(intent) }
     }
@@ -118,6 +161,16 @@ internal fun WeatherTimeScreen(
     // when refused, and PaperScrape's page opened when the system will not ask again.
     fun askLocation(kind: DeviceLocationKind, choiceAlreadyStored: Boolean) =
         onRequestLocationPermission(kind) { answer ->
+            if (SettingsUiModel.refusedForApproximateOnly(
+                    kind = kind,
+                    fineGranted = answer.fineGranted,
+                    coarseGranted = answer.coarseGranted,
+                    locationOn = answer.locationOn,
+                    gpsAlreadyStored = currentLocationMode == LocationMode.GPS,
+                )
+            ) {
+                gpsRefusedForApproximate = true
+            }
             when (
                 SettingsUiModel.afterLocationRequest(
                     kind = kind,
@@ -214,18 +267,21 @@ internal fun WeatherTimeScreen(
                             "Available while the scene follows real time. At a fixed hour, sunrise and sunset are " +
                                 "6:00 and 20:00."
                         // What `LocationRequestThrottle` does, in its words: once an hour while the phone
-                        // answers, and 5, 15 and 30 minutes after a search that finds nothing; and between, the
+                        // answers, or at a tap of Update location now; 5, 15 and 30 minutes after a search that
+                        // finds nothing, tries the wallpaper makes only while it is on screen; and between, the
                         // position the phone holds read with no request (`DeviceLocationProvider.heldFix`), the
                         // weather asked past `LiveWeatherSchedule.SAME_PLACE_KM` (decision 101).
                         locationMode == LocationMode.GPS ->
                             "Uses the GPS receiver for a precise position, never continuously: once an hour " +
-                                "at most. If a search finds nothing, it tries again after 5, 15 and 30 minutes. " +
+                                "at most, or when you tap Update location now. If a search finds nothing, it tries " +
+                                "again after 5, 15 and 30 minutes while PaperScrape is on screen. " +
                                 "In between, the position the phone already knows is read for free, and new " +
                                 "weather is asked as soon as you have moved more than 3 km."
                         locationMode == LocationMode.NETWORK ->
                             "Uses cell towers and Wi-Fi for an approximate position - enough to know your " +
-                                "town, and the GPS receiver is never started. Once an hour at most; if nothing " +
-                                "comes, it tries again after 5, 15 and 30 minutes. In between, the position the " +
+                                "town, and the GPS receiver is never started. Once an hour at most, or when you tap " +
+                                "Update location now; if nothing comes, it tries again after 5, 15 and 30 minutes " +
+                                "while PaperScrape is on screen. In between, the position the " +
                                 "phone already knows is read for free, and new weather is asked as soon as you " +
                                 "have moved more than 3 km."
                         locationMode == LocationMode.CUSTOM ->
@@ -235,6 +291,19 @@ internal fun WeatherTimeScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+            // GPS refused because the phone gave only the approximate location: the choice still in use is
+            // said, and the tap asks again for the precise one. The refusal that set it is one seen here
+            // ([locationRefusalSeen]), so where the system will not ask again PaperScrape's page opens.
+            val gpsNeedsPrecise = SettingsUiModel.gpsNeedsPreciseLine(gpsRefusedForApproximate, locationMode)
+            if (locationEnabled && gpsNeedsPrecise != null) {
+                SettingsNavigationRow(
+                    title = "GPS needs your precise location",
+                    supporting = gpsNeedsPrecise,
+                    icon = Icons.Filled.LocationOff,
+                    supportingIsAccent = true,
+                    onClick = { askLocation(DeviceLocationKind.GPS, choiceAlreadyStored = false) },
                 )
             }
             if (locationEnabled && deviceRow != null) {
@@ -284,23 +353,40 @@ internal fun WeatherTimeScreen(
                     SettingsRow(
                         title = "No position from your phone yet",
                         // The tries of `LocationRequestThrottle`: 5, 15 and 30 minutes after a
-                        // search that found nothing, then the hour, and round again until one arrives.
-                        supporting = "PaperScrape asks your phone again after 5, 15 and 30 minutes, then after an " +
-                            "hour, and the same again until a position arrives. Until then, sunrise and " +
+                        // search that found nothing, then the hour, and round again until one arrives, made
+                        // only while the wallpaper is on screen (decision 111).
+                        supporting = "PaperScrape asks your phone again after 5, 15 and 30 minutes while " +
+                            "PaperScrape is on screen, then after an hour, and the same again until a position " +
+                            "arrives. Until then, sunrise and " +
                             "sunset are 6:00 and 20:00.",
                         icon = Icons.Filled.LocationOn,
                     )
                 }
-                // The position in use: shown while the phone gives it, or keeps the last one it gave.
+                // The position in use: shown while the phone gives it, or keeps the last one it gave, with how
+                // long ago the phone took it when that is known (decision 112).
                 if (deviceRow.usesLastPosition) {
                     LocationRow(
                         latitude = settings.resolvedGpsLatitude,
                         longitude = settings.resolvedGpsLongitude,
-                        supporting = when {
-                            !deviceRow.working -> "Last position from your phone"
-                            locationMode == LocationMode.GPS -> "Resolved from the GPS receiver"
-                            else -> "Approximate, from cell towers and Wi-Fi"
-                        },
+                        supporting = SettingsUiModel.devicePositionLine(
+                            working = deviceRow.working,
+                            mode = locationMode,
+                            takenAtMillis = settings.deviceFixTakenAtMillis,
+                            nowMillis = nowMillis,
+                        ),
+                    )
+                }
+                // Update location now, right under the position: only while the phone gives it. While it
+                // searches the row takes no tap and a circle turns in place of one.
+                val update = SettingsUiModel.updateLocationRow(deviceRow, kind, updateTap, liveWeatherOn = liveWeather.shownOn, hasPosition = hasSaved)
+                if (update != null) {
+                    SettingsRow(
+                        title = update.title,
+                        supporting = update.line,
+                        supportingIsAccent = update.lineIsAccent,
+                        icon = Icons.Filled.Refresh,
+                        onClick = if (update.searching) null else ({ updateLocationNow(kind) }),
+                        trailing = if (update.searching) ({ CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp) }) else null,
                     )
                 }
             }
@@ -312,6 +398,20 @@ internal fun WeatherTimeScreen(
                     latitude = settings.customLocationLatitude,
                     longitude = settings.customLocationLongitude,
                 )
+                // Update weather now (decision 111): only with Live Weather on. Each tap asks once: the
+                // wallpaper forgets its last request's place and time and asks at its next pass on screen.
+                val updateWeather = SettingsUiModel.updateWeatherLine(locationMode, liveWeatherOn = liveWeather.shownOn, asked = weatherAsked)
+                if (updateWeather != null) {
+                    SettingsRow(
+                        title = "Update weather now",
+                        supporting = updateWeather,
+                        icon = Icons.Filled.Refresh,
+                        onClick = {
+                            weatherAsked = true
+                            scope.launch { prefs.askRefreshNow() }
+                        },
+                    )
+                }
                 CustomLocationFields(
                     latitude = settings.customLocationLatitude,
                     longitude = settings.customLocationLongitude,

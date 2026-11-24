@@ -21,7 +21,7 @@ class SantaSleighEffect {
     /**
      * Blits the sleigh: its centre, its facing (+1/-1) and its fade alpha. A `fun interface` with
      * `Float` parameters rather than a function type, which would box all four floats on every
-     * call (see [FireworkEffect.BurstBlit]).
+     * call.
      */
     fun interface SleighBlit {
         fun blit(x: Float, y: Float, dir: Float, alpha: Float)

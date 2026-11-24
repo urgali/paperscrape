@@ -133,18 +133,38 @@ data class WallpaperSettings(
      */
     val updateNotificationsEnabled: Boolean = false,
     // The device fix PaperWallpaperService resolved (WallpaperPrefs.setResolvedGpsLocation, at every
-    // fix), apart from the typed custom location. The settings name the place, not the coordinates:
+    // fix) or Update location now found (WallpaperPrefs.setDevicePositionFoundNow), apart from the
+    // typed custom location. The settings name the place, not the coordinates:
     // the device fix reverse-geocoded (`LocationRow` in WeatherTimeScreen.kt), a custom location by
     // the label saved with it. Null until the first fix.
     val resolvedGpsLatitude: Float? = null,
     val resolvedGpsLongitude: Float? = null,
     /**
-     * When the saved device fix above was taken, as epoch millis; 0 when there has never been one.
+     * When the saved device fix above was **saved**, as epoch millis; 0 when there has never been one.
      * Written with every fix and read by nothing: the engine reuses a saved fix with no expiry
-     * (`PaperWallpaperService.savedDeviceFix`) and the settings do not show its age: a place does
-     * not move, and the settings already name it.
+     * (`PaperWallpaperService.savedDeviceFix`), and the settings show when the phone took it
+     * ([deviceFixTakenAtMillis]), not when it was saved.
      */
     val deviceFixTimestampMillis: Long = 0L,
+    /**
+     * When the phone **took** the saved device fix above, as epoch millis: the moment it was saved less
+     * the fix's age, so a stale position the phone held is saved with its true age (decision 112).
+     * The settings say it under the position ("Resolved from the GPS receiver, 3 h ago",
+     * `SettingsUiModel.devicePositionLine`): an old position is still used, a town does not move, but
+     * it says how old it is. 0 when unknown -- never a fix, or a fix saved with its save time alone
+     * ([deviceFixTimestampMillis] without this key), which is then shown with no age until a new fix
+     * arrives. Runtime state of this phone, like the fix: a backup does not carry it.
+     */
+    val deviceFixTakenAtMillis: Long = 0L,
+    /**
+     * When the *Weather & time* page last asked for a refresh at once, as epoch millis; 0 never. Written
+     * by *Update location now* with the position it found, and by *Update weather now* under a Custom
+     * place (decision 111). The wallpaper's engine reads only that it **changed**: it takes the saved
+     * position at once (sunrise and sunset) and asks the weather at its next pass on screen, whatever the
+     * distance (`PaperWallpaperService`). An event of this phone, not a setting: a backup does not carry
+     * it and a restore leaves it.
+     */
+    val refreshAskedAtMillis: Long = 0L,
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
     val parallaxStrength: Float = 1f, // 0.5 .. 2.0: how far near and far layers move apart while scrolling
     // The scroll settings are global, not per theme: how the wallpaper moves, not how a theme looks.
@@ -241,6 +261,13 @@ enum class ObjectCategory {
 
 /** Key-name prefix for [WallpaperPrefs]'s per-theme customization blobs. */
 internal const val THEME_CUSTOMIZATION_KEY_PREFIX = "theme_customization_"
+
+/**
+ * When the phone took a device fix saved at [nowMillis] that was [ageMillis] old then
+ * ([WallpaperSettings.deviceFixTakenAtMillis]). A negative age -- a cached position "from the future", the clock moved
+ * back -- is taken as just taken: its true age cannot be known, and a time in the future would say nothing true.
+ */
+internal fun fixTakenAt(nowMillis: Long, ageMillis: Long): Long = nowMillis - ageMillis.coerceAtLeast(0L)
 
 /**
  * A place's name or a key as kept: at most [AppBackup.MAX_TEXT_SETTING_CHARS] characters, so a backup gives back every
@@ -367,6 +394,8 @@ class WallpaperPrefs internal constructor(
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
         val RESOLVED_GPS_LON = floatPreferencesKey("resolved_gps_lon")
         val DEVICE_FIX_AT = longPreferencesKey("device_fix_at")
+        val DEVICE_FIX_TAKEN_AT = longPreferencesKey("device_fix_taken_at")
+        val REFRESH_ASKED_AT = longPreferencesKey("refresh_asked_at")
         val DEVICE_LOCATION_KIND = stringPreferencesKey("device_location_kind")
         val FIXED_HOUR = floatPreferencesKey("fixed_hour")
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
@@ -422,6 +451,8 @@ class WallpaperPrefs internal constructor(
         val LAKE_DOLPHINS_DENSITY = floatPreferencesKey("lake_dolphins_density")
         val STARS_VISIBLE = booleanPreferencesKey("stars_visible")
         val STARS_DENSITY = floatPreferencesKey("stars_density")
+        /** *Shooting stars* ([StarsConfig.shooting]); absent, it reads the theme's own, on. */
+        val SHOOTING_STARS_VISIBLE = booleanPreferencesKey("shooting_stars_visible")
         val SKY_COLOR_DAY_HIGH = intPreferencesKey("sky_color_day_high")
         val SKY_COLOR_DAY_LOW = intPreferencesKey("sky_color_day_low")
         val SKY_COLOR_NIGHT_HIGH = intPreferencesKey("sky_color_night_high")
@@ -582,6 +613,8 @@ class WallpaperPrefs internal constructor(
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
             resolvedGpsLongitude = prefs[Keys.RESOLVED_GPS_LON],
             deviceFixTimestampMillis = prefs[Keys.DEVICE_FIX_AT] ?: 0L,
+            deviceFixTakenAtMillis = prefs[Keys.DEVICE_FIX_TAKEN_AT] ?: 0L,
+            refreshAskedAtMillis = prefs[Keys.REFRESH_ASKED_AT] ?: 0L,
             fixedHour = prefs[Keys.FIXED_HOUR] ?: 18f,
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
             scrollBackground = prefs[Keys.SCROLL_BACKGROUND] ?: false,
@@ -702,6 +735,7 @@ class WallpaperPrefs internal constructor(
             stars = StarsConfig(
                 visible = prefs[Keys.STARS_VISIBLE] ?: defaults.stars.visible,
                 density = prefs[Keys.STARS_DENSITY] ?: defaults.stars.density,
+                shooting = prefs[Keys.SHOOTING_STARS_VISIBLE] ?: defaults.stars.shooting,
             ),
             sky = SkyConfig(
                 colorDayHigh = prefs[Keys.SKY_COLOR_DAY_HIGH] ?: defaults.sky.colorDayHigh,
@@ -932,6 +966,7 @@ class WallpaperPrefs internal constructor(
         this[Keys.LAKE_AUTO_MODE] = c.lake.autoMode.storageId
         this[Keys.STARS_VISIBLE] = c.stars.visible
         this[Keys.STARS_DENSITY] = c.stars.density
+        this[Keys.SHOOTING_STARS_VISIBLE] = c.stars.shooting
         this[Keys.SKY_COLOR_DAY_HIGH] = c.sky.colorDayHigh
         this[Keys.SKY_COLOR_DAY_LOW] = c.sky.colorDayLow
         this[Keys.SKY_COLOR_NIGHT_HIGH] = c.sky.colorNightHigh
@@ -1019,7 +1054,7 @@ class WallpaperPrefs internal constructor(
      * state or the whole new one, never a mixture; keeping it in step with `CustomThemeStore` is
      * [BackupRepository]'s job. The scratch keys and their marker are cleared, not restored: the
      * restored per-theme blobs are the truth. Runtime state a backup does not carry (the GPS fix, its
-     * timestamp, the live weather status) is left as it is on this device.
+     * times, the page's last refresh ask, the live weather status) is left as it is on this device.
      */
     suspend fun replaceAll(
         settings: AppBackup.BackupSettings,
@@ -1180,16 +1215,38 @@ class WallpaperPrefs internal constructor(
         store.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
     /**
-     * Saves the position the device reported, with the moment it was saved: the fallback of the whole
-     * device-location path, surviving a reboot and a spell with no signal, so the scene keeps the
-     * right town when the provider is slow.
+     * Saves the position the device reported, with the moment it was saved and the moment the phone took
+     * it, [ageMillis] before ([fixTakenAt]): the fallback of the whole device-location path, surviving a
+     * reboot and a spell with no signal, so the scene keeps the right town when the provider is slow, and
+     * the settings say how old it is (decision 112).
      */
-    suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float) =
+    suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float, ageMillis: Long) =
+        store.editDurably { it.putDeviceFix(latitude, longitude, ageMillis, System.currentTimeMillis()) }
+
+    /**
+     * *Update location now* found a position (`DeviceLocationProvider.positionNow`): saved as any device fix
+     * is, with its age, and the refresh asked of the wallpaper in the same edit ([WallpaperSettings.refreshAskedAtMillis]),
+     * so the engine never sees the new position without the ask, nor the ask without it.
+     */
+    suspend fun setDevicePositionFoundNow(latitude: Float, longitude: Float, ageMillis: Long) =
         store.editDurably {
-            it[Keys.RESOLVED_GPS_LAT] = latitude
-            it[Keys.RESOLVED_GPS_LON] = longitude
-            it[Keys.DEVICE_FIX_AT] = System.currentTimeMillis()
+            val now = System.currentTimeMillis()
+            it.putDeviceFix(latitude, longitude, ageMillis, now)
+            it[Keys.REFRESH_ASKED_AT] = now
         }
+
+    /**
+     * *Update weather now* under a Custom place: the wallpaper forgets its last request's place and time and
+     * asks the weather at its next pass on screen ([WallpaperSettings.refreshAskedAtMillis]). Nothing else.
+     */
+    suspend fun askRefreshNow() = store.editDurably { it[Keys.REFRESH_ASKED_AT] = System.currentTimeMillis() }
+
+    private fun MutablePreferences.putDeviceFix(latitude: Float, longitude: Float, ageMillis: Long, nowMillis: Long) {
+        this[Keys.RESOLVED_GPS_LAT] = latitude
+        this[Keys.RESOLVED_GPS_LON] = longitude
+        this[Keys.DEVICE_FIX_AT] = nowMillis
+        this[Keys.DEVICE_FIX_TAKEN_AT] = fixTakenAt(nowMillis, ageMillis)
+    }
 
     suspend fun setFixedHour(hour: Float) = store.editDurably { it[Keys.FIXED_HOUR] = hour }
 
@@ -1460,6 +1517,9 @@ class WallpaperPrefs internal constructor(
 
     suspend fun setStarsDensity(density: Float, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.STARS_DENSITY] = density; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+
+    suspend fun setShootingStarsVisible(visible: Boolean, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SHOOTING_STARS_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorDayHigh(color: Int, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_DAY_HIGH] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
@@ -1954,6 +2014,7 @@ class WallpaperPrefs internal constructor(
         remove(Keys.LAKE_DOLPHINS_DENSITY)
         remove(Keys.STARS_VISIBLE)
         remove(Keys.STARS_DENSITY)
+        remove(Keys.SHOOTING_STARS_VISIBLE)
         remove(Keys.SKY_COLOR_DAY_HIGH)
         remove(Keys.SKY_COLOR_DAY_LOW)
         remove(Keys.SKY_COLOR_NIGHT_HIGH)

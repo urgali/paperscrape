@@ -5,8 +5,8 @@
 // `:app:dependencies` shows zero of them on `releaseRuntimeClasspath`, `debugRuntimeClasspath` or
 // `releaseCompileClasspath`, so none of them is in the APK and none of them is reachable by a
 // user. They are still real -- they run on this machine and on the CI runner, with the checkout
-// in front of them -- and the maintainer's instruction is to close them by raising the
-// version, not by narrowing what the dependency-submission workflow reports to GitHub.
+// in front of them -- and they are closed by raising the version, never by narrowing what the
+// dependency-submission workflow reports to GitHub (the maintainer's rule: dependency watching stays his).
 //
 // Raising AGP to 9.5.1 (see `plugins` below) does most of the work by itself. What it does not
 // reach is forced here. `force` rather than a constraint because these are *someone else's*
@@ -78,18 +78,15 @@ buildscript {
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    // **AGP 9.5.1 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty: AGP 9.3.1
-    // creates eleven `unified-test-platform-*` configurations on `:app`, two of which resolve
-    // `com.google.testing.platform:core` and `io.grpc:grpc-netty`, and Netty comes in under those -- six `io.netty`
-    // artifacts with alerts of their own. AGP 9.5.1 has a single `unified-test-platform-gradle-work-action` that resolves
-    // neither gRPC nor Netty: `:app:dependencies` holds no Netty line. There is no Netty declaration of ours to raise; the
-    // newer AGP is the supported way to change what AGP drags in.
+    // **AGP 9.5.1 keeps Netty off this build, and not by hiding it.** Nothing in this project asks for Netty, and AGP 9.5.1
+    // resolves no gRPC and no Netty for `:app`: its one `unified-test-platform-gradle-work-action` configuration needs
+    // neither, and `:app:dependencies` holds no Netty line (older AGPs brought six `io.netty` artifacts with alerts of their
+    // own through `io.grpc:grpc-netty`). There is no Netty declaration of ours to raise; the AGP version is the supported way
+    // to change what AGP drags in.
     //
-    // A new release is taken once it is two weeks old and no alert names it. The 5.20 takes 9.5.1, Guava
-    // 33.8.0-jre and Gradle 9.9.1 on the maintainer's word of 2026-11-16 («voglio aggiungere anche
-    // aggiornamento componenti nonostante il rilascio sia prima del 24»), before AGP 9.5.1 (2026-11-05)
-    // and Gradle 9.9.1 (2026-11-10) are two weeks old: the alerts were read again on the day they were
-    // taken, and none names any of the three.
+    // A new release is taken once it is two weeks old and no alert names it, unless an alert names the version in use: the
+    // Gradle wrapper is at 9.9.2 for that reason, four alerts naming 9.9.1 («Sì, passa alla 9.9.2 (consigliata)», the
+    // maintainer, 2026-11-22). The alerts are read on the day a version is taken.
     id("com.android.application") version "9.5.1" apply false
     // org.jetbrains.kotlin.android intentionally NOT applied -- AGP 9.0+ provides built-in Kotlin
     // support, replacing this plugin. See https://developer.android.com/build/migrate-to-built-in-kotlin

@@ -100,6 +100,13 @@ class GoldenScene(
      * the scene it belongs in is a *cold* one, where the timer cannot fire at all.
      */
     val pinLightning: Boolean = false,
+    /**
+     * The seed `SceneRandom.source` is given for this scene, or null to leave the source alone. [configure] seeds it,
+     * so it is seeded afresh before **every** render a harness makes -- `SceneGolden.render` draws a scene twice, the
+     * compared frame and the reproducibility check's -- and a scene with a sky visitor in it (the fireworks) draws the
+     * same visitor each time. The source stays seeded after the render: a test that sets this puts it back itself.
+     */
+    val randomSeed: Int? = null,
 ) {
 
     /**
@@ -172,6 +179,9 @@ class GoldenScene(
         renderer.parallaxStrength = 1f
         // Only ever false here, and only for a scene that asked: see [pinLightning].
         renderer.lightningStrikesEnabled = !pinLightning
+        // Before the warm-up's first frame: the fireworks and the sleigh read the source at every update; the Horseman takes
+        // it when the renderer is built, before this ([randomSeed]).
+        randomSeed?.let { SceneRandom.source = kotlin.random.Random(it) }
     }
 
     companion object {

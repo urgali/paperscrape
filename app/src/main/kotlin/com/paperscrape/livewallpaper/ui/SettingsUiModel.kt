@@ -109,6 +109,32 @@ data class DeviceLocationRowState(
     val usesLastPosition: Boolean,
 )
 
+/** Where *Update location now* stands on the page ([SettingsUiModel.updateLocationRow]). */
+enum class UpdateLocationTap {
+    /** Not tapped since the page opened, or since the source changed. */
+    IDLE,
+
+    /** The page is asking the phone (`DeviceLocationProvider.positionNow`, up to a minute). */
+    SEARCHING,
+
+    /** A position came and was saved. */
+    FOUND,
+
+    /** No position came: nothing was saved, and a position saved before, if there is one, stays. */
+    NOT_FOUND,
+}
+
+/**
+ * The *Update location now* row: its [title], the [line] under it ([lineIsAccent]: painted in the accent colour, as a row
+ * that reports something gone wrong is), and whether it is [searching] -- a turning circle in place of a tap.
+ */
+data class UpdateLocationRowState(
+    val title: String,
+    val line: String,
+    val lineIsAccent: Boolean,
+    val searching: Boolean,
+)
+
 /** What the settings screen does with the answer to a location permission request. */
 enum class LocationRequestOutcome {
     /** Granted: the choice is stored. */
@@ -154,6 +180,25 @@ enum class LiveWeatherTap {
  * line each page shows in their place, and what their rows in *World & scene* say.
  */
 data class WeatherPagesUiState(val cloudsLine: String, val rainLine: String, val rowSummary: String)
+
+/**
+ * The Hills and the Mountains pages while the winter palette owns their colours ([SettingsUiModel.winterLandscape]): the
+ * colours the scene draws them in -- the snow's ([com.paperscrape.livewallpaper.engine.GroundSnow]) -- shown in place of
+ * the user's, which stay in the store untouched, and the [line] under them.
+ *
+ * @property hillsDay the hills by day: the snow's ground pair.
+ * @property mountainsFrontDay the front mountains: that pair a quarter of the way to white, day and night.
+ * @property mountainsBackDay the back mountains: the front ones' 12 % darker, as the scene draws them.
+ */
+data class WinterLandscapeUiState(
+    val hillsDay: Int,
+    val hillsNight: Int,
+    val mountainsFrontDay: Int,
+    val mountainsFrontNight: Int,
+    val mountainsBackDay: Int,
+    val mountainsBackNight: Int,
+    val line: String,
+)
 
 /**
  * The Live Weather switch: drawn **on only while real weather can drive the scene** ([shownOn]); otherwise off, with
@@ -913,6 +958,18 @@ object SettingsUiModel {
         DependentSwitchUiState(shownOn = stored && available, interactive = available)
 
     /**
+     * *Shooting stars*: they cross the night sky only while the stars show -- *Show Stars* on with a star in the field
+     * (`PaperRenderer.starCountFor` above 0, where *Show Stars* reads on) --, so it is off and locked while *Show Stars*
+     * reads off, the stored choice kept, and its line says what is missing (decision 40). On, it reads on exactly
+     * when the wallpaper draws them (`PaperRenderer.shootingStarsDrawn`).
+     */
+    fun shootingStars(stars: com.paperscrape.livewallpaper.engine.StarsConfig): DependentSwitchUiState =
+        dependentSwitch(
+            stars.shooting,
+            available = stars.visible && com.paperscrape.livewallpaper.engine.PaperRenderer.starCountFor(stars.density) > 0,
+        )
+
+    /**
      * *Thunderstorm*, from the theme's own weather: it flashes only while the sky has a cloud ([skyHasClouds]), *Show
      * Rain/Snow* is on and Rain is the type, `LiveWeatherSceneRules.stormActive`'s theme path with the renderer's cloudless
      * sky (`SwitchesTellTheTruthTest`). **Not the intensity**: at 0 % it is a storm without rain, and meant
@@ -1013,6 +1070,54 @@ object SettingsUiModel {
     private const val SET_THEM_HERE = "Turn Live Weather off in Weather & time to set them here."
 
     /**
+     * **Under the winter palette the Hills and Mountains pages are read-only** (decision 117): `true`, the colours show
+     * the snow the scene draws them in, with [WINTER_LANDSCAPE_LINE] under them, and cannot be changed. The rules below
+     * take it as a parameter, so a test can hold the pages with it either way.
+     */
+    const val WINTER_LANDSCAPE_READ_ONLY = true
+
+    /**
+     * The line under the Hills' and the Mountains' colours while the winter palette owns them ([winterLandscape]):
+     * *Winter* is the seasonal palette's choice in Seasons & decorations.
+     */
+    const val WINTER_LANDSCAPE_LINE = "Snow while the Winter palette is on: your colours come back when you turn it off."
+
+    /**
+     * Whether the Hills and the Mountains pages show the snow in place of the user's colours, read-only: while the winter
+     * palette is on for the theme being edited ([winterColorsEnabled]), and [readOnly] is the decided rule
+     * ([WINTER_LANDSCAPE_READ_ONLY]). The pattern of [forecastOwnsTheWeatherControls]: something else draws those
+     * colours, so they are not the user's to set while it does; nothing is written to the store either way, and with the
+     * palette off the stored colours are back as they were (decision 117).
+     */
+    fun winterOwnsLandscapeColours(winterColorsEnabled: Boolean, readOnly: Boolean = WINTER_LANDSCAPE_READ_ONLY): Boolean =
+        winterColorsEnabled && readOnly
+
+    /**
+     * What the Hills and the Mountains pages show in place of their colour pairs while the winter palette owns them
+     * ([winterOwnsLandscapeColours]), the scene's own rule asked ([com.paperscrape.livewallpaper.engine.GroundSnow]):
+     * the hills the snow's pair, the front mountains that pair a quarter of the way to white, the back ones darker
+     * still, day and night. Null where the pages show the stored colours and edit them as always.
+     */
+    fun winterLandscape(
+        c: com.paperscrape.livewallpaper.engine.SceneCustomization,
+        readOnly: Boolean = WINTER_LANDSCAPE_READ_ONLY,
+    ): WinterLandscapeUiState? {
+        if (!winterOwnsLandscapeColours(c.winterColorsEnabled, readOnly)) return null
+        val snow = com.paperscrape.livewallpaper.engine.GroundSnow
+        val frontDay = snow.frontMountainsDay(c)
+        val frontNight = snow.frontMountainsNight(c)
+        return WinterLandscapeUiState(
+            hillsDay = snow.hillsDay(c),
+            hillsNight = snow.hillsNight(c),
+            mountainsFrontDay = frontDay,
+            mountainsFrontNight = frontNight,
+            mountainsBackDay = snow.backMountains(frontDay),
+            mountainsBackNight = snow.backMountains(frontNight),
+            line = WINTER_LANDSCAPE_LINE,
+        )
+    }
+
+    /**
      * The line under a weather provider's key row in Weather & time's Advanced group: **"Required - not
      * set" only for the provider chosen as the source**, so a user on Open-Meteo, which needs no key,
      * reads no requirement that does not apply, and the Open-Meteo row says it is in use only while it is.
@@ -1078,6 +1183,137 @@ object SettingsUiModel {
             } else {
                 LocationRequestOutcome.KEEP_PREVIOUS
             }
+    }
+
+    /**
+     * Whether the answer to a GPS request is the refusal *GPS needs your precise location* says ([gpsNeedsPreciseLine]):
+     * the phone gave only the approximate location (`DeviceLocationAccess.APPROXIMATE_ONLY`, what Android 12 and later
+     * leave after "Approximate"), so GPS was not stored and the previous choice stays in use. Not for GPS already stored:
+     * there the Location row already says it ("GPS - tap to allow the precise location", decision 40).
+     */
+    fun refusedForApproximateOnly(
+        kind: DeviceLocationKind,
+        fineGranted: Boolean,
+        coarseGranted: Boolean,
+        locationOn: Boolean,
+        gpsAlreadyStored: Boolean,
+    ): Boolean = kind == DeviceLocationKind.GPS && !gpsAlreadyStored &&
+        DeviceLocationAccess.of(kind, fineGranted, coarseGranted, locationOn) == DeviceLocationAccess.APPROXIMATE_ONLY
+
+    /**
+     * The accent line of the row *GPS needs your precise location*, under the Location choice (decision 112), or null
+     * when the row is not shown: only after [refusedForApproximateOnly] on this page, and **gone once GPS or Network is the
+     * stored choice** -- then the choice says what is in use, and the Location row what the phone gives. It names the
+     * choice still in use: "Custom", or "the previous choice" for Off. Its tap asks again for the precise location, or opens
+     * PaperScrape's page where the system will not ask ([afterLocationRequest]).
+     */
+    fun gpsNeedsPreciseLine(refusedForApproximateOnly: Boolean, mode: LocationMode): String? {
+        if (!refusedForApproximateOnly || mode == LocationMode.GPS || mode == LocationMode.NETWORK) return null
+        val inUse = if (mode == LocationMode.CUSTOM) "Custom" else "the previous choice"
+        return "Your phone gave PaperScrape only your approximate location, and the GPS receiver needs the precise one, " +
+            "so $inUse is still in use. Tap to allow the precise location, or choose Network: it works with the approximate one."
+    }
+
+    /**
+     * The *Update location now* row, right under the position (decision 111), or null when it is not shown: **only
+     * while GPS or Network works** -- the permission given and the phone's location on ([DeviceLocationRowState.working]).
+     * Otherwise the Location row already says what is missing and leads where it is put right (decision 40). Shown with
+     * Live Weather off too: the position gives sunrise and sunset.
+     *
+     * @param liveWeatherOn the Live Weather switch as the page draws it (`LiveWeatherUiState.shownOn`): what the line
+     *   after a position was found promises -- the weather asked for the new place, or sunrise and sunset alone.
+     * @param hasPosition whether a position from the phone is saved: a search that finds nothing says the last one stays
+     *   only when there is one (decision 111).
+     */
+    fun updateLocationRow(
+        row: DeviceLocationRowState?,
+        kind: DeviceLocationKind,
+        tap: UpdateLocationTap,
+        liveWeatherOn: Boolean,
+        hasPosition: Boolean,
+    ): UpdateLocationRowState? {
+        if (row == null || !row.working) return null
+        val gps = kind == DeviceLocationKind.GPS
+        return when (tap) {
+            UpdateLocationTap.IDLE -> UpdateLocationRowState(
+                title = "Update location now",
+                line = "Asks your phone where it is now, instead of waiting for the next hourly check.",
+                lineIsAccent = false,
+                searching = false,
+            )
+            UpdateLocationTap.SEARCHING -> UpdateLocationRowState(
+                title = "Searching for your position...",
+                line = if (gps) "Up to a minute. Indoors the GPS receiver may not find one." else "Up to a minute.",
+                lineIsAccent = false,
+                searching = true,
+            )
+            UpdateLocationTap.FOUND -> UpdateLocationRowState(
+                title = "Update location now",
+                line = if (liveWeatherOn) {
+                    "Updated just now. The weather for this place is asked as soon as you are back on the home screen."
+                } else {
+                    "Updated just now: sunrise and sunset follow it."
+                },
+                lineIsAccent = false,
+                searching = false,
+            )
+            UpdateLocationTap.NOT_FOUND -> UpdateLocationRowState(
+                title = "Update location now",
+                line = when {
+                    gps && hasPosition -> "No position found in a minute - indoors the GPS receiver often cannot see the " +
+                        "satellites. The last position stays. Tap to try again."
+                    gps -> "No position found in a minute - indoors the GPS receiver often cannot see the satellites. " +
+                        "Tap to try again."
+                    hasPosition -> "No position found in a minute. The last position stays. Tap to try again."
+                    else -> "No position found in a minute. Tap to try again."
+                },
+                lineIsAccent = true,
+                searching = false,
+            )
+        }
+    }
+
+    /**
+     * The line under *Update weather now*, under a Custom place (decision 111), or null when the row is not shown:
+     * **only with Custom and Live Weather on** ([liveWeatherOn], the switch as drawn) -- without Live Weather there is no
+     * weather to ask. [asked]: tapped since the page opened. Each tap asks once: the wallpaper forgets its last request's
+     * place and time and asks at its next pass on screen.
+     */
+    fun updateWeatherLine(mode: LocationMode, liveWeatherOn: Boolean, asked: Boolean): String? = when {
+        mode != LocationMode.CUSTOM || !liveWeatherOn -> null
+        asked -> "Asked: the scene shows this place's new weather as soon as you are back on the home screen."
+        else -> "Asks the weather for this place at once, instead of at the next hourly check."
+    }
+
+    /**
+     * The line under the phone's position: where it came from and, when known, how long ago the phone took it
+     * ([positionAge]) -- "Resolved from the GPS receiver, 3 h ago". An old position is still used, a town does not move,
+     * but it says its age. [takenAtMillis] 0 is unknown (a position saved with its save time alone): no age is said.
+     */
+    fun devicePositionLine(working: Boolean, mode: LocationMode, takenAtMillis: Long, nowMillis: Long): String {
+        val from = when {
+            !working -> "Last position from your phone"
+            mode == LocationMode.GPS -> "Resolved from the GPS receiver"
+            else -> "Approximate, from cell towers and Wi-Fi"
+        }
+        val age = positionAge(takenAtMillis, nowMillis) ?: return from
+        return "$from, $age"
+    }
+
+    /**
+     * How long ago, in words, the phone took a position at [takenAtMillis]: under a minute "just now", under an hour
+     * "N min ago", under 48 hours "N h ago", then "N days ago". Null when unknown ([takenAtMillis] 0 or less). A time
+     * ahead of [nowMillis] (the clock moved back since) reads "just now".
+     */
+    fun positionAge(takenAtMillis: Long, nowMillis: Long): String? {
+        if (takenAtMillis <= 0L) return null
+        val minutes = (nowMillis - takenAtMillis) / 60_000L
+        return when {
+            minutes < 1 -> "just now"
+            minutes < 60 -> "$minutes min ago"
+            minutes < 48 * 60 -> "${minutes / 60} h ago"
+            else -> "${minutes / (24 * 60)} days ago"
+        }
     }
 
     /** See [DistantHousesUiState]. [mountainsShown]: either mountain layer's switch on. */
@@ -1558,6 +1794,20 @@ object SettingsUiModel {
         "This puts everything on this screen back to how $themeName ships: the seasonal palette and its " +
             "snow or leaf piles, and every winter, Christmas, New Year's Eve, Halloween, Easter and spring decoration, " +
             "with its density and colours. The rest of the scene and your other themes are not affected."
+
+    /**
+     * The line under a holiday's row on Seasons & decorations (decision 113): only what is on, named in the row's
+     * order, two names at most -- "All off - 6 to choose from", "Pumpkins on", "Snowmen and Penguins on",
+     * "Halloween, Pumpkins and 3 more on". [contents] pairs each decoration's name with what its switch shows.
+     */
+    fun seasonSummary(contents: List<Pair<String, Boolean>>): String {
+        val on = contents.filter { it.second }.map { it.first }
+        return when {
+            on.isEmpty() -> "All off - ${contents.size} to choose from"
+            on.size <= 2 -> on.joinToString(" and ") + " on"
+            else -> on.take(2).joinToString(", ") + " and ${on.size - 2} more on"
+        }
+    }
 
     /**
      * The gallery's "Reset to default" for a built-in theme with a saved version (decision 42): it takes the saved

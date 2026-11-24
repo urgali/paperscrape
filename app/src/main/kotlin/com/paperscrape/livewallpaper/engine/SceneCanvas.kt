@@ -98,6 +98,14 @@ interface SceneCanvas {
      */
     fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int)
 
+    /**
+     * The same falloff disc for a glow whose [centerAlpha] changes from frame to frame (the fireworks' light). On the GPU
+     * it is [drawRadialGlow]; a Canvas keeps one gradient per colour, position and radius at full alpha and fades it with
+     * the paint, so a fading glow builds no new shader each frame.
+     */
+    fun drawFadingGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) =
+        drawRadialGlow(cx, cy, radius, color, centerAlpha)
+
     // --- Sprites -----------------------------------------------------------------------------
 
     /**

@@ -103,9 +103,9 @@ internal fun SeasonsScreen(
                     },
                 )
                 Text(
-                    "Autumn turns the trees to autumn tones with leaves drifting down. Winter settles snow on " +
-                        "trees and rooftops and dresses people for the cold. One at a time - the Christmas lights " +
-                        "are separate and work with either.",
+                    "Autumn turns the trees to autumn tones with leaves drifting down, darker at night. Winter " +
+                        "turns the hills and mountains to snow, settles snow on trees, rooftops and cars, and dresses " +
+                        "people for the cold. One at a time - the Christmas lights are separate and work with either.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
@@ -236,12 +236,13 @@ internal fun SeasonsScreen(
 }
 
 /**
- * One season's row: its decorations, and how many of them the wallpaper is drawing. Each pair's
- * flag is what the switch shows, not what is stored -- a decoration at 0 % density counts as off,
- * as its switch does ([SettingsUiModel.amountSwitch]).
+ * One season's row: the decorations the wallpaper is drawing, two named at most, or how many there are to
+ * choose from when none is on ([SettingsUiModel.seasonSummary]). Each pair's flag is what the switch shows,
+ * not what is stored -- a decoration at 0 % density counts as off, as its switch does
+ * ([SettingsUiModel.amountSwitch]).
  *
- * Always a count: every decoration a season holds can be switched on on any theme, so no season
- * needs a sentence saying its decorations cannot appear.
+ * Every decoration a season holds can be switched on on any theme, so no season needs a sentence saying
+ * its decorations cannot appear.
  */
 @Composable
 private fun SeasonRow(
@@ -250,12 +251,11 @@ private fun SeasonRow(
     contents: List<Pair<String, Boolean>>,
     onClick: () -> Unit,
 ) {
-    val onCount = contents.count { it.second }
     SettingsNavigationRow(
         title = season.title,
-        supporting = contents.joinToString(", ") { it.first } + if (onCount == 0) " - all off" else " - $onCount on",
+        supporting = SettingsUiModel.seasonSummary(contents),
         icon = icon,
-        supportingIsAccent = onCount > 0,
+        supportingIsAccent = contents.any { it.second },
         onClick = onClick,
     )
 }

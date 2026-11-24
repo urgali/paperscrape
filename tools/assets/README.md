@@ -291,7 +291,7 @@ declare it for what they write, so every sprite carries one (`validate`'s
 | Rule | Meaning |
 |---|---|
 | `CONTENT_BOTTOM_CENTRE` | Ground-anchored wholes, and every person |
-| `SPRITE_CENTRE` | Sun, moon, star, firework |
+| `SPRITE_CENTRE` | Sun, moon, star |
 | `DECLARED_ATTACHMENT` | The palm: its three crowns at (84,78), its trunk at its foot (24,174) |
 | `PART_LOCAL` | Parts whose offset the composite owns; origin (0,0) |
 

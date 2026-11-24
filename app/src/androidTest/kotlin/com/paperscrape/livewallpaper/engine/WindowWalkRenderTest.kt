@@ -24,8 +24,9 @@ import kotlin.math.min
  * hour moved on a minute at a time as the real clock moves it, if many times faster), the area may change
  * by no more than half the smallest bust seen, frame to frame -- several walkers at once included, as at a
  * closing every shop and tower of a street keeps the same hours; and a walk is seen to happen (cut blits
- * counted). **Row by row**: the shops of the near row below the road (decision 96) keep the same hours and
- * walk their own people, larger, so the street's busts and the near row's are each held to half their own
+ * counted). **Row by row**: the shops of the near row below the road (decisions 96 and 119) keep the same hours
+ * and walk their own people, at the near row's sizes (each building at the size of its line of feet, 0.55 to 0.74 for
+ * what has windows), so the street's busts and the near row's are each held to half their own
  * row's smallest bust, a bust told by where it ends: above the object band's bottom, the street's. A closing and an
  * opening must each show the near row a whole bust, so its half of the check cannot be skipped for want of one.
  */

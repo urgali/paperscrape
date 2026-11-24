@@ -56,6 +56,15 @@ import org.junit.runner.RunWith
  * is a sprite being *darkened uniformly*, which is not a defect -- it is the thing the shade was
  * added to express.
  *
+ * ### The one tint finished art takes: the snow's colour on the lying snow
+ *
+ * Under the winter palette every lying snow -- the roofs' snow, the crowns' caps, the fir's, the drifts, the cars' -- is
+ * multiplied by the frame's snow colour, the ground's a step lighter (decision 117): finished art in its three tones of
+ * white and light blue, tinted on purpose. So a coloured tint on finished art is allowed in one case only: the tint is
+ * exactly [GroundSnow.snowAt] of the theme and hour being drawn, and the drawing is one of the lying snow, which the
+ * library names `…snow…` (`*_snow_fx`, `tree_canopy_snowcap`, `tree_fir_snow`, `snow_pile`, `car_body_*_snow`). Any
+ * other colour on them, or the snow's colour on anything else, still fails.
+ *
  * **Deliberately still nameless.** Exempting the four palm sprites by name would have been the
  * smaller edit and the wrong one: it would say "these four may compound hues", which is not true
  * of them and not what changed. The property is what changed, so the property is what this
@@ -69,11 +78,14 @@ class SpriteTintAtBlitTest {
     @Test
     fun finishedArtIsBlittedWithTheIdentityAndMasksNeverAre() {
         val recorder = TintRecorder()
+        // The snow's colours the scene may multiply the lying snow by: each theme's, at the two hours drawn.
+        val snowTints = HashSet<Int>()
         // Every built-in theme, by day and by night: a theme decides which objects exist at all,
         // and the day blend decides which of a category's two colours a call site passes, so one
         // scene at one hour would leave most of the tint call sites unvisited.
         for (theme in ThemeCatalog.ALL) {
             val customization = defaultCustomizationFor(theme.id)
+            if (customization.winterColorsEnabled) for (b in listOf(1f, 0f)) snowTints += GroundSnow.snowAt(customization, b)
             val layout = RandomSceneGenerator.generateLayout(theme.id, theme.accentColor)
             for (dayBlend in listOf(1f, 0f)) {
                 SceneObjectRenderer(layout, customization, context, theme.id).draw(
@@ -100,7 +112,7 @@ class SpriteTintAtBlitTest {
             val name = context.resources.getResourceEntryName(resId)
             val carriesColour = carriesColour(resId)
             val offending = if (carriesColour) {
-                tints.filter { it != IDENTITY && !isNeutral(it) }
+                tints.filter { it != IDENTITY && !isNeutral(it) && !("snow" in name && it in snowTints) }
             } else {
                 tints.filter { it == IDENTITY }
             }

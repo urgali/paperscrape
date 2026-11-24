@@ -132,7 +132,8 @@ enum class DeviceLocationAccess {
  * needs a position, and the times are counted on [now], the monotonic clock, from then.
  *
  * [tryAcquire]'s `force` is a choice the user has just made -- GPS or Network picked on the settings
- * screen -- which is answered at once, whatever the wait says, and starts the tries afresh.
+ * screen, or *Update location now* tapped there ([DeviceLocationProvider.positionNow]) -- which is
+ * answered at once, whatever the wait says, and starts the tries afresh.
  */
 class LocationRequestThrottle(
     private val now: () -> Long,

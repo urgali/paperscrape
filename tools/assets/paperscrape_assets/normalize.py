@@ -252,12 +252,6 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "in step with both canvases. `SpriteCanvasConventionTest` declares the same margin load-bearing.",
     ),
     Exclusion(
-        "firework",
-        "`SPRITE_CENTRE`, blitted centred on the burst it draws. Same reasoning as `star_sparkle`: "
-        "a symmetric crop is expressible, but it redefines the canvas the origin is measured "
-        "against, which is a change to the sky sprites' anchoring rather than to their padding.",
-    ),
-    Exclusion(
         "tree_canopy_snowcap",
         "Blitted at the crown's own origin (`TreeSpriteLayout.SNOWCAP_X == CANOPY_X`), so a snow "
         "cap meets the trunk exactly where the leaves do and a redraw has to move both or "

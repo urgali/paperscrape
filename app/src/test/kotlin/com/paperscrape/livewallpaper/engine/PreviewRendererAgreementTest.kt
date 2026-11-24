@@ -6,33 +6,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The gallery preview and the wallpaper must assemble a tree the same way (v3.7 Filone C).
+ * The gallery preview and the wallpaper must assemble a tree, a palm and a building the same way.
  *
- * ### What the audit found
+ * `ThemePreviewScenes` builds some of its objects from the same sprites at the same offsets as
+ * `SceneObjectRenderer`, as plain literals on both sides, with no transform to fold and no arithmetic
+ * to get wrong. Where an offset is a sum of the renderer's nested transforms it is where a hand copy
+ * drifts -- the winter tree's snow cap at `(-38,-116)` on the card against `(-41,-80)` under
+ * `translate(0,-38)`, i.e. `(-41,-118)`, on the wallpaper, 3 units right and 2 down -- so those are
+ * read from one place by both sides: the tree from [TreeSpriteLayout], the palm from
+ * [PalmSpriteLayout].
  *
- * `ThemePreviewScenes` builds its objects from the same sprites at the same offsets as
- * `SceneObjectRenderer`, copied by hand. Comparing all of them: **71 preview offset pairs, 59
- * sprites used by both, 56 in exact agreement** once the renderer's nested transforms are folded
- * in — and one drifted. The winter tree's snow cap was `(-38,-116)` in the preview against
- * `(-41,-80)` under `translate(0,-38)`, i.e. `(-41,-118)`, in the wallpaper: 3 units right and 2
- * down.
- *
- * The duplication itself was **not** removed, and that is deliberate. The preview is a flat
- * 320x240 data description with no perspective, no candidate system and no scroll; routing it
- * through the wallpaper's renderer would mean giving it all three, which is a refactor of
- * `SceneObjectRenderer` that no evidence supports. What was removed is the *hand copy* for the one
- * object that had actually drifted — the tree now reads [TreeSpriteLayout] from both sides.
- *
- * **v3.8 re-ran the audit to decide how far to take this, and the answer is narrow.** Of the 55
- * drawables both sides use, **all 55 agree exactly** — plain literals on both sides, no transform to
- * fold and no arithmetic to get wrong. Hoisting those into shared constants would guard against
- * nothing.
- *
- * The **skyscraper** is the one exception, and it earns the treatment twice: its roof snow carried
- * the renderer's four-term offset as a folded sum (the tree's exact failure mode), and its lit night
- * facade sat six units right and six down of the wall it is documented to lie exactly on top of.
- * Since v5.0 no building is copied by hand: both sides deal from [NeighbourhoodComposer], and the
- * building case below asserts the same parts at the same coordinates.
+ * The preview stays its own flat 320x240 data description, with no perspective, no candidate system
+ * and no scroll: routing it through the wallpaper's renderer would mean giving it all three. No
+ * building is copied by hand: both sides deal from [NeighbourhoodComposer], and the building case
+ * below asserts the same parts at the same coordinates.
  */
 class PreviewRendererAgreementTest {
 
@@ -76,7 +63,7 @@ class PreviewRendererAgreementTest {
             assertEquals("snow cap x", TreeSpriteLayout.FLAT_SNOWCAP_X, cap.ox, 0f)
             assertEquals("snow cap y", TreeSpriteLayout.FLAT_SNOWCAP_Y, cap.oy, 0f)
         }
-        // The pre-v3.7 values, named so a revert is unambiguous rather than a silent 3x2 slide.
+        // The drifted hand copy's values, named so a revert is unambiguous rather than a silent 3x2 slide.
         assertTrue("the drifted x is back", caps.none { it.ox == -38f })
         assertTrue("the drifted y is back", caps.none { it.oy == -116f })
     }
@@ -122,15 +109,12 @@ class PreviewRendererAgreementTest {
     }
 
     /**
-     * The palm joined the hoisted set in v5.1, and this is what it buys.
+     * The palm's two origins are read from [PalmSpriteLayout] by both sides.
      *
-     * Its two origins were plain literals on both sides — two of the 55 the v3.8 audit found in
-     * exact agreement and deliberately left alone, because numbers that have never moved cannot
-     * have drifted. v5.1 moved both of them: the crown onto a larger canvas built around its
-     * declared attachment, the trunk onto a foot that is no longer its content's centre because
-     * the spindle leans. Two hand copies edited in one pass is the state the tree was in the
-     * release before its snow cap slid three units right, so the copy went rather than being made
-     * correctly one more time.
+     * Neither is a plain number a hand copy keeps easily: the crown sits on a larger canvas built
+     * around its declared attachment, the trunk on a foot that is not its content's centre because
+     * the spindle leans. Two hand copies of such numbers are how the tree's snow cap slid three
+     * units right, so there is one copy.
      */
     @Test
     fun `the preview palm is blitted at the renderer's own two origins`() {
@@ -148,10 +132,10 @@ class PreviewRendererAgreementTest {
                 assertEquals("$themeId crown x", PalmSpriteLayout.CROWN_X, crown.ox, 0f)
                 assertEquals("$themeId crown y", PalmSpriteLayout.CROWN_Y, crown.oy, 0f)
             }
-            // The shipped v5.0 pair, named so a half-finished revert is unambiguous rather than a
-            // silent slide: the crown used to hang at (-20,-90.33) over a trunk at (-6,-58).
-            assertTrue("$themeId is back on the v5.0 trunk origin", trunks.none { it.ox == -6f })
-            assertTrue("$themeId is back on the v5.0 crown origin", crowns.none { it.oy == -90.33f })
+            // The palm's older pair, the crown at (-20,-90.33) over a trunk at (-6,-58), named so a
+            // half-finished revert is unambiguous rather than a silent slide.
+            assertTrue("$themeId is back on the older trunk origin", trunks.none { it.ox == -6f })
+            assertTrue("$themeId is back on the older crown origin", crowns.none { it.oy == -90.33f })
         }
     }
 
@@ -159,9 +143,8 @@ class PreviewRendererAgreementTest {
      * All three palm crowns blit at one origin, which is what makes the winter one a choice rather
      * than a layer.
      *
-     * Until v5.1 the frost was five white caps drawn *over* the live crown and the two had to
-     * cover each other pixel for pixel; they are three whole drawings on one canvas now, and the
-     * renderer picks one. If a future redraw gave any of them its own origin, the palm would start
+     * The crowns are three whole drawings on one canvas, and the renderer picks one: the frost is not
+     * laid over the live crown. If a future redraw gave any of them its own origin, the palm would start
      * changing shape when the season did, and it would do it silently.
      */
     @Test
@@ -196,9 +179,8 @@ class PreviewRendererAgreementTest {
      * The crown's centre is off the trunk, and everything hung on it reads the same number.
      *
      * This is the consequence of the lean that reaches furthest: the Christmas lights, the falling
-     * leaves and the occlusion box are all placed on the crown's content, and before v5.1 every
-     * one of them could assume that content was centred on the pivot. Stating the centre once is
-     * what stops the next one of them assuming it again.
+     * leaves and the occlusion box are all placed on the crown's content, which is not centred on
+     * the pivot. Stating the centre once is what stops any of them assuming it is.
      */
     @Test
     fun `the palm crown's centre is derived from its own blit`() {
@@ -213,7 +195,7 @@ class PreviewRendererAgreementTest {
             0f,
         )
         assertTrue(
-            "a palm crown centred on its own trunk is the assumption v5.1 broke",
+            "a palm crown is not centred on its own trunk",
             PalmSpriteLayout.CROWN_CENTRE_X != 0f,
         )
     }
@@ -252,30 +234,23 @@ class PreviewRendererAgreementTest {
             }
         }
         assertTrue("expected to have checked some tree parts, checked $checked", checked > 0)
-        println("Filone C: $checked tree sprite placements checked across ${ThemeCatalog.ALL.size} themes")
+        println("Trees: $checked tree sprite placements checked across ${ThemeCatalog.ALL.size} themes")
     }
 
-    // -- the neighbourhood (v5.0) -------------------------------------------------------------
+    // -- the neighbourhood ---------------------------------------------------------------------
 
     /**
-     * The three tests this replaces, and why one replaces them.
+     * The parts the composer deals for a building of [family] at ([tileX], [depth]).
      *
-     * v3.8 and v4.19 found three copies drifting -- the tower's lit facade six units off its own
-     * wall, its roof snow carrying a folded sum instead of its terms, and both shops' winter
-     * drifts left at their pre-cornice origins for two releases -- and closed each by hoisting the
-     * offending offsets into constants both sides read. That was the right size of fix for a flat
-     * facade: a handful of literals, shared.
+     * A building is not a list of literals in two places; it is a stack dealt from one table by one
+     * composer, and the preview calls that composer. So the property is not "these particular
+     * numbers match" but the one underneath it: **every building on the card is a stack the
+     * composer deals for the identity the card declares**, every part, every family -- which is what
+     * this asserts. There is no copy of the stacking to drift, and if somebody writes one, this fails.
      *
-     * v5.0 removed the thing those fixes were guarding. A building is no longer a list of
-     * literals in two places; it is a stack dealt from one table by one composer, and the preview
-     * calls that composer. So the property is no longer "these particular numbers match" but the
-     * one underneath it: **every building on the card is a stack the composer deals for the
-     * identity the card declares**, every part, every family -- which is what this asserts. There
-     * is no copy of the stacking left to drift, and if somebody writes one, this fails.
-     *
-     * **What it does not show, and its name used to claim** (v5.8B): "the deal the wallpaper
-     * would deal". Since v5.5 the wallpaper deals a building from the silhouette the generator
-     * recorded on the object (`NeighbourhoodComposer.deal(family, spec, ...)`), and deals from the
+     * **What it does not show**: "the deal the wallpaper would deal". The wallpaper deals a building
+     * from the silhouette the generator recorded on the object
+     * (`NeighbourhoodComposer.deal(family, spec, ...)`), and deals from the
      * position only for an undealt one; the card always deals from a position it picks for a
      * picture (`PreviewIdentity`, left alone by decision). So the card's stacks are real stacks of
      * the table, built the wallpaper's way, and not the particular stacks any theme's street shows.
@@ -306,7 +281,7 @@ class PreviewRendererAgreementTest {
     /**
      * The identity each preview slot declares, paired with a family it may draw: a tower and a house
      * their own, and each of the card's three rows among the houses any of the six buildings
-     * ([Storefront], v5.13) -- which of them a theme's card draws is the street's first stretch.
+     * ([Storefront]) -- which of them a theme's card draws is the street's first stretch.
      */
     private val previewSlots: List<Triple<BuildingFamily, Float, Float>> = buildList {
         for (i in 0 until 4) {
@@ -316,9 +291,8 @@ class PreviewRendererAgreementTest {
                 ThemePreviewScenes.PreviewIdentity.TOWER_DEPTH[i],
             ))
         }
-        // v5.7: the school's row. Every theme builds one and no card showed one, which is why it is here
-        // now -- and why its absence from this list would have gone unnoticed the same way, since
-        // the assertion below only checks buildings the card actually draws.
+        // The school's row among the three: every theme builds one, and its absence from this list would
+        // go unnoticed, since the assertion below only checks buildings the card actually draws.
         for (row in listOf(
             ThemePreviewScenes.PreviewIdentity.RESTAURANT_X to ThemePreviewScenes.PreviewIdentity.RESTAURANT_DEPTH,
             ThemePreviewScenes.PreviewIdentity.SCHOOL_X to ThemePreviewScenes.PreviewIdentity.SCHOOL_DEPTH,
@@ -352,7 +326,7 @@ class PreviewRendererAgreementTest {
         }
     }
 
-    /** The pair a building drawn as [name] wears: a house's or a tower's, or one of the six's group's (v5.13). */
+    /** The pair a building drawn as [name] wears: a house's or a tower's, or one of the six's group's. */
     private fun pairOf(c: SceneCustomization, name: String): ObjectVariantConfig =
         Storefront.ALL.firstOrNull { it.name == name }?.let { c.storefrontColours(it) }
             ?: c.buildingColoursFor(SceneSpace.SceneVariant.valueOf(name))!!
@@ -388,12 +362,11 @@ class PreviewRendererAgreementTest {
      * A preview building wears one of its category's two colours, and the one the wallpaper would
      * give it.
      *
-     * The preview used to invent its own: a tower 15 % towards white, a restaurant 30 %, a bar
-     * 15 % towards black -- so a gallery card showed the user a colour no building of theirs
-     * could ever be, and the editable colours were not what the card was showing. The wall
-     * masks now carry `colorFor` exactly, which is also what makes the card react to an edit.
+     * No colour of the card's own -- a tower some way towards white, a bar towards black -- which
+     * would show the user a colour no building of theirs could ever be. The wall masks carry
+     * `colorFor` exactly, which is also what makes the card react to an edit.
      *
-     * **The pair of what it is drawn as** (v5.11; v5.13): a tower the towers' pair, the restaurant, the
+     * **The pair of what it is drawn as**: a tower the towers' pair, the restaurant, the
      * bar and the shop the shops', the school and the two stations the public buildings', a house the
      * houses' -- the family read off the building's own sprites, since the card stands its towers at
      * depths the scene keeps for the street's places. On every built-in the three groups' pairs differ,
@@ -406,7 +379,7 @@ class PreviewRendererAgreementTest {
             val c = defaultCustomizationFor(theme.id)
             val scene = ThemePreviewScenes.forTheme(ThemeCatalog.byId(theme.id), c)
             val night = c.horrorSkyEnabled || ThemeCatalog.byId(theme.id).hasFireworks
-            // The card's own moment of the day, which since v5.8B is a real one: noon, midnight,
+            // The card's own moment of the day, a real one: noon, midnight,
             // or Sunset's hour before sunset -- where a wall is between its two
             // colours exactly as the wallpaper's is at that minute.
             val dayBlend = ThemePreviewScenes.cardPhase(ThemeCatalog.byId(theme.id), night).dayBlend
@@ -427,7 +400,7 @@ class PreviewRendererAgreementTest {
                     // constants every window in the scene reads.
                     if (tint == SceneObjectRenderer.windowGlassColor(1f - dayBlend)) continue
                     // And a house's glass at night is the dark glass of its unlit windows, its lit
-                    // ones flat cards over it (v5.12): neither is a wall.
+                    // ones flat cards over it: neither is a wall.
                     if (tint == SceneObjectRenderer.unlitWindowGlassColor(1f - dayBlend) || part.rectWidth > 0f) continue
                     assertTrue(
                         "theme ${theme.id}: a ${drawnAs.single()}'s wall mask is tinted ${Integer.toHexString(tint)}, " +
@@ -444,9 +417,9 @@ class PreviewRendererAgreementTest {
     /**
      * A weight mask is **summed**, in the gallery as in the scene.
      *
-     * The masks are weights over a fixed layer -- the people's system since v4.30 -- and drawing
-     * one with a plain tint paints the wall colour over the ink it is meant to be added to. The
-     * preview had no notion of an added blit until v5.0; this is what says it still has one.
+     * The masks are weights over a fixed layer -- the people's system too -- and drawing one with a
+     * plain tint paints the wall colour over the ink it is meant to be added to. This is what says
+     * the preview draws them as added blits.
      */
     @Test
     fun `every mask the gallery draws is an added blit and every fixed layer is not`() {
@@ -454,13 +427,26 @@ class PreviewRendererAgreementTest {
             .flatMap { piece ->
                 piece.parts.filter { it.role == PartRole.WALL_MASK || it.role == PartRole.GLASS_MASK }
             }.map { it.res }.toSet()
+        val roofSnow = drawableFamilies.values.flatMap { it.slots }.flatMap { it.options + it.heights }
+            .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW } }.map { it.res }.toSet()
         var checked = 0
+        var snowChecked = 0
         for (theme in ThemeCatalog.ALL) {
+            val c = defaultCustomizationFor(theme.id)
+            val night = c.horrorSkyEnabled || ThemeCatalog.byId(theme.id).hasFireworks || c.nightOverDayActive()
+            val snow = GroundSnow.snowAt(c, ThemePreviewScenes.cardPhase(ThemeCatalog.byId(theme.id), night).dayBlend)
             for (part in previewParts(theme.id)) {
                 if (part.resId !in buildingSprites) continue
                 if (part.resId in masks) {
                     assertTrue("a mask must be an added blit", part.added)
                     assertTrue("a mask must carry a tint", part.tint != null)
+                } else if (part.resId in roofSnow) {
+                    // The roof's snow is fixed art multiplied by the card's snow colour, the wallpaper's at the card's
+                    // moment, and drawn only under the winter palette ([GroundSnow], decision 117).
+                    assertTrue("roof snow must not be an added blit", !part.added)
+                    assertTrue("roof snow only under the winter palette", c.winterColorsEnabled)
+                    assertEquals("${theme.id}: roof snow in the snow's colour", snow, part.tint)
+                    snowChecked++
                 } else {
                     assertTrue("fixed art must not be an added blit", !part.added)
                     assertTrue("fixed art must not be tinted", part.tint == null)
@@ -468,6 +454,7 @@ class PreviewRendererAgreementTest {
                 checked++
             }
         }
+        assertTrue("expected to have checked some roof snow, checked $snowChecked", snowChecked > 0)
         assertTrue("expected to have checked some parts, checked $checked", checked > 0)
     }
 
@@ -487,8 +474,8 @@ class PreviewRendererAgreementTest {
         )
         assertEquals("the tree's four", 4, sharedByConstant.size)
         assertEquals(
-            // Six since v5.6F: the school joined the two houses, the tower and the two shops -- the families
-            // with a row of the size table; the shop and the two stations of v5.13 are three more, in
+            // Six: the two houses, the tower, the two shops and the school -- the families with a row of
+            // the size table; the shop and the two stations are three more, in
             // `NeighbourhoodTable.STOREFRONTS` (`drawableFamilies` above reads both).
             "the six families with a row of the size table, shared through the table",
             6, NeighbourhoodTable.FAMILIES.size,

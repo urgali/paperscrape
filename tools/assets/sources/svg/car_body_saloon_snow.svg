@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="33" viewBox="-21 -25 48 11">
+<!--
+  car_body_saloon_snow: the snow lying on the saloon's roof under the winter palette. Three cards, the
+  roof snow's tones: the cold under-paper #9FB0BD (the same silhouette moved 1.2 units down and right),
+  the light band #DCE7EF along the roof at the foot, the white #FFFFFF on top. One slab with a soft
+  top of few wide puffs, from the roof's front to its rear (CarShell.roofFrontXUnits and
+  roofRearXUnits) and 1.5 units past each.
+
+  The foot is not drawn: it is cut. Each clip below is the region above the body's own top outline,
+  the vertices copied from car_body_saloon.svg (windscreen, roof, rear slope), moved by a fixed step:
+  the under-paper is cut half a unit INTO the body paper so no seam opens along the roof, the light
+  band 2 units above the roof line, the white 4.5 above it. So every band follows the roof by
+  construction, and nothing reaches the glass (which starts at y=-12). If the body is redrawn, the
+  three outlines are copied again from it in the same pass.
+
+  The under-paper band at the foot, the light band and the white are 2.5 units or more each, 2 px on
+  the BV6600's road; the under-paper's 1.2-unit offset shows as an edge at the rear end only.
+
+  Body-local units, as car_body_saloon.svg: the viewBox minimum is the blit origin. The canvas
+  is trimmed to the snow (its top at y=-25, above the body's own canvas, which starts at -17), so it
+  is blitted at its own origin, not at the body's.
+-->
+  <defs>
+    <clipPath id="foot"><polygon points="-23.00,-27.00 -29.25,4.09 -22.20,-13.64 -20.43,-15.38 23.62,-15.72 27.47,-14.01 34.00,-0.67 29.00,-27.00"/></clipPath><!-- under-paper: half a unit into the body paper -->
+    <clipPath id="band"><polygon points="-23.00,-27.00 -29.25,1.59 -22.20,-16.14 -20.43,-17.88 23.62,-18.22 27.47,-16.51 34.00,-3.17 29.00,-27.00"/></clipPath><!-- light band: 2 units above the roof -->
+    <clipPath id="top"><polygon points="-23.00,-27.00 -29.25,-0.91 -22.20,-18.64 -20.43,-20.38 23.62,-20.72 27.47,-19.01 34.00,-5.67 29.00,-27.00"/></clipPath><!-- white: 4.5 units above the roof -->
+  </defs>
+  <g fill="#9FB0BD" clip-path="url(#foot)">
+    <rect x="-16.90" y="-20.02" width="41.20" height="9.00"/>
+    <ellipse cx="-16.30" cy="-17.02" rx="3.00" ry="2.60"/>
+    <ellipse cx="23.70" cy="-17.02" rx="3.00" ry="2.60"/>
+    <ellipse cx="-12.80" cy="-20.02" rx="6.50" ry="3.20"/>
+    <ellipse cx="-4.55" cy="-20.02" rx="6.50" ry="2.60"/>
+    <ellipse cx="3.70" cy="-20.02" rx="6.50" ry="3.20"/>
+    <ellipse cx="11.95" cy="-20.02" rx="6.50" ry="2.60"/>
+    <ellipse cx="20.20" cy="-20.02" rx="6.50" ry="3.20"/>
+  </g>
+  <g fill="#DCE7EF" clip-path="url(#band)">
+    <rect x="-18.10" y="-21.22" width="41.20" height="9.00"/>
+    <ellipse cx="-17.50" cy="-18.22" rx="3.00" ry="2.60"/>
+    <ellipse cx="22.50" cy="-18.22" rx="3.00" ry="2.60"/>
+    <ellipse cx="-14.00" cy="-21.22" rx="6.50" ry="3.20"/>
+    <ellipse cx="-5.75" cy="-21.22" rx="6.50" ry="2.60"/>
+    <ellipse cx="2.50" cy="-21.22" rx="6.50" ry="3.20"/>
+    <ellipse cx="10.75" cy="-21.22" rx="6.50" ry="2.60"/>
+    <ellipse cx="19.00" cy="-21.22" rx="6.50" ry="3.20"/>
+  </g>
+  <g fill="#FFFFFF" clip-path="url(#top)">
+    <rect x="-18.10" y="-21.22" width="41.20" height="9.00"/>
+    <ellipse cx="-17.50" cy="-18.22" rx="3.00" ry="2.60"/>
+    <ellipse cx="22.50" cy="-18.22" rx="3.00" ry="2.60"/>
+    <ellipse cx="-14.00" cy="-21.22" rx="6.50" ry="3.20"/>
+    <ellipse cx="-5.75" cy="-21.22" rx="6.50" ry="2.60"/>
+    <ellipse cx="2.50" cy="-21.22" rx="6.50" ry="3.20"/>
+    <ellipse cx="10.75" cy="-21.22" rx="6.50" ry="2.60"/>
+    <ellipse cx="19.00" cy="-21.22" rx="6.50" ry="3.20"/>
+  </g>
+</svg>

@@ -86,8 +86,13 @@ data class LakeConfig(
  * draw across all 4 ([BirdsConfig.pickColor]), and the "Bird Colors" sliders show each colour's share of the flock. */
 data class BirdColorWeight(val color: Int, val weight: Float)
 
-/** Stars: a switch and a density, no colour (a fixed twinkle colour per theme). */
-data class StarsConfig(val visible: Boolean, val density: Float)
+/**
+ * Stars: a switch and a density, no colour (a fixed twinkle colour per theme), and *Shooting stars* ([shooting]): one
+ * crossing the night sky now and then while the stars show (`PaperRenderer.shootingStarsDrawn`), on in every theme
+ * (decision 114).
+ * A store, a saved theme or a theme file without it reads it on.
+ */
+data class StarsConfig(val visible: Boolean, val density: Float, val shooting: Boolean = true)
 
 /**
  * The sky gradient's 6 colour stops, the shape a user can edit: a top ("High") and bottom ("Low") colour for day and
@@ -315,8 +320,10 @@ data class SceneCustomization(
     /** When the public buildings close, by [shopOpenHour]'s rules. */
     val publicCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
     val trees: ObjectVariantConfig,
-    // Fall Colors / Winter Colors: a seasonal palette over the `trees` category's leaves (SceneObjectRenderer.drawTree),
-    // not a placeable category. On "Seasons & decorations", not the Trees page: whether a theme has trees is structure,
+    // Fall Colors / Winter Colors: a seasonal palette, not a placeable category. Fall Colors is over the `trees`
+    // category's leaves (SceneObjectRenderer.drawTree). Winter Colors puts snow on the trees, the roofs and the cars, and
+    // draws the hills and both mountain layers in the snow's colours, every lying snow taking that colour too
+    // (GroundSnow, decision 117). On "Seasons & decorations", not the Trees page: whether a theme has trees is structure,
     // whether they look autumnal or snowy a decoration for any theme. Mutually exclusive, enforced in
     // WallpaperPrefs.setFallColorsEnabled/setWinterColorsEnabled by clearing the other flag in the same edit.
     val fallColorsEnabled: Boolean = false,
@@ -456,7 +463,9 @@ data class SceneCustomization(
      * (`drawFallingLeaves`) follow [fallColorsEnabled] alone.
      */
     val leafPiles: Float = 0f,
-    // The hills' colour pair: one layer, one pair (PaperRenderer's hillLayerColor() passes it through).
+    // The hills' colour pair, the user's: one layer, one pair (PaperRenderer's hillLayerColor() passes it through). It is
+    // drawn with the winter palette off; with it on the hills are drawn in the snow's pair (GroundSnow.hillsDay/hillsNight)
+    // and this pair stays stored as it was.
     val hillsColorDay: Int = 0xFFF2A65A.toInt(),
     val hillsColorNight: Int = 0xFF2E2A55.toInt(),
     /** Who owns the hills pair. Lives here because the hills colours do, not inside a config. */
@@ -494,7 +503,7 @@ data class SceneCustomization(
             BirdColorWeight(0xFF4F8FBF.toInt(), 0.15f),
         ),
     ),
-    val stars: StarsConfig = StarsConfig(visible = true, density = 1f),
+    val stars: StarsConfig = StarsConfig(visible = true, density = 1f, shooting = true),
     // Placeholders: defaultCustomizationFor() derives the sky, sun and moon from each theme; these serve unknown ids.
     val sky: SkyConfig = SkyConfig(
         colorDayHigh = 0xFF6EC6FF.toInt(),

@@ -227,7 +227,7 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # and decomposed into a fixed layer and its weight masks, a seated bust is fixed art plus
         # region masks, and the carrying frames are recolours of a base that is generated and not
         # shipped. A drawing added or removed with an SVG of its own moves this count.
-        self.assertEqual(130, len(self.results))
+        self.assertEqual(132, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

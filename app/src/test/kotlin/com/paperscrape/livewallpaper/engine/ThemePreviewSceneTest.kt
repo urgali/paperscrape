@@ -9,7 +9,7 @@ import org.junit.Test
 /**
  * What each built-in theme's gallery preview actually contains.
  *
- * The point of the v2.9 preview is that a user can tell twelve themes apart by looking at them, and
+ * The point of the preview is that a user can tell twelve themes apart by looking at them, and
  * the way it goes wrong is silently: a preview that shows an object the theme does not have, or
  * misses the one object the theme is about. Both are checked here against the real
  * [defaultCustomizationFor] rather than against a copy of it, so a change to a theme's defaults
@@ -23,8 +23,8 @@ class ThemePreviewSceneTest {
     /**
      * Every sprite the card draws, in every list it draws from.
      *
-     * [ThemePreviewScene.water] belongs here and is easy to forget: it is where v5.7 moved the
-     * boats and the dolphins, so a helper that left it out would have made
+     * [ThemePreviewScene.water] belongs here and is easy to forget: it holds the boats and the
+     * dolphins, so a helper that left it out would make
      * `beach has water with boats and dolphins` pass by looking at the wrong four lists.
      */
     private fun ThemePreviewScene.allSprites(): List<Int> =
@@ -33,7 +33,7 @@ class ThemePreviewSceneTest {
     /**
      * Whether the scene shows any of the winter drifts [variant]'s pieces can carry.
      *
-     * A building's roof is dealt per instance since v5.0 -- a small house wears a gable's drift
+     * A building's roof is dealt per instance -- a small house wears a gable's drift
      * or a mansard's, a large one one of four -- so naming a single drawable here would be
      * asserting which deal the preview's declared identity happens to produce, which is a fact
      * about `PreviewIdentity` and not about winter. The family's own set is the question worth
@@ -97,11 +97,11 @@ class ThemePreviewSceneTest {
     }
 
     /**
-     * **The card draws the sun as the wallpaper does: the two drawings untinted** (inventory I-05,
-     * v5.9F). The wallpaper gives *Sun Color* to the ambient glow only and blits `sun_glow` and
-     * `sun_body` as they are drawn (`PaperRenderer.drawCelestialBody`); the card tinted both, so a
-     * blue pick showed an orange sun with a blue halo on the wallpaper and a near-black one on the
-     * card (photographed on the BV6600 in v5.9E). Asserted on every day card, with a cold colour.
+     * **The card draws the sun as the wallpaper does: the two drawings untinted.** The wallpaper
+     * gives *Sun Color* to the ambient glow only and blits `sun_glow` and `sun_body` as they are drawn
+     * (`PaperRenderer.drawCelestialBody`); a card that tinted both would show a near-black sun for a
+     * blue pick where the wallpaper shows an orange sun with a blue halo. Asserted on every day card,
+     * with a cold colour.
      */
     @Test
     fun `the card's sun is never tinted, whatever Sun Color says`() {
@@ -118,9 +118,8 @@ class ThemePreviewSceneTest {
     }
 
     /**
-     * The card's Halloween moon is the wallpaper's (v5.15, the maintainer's «C – faccia accesa», 2026-10-19): the moon in the
-     * theme's own moon colour -- an orange fixed for every theme until v5.15 -- and the light inside its carved face
-     * over it, untinted, where the wallpaper blits it.
+     * The card's Halloween moon is the wallpaper's: the moon in the theme's own moon colour, not one orange for every
+     * theme, and the light inside its carved face over it, untinted, where the wallpaper blits it.
      */
     @Test
     fun `the carved moon takes the theme's moon colour, with its face lit from inside`() {
@@ -157,7 +156,7 @@ class ThemePreviewSceneTest {
     @Test
     fun `desert has palms and mountains but no water`() {
         // Mountains and not dunes: the wallpaper has no desert branch and draws the Desert's two
-        // mountain layers exactly as every other theme's, so the card does too (v5.8B).
+        // mountain layers exactly as every other theme's, so the card does too.
         val scene = sceneFor("desert")
         assertFalse(scene.hasLake)
         assertTrue(scene.contains(R.drawable.palmtree_fronds))
@@ -197,27 +196,75 @@ class ThemePreviewSceneTest {
     @Test
     fun `new year is a night scene with fireworks`() {
         val scene = sceneFor("new_year")
-        assertTrue(scene.contains(R.drawable.firework))
+        assertTrue("the card's three paper flowers", scene.backdrop.containsAll(ThemePreviewScenes.CARD_FIREWORKS))
         assertTrue(scene.contains(R.drawable.moon_full))
         assertEquals(ThemeCatalog.byId("new_year").skyNight.first(), scene.skyTop)
         assertFalse("New Year is not Christmas", scene.contains(R.drawable.gift_box))
     }
 
     /**
-     * This used to end `assertFalse("a city is towers and shops, not houses", ...)`, and that
-     * assertion was pinning a mistake rather than a property. `SceneObjectCatalog` gives Big City
-     * two large houses and a small one per tile -- the census reads them straight out of the
-     * layout -- so the card was under test to leave out three of the buildings the theme has. It
-     * was one of the forty-nine disagreements v5.7 measured between the twelve cards and the
-     * catalogue, and the only one a green test was actively defending.
+     * **The card's fireworks are three of the wallpaper's paper flowers, of different colours** (decision 103 draws them on
+     * a night card with the switch on): each its three layers of petals -- the wallpaper's twelve, ten and eight, each petal
+     * the wallpaper's own outline ([FireworkEffect.petalCorners]) -- in the burst's colour, its second colour and cream,
+     * and the middle disc in the second; the three outer colours apart, every colour one of the six papers. And every
+     * detail at least 2 px on the gallery card: the narrowest petal, the inner layer's, across its widest, and the disc.
+     */
+    @Test
+    fun `the card's fireworks are three paper flowers of different colours, every detail 2 px on the gallery card`() {
+        val flowers = ThemePreviewScenes.CARD_FIREWORKS
+        assertEquals(3, flowers.size)
+        val paper = FireworkEffect.PAPER.toSet()
+        val outers = mutableListOf<Int>()
+        for (flower in flowers) {
+            val petals = flower.parts.filter { it.outline != null }
+            val discs = flower.parts.filter { it.discRadius > 0f }
+            assertEquals("petals", FireworkEffect.LAYER_PETALS.sum(), petals.size)
+            assertEquals("the middle disc", 1, discs.size)
+            assertTrue("flat cards only", flower.parts.all { it.isFlat && it.resId == 0 })
+            val outer = petals.first().tint!!
+            val middle = petals[FireworkEffect.LAYER_PETALS[0]].tint!!
+            val inner = petals.last().tint!!
+            assertTrue("outer %08X is a paper colour".format(outer), outer in paper)
+            assertTrue("middle %08X is a paper colour".format(middle), middle in paper)
+            assertTrue("two colours in a flower", outer != middle)
+            assertEquals("the inner layer is cream", FireworkEffect.CREAM_COLOUR, inner)
+            assertEquals("the disc wears the second colour", middle, discs.single().tint)
+            outers += outer
+            // The inner layer's petal, across its widest (corners 1 and 3 of the outline), and the disc's diameter.
+            val o = petals.last().outline!!
+            val widthPx = kotlin.math.hypot(o[2] - o[6], o[3] - o[7]) * flower.scale * ThemePreviewScenes.GALLERY_PX_PER_UNIT
+            val discPx = 2f * discs.single().discRadius * flower.scale * ThemePreviewScenes.GALLERY_PX_PER_UNIT
+            assertTrue("an inner petal is %.2f px across on the gallery card".format(widthPx), widthPx >= ThemePreviewScenes.CARD_DECORATION_MIN_PX)
+            assertTrue("the middle disc is %.2f px across on the gallery card".format(discPx), discPx >= ThemePreviewScenes.CARD_DECORATION_MIN_PX)
+        }
+        assertEquals("three flowers of three outer colours: ${outers.map { "%08X".format(it) }}", 3, outers.toSet().size)
+    }
+
+    /** No flower on a night card with the switch off, nor on a day card with it on: the wallpaper's own rule. */
+    @Test
+    fun `the card's fireworks follow the switch and the night`() {
+        val newYear = ThemeCatalog.byId("new_year")
+        val off = ThemePreviewScenes.forTheme(newYear, defaultCustomizationFor("new_year").copy(fireworksEnabled = false))
+        assertTrue(off.backdrop.none { it in ThemePreviewScenes.CARD_FIREWORKS })
+        val byDay = ThemePreviewScenes.forTheme(newYear, defaultCustomizationFor("new_year"), forceNight = false)
+        assertTrue(byDay.backdrop.none { it in ThemePreviewScenes.CARD_FIREWORKS })
+        val autumn = ThemeCatalog.byId("autumn")
+        val autumnOn = ThemePreviewScenes.forTheme(autumn, defaultCustomizationFor("autumn").copy(fireworksEnabled = true), forceNight = true)
+        assertTrue(autumnOn.backdrop.containsAll(ThemePreviewScenes.CARD_FIREWORKS))
+    }
+
+    /**
+     * A city is not "towers and shops, not houses": `SceneObjectCatalog` gives Big City two large
+     * houses and a small one per tile -- the census reads them straight out of the layout -- and the
+     * card draws them as the wallpaper does.
      *
-     * What is true about a city, and is what the name meant, is the *skyline*: four towers where
-     * every other theme gets two, and no mountains behind them.
+     * What is true about a city is the *skyline*: four towers where every other theme gets two, and
+     * no mountains behind them.
      */
     @Test
     fun `a city is a skyline, over the houses the scene gives it too`() {
         val scene = sceneFor("city")
-        // A tower is any of its three bodies since v5.11, each counted by its first tier.
+        // A tower is any of its three bodies, each counted by its first tier.
         val tiers = setOf(R.drawable.tower_tier1_fx, R.drawable.tower_tier1_short_fx, R.drawable.tower_tier1_tall_fx)
         val towers = scene.items.count { item -> item.parts.any { it.resId in tiers } }
         assertTrue("expected a skyline, got $towers towers", towers >= 4)
@@ -226,8 +273,8 @@ class ThemePreviewSceneTest {
     }
 
     /**
-     * **No tower on the card where the wallpaper draws none** (v5.13, inventory I-609, decision 45): with
-     * *Towers* at 0 % no tower of any theme is kept, and the card drew two (four on a city) anyway. Every
+     * **No tower on the card where the wallpaper draws none** (decision 45): with *Towers* at 0 % no
+     * tower of any theme is kept, so the card draws none either, not two (four on a city). Every
      * built-in theme, the city's skyline included, at 0 % and with *Show Buildings* off; and at the
      * factory amount the towers the wallpaper keeps are on it.
      */
@@ -250,10 +297,9 @@ class ThemePreviewSceneTest {
 
     @Test
     fun `sunset shows the wallpaper's own sky an hour before sunset`() {
-        // This test used to assert `theme.skyDusk`, the array the wallpaper stopped reading when the
-        // six editable sky colours arrived -- so it pinned the card to a sky the wallpaper never
-        // draws, and would have stayed green through any change to the wallpaper's sky. What it
-        // pins now is the wallpaper's own rule at the card's moment.
+        // The wallpaper's own rule at the card's moment, not `theme.skyDusk`, an array the wallpaper
+        // does not read: pinned to it the card would show a sky the wallpaper never draws, and stay
+        // green through any change to the wallpaper's sky.
         val theme = ThemeCatalog.byId("sunset")
         val customization = defaultCustomizationFor("sunset")
         val scene = sceneFor("sunset")
@@ -262,8 +308,8 @@ class ThemePreviewSceneTest {
         assertEquals(SkyGradient.top(customization.sky, phase.dayBlend), scene.skyTop)
         assertEquals(SkyGradient.bottom(customization.sky, phase.dayBlend, phase.progress), scene.skyBottom)
         assertTrue(scene.contains(R.drawable.sun_body))
-        // And the coral the card used to show is a colour the wallpaper's sky never reaches, at
-        // any minute of the day: that is what made it a lie rather than a choice of hour.
+        // And `skyDusk`'s coral is a colour the wallpaper's sky never reaches, at any minute of
+        // the day: a card showing it would not be a choice of hour but a sky that is not there.
         for (minute in 0 until 24 * 60) {
             val p = SunPositionCalculator.compute(minute / 60f)
             assertTrue("minute $minute", SkyGradient.top(customization.sky, p.dayBlend) != theme.skyDusk.first())
@@ -354,5 +400,26 @@ class ThemePreviewSceneTest {
         val scene = ThemePreviewScenes.forTheme(theme, withPumpkins)
         assertTrue(scene.contains(R.drawable.pumpkin_body))
         assertFalse(sceneFor("sunset").contains(R.drawable.pumpkin_body))
+    }
+
+    /**
+     * **The card's falling leaves darken at night as the wallpaper's do** (decision 115; the cards take the wallpaper's
+     * colours at their hour): by day each leaf dot wears one of the four autumn tones, at night the same tone darkened by
+     * [SceneObjectRenderer.fallCrownColour] -- never a day tone in a night card.
+     */
+    @Test
+    fun `the card's falling leaves darken at night as the wallpaper's`() {
+        val theme = ThemeCatalog.byId("autumn")
+        val c = defaultCustomizationFor("autumn")
+        val tones = SceneObjectRenderer.FALL_LEAF_TREE_PALETTE.toSet()
+        fun leafColours(night: Boolean) = ThemePreviewScenes.forTheme(theme, c, forceNight = night).dots
+            .filter { it.front && it.radius == 1.4f }.map { it.colour }
+        val day = leafColours(false)
+        val night = leafColours(true)
+        assertTrue("the card has falling leaves", day.isNotEmpty() && night.size == day.size)
+        assertTrue("by day the leaves wear the autumn tones", day.all { it in tones })
+        assertTrue("at night none wears a day tone", night.none { it in tones })
+        val darkened = tones.map { SceneObjectRenderer.fallCrownColour(it, 0f) }.toSet()
+        assertTrue("at night each is a tone darkened as the crowns are", night.all { it in darkened })
     }
 }

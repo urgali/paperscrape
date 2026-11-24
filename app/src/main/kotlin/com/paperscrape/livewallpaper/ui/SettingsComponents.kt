@@ -1,5 +1,10 @@
 package com.paperscrape.livewallpaper.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -111,6 +117,10 @@ internal fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable C
  * One row of a [SettingsGroup]: optional leading icon, title, optional supporting line, optional
  * trailing control. [supportingIsAccent] paints the supporting line in the primary colour: how a row
  * says something is on ("Live Weather on", "Driven by Live Weather") without a badge.
+ *
+ * A supporting line longer than [SupportingLine.COLLAPSED_LINES] lines shows that many with an ellipsis
+ * and a "More" link that shows it whole ([CollapsibleSupporting]); an accent line, which says what is on
+ * or what is missing (decision 40), is always shown whole ([SupportingLine.collapses]).
  */
 @Composable
 internal fun SettingsRow(
@@ -149,15 +159,81 @@ internal fun SettingsRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = titleColor)
             if (!supporting.isNullOrBlank()) {
-                Text(
-                    supporting,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = supportingColor,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
+                if (SupportingLine.collapses(isAccent = supportingIsAccent)) {
+                    CollapsibleSupporting(supporting, supportingColor)
+                } else {
+                    Text(
+                        supporting,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = supportingColor,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
         }
         trailing?.invoke()
+    }
+}
+
+/**
+ * Whether an accent supporting line ([SettingsRow]'s `supportingIsAccent`) is collapsed like the others: false,
+ * the rule decision 113 sets. An accent line says what is on or what is missing (decision 40), so it is read whole.
+ */
+private const val CLAMP_ACCENT_LINES = false
+
+/** The rules of a [SettingsRow]'s supporting line: when it is collapsed, and when its "More"/"Less" link shows. */
+internal object SupportingLine {
+    /** The lines a collapsed supporting line shows, the last ending in an ellipsis. */
+    const val COLLAPSED_LINES = 3
+
+    /** Whether a row's supporting line can be collapsed: every line but an accent one, unless [clampAccentLines]. */
+    fun collapses(isAccent: Boolean, clampAccentLines: Boolean = CLAMP_ACCENT_LINES): Boolean = !isAccent || clampAccentLines
+
+    /** The lines the text is laid out with: [COLLAPSED_LINES] until the user asks for the whole text. */
+    fun maxLines(expanded: Boolean): Int = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES
+
+    /**
+     * Whether the text is longer than [COLLAPSED_LINES] lines, read off its layout: collapsed, from whether it
+     * exceeded its lines ([exceededMaxLines]); expanded, from the lines it takes ([lineCount]). Only then does
+     * the link show, both ways, so a line that becomes short while it is open does not keep a "Less".
+     */
+    fun longerThanCollapsed(expanded: Boolean, lineCount: Int, exceededMaxLines: Boolean): Boolean =
+        if (expanded) lineCount > COLLAPSED_LINES else exceededMaxLines
+
+    /** The link's words. */
+    fun linkLabel(expanded: Boolean): String = if (expanded) "Less" else "More"
+}
+
+/**
+ * A supporting line collapsed to [SupportingLine.COLLAPSED_LINES] lines, with "More" under it when it is
+ * longer; tapped, the whole text and "Less". The words are the same either way. The link is a tap target of
+ * its own, so a tap on it does not reach the row (a switch row's switch does not toggle).
+ */
+@Composable
+private fun CollapsibleSupporting(text: String, color: Color) {
+    var expanded by remember { mutableStateOf(false) }
+    var longer by remember { mutableStateOf(false) }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        maxLines = SupportingLine.maxLines(expanded),
+        overflow = TextOverflow.Ellipsis,
+        onTextLayout = { layout ->
+            longer = SupportingLine.longerThanCollapsed(expanded, layout.lineCount, layout.didOverflowHeight)
+        },
+        modifier = Modifier.padding(top = 2.dp),
+    )
+    if (longer) {
+        Text(
+            SupportingLine.linkLabel(expanded),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .padding(vertical = 4.dp),
+        )
     }
 }
 
@@ -331,43 +407,58 @@ internal fun SettingsSubScreen(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
-            // **Not fillMaxSize**: the dialog's content is measured against the display, its window
-            // only between the system bars, and the difference would be clipped. See SettingsInsets.
-            modifier = Modifier.fillMaxWidth().height(settingsDialogHeight()),
-            color = MaterialTheme.colorScheme.surface,
+        // **The page enters** from a quarter of its width to the right while it fades in
+        // ([PAGE_ENTER_MILLIS]); it leaves at once, the dialog taken out of the composition (decision 113).
+        // The state starts hidden and targets shown, so the entrance runs once, when the page opens: a
+        // page opened over this one, and closed, leaves this one where it is. The transition only offsets
+        // and fades the page: its size, the insets it reads and the keyboard's padding below are the same.
+        val entrance = remember { MutableTransitionState(false).apply { targetState = true } }
+        AnimatedVisibility(
+            visibleState = entrance,
+            enter = slideInHorizontally(tween(PAGE_ENTER_MILLIS)) { fullWidth -> fullWidth / 4 } +
+                fadeIn(tween(PAGE_ENTER_MILLIS)),
         ) {
-            Scaffold(
-                // The dialog window's own insets: zero when the window already fits the system bars
-                // (what the height above is sized for), real values on a full-bleed dialog window.
-                contentWindowInsets = WindowInsets.safeDrawing,
-                topBar = {
-                    TopAppBar(
-                        title = { Text(title) },
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        },
-                    )
-                },
-            ) { padding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        // Before the scroll modifier, so the scrollable area shrinks when the keyboard
-                        // opens and the city search field stays visible with its results.
-                        .imePadding()
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    content()
-                    SettingsBottomSpacer()
+            Surface(
+                // **Not fillMaxSize**: the dialog's content is measured against the display, its window
+                // only between the system bars, and the difference would be clipped. See SettingsInsets.
+                modifier = Modifier.fillMaxWidth().height(settingsDialogHeight()),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Scaffold(
+                    // The dialog window's own insets: zero when the window already fits the system bars
+                    // (what the height above is sized for), real values on a full-bleed dialog window.
+                    contentWindowInsets = WindowInsets.safeDrawing,
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(title) },
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            },
+                        )
+                    },
+                ) { padding ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            // Before the scroll modifier, so the scrollable area shrinks when the keyboard
+                            // opens and the city search field stays visible with its results.
+                            .imePadding()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        content()
+                        SettingsBottomSpacer()
+                    }
                 }
             }
         }
     }
 }
+
+/** How long a settings page takes to enter ([SettingsSubScreen]). */
+internal const val PAGE_ENTER_MILLIS = 220
 
 /**
  * The same shell for the leaf screens that are a form rather than a list -- every Scene Objects
@@ -457,7 +548,9 @@ internal fun ColorSwatchRow(label: String, color: Int, enabled: Boolean = true, 
                 .size(40.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(color))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
+                // `outline`, not the fainter `outlineVariant`: a pale swatch on the light surface would
+                // otherwise hardly show its edge (decision 113).
+                .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
         )
     }
 }
@@ -494,7 +587,7 @@ internal fun DayNightColorPair(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 // No check mark, as on every segmented row (see [SettingsSegmentedChoice]).
                 icon = {},
-            ) { Text(label, style = MaterialTheme.typography.labelSmall) }
+            ) { Text(label, style = MaterialTheme.typography.labelMedium) }
         }
     }
 }
@@ -794,6 +887,8 @@ internal fun SettingsSliderRow(
             steps = steps,
             enabled = enabled,
             label = { shown ->
+                // The title takes what the value leaves, and the value keeps one line ("2 (Good Friday)"
+                // whole): a long title wraps, the value never breaks in the middle (decision 113).
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -802,11 +897,15 @@ internal fun SettingsSliderRow(
                         title,
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.weight(1f),
                     )
                     Text(
                         valueLabel(shown),
                         style = MaterialTheme.typography.labelLarge,
                         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.padding(start = 12.dp),
                     )
                 }
                 if (!supporting.isNullOrBlank()) {

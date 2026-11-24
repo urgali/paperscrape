@@ -45,7 +45,13 @@ class FixedHourIgnoresLocationTest {
 
     @Test
     fun `a settings change at a fixed hour asks the phone for nothing`() {
-        assertTrue(engine.contains("if (!solarDay.hasFix && newSettings.syncWithRealTime) launch { refreshDeviceFix(requestedSource) }"))
+        val lines = engine.lines().map { it.trim() }
+        val ask = lines.indexOf("if (!solarDay.hasFix && newSettings.syncWithRealTime) {")
+        assertTrue("the collector asks only while the scene follows real time", ask >= 0)
+        assertEquals(
+            "collectorSearch.startUnlessRunning(this, requestedSource) { refreshDeviceFix(requestedSource) }",
+            lines[ask + 1],
+        )
     }
 
     @Test

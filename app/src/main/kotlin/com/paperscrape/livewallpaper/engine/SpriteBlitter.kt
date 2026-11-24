@@ -96,7 +96,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * trunk, a taxi's chequer stripe -- rather than a mask meant to be tinted at runtime.
      *
      * [alpha] exists for fixed art that fades rather than recolours: the rainbow's daylight
-     * fade, a firework burst dying out, a lightning bolt decaying. Routing them
+     * fade, a lightning bolt decaying. Routing them
      * through [drawTinted] with a white tint would say "tinted with the identity colour", which
      * is exactly the wording the fixed-art/tintable split exists to make unambiguous.
      *

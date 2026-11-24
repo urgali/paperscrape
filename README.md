@@ -14,14 +14,16 @@ moving on its own.
 
 - **A live wallpaper**, not a static image. Hills, a lake, a village and a road, drawn
   every frame; under the road the town seen again, nearer and with room between: houses, trees, the shops and the public
-  buildings, decorations and people walking.
+  buildings, decorations and people walking, on several levels as the street above the road is -- what stands farther
+  back higher and smaller.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick —
   by searching for it by name, or by entering coordinates. Your phone's location is used
-  only while the phone allows it, and asked for once an hour at most -- after a search that
-  finds nothing, again after 5, 15 and 30 minutes; the settings say when
-  it is not allowed or switched off, and take you where to change it. Frozen at a fixed hour,
+  only while the phone allows it, and asked for once an hour at most, or at once when you tap *Update location now* --
+  after a search that finds nothing, again after 5, 15 and 30 minutes while PaperScrape is on screen. The settings show
+  how long ago the phone gave the position ("3 h ago"), say when it is not allowed or switched off, or when GPS has only
+  your approximate location and needs the precise one, and take you where to change it. Frozen at a fixed hour,
   the scene uses a sunrise at 6:00 and a sunset at 20:00 wherever you are.
 - **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
   city, tundra, Easter and Halloween — with optional automatic switching by date, which as
@@ -57,7 +59,10 @@ moving on its own.
   stay empty.
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, scarecrows, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
-  roofs and trees. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
+  roofs, cars and trees. With the winter palette the hills and the mountains turn to snow and all the snow lying in the
+  scene takes the colour of that snowy ground a step lighter, by day and by night; while it is on the hills and mountains
+  colours show the snow and cannot be changed, and your own come back when it is off. With the
+  autumn palette the trees' crowns darken at night with their falling leaves. Christmas has a switch for each of its decorations — as the Christmas theme starts, all
   on: **lights on the buildings** (a string along every roof and under the windowsills, a wreath on every
   front door, a star on every tower and three lights on each distant house), **lights on the trees** and the palms, and **Christmas firs** (one
   tree in three a fir in tiers with lights and presents); the gallery cards show them too. A theme has
@@ -105,7 +110,8 @@ moving on its own.
   weather is asked for at once, and again within seconds if the network is not up yet. The weather is asked for again at
   once for a new custom location, and for the phone's position once it has moved more than 3 km: that position is the one
   the phone already knows, read with no request every couple of minutes while the wallpaper is on screen, so it is new at
-  once only when another app, a map say, has asked for it. The rain falls from the clouds and only from
+  once only when another app, a map say, has asked for it, or you have tapped *Update location now*. A position found that
+  way, or *Update weather now* under a custom place, asks the weather as soon as you are back on the home screen. The rain falls from the clouds and only from
   them: with the theme's clouds off or at 0 % nothing falls and no storm flashes, a forecast of rain under a clear sky is drawn
   with a few clouds to fall from, and as the last clouds go the rain stops with them. The drops are thin strokes with
   square ends. While Live Weather is on, the clouds and the rain and snow are the forecast's: their pages leave out their
@@ -116,7 +122,10 @@ moving on its own.
 - **Visitors in the sky.** Santa's sleigh about once a minute, dropping gifts, while its switch is
   on (the Christmas theme starts with it on); the Headless Horseman, the same way, throwing pumpkins on fire from his
   hand (the Halloween theme starts with him on), and never in the sky with the sleigh when both are on; fireworks at
-  night, with a switch of their own on every theme (New Year's Eve starts with them on); lightning and birds. *Sun/Cloud
+  night, with a switch of their own on every theme (New Year's Eve starts with them on): each burst one of four kinds at
+  random -- a paper flower that breaks into confetti, flying paper, sparks, sparks that light the sky -- in colours of its
+  own, now and then a salvo of three and every three minutes a finale; a shooting star crossing the night sky about once
+  every three minutes, behind the clouds, with a switch on the Stars page; lightning and birds. *Sun/Cloud
   Height* takes the sun and the moon as high as the screen has room for, the clouds below them.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   0 % no car, and *Keep the road* says whether the road stays, empty, or gives way to the meadow — with a night amount of its own that the road fades to at

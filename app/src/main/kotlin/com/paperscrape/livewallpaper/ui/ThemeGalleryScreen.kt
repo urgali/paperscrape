@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.paperscrape.livewallpaper.ui.icons.filled.Event
@@ -522,6 +524,14 @@ private fun ThemeCard(
                     onClick = { menuExpanded = true },
                     modifier = Modifier.size(32.dp),
                 ) {
+                    // A dark disc under the white dots, so they read over a card's sun and light sky too. The
+                    // button centres its content, so the disc and the icon share one centre.
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                    )
                     Icon(Icons.Filled.MoreVert, contentDescription = "Theme actions", tint = Color.White)
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {

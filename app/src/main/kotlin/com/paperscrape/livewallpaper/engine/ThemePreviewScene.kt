@@ -221,7 +221,8 @@ object ThemePreviewScenes {
     private const val OPEN_WATER_HEIGHT = 0.8f
 
     private const val ROAD_TOP = 207f
-    private const val ROAD_BOTTOM = 229f
+    /** The card road's lower edge: nothing on the card stands below it (the wallpaper's near row is not on the card). */
+    internal const val ROAD_BOTTOM = 229f
 
     /** See [car]: where a wheelless preview car's painted floor sits. */
     internal const val PREVIEW_CAR_FLOOR_DROP = 28f
@@ -307,6 +308,10 @@ object ThemePreviewScenes {
         // wallpaper's day, not a mixture.
         val phase = cardPhase(theme, night)
         val dayBlend = phase.dayBlend
+        // The snow lying on the card under the winter palette -- the roofs', the crowns' caps, the fir's, the distant
+        // houses', the cars' -- in the wallpaper's own colour at the card's moment ([GroundSnow.snowAt], decision
+        // 117), the multiplier of each of those drawings: null with the palette off, when none is drawn.
+        val snow: Int? = if (winter) GroundSnow.snowAt(c, dayBlend) else null
         // The card's hour, at which each building is as open as the wallpaper's [BusinessHours] rule
         // makes it, by its group's hours (the towers', the shops' or the public buildings'; the fire and
         // the police station never close), a tower by what it is drawn as and a building among the houses
@@ -334,9 +339,10 @@ object ThemePreviewScenes {
             SkyGradient.bottom(c.sky, dayBlend, phase.progress)
         }
 
-        val ground = blendRgb(c.hillsColorNight, c.hillsColorDay, dayBlend)
+        // The user's hills, or the snow's under the winter palette ([GroundSnow.hillsDay]), as the wallpaper's.
+        val ground = blendRgb(GroundSnow.hillsNight(c), GroundSnow.hillsDay(c), dayBlend)
 
-        val peaks = buildPeaks(c, dayBlend, winter)
+        val peaks = buildPeaks(c, dayBlend, snow)
         val lake = lakeBand(c, dayBlend)
 
         val backdrop = mutableListOf<PreviewItem>()
@@ -431,7 +437,7 @@ object ThemePreviewScenes {
 
         fun tower(x: Float, y: Float, fit: Float, index: Int) = buildingItem(
             x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
-            PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, hour, seed,
+            PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, snow, hour, seed,
         )
         // The three buildings among the houses: three of the five places of the street's first copy, one in
         // each row of the size table ([StorefrontStreet.firstStretch], [StorefrontStreet.cardPlaceOf]).
@@ -464,29 +470,29 @@ object ThemePreviewScenes {
         if (c.groupStands(storefronts[0].group)) {
             items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
                 SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
+                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, snow, hour, seed,
                 storefronts[0])
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
-                PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, hour, seed)
+                PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, snow, hour, seed)
         }
         if (c.groupStands(storefronts[1].group)) {
             items += buildingItem(176f, ROW_SCHOOL, 0.40f,
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed,
+                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, snow, hour, seed,
                 storefronts[1])
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(236f, ROW_HOUSE_SMALL, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
-                PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, hour, seed)
+                PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, snow, hour, seed)
         }
         if (c.groupStands(storefronts[2].group)) {
             items += buildingItem(300f, ROW_BAR, 0.42f,
                 SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed,
+                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, snow, hour, seed,
                 storefronts[2])
         }
 
@@ -498,15 +504,20 @@ object ThemePreviewScenes {
             val xs = if (kinds.size == 1) listOf(262f) else listOf(70f, 262f)
             kinds.forEachIndexed { index, kind ->
                 val x = xs[index]
-                val leaf = if (c.fallColorsEnabled) FALL_LEAF_COLOURS[index % FALL_LEAF_COLOURS.size] else c.trees.colorAt(0, dayBlend)
+                // An autumn crown darkens at night as the wallpaper's does ([SceneObjectRenderer.fallCrownColour]).
+                val leaf = if (c.fallColorsEnabled) {
+                    SceneObjectRenderer.fallCrownColour(FALL_LEAF_COLOURS[index % FALL_LEAF_COLOURS.size], dayBlend)
+                } else {
+                    c.trees.colorAt(0, dayBlend)
+                }
                 val palm = kind == CardTree.PALM
                 val parts = when (kind) {
-                    CardTree.FIR -> fir(snow = winter, shade = c.trees.nightShadeAt(0, dayBlend))
+                    CardTree.FIR -> fir(snow = snow, shade = c.trees.nightShadeAt(0, dayBlend))
                     CardTree.PALM -> palmTree(
                         dead = halloween, frost = winter, shade = c.trees.nightShadeAt(0, dayBlend),
                         lights = c.christmasTreeLightsEnabled,
                     )
-                    CardTree.TREE -> tree(leaf, winter = winter, halloween = halloween, lights = c.christmasTreeLightsEnabled)
+                    CardTree.TREE -> tree(leaf, snow = snow, halloween = halloween, lights = c.christmasTreeLightsEnabled)
                 }
                 items += PreviewItem(
                     x,
@@ -528,9 +539,9 @@ object ThemePreviewScenes {
         // --- cars -------------------------------------------------------------------------------
         if (c.cars.visible) {
             // The traffic the scene carries: ten vehicles at the default density, one of them the appliance.
-            cars += PreviewItem(60f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorAt(0, dayBlend)))
+            cars += PreviewItem(60f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorAt(0, dayBlend), snow))
             cars += PreviewItem(160f, ROW_CARS, 0.40f, fireTruck())
-            cars += PreviewItem(262f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorAt(1, dayBlend)))
+            cars += PreviewItem(262f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorAt(1, dayBlend), snow))
         }
 
         // --- what is on the water ---------------------------------------------------------------
@@ -589,11 +600,10 @@ object ThemePreviewScenes {
         // Parasols are deliberately absent: the renderer draws them procedurally, with no sprite, and a
         // stand-in would show something the scene does not contain. `ThemePreviewTruthTest` names the exception.
         // The fireworks as the wallpaper draws them: their switch, and only at night (decision 103). The card's night stays
-        // the theme's own (`hasFireworks`, above), so New Year's Eve with the switch off is a night card without them.
+        // the theme's own (`hasFireworks`, above), so New Year's Eve with the switch off is a night card without them. The
+        // card is still, so it shows the wallpaper's paper flower, open, three of them ([CARD_FIREWORKS]).
         if (c.fireworksEnabled && night) {
-            backdrop += PreviewItem(212f, 46f, 0.55f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFFFD166.toInt())))
-            backdrop += PreviewItem(258f, 66f, 0.42f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFEF7DA8.toInt())))
-            backdrop += PreviewItem(160f, 70f, 0.34f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFF8AD6F0.toInt())))
+            backdrop.addAll(CARD_FIREWORKS)
         }
         // The sleigh, a periodic flyby like the fireworks, read from `santaEnabled`: a flag with no hour
         // and no theme gate (`PaperRenderer` hands it straight to `SantaSleighEffect.update`), so a day
@@ -714,7 +724,9 @@ object ThemePreviewScenes {
                 val x = ((seed ushr 8) % 3200) / 10f
                 seed = seed * 1664525 + 1013904223
                 val y = 110f + ((seed ushr 8) % 900) / 10f
-                dots += PreviewDot(x, y, 1.4f, FALL_LEAF_COLOURS[(seed ushr 3).mod(FALL_LEAF_COLOURS.size)], alpha = 235, front = true)
+                // Darkened at night as the wallpaper's falling leaves and the crowns are (decision 115).
+                val tone = FALL_LEAF_COLOURS[(seed ushr 3).mod(FALL_LEAF_COLOURS.size)]
+                dots += PreviewDot(x, y, 1.4f, SceneObjectRenderer.fallCrownColour(tone, dayBlend), alpha = 235, front = true)
             }
         }
 
@@ -812,20 +824,21 @@ object ThemePreviewScenes {
     )
 
     /**
-     * The two mountain layers, in their colours at [dayBlend]. Where they stand is the card's own
-     * composition; what they look like is the wallpaper's, the Desert's included.
+     * The two mountain layers, in their colours at [dayBlend]: under the winter palette the card's [snow], the back layer
+     * darkened from it ([GroundSnow.backMountains]), as the wallpaper's. Where they stand is the card's own composition;
+     * what they look like is the wallpaper's, the Desert's included.
      */
-    private fun buildPeaks(c: SceneCustomization, dayBlend: Float, winter: Boolean): List<PreviewPeak> {
+    private fun buildPeaks(c: SceneCustomization, dayBlend: Float, snow: Int?): List<PreviewPeak> {
         val out = mutableListOf<PreviewPeak>()
         var index = 0
         // At 0 % the wallpaper draws no mountain of the layer, so neither does the card.
         if (c.mountainsBack.drawsAny) {
-            val colour = blendRgb(c.mountainsBack.colorNight, c.mountainsBack.colorDay, dayBlend)
-            for ((x, y, w) in BACK_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, winter))
+            val colour = if (snow != null) GroundSnow.backMountains(snow) else blendRgb(c.mountainsBack.colorNight, c.mountainsBack.colorDay, dayBlend)
+            for ((x, y, w) in BACK_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, snow))
         }
         if (c.mountainsFront.drawsAny) {
-            val colour = blendRgb(c.mountainsFront.colorNight, c.mountainsFront.colorDay, dayBlend)
-            for ((x, y, w) in FRONT_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, winter))
+            val colour = snow ?: blendRgb(c.mountainsFront.colorNight, c.mountainsFront.colorDay, dayBlend)
+            for ((x, y, w) in FRONT_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, snow))
         }
         return out
     }
@@ -833,7 +846,7 @@ object ThemePreviewScenes {
     /**
      * The distant houses on one of the card's mountains. **The card follows the switch**: none while
      * *Distant houses* is off or at 0 % (every theme as it ships); on, the wallpaper's three drawings,
-     * snow with the winter palette, and the wallpaper's own coins for each house's colour (one of the
+     * snow with the winter palette (multiplied by the card's [snow]), and the wallpaper's own coins for each house's colour (one of the
      * houses' two) and window (lit in four houses of five), from a seed per mountain of the card. One
      * house a mountain, alternating sides from one mountain to the next as the wallpaper's do (the
      * card's first on the right, its second on the left: the card's own count, not
@@ -847,7 +860,7 @@ object ThemePreviewScenes {
         halfWidth: Float,
         mountain: Int,
         dayBlend: Float,
-        winter: Boolean,
+        snow: Int?,
     ): List<PreviewItem> {
         if (!drawn(c.distantHouses.visible, c.distantHouses.density)) return emptyList()
         // The painter's own base line for a mountain (`ui/ThemePreview.kt`): the horizon, two units down.
@@ -873,7 +886,7 @@ object ThemePreviewScenes {
                     PartRole.FIXED -> parts += PreviewSprite(part.res, part.x, part.y)
                     PartRole.WALL_MASK -> parts += PreviewSprite(part.res, part.x, part.y, wall, added = true)
                     PartRole.GLASS_MASK -> parts += PreviewSprite(part.res, part.x, part.y, glass, added = true)
-                    PartRole.SNOW -> if (winter) parts += PreviewSprite(part.res, part.x, part.y)
+                    PartRole.SNOW -> if (snow != null) parts += PreviewSprite(part.res, part.x, part.y, snow)
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
@@ -956,9 +969,8 @@ object ThemePreviewScenes {
         )
     }
 
-    private val FALL_LEAF_COLOURS = intArrayOf(
-        0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
-    )
+    /** The wallpaper's four autumn tones ([SceneObjectRenderer.FALL_LEAF_TREE_PALETTE]): the card's crowns and falling leaves. */
+    private val FALL_LEAF_COLOURS = SceneObjectRenderer.FALL_LEAF_TREE_PALETTE
 
     /**
      * Where the card's buildings stand, as far as the deal is concerned: a card building's silhouette
@@ -1015,7 +1027,7 @@ object ThemePreviewScenes {
      * scene's people, a porch light glows on the night ramp), and the preview is a still 320x240 card
      * with no people layer: no porch light, car lamp or window occupant at any hour
      * on the card, so a night card's porches are dark where the wallpaper's are lit. Snow is
-     * drawn: `winterColorsEnabled` is a palette the user edits.
+     * drawn: `winterColorsEnabled` is a palette the user edits; [snow] is its colour, null with the palette off.
      */
     private fun neighbourhood(
         variant: SceneSpace.SceneVariant,
@@ -1024,7 +1036,7 @@ object ThemePreviewScenes {
         depth: Float,
         c: SceneCustomization,
         dayBlend: Float,
-        snow: Boolean,
+        snow: Int?,
         hour: Float,
         seed: Int,
         itemScale: Float,
@@ -1086,7 +1098,7 @@ object ThemePreviewScenes {
                             }
                         }
                     }
-                    PartRole.SNOW -> if (snow) parts += PreviewSprite(part.res, part.x, y)
+                    PartRole.SNOW -> if (snow != null) parts += PreviewSprite(part.res, part.x, y, snow)
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
@@ -1234,6 +1246,45 @@ object ThemePreviewScenes {
     internal const val GALLERY_PX_PER_UNIT = 310f / ThemePreviewScene.WIDTH_UNITS
 
     /**
+     * The card's fireworks: three of the wallpaper's paper flowers ([FireworkEffect]), open -- the card is one still
+     * moment -- each of other colours (the outer layer's, then the middle one's; the inner layer cream, as the
+     * wallpaper's), high in the night sky, the largest on the right of the middle. Flat cards, each petal the wallpaper's
+     * own outline ([FireworkEffect.petalCorners]) and the middle a disc. The smallest flower's reach,
+     * [CARD_FLOWER_SMALLEST_REACH], keeps its narrowest detail -- an inner petal, [FireworkEffect.LAYER_WIDTH] of the reach
+     * either side -- at [CARD_DECORATION_MIN_PX] on the gallery card (`ThemePreviewSceneTest`).
+     */
+    internal val CARD_FIREWORKS: List<PreviewItem> = listOf(
+        cardFlower(212f, 46f, 24f, colour = 2, colour2 = 5, turn = 0.15f),
+        cardFlower(258f, 66f, 19f, colour = 3, colour2 = 1, turn = 0.6f),
+        cardFlower(160f, 70f, CARD_FLOWER_SMALLEST_REACH, colour = 0, colour2 = 4, turn = 0.35f),
+    )
+
+    /** The smallest card flower's reach, its outer petals' tips from its middle, in card units. */
+    internal const val CARD_FLOWER_SMALLEST_REACH = 14f
+
+    /** One open paper flower at ([x], [y]), [reach] card units to its outer tips, of two colours of [FireworkEffect.PAPER]. */
+    private fun cardFlower(x: Float, y: Float, reach: Float, colour: Int, colour2: Int, turn: Float): PreviewItem {
+        val parts = ArrayList<PreviewSprite>()
+        val corners = FloatArray(8)
+        for (layer in 0 until FireworkEffect.FLOWER_LAYERS) {
+            val count = FireworkEffect.LAYER_PETALS[layer]
+            val step = FireworkEffect.TWO_PI / count
+            val tint = FireworkEffect.paperColour(FireworkEffect.flowerLayerColour(colour, colour2, layer))
+            for (k in 0 until count) {
+                val angle = turn + step * k + layer * step * 0.5f
+                FireworkEffect.petalCorners(
+                    0f, 0f, angle,
+                    reach * FireworkEffect.LAYER_IN[layer], reach * FireworkEffect.LAYER_OUT[layer], reach * FireworkEffect.LAYER_WIDTH[layer],
+                    corners,
+                )
+                parts += PreviewSprite(0, 0f, 0f, tint = tint, outline = corners.toList())
+            }
+        }
+        parts += PreviewSprite(0, 0f, 0f, tint = FireworkEffect.paperColour(colour2), discRadius = reach * FireworkEffect.FLOWER_CENTRE)
+        return PreviewItem(x, y, 1f, parts)
+    }
+
+    /**
      * A building the card shows shut, as the wallpaper draws one (`SceneObjectRenderer.drawShut`): the
      * blinds down in the windows a person may stand at and the shutter down over the front door, in the
      * wallpaper's colours at the card's hour -- flat cards. **The shutter is the wallpaper's**: the same bands
@@ -1300,7 +1351,7 @@ object ThemePreviewScenes {
         depth: Float,
         c: SceneCustomization,
         dayBlend: Float,
-        snow: Boolean,
+        snow: Int?,
         hour: Float,
         seed: Int,
         storefront: Storefront? = null,
@@ -1311,9 +1362,9 @@ object ThemePreviewScenes {
 
     /**
      * The leafy tree at [TreeSpriteLayout]'s origins, read rather than copied, so the card's crown and
-     * snow cap stand where the wallpaper's do.
+     * snow cap stand where the wallpaper's do; the cap multiplied by the card's [snow], none where it is null.
      */
-    private fun tree(leaf: Int, winter: Boolean, halloween: Boolean, lights: Boolean): List<PreviewSprite> {
+    private fun tree(leaf: Int, snow: Int?, halloween: Boolean, lights: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(
             PreviewSprite(R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y),
         )
@@ -1328,10 +1379,10 @@ object ThemePreviewScenes {
             R.drawable.tree_canopy,
             TreeSpriteLayout.FLAT_CANOPY_X, TreeSpriteLayout.FLAT_CANOPY_Y, leaf,
         )
-        if (winter) {
+        if (snow != null) {
             parts += PreviewSprite(
                 R.drawable.tree_canopy_snowcap,
-                TreeSpriteLayout.FLAT_SNOWCAP_X, TreeSpriteLayout.FLAT_SNOWCAP_Y,
+                TreeSpriteLayout.FLAT_SNOWCAP_X, TreeSpriteLayout.FLAT_SNOWCAP_Y, snow,
             )
         }
         // *Lights on the trees*: the wallpaper's lights at three of its six points of the crown
@@ -1405,16 +1456,17 @@ object ThemePreviewScenes {
     /**
      * The fir the wallpaper draws (`SceneObjectRenderer.drawFir`): the same three pieces at the same
      * origins, all from [FirTable], so a redraw moves the card and the wallpaper together; the fir under
-     * the trees' night shade at the card's hour as the wallpaper's is ([shade]), the snow and the star not.
+     * the trees' night shade at the card's hour as the wallpaper's is ([shade]), the snow multiplied by the card's
+     * [snow] (none where it is null), the star as drawn.
      *
      * The baubles are not the wallpaper's ten lights, which would be under 2 px on the card:
      * `star_sparkle` blits, which at 46 px of tree read as baubles (the maintainer left them on,
      * 2026-09-28), one over the hem of each of the upper three tiers ([FirTable.BAUBLE_X]). The
      * sparkle's ink is centred about (30, 29) of its 60-unit canvas.
      */
-    private fun fir(snow: Boolean, shade: Int): List<PreviewSprite> {
+    private fun fir(snow: Int?, shade: Int): List<PreviewSprite> {
         val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, FirTable.FIR_X, FirTable.FIR_Y, shade = shade))
-        if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
+        if (snow != null) parts += PreviewSprite(R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y, snow)
         parts += PreviewSprite(R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
         // Always lit: a card fir exists only where the wallpaper's does, under the Christmas decorations.
         for (i in FirTable.BAUBLE_X.indices) {
@@ -1525,17 +1577,21 @@ object ThemePreviewScenes {
     /**
      * A preview car, on one of the three bodies. The gallery draws no wheels, so a car stands on its
      * **painted floor**, [PREVIEW_CAR_FLOOR_DROP] units below the item's ground line whatever the body,
-     * and the glass follows the body by the gap the renderer uses: neither offset is a hand copy.
+     * and the glass follows the body by the gap the renderer uses: neither offset is a hand copy. Under the
+     * winter palette the roof's snow follows it the same way ([CarShell.snowYUnits]), multiplied by the card's
+     * [snow], after the glass as the wallpaper draws it.
      */
-    private fun car(shell: CarShell, c: Int): List<PreviewSprite> {
+    private fun car(shell: CarShell, c: Int, snow: Int?): List<PreviewSprite> {
         val oy = PREVIEW_CAR_FLOOR_DROP - (CAR_PAINTED_FLOOR_UNITS - shell.bodyYUnits)
-        return listOf(
+        val parts = mutableListOf(
             PreviewSprite(shell.bodyRes, shell.bodyXUnits, oy, c),
             PreviewSprite(
                 shell.glassRes, shell.glassSpriteXUnits,
                 oy + (SceneObjectRenderer.CAR_GLASS_SPRITE_Y_UNITS - shell.bodyYUnits),
             ),
         )
+        if (snow != null) parts += PreviewSprite(shell.snowRes, shell.snowXUnits, oy + (shell.snowYUnits - shell.bodyYUnits), snow)
+        return parts
     }
 
     private fun sailboat() = listOf(

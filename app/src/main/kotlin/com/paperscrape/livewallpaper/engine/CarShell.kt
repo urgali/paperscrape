@@ -46,6 +46,11 @@ import com.paperscrape.livewallpaper.R
 internal enum class CarShell(
     val bodyRes: Int,
     val glassRes: Int,
+    /**
+     * The snow lying on this body's roof under the winter palette (decision 116): fixed art in the roof snow's three
+     * tones, cut to the roof, blitted at [snowXUnits], [snowYUnits].
+     */
+    val snowRes: Int,
     /** Blit origin of the body sprite: its SVG viewBox minimum, in local scene units. */
     val bodyXUnits: Float,
     val bodyYUnits: Float,
@@ -114,6 +119,7 @@ internal enum class CarShell(
      */
     COMPACT(
         bodyRes = R.drawable.car_body_compact, glassRes = R.drawable.car_window_compact,
+        snowRes = R.drawable.car_body_compact_snow,
         bodyXUnits = -47f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 92f,
         glassSpriteXUnits = -28f, paneXUnits = -27f, paneWidthUnits = 68f, seatOffsetXUnits = 0f,
         wheelFrontXUnits = -30f, wheelRearXUnits = 30f,
@@ -125,6 +131,7 @@ internal enum class CarShell(
     /** B — the Saloon: 108 units, three boxes, the family's reference length. */
     SALOON(
         bodyRes = R.drawable.car_body_saloon, glassRes = R.drawable.car_window_saloon,
+        snowRes = R.drawable.car_body_saloon_snow,
         bodyXUnits = -55f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 108f,
         glassSpriteXUnits = -27f, paneXUnits = -26f, paneWidthUnits = 59f, seatOffsetXUnits = -1.4f,
         wheelFrontXUnits = -38f, wheelRearXUnits = 38f,
@@ -147,6 +154,7 @@ internal enum class CarShell(
      */
     ESTATE(
         bodyRes = R.drawable.car_body_estate, glassRes = R.drawable.car_window_estate,
+        snowRes = R.drawable.car_body_estate_snow,
         bodyXUnits = -63f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 124f,
         glassSpriteXUnits = -31f, paneXUnits = -30f, paneWidthUnits = 58f, seatOffsetXUnits = 0f,
         wheelFrontXUnits = -42f, wheelRearXUnits = 40f,
@@ -155,6 +163,14 @@ internal enum class CarShell(
         lampRearXUnits = 59f, lampRearYUnits = 4f,
     );
 
+    /**
+     * Blit origin of [snowRes]: its SVG viewBox minimum, [CAR_SNOW_LEAD_UNITS] ahead of the roof's front (the cap overhangs
+     * the roof at each end) on the three caps' shared top line, [CAR_SNOW_TOP_Y_UNITS]. Each cap is trimmed to its content,
+     * so the origin is derived from the roof rather than the body's own.
+     */
+    val snowXUnits: Float get() = roofFrontXUnits - CAR_SNOW_LEAD_UNITS
+    val snowYUnits: Float get() = CAR_SNOW_TOP_Y_UNITS
+
     /** This body's real-world height, from the one metre-per-unit the family shares. */
     val metresTall: Float get() = SceneSpace.CAR_UNIT_METRES * unitsTall
 
@@ -162,6 +178,12 @@ internal enum class CarShell(
     val shadowHalfLengthUnits: Float get() = lengthUnits * 0.42f
 
     companion object {
+
+        /** How far ahead of [roofFrontXUnits] a roof's snow cap is blitted: the caps' canvas starts two units before the roof. */
+        const val CAR_SNOW_LEAD_UNITS = 2f
+
+        /** The top of every snow cap's canvas, nine units above the roof line at -16. */
+        const val CAR_SNOW_TOP_Y_UNITS = -25f
 
         /**
          * The body a given vehicle carries -- **a pure function of the vehicle's own identity**,

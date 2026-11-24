@@ -378,7 +378,9 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
             }
         })
     })
-    put("stars", JSONObject().apply { put("visible", stars.visible); put("density", stars.density.toDouble()) })
+    put("stars", JSONObject().apply {
+        put("visible", stars.visible); put("density", stars.density.toDouble()); put("shooting", stars.shooting)
+    })
     put("sky", JSONObject().apply {
         put("colorDayHigh", sky.colorDayHigh); put("colorDayLow", sky.colorDayLow)
         put("colorNightHigh", sky.colorNightHigh); put("colorNightLow", sky.colorNightLow)
@@ -595,6 +597,8 @@ fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null, lay
             StarsConfig(
                 visible = it.optBoolean("visible", defaults.stars.visible),
                 density = it.optFinite("density", defaults.stars.density),
+                // On when absent, as every theme ships it: a file written without the switch shows them.
+                shooting = it.optBoolean("shooting", defaults.stars.shooting),
             )
         } ?: defaults.stars,
         sky = json.optJSONObject("sky")?.let {

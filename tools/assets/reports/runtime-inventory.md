@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 486 |
-| Unique contents | 486 |
-| Bytes on disk | 1127.7 KB |
-| Decoded `ARGB_8888` | 49.11 MB |
-| Of which transparent padding | 18.95 MB (39 %) |
+| Files | 488 |
+| Unique contents | 488 |
+| Bytes on disk | 1127.9 KB |
+| Decoded `ARGB_8888` | 48.96 MB |
+| Of which transparent padding | 18.93 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -45,8 +45,11 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 8 | yes |
 | `car_body_compact` | 282x132 | RGBA | 3,2,280,129 | 5 % | 22 | yes |
+| `car_body_compact_snow` | 177x33 | RGBA | 1,1,176,31 | 10 % | 24 | yes |
 | `car_body_estate` | 378x132 | RGBA | 2,1,376,130 | 3 % | 22 | yes |
+| `car_body_estate_snow` | 252x33 | RGBA | 1,0,251,30 | 10 % | 32 | yes |
 | `car_body_saloon` | 330x132 | RGBA | 3,2,328,130 | 4 % | 22 | yes |
+| `car_body_saloon_snow` | 144x33 | RGBA | 1,1,143,31 | 10 % | 32 | yes |
 | `car_lamp_front` | 18x12 | RGBA | 0,0,18,12 | 0 % | 1 | yes |
 | `car_lamp_front_lit` | 18x12 | RGBA | 0,0,18,12 | 0 % | 1 | yes |
 | `car_lamp_rear` | 12x12 | RGBA | 0,0,12,12 | 0 % | 1 | yes |
@@ -73,7 +76,6 @@ from the shipped PNGs; nothing is copied from documentation.
 | `fire_station_tower_snow_fx` | 54x48 | RGBA | 0,2,53,46 | 10 % | 44 | yes |
 | `firetruck_body` | 300x159 | RGBA | 2,1,297,157 | 4 % | 105 | yes |
 | `firetruck_ladder` | 150x21 | RGBA | 0,0,150,21 | 0 % | 8 | yes |
-| `firework` | 240x240 | RGBA | 9,9,231,231 | 14 % | 13 | yes |
 | `gift_box` | 120x90 | RGBA | 0,0,120,90 | 0 % | 10 | yes |
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
 | `ground_flowers_bloom` | 108x36 | RGBA | 4,4,108,36 | 14 % | 120 | yes |

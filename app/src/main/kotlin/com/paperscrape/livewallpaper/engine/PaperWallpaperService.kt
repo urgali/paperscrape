@@ -19,10 +19,10 @@ import com.paperscrape.livewallpaper.location.DeviceLocationAccess
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.location.DeviceLocationProvider
+import com.paperscrape.livewallpaper.location.LocationRequestLock
 import com.paperscrape.livewallpaper.location.LocationRequestThrottle
 import com.paperscrape.livewallpaper.location.LocationSource
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import com.paperscrape.livewallpaper.location.SearchPerChoice
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -83,24 +83,26 @@ class PaperWallpaperService : WallpaperService() {
     private val engines = mutableListOf<PaperEngine>()
 
     /**
-     * One position request for the whole service, not one per engine: the home screen's engine and
+     * One position provider for the whole service, not one per engine: the home screen's engine and
      * the picker's preview each have a settings collector and would ask the device at the same
-     * moment. The provider and the lock live on the service, so later callers wait for the first
-     * answer instead of starting their own.
+     * moment. They ask one at a time through the process's [LocationRequestLock], which the settings
+     * page's *Update location now* holds too, so later callers wait for the first answer instead of
+     * starting their own.
      */
     private var sharedLocationProvider: DeviceLocationProvider? = null
-    private val locationRequestLock = Mutex()
 
     /**
-     * The device's position, asked for at most once at a time across every engine. A caller that
+     * The device's position, asked for at most once at a time across the process. A caller that
      * waited on the lock finds a cached fix younger than [DeviceLocationProvider.FRESH_ENOUGH_MS]
      * and gets it without the radio. A real request is made only when the process's one throttle
      * allows it ([LocationRequestThrottle]: an hour after a request that brought a position; 5, 15
      * and 30 minutes after the first, second and third in a row that did not, then the hour), unless
-     * [force] says the user has just chosen this source.
+     * [force] says the user has just chosen this source. **[force] is read after the wait**, inside
+     * the lock: a caller that waited for a search which consulted the phone for the choice finds it
+     * spent, and does not ask the radio a second time.
      */
-    private suspend fun deviceFix(kind: DeviceLocationKind, force: Boolean): DeviceFixAnswer =
-        locationRequestLock.withLock { locationProvider().currentFix(kind, forceRequest = force) }
+    private suspend fun deviceFix(kind: DeviceLocationKind, force: () -> Boolean): DeviceFixAnswer =
+        LocationRequestLock.withLock { locationProvider().currentFix(kind, forceRequest = force()) }
 
     /** What the phone allows for [kind] now: permission and location switch. No radio. */
     private fun deviceAccess(kind: DeviceLocationKind): DeviceLocationAccess = locationProvider().access(kind)
@@ -421,6 +423,13 @@ class PaperWallpaperService : WallpaperService() {
          */
         private var userChoseDeviceSource = false
 
+        /**
+         * The settings collector's search for the phone's position while none is held: one per choice of
+         * source, never a second started by a store write that comes while the first runs
+         * ([SearchPerChoice]). Main thread, like the collector.
+         */
+        private val collectorSearch = SearchPerChoice()
+
         /** Whether the settings collector has applied this engine's first settings. Main thread. */
         private var settingsApplied = false
         private var lastAppliedThemeId = "sunset"
@@ -603,8 +612,11 @@ class PaperWallpaperService : WallpaperService() {
                     if (newSettings.useLocationForSunTimes) {
                         // A fix is asked for here and by the weather loop (when a refresh is due, or
                         // while none is held), never on a timer of its own. **Not with a fixed hour**:
-                        // no position counts then, and the Location row is grey.
-                        if (!solarDay.hasFix && newSettings.syncWithRealTime) launch { refreshDeviceFix(requestedSource) }
+                        // no position counts then, and the Location row is grey. **One search per
+                        // choice**: a write while this one runs starts none (`SearchPerChoice`).
+                        if (!solarDay.hasFix && newSettings.syncWithRealTime) {
+                            collectorSearch.startUnlessRunning(this, requestedSource) { refreshDeviceFix(requestedSource) }
+                        }
                     } else {
                         sunTimes = HeldSunTimes.NONE
                         if (!newSettings.useCustomLocation) lastLocationFix = null
@@ -621,6 +633,20 @@ class PaperWallpaperService : WallpaperService() {
                     } else if (!newSettings.useLocationForSunTimes) {
                         sunTimes = HeldSunTimes.NONE
                         lastLocationFix = null
+                    }
+                    // **The settings page asked for a refresh now** (decision 111): Update location now
+                    // saved a position, or Update weather now was tapped under a Custom place. The position
+                    // saved is taken at once (sunrise and sunset; not saved again: it is the store's), and the
+                    // last request's place and time are forgotten, so the weather is asked at the next pass on
+                    // screen whatever the distance. A change only: an engine's first settings ask nothing.
+                    if (settingsApplied && newSettings.refreshAskedAtMillis != previousSettings.refreshAskedAtMillis) {
+                        val kind = requestedSource.deviceKind
+                        if (kind != null && newSettings.syncWithRealTime && deviceAccess(kind).mayUsePosition) {
+                            savedDeviceFix()?.let { updateSunTimesFromLocation(it) }
+                        }
+                        lastWeatherFetchLocation = null
+                        lastWeatherFetchElapsed = Long.MIN_VALUE / 4
+                        weatherWakeUp.trySend(Unit)
                     }
                     settingsApplied = true
                 }
@@ -667,7 +693,7 @@ class PaperWallpaperService : WallpaperService() {
                         if (kind != null && deviceAccess?.mayUsePosition == true && settings.syncWithRealTime) {
                             locationProvider().heldFix(kind)?.let { held ->
                                 if (LiveWeatherSchedule.takesHeldPosition(held.fix, held.ageMillis, lastLocationFix)) {
-                                    updateSunTimesFromLocation(held.fix, isDeviceFix = true)
+                                    updateSunTimesFromLocation(held.fix, deviceFixAgeMillis = held.ageMillis)
                                 }
                             }
                         }
@@ -1241,7 +1267,7 @@ class PaperWallpaperService : WallpaperService() {
                 forgetDevicePosition()
                 return
             }
-            val answer = deviceFix(kind, force = userChoseDeviceSource)
+            val answer = deviceFix(kind) { userChoseDeviceSource }
             // **An answer for a source left while it was asked is dropped**: the collector has already forgotten that
             // source's position, and the choice made meanwhile is answered by the next pass (decision 101).
             if (LocationSource.of(settings) != source) return
@@ -1250,7 +1276,7 @@ class PaperWallpaperService : WallpaperService() {
             if (answer.consulted) userChoseDeviceSource = false
             val fix = answer.fix
             if (fix != null) {
-                updateSunTimesFromLocation(fix, isDeviceFix = true)
+                updateSunTimesFromLocation(fix, deviceFixAgeMillis = answer.ageMillis)
                 return
             }
             // Nothing new: fall back to the saved position, once. A fix already held needs nothing,
@@ -1259,7 +1285,7 @@ class PaperWallpaperService : WallpaperService() {
             // times would stay on the old day and the scene's hour on their offset.
             if (solarDay.hasFix && !solarDayIsStale()) return
             val saved = savedDeviceFix() ?: lastLocationFix?.takeIf { solarDay.hasFix }
-            if (saved != null) updateSunTimesFromLocation(saved, isDeviceFix = false)
+            if (saved != null) updateSunTimesFromLocation(saved)
         }
 
         /**
@@ -1298,7 +1324,13 @@ class PaperWallpaperService : WallpaperService() {
         private fun currentSolarStamp(): Long =
             SolarDaySchedule.stamp(System.currentTimeMillis(), TimeZone.getDefault())
 
-        private fun updateSunTimesFromLocation(fix: DeviceLocationFix, isDeviceFix: Boolean = false) {
+        /**
+         * Works out sunrise and sunset from [fix] and holds it as the place the weather is asked for.
+         * [deviceFixAgeMillis]: a position the phone has just given, and how long before it took it --
+         * saved with that age ([WallpaperPrefs.setResolvedGpsLocation]); null for a position already in
+         * the settings (a Custom place, the saved fix), which is not saved again.
+         */
+        private fun updateSunTimesFromLocation(fix: DeviceLocationFix, deviceFixAgeMillis: Long? = null) {
             // The day, the offset and the stamp from one reading of the clock and the zone
             // (SolarDaySchedule.civilDayAt): read apart, a working-out across midnight or the change of
             // the clocks could stamp one day or offset with another's sunrise.
@@ -1316,10 +1348,10 @@ class PaperWallpaperService : WallpaperService() {
             // Weather switched on usually finds no fix yet (GPS takes seconds), and without this
             // wake-up the first fetch would wait out the loop's two-minute tick.
             weatherWakeUp.trySend(Unit)
-            // Only a fresh device fix is saved: a custom fix is already in the settings, and a saved
-            // fix written back would renew its timestamp and always look just taken.
-            if (isDeviceFix) {
-                scope.launch { prefs.setResolvedGpsLocation(fix.latitude.toFloat(), fix.longitude.toFloat()) }
+            // Only a fresh device fix is saved, with the time the phone took it: a custom fix is already in
+            // the settings, and a saved fix written back would renew its timestamps and always look just taken.
+            if (deviceFixAgeMillis != null) {
+                scope.launch { prefs.setResolvedGpsLocation(fix.latitude.toFloat(), fix.longitude.toFloat(), deviceFixAgeMillis) }
             }
         }
     }

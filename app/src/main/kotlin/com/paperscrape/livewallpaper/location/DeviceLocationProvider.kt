@@ -27,8 +27,13 @@ data class DeviceLocationFix(val latitude: Double, val longitude: Double)
  * really consulted for it -- a real request made, or a cached position young enough to stand for one.
  * Only that answers a choice the user has just made; a request the throttle or a switched-off location did
  * not let through leaves the choice waiting.
+ *
+ * [ageMillis] is how long before the answer the phone took [fix] (0 without one): a cached position keeps its true
+ * age, stale or not, so what is saved from it says when the phone was there, not when it was asked
+ * (`WallpaperPrefs.setResolvedGpsLocation`). Negative only for a cached position "from the future" (a clock moved
+ * back): the saving takes that as just taken.
  */
-data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean)
+data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean, val ageMillis: Long = 0L)
 
 /** A position the phone already holds and how old it is, in ms ([DeviceLocationProvider.heldFix]). */
 data class HeldFix(val fix: DeviceLocationFix, val ageMillis: Long)
@@ -59,6 +64,8 @@ data class HeldFix(val fix: DeviceLocationFix, val ageMillis: Long)
  *    does not make the loop ask every few minutes. **A request that finds nothing is tried again after
  *    5, 15 and 30 minutes, then the hour** (`DESIGN_NOTES.md` §12, decision 41): it is told
  *    how each request ended ([LocationRequestThrottle.requestEnded]).
+ *  - **One search at a time in the process**: the wallpaper's engines and the settings page's
+ *    *Update location now* ask through [LocationRequestLock].
  */
 class DeviceLocationProvider(private val context: Context) {
 
@@ -108,8 +115,9 @@ class DeviceLocationProvider(private val context: Context) {
      * current-location request is made and abandoned after [timeoutMillis] -- **only if [throttle]
      * allows it**: an hour after a request that brought a position; 5, 15 and 30 minutes after
      * the first, second and third in a row that did not, then the hour, and round again;
-     * whoever asks, unless [forceRequest] says the user has just chosen this source. If no request is made or it comes back empty, a stale cached fix is still better than
-     * nothing and is returned rather than discarded.
+     * whoever asks, unless [forceRequest] says the user has just chosen this source or tapped *Update location now*
+     * ([positionNow]). If no request is made or it comes back empty, a stale cached fix is still better than
+     * nothing and is returned rather than discarded, with its age ([DeviceFixAnswer.ageMillis]).
      *
      * **What the throttle is told** ([plan]): how a request it let through ended, and a fresh cached fix
      * as a position arrived. Nothing about the two cases where the phone is not asked at all -- no
@@ -126,27 +134,60 @@ class DeviceLocationProvider(private val context: Context) {
         val permitted = hasPermission(kind)
         val manager = if (permitted) context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager else null
         val cached = manager?.let { lastKnown(it, kind) }
+        // Read once: the plan and the answer speak of the same age.
+        val cachedAgeMillis = cached?.ageMillis()
         val step = plan(
             permitted = manager != null,
-            cachedAgeMillis = cached?.ageMillis(),
+            cachedAgeMillis = cachedAgeMillis,
             maxAgeMillis = maxAgeMillis,
             // Asking a disabled provider can only wait out the timeout, so it is not asked.
             providerOn = manager != null && isEnabled(manager, kind),
             throttle = throttle,
             force = forceRequest,
         )
+        val cachedAge = cachedAgeMillis ?: 0L
         return when (step) {
             FixStep.NOT_PERMITTED -> DeviceFixAnswer(null, consulted = false)
-            FixStep.FRESH_CACHE -> DeviceFixAnswer(cached?.toFix(), consulted = true)
+            FixStep.FRESH_CACHE -> DeviceFixAnswer(cached?.toFix(), consulted = true, ageMillis = cachedAge)
             // A stale cached fix beats no fix: a town does not move, and the forecast for where the
-            // device was an hour ago is a far better scene than the default one.
-            FixStep.PROVIDER_OFF, FixStep.WAIT -> DeviceFixAnswer(cached?.toFix(), consulted = false)
+            // device was an hour ago is a far better scene than the default one. It keeps its age.
+            FixStep.PROVIDER_OFF, FixStep.WAIT -> DeviceFixAnswer(cached?.toFix(), consulted = false, ageMillis = cachedAge)
             FixStep.REQUEST -> {
                 // Counted however it ends, a cancellation included (`LocationRequestThrottle.counted`).
                 val live = throttle.counted { manager?.let { requestOnce(it, kind, timeoutMillis) } }
-                DeviceFixAnswer(live ?: cached?.toFix(), consulted = true)
+                if (live != null) {
+                    DeviceFixAnswer(live.fix, consulted = true, ageMillis = live.ageMillis)
+                } else {
+                    DeviceFixAnswer(cached?.toFix(), consulted = true, ageMillis = cachedAge)
+                }
             }
         }
+    }
+
+    /**
+     * **Update location now**, the *Weather & time* page's tap (decision 111): the position the phone gives now,
+     * or null when none comes within [TAP_TIMEOUT_MS].
+     *
+     * Asked by the page itself, which is on screen, so no limit Android puts on an app in the background applies.
+     * Past [LocationRequestThrottle]'s wait, as a choice of source is (`forceRequest`), which also starts the tries
+     * afresh: if this search finds nothing the next one is 5 minutes away (decision 41). A position the phone took in
+     * the last [TAP_MAX_AGE_MS] stands for one, with no radio. Behind [LocationRequestLock], so it never runs beside
+     * the wallpaper's own search: it waits for it, and then finds what that one brought in the system's cache. **The
+     * search ends at most [TAP_TIMEOUT_MS] after the tap, the wait for the lock included** ([tapTimeoutAfterWait]; after a
+     * wait past 55 s, longer than two of the engine's searches, the request still gets [TAP_MIN_TIMEOUT_MS]): it gets what
+     * is left of the minute, longer than the engine's [REQUEST_TIMEOUT_MS] whenever the wait was
+     * shorter than 40 s; a GPS receiver starting cold outdoors usually takes from half a minute to a minute.
+     *
+     * **Cancelled with the caller**: the page left during the search stops it. It is then a request made that brought
+     * nothing, counted as a failed try (`LocationRequestThrottle.counted`), and nothing is returned, so nothing is saved.
+     */
+    suspend fun positionNow(kind: DeviceLocationKind): HeldFix? {
+        val tappedAt = SystemClock.elapsedRealtime()
+        val answer = LocationRequestLock.withLock {
+            val timeout = tapTimeoutAfterWait(SystemClock.elapsedRealtime() - tappedAt)
+            currentFix(kind, forceRequest = true, maxAgeMillis = TAP_MAX_AGE_MS, timeoutMillis = timeout)
+        }
+        return tapResult(answer)
     }
 
     /**
@@ -183,15 +224,18 @@ class DeviceLocationProvider(private val context: Context) {
      * cancellation signal, done. Below that (the project's `minSdk` is 26) the same thing has to be
      * built out of an update subscription that removes itself, which is why the listener is
      * unregistered from three places: the fix, the timeout, and cancellation.
+     *
+     * The answer carries its age: `getCurrentLocation` may hand back a position the system took a few seconds before.
+     * Never negative: a position this request brought is taken as just taken, whatever the clocks say.
      */
     private suspend fun requestOnce(
         manager: LocationManager,
         kind: DeviceLocationKind,
         timeoutMillis: Long,
-    ): DeviceLocationFix? = suspendCancellableCoroutine { continuation ->
+    ): HeldFix? = suspendCancellableCoroutine { continuation ->
         val handler = Handler(Looper.getMainLooper())
         val settled = AtomicBoolean(false)
-        fun settle(fix: DeviceLocationFix?) {
+        fun settle(fix: HeldFix?) {
             if (settled.compareAndSet(false, true) && continuation.isActive) continuation.resume(fix)
         }
 
@@ -200,7 +244,7 @@ class DeviceLocationProvider(private val context: Context) {
                 val signal = CancellationSignal()
                 val executor = Executor { it.run() }
                 manager.getCurrentLocation(kind.providerName, signal, executor) { location ->
-                    settle(location?.toFix())
+                    settle(location?.toLiveFix())
                 }
                 handler.postDelayed({
                     signal.cancel()
@@ -211,7 +255,7 @@ class DeviceLocationProvider(private val context: Context) {
                 lateinit var listener: LocationListener
                 listener = oneFixListener { location ->
                     manager.safeRemove(listener)
-                    settle(location.toFix())
+                    settle(location.toLiveFix())
                 }
                 manager.requestLocationUpdates(kind.providerName, 0L, 0f, listener, Looper.getMainLooper())
                 handler.postDelayed({
@@ -237,6 +281,9 @@ class DeviceLocationProvider(private val context: Context) {
     }
 
     private fun Location.toFix() = DeviceLocationFix(latitude, longitude)
+
+    /** A position a request has just brought, with its age, never negative ([requestOnce]). */
+    private fun Location.toLiveFix() = HeldFix(toFix(), ageMillis().coerceAtLeast(0L))
 
     /**
      * How long ago the system took this position, on the clock that cannot move: `elapsedRealtimeNanos`, which every
@@ -308,6 +355,39 @@ class DeviceLocationProvider(private val context: Context) {
 
         /** How long one request may wait before the caller falls back to what it already had. */
         const val REQUEST_TIMEOUT_MS = 20_000L
+
+        /**
+         * How long after the tap *Update location now*'s search ends at most ([positionNow]), the wait for
+         * [LocationRequestLock] included: a minute, what a GPS receiver starting cold needs.
+         */
+        const val TAP_TIMEOUT_MS = 60_000L
+
+        /** The shortest request the tap makes after a long wait for the lock ([tapTimeoutAfterWait]). */
+        const val TAP_MIN_TIMEOUT_MS = 5_000L
+
+        /**
+         * The request's timeout once the tap has waited [waitedMillis] for [LocationRequestLock]: what is left of
+         * [TAP_TIMEOUT_MS] since the tap, so the search ends within the minute the row promises, never under
+         * [TAP_MIN_TIMEOUT_MS]. The engine's searches it can wait for last [REQUEST_TIMEOUT_MS] each, so the floor is
+         * reached only past 55 s of waiting. A negative wait (a clock read out of order) counts as none.
+         */
+        internal fun tapTimeoutAfterWait(waitedMillis: Long): Long =
+            (TAP_TIMEOUT_MS - waitedMillis.coerceAtLeast(0L)).coerceAtLeast(TAP_MIN_TIMEOUT_MS)
+
+        /** How old a position the phone holds may be and still answer *Update location now* ([positionNow]). */
+        const val TAP_MAX_AGE_MS = 60_000L
+
+        /**
+         * What *Update location now* takes from [answer]: a position the phone was really consulted for -- a request
+         * made, or one it took within [TAP_MAX_AGE_MS] -- with its age; null for anything else. **The stale position a
+         * request that found nothing falls back to is not an answer to the tap**: the row says nothing was found, and
+         * nothing is saved, so the last position stays as it was, with its own age.
+         */
+        internal fun tapResult(answer: DeviceFixAnswer): HeldFix? {
+            val fix = answer.fix ?: return null
+            if (!answer.consulted || answer.ageMillis !in 0L..TAP_MAX_AGE_MS) return null
+            return HeldFix(fix, answer.ageMillis)
+        }
 
         /**
          * The listener a request below API 30 registers, handing [onFix] the first position.

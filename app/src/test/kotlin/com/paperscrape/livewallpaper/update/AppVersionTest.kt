@@ -50,20 +50,25 @@ class AppVersionTest {
     }
 
     /**
-     * **5.20 is not 5.2**: the minor is the number 20, so the 5.20 is newer than the 5.19 installed, than 5.9 and than the
-     * 5.2 of 2026 (`release-notes/v5.2.md`), and "5.20" prints back as itself, not as 5.2.
+     * **5.20 and 5.21 are not 5.2**: the minor is the number, so the 5.21 is newer than the 5.20 installed, than 5.19, 5.9
+     * and the 5.2 of 2026 (`release-notes/v5.2.md`), and "5.20" and "5.21" print back as themselves, not as 5.2.
      */
     @Test
-    fun `5 dot 20 is newer than 5 dot 19, 5 dot 9 and 5 dot 2, and is not 5 dot 2`() {
+    fun `5 dot 21 is newer than 5 dot 20, 5 dot 19, 5 dot 9 and 5 dot 2, and neither is 5 dot 2`() {
+        assertTrue(v("5.21") > v("5.20"))
+        assertTrue(v("v5.21") > v("v5.20"))
+        assertTrue(v("5.21") > v("5.2"))
+        assertTrue(v("5.21") > v("5.9"))
+        assertTrue(v("5.20") < v("5.21"))
+        assertTrue(v("5.2") < v("5.21"))
         assertTrue(v("5.20") > v("5.19"))
-        assertTrue(v("v5.20") > v("v5.19"))
         assertTrue(v("5.20") > v("5.9"))
         assertTrue(v("5.20") > v("5.2"))
-        assertTrue(v("5.2") < v("5.20"))
-        assertTrue(v("5.19") < v("5.20"))
         assertTrue(v("5.20") != v("5.2"))
-        assertEquals(20, v("5.20").minor)
+        assertTrue(v("5.21") != v("5.2"))
+        assertEquals(21, v("5.21").minor)
         assertEquals("5.20", v("v5.20").toString())
+        assertEquals("5.21", v("v5.21").toString())
     }
 
     @Test

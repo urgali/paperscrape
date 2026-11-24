@@ -19,6 +19,9 @@ import org.junit.runner.RunWith
  * Laid over one screen only, the other would be bare: at the factory scroll on the BV6600 Spring would have no flower
  * for some eighteen minutes out of every thirty-seven. The meadow below the road carries as many again, laid the same way
  * (decision 96). Counted on the blits the scene hands its canvas, row by row, at three positions of the scroll.
+ *
+ * **Below the road each is the size of the line it stands on** (decision 119): smaller near the road, larger below,
+ * [SceneSpace.nearRowSizeAt] of its ground line times its size-table size, as the near row's houses and trees are.
  */
 @RunWith(AndroidJUnit4::class)
 class GroundScatterAcrossTheTileTest {
@@ -62,37 +65,87 @@ class GroundScatterAcrossTheTileTest {
         }
     }
 
+    @Test
+    fun theMeadowBelowTheRoadTakesTheSizeOfTheLineEachStandsOn() {
+        val spring = defaultCustomizationFor("spring")
+        val winter = defaultCustomizationFor("winter").let { it.copy(snowPiles = 1f) }
+        val autumn = defaultCustomizationFor("autumn").let { it.copy(leafPiles = 1f) }
+        val flower = SceneSpace.scaleForHeight(SceneObjectRenderer.FLOWER_METRES_TALL, SceneObjectRenderer.FLOWER_SPRITE_UNITS_TALL)
+        val pile = SceneSpace.scaleForHeight(SceneObjectRenderer.PILE_METRES_TALL, SceneObjectRenderer.PILE_SPRITE_UNITS_TALL)
+        val cases = listOf(
+            Triple("spring's flowers", spring, R.drawable.ground_flowers_bloom) to flower,
+            Triple("winter's drifts", winter, R.drawable.snow_pile) to pile,
+            Triple("autumn's heaps", autumn, R.drawable.leaf_pile) to pile,
+        )
+        val sceneScale = SceneSpace.sceneScale(HEIGHT)
+        for ((case, base) in cases) {
+            val (name, customization, drawable) = case
+            val recorder = BlitCounter(drawable)
+            draw(recorder, customization, shift = 0f)
+            assertTrue("$name: nothing drawn below the road", recorder.nearLines.isNotEmpty())
+            for (k in recorder.nearLines.indices) {
+                val line = recorder.nearLines[k] / HEIGHT
+                // The blit's own scale ([SpriteBlitter], a third for the scene's units) taken back out.
+                val size = recorder.nearScales[k] * SpriteBlitter.SPRITE_PIXELS_PER_UNIT / (base * sceneScale)
+                assertEquals("$name at $line of the screen", SceneSpace.nearRowSizeAt(line), size, 1e-4f)
+            }
+            // Smaller near the road, larger below: the drawn sizes differ, the nearest to the road the smallest.
+            val smallest = recorder.nearScales.min()
+            val largest = recorder.nearScales.max()
+            assertTrue("$name: every one the same size ($smallest)", largest > smallest)
+            val top = recorder.nearLines.indices.minBy { recorder.nearLines[it] }
+            val bottom = recorder.nearLines.indices.maxBy { recorder.nearLines[it] }
+            assertTrue("$name: the one nearest the road not smaller than the lowest", recorder.nearScales[top] < recorder.nearScales[bottom])
+        }
+    }
+
     /** How many times one frame blits [drawable] in each row: the street's ground, and the meadow below the road. */
     private data class Rows(val street: Int, val near: Int)
 
     /** How many times one frame blits [drawable] with the street scrolled by [shift] pixels, row by row. */
     private fun blitsOf(drawable: Int, customization: SceneCustomization, shift: Float): Rows {
-        val renderer = SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), customization, context, "sunset")
         val recorder = BlitCounter(drawable)
+        draw(recorder, customization, shift)
+        return Rows(recorder.street, recorder.near)
+    }
+
+    /** One frame of a street with nothing standing on it, scrolled by [shift] pixels, into [recorder]. */
+    private fun draw(recorder: BlitCounter, customization: SceneCustomization, shift: Float) {
+        val renderer = SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), customization, context, "sunset")
         renderer.draw(
             recorder, GroundGeometry(shift, 2f * WIDTH), dayBlend = 1f,
             elapsedSeconds = SceneTime(120.0), screenWidth = WIDTH, screenHeight = HEIGHT,
         )
-        return Rows(recorder.street, recorder.near)
     }
 
     /**
      * Counts the blits of one drawable, by the row its ground line falls in (the translation it is blitted under: above the
-     * meadow below the road, or in it), and ignores everything else.
+     * meadow below the road, or in it), and ignores everything else; below the road, each blit's ground line and the
+     * whole scale it is blitted at.
      */
     private class BlitCounter(private val drawable: Int) : SceneCanvas {
         var street = 0
         var near = 0
+        val nearLines = ArrayList<Float>()
+        val nearScales = ArrayList<Float>()
         private var y = 0f
+        private var s = 1f
         private val saved = ArrayDeque<Float>()
-        override fun save() = saved.addLast(y)
+        private val savedScale = ArrayDeque<Float>()
+        override fun save() {
+            saved.addLast(y)
+            savedScale.addLast(s)
+        }
         override fun restore() {
             y = saved.removeLast()
+            s = savedScale.removeLast()
         }
         override fun translate(dx: Float, dy: Float) {
-            y += dy
+            y += dy * s
         }
-        override fun scale(sx: Float, sy: Float) = Unit
+        override fun scale(sx: Float, sy: Float) {
+            s *= sy
+        }
         override fun rotate(degrees: Float) = Unit
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
@@ -134,7 +187,13 @@ class GroundScatterAcrossTheTileTest {
             additive: Boolean,
         ) {
             if (resId != drawable) return
-            if (y < SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION * HEIGHT) street++ else near++
+            if (y < SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION * HEIGHT) {
+                street++
+            } else {
+                near++
+                nearLines += y
+                nearScales += s
+            }
         }
     }
 

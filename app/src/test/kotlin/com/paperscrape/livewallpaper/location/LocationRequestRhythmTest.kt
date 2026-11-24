@@ -10,26 +10,24 @@ import org.junit.Test
 import java.io.File
 
 /**
- * **How often the phone is searched for its position**, measured on a clock this test moves (v5.10D,
- * inventory I-207 and I-282, the maintainer's *sì* of 2026-09-30 to row 5; v5.10E, his decision of
- * 2026-10-04 on the tries after a search that finds nothing).
+ * **How often the phone is searched for its position**, measured on a clock this test moves (decision 41):
+ * one real request an hour, whoever asks, and after a search that finds nothing the tries at 5, 15 and 30
+ * minutes, even with a position already held.
  *
- * The line under GPS and Network said "checked at most once an hour", and the weather loop's comment
- * promised "an upper bound of one request per refresh interval in steady state". Neither held until
- * v5.10D: the loop asked the phone on every weather attempt -- every 2, 4, 8 minutes during a weather
- * outage -- and a real request followed whenever the system's cached position was older than fifteen
- * minutes; and with no position ever received, every two-minute pass searched for up to 20 s. v5.10D
- * made it one an hour, whoever asks; and a search that found nothing then waited the whole hour, which
- * the maintainer refused: *«riprovi dopo 5, 15 e 30 minuti - anche se ha già una posizione»*.
+ * Two rules are replayed beside it, to measure what it saves: [Rule.V5_9], which asked the phone on every
+ * weather attempt -- every 2, 4, 8 minutes during a weather outage -- with a real request whenever the
+ * system's cached position was older than fifteen minutes, and with no position ever received a search of
+ * up to 20 s every two-minute pass; and [Rule.V5_10D], one an hour whoever asks, where a search that found
+ * nothing waited the whole hour.
  *
  * [Loop] replays the wallpaper's loop pass by pass with the same pure parts the service calls, in the
  * service's order: [SolarDaySchedule.onTick], the provider's plan ([DeviceLocationProvider.plan]: cache
  * younger than [DeviceLocationProvider.FRESH_ENOUGH_MS] first, then a request only if
  * [LocationRequestThrottle] allows, and how it ended told back), the saved-position fallback, the
  * weather fetch and its retry ladder ([LiveWeatherSchedule]), and the wait before the next pass
- * ([SolarDaySchedule.nextPassDelayMillis]). [Rule] replays the three rules each test compares: 5.9's
- * (asked only for a due weather refresh, no throttle), v5.10D's (one an hour, a failure waits the hour)
- * and today's. That the service is wired this way is held on its source at the end.
+ * ([SolarDaySchedule.nextPassDelayMillis]). [Rule] replays the three rules each test compares: [Rule.V5_9]
+ * (asked only for a due weather refresh, no throttle), [Rule.V5_10D] (one an hour, a failure waits the hour)
+ * and [Rule.NOW], the service's. That the service is wired this way is held on its source at the end.
  */
 class LocationRequestRhythmTest {
 
@@ -66,7 +64,7 @@ class LocationRequestRhythmTest {
             val delay = LiveWeatherSchedule.nextAttemptDelayMillis(failures, WEATHER_REFRESH_INTERVAL_MS)
             val due = LiveWeatherSchedule.isAttemptDue(now - lastFetch, delay)
             val ask = if (rule == Rule.V5_9) {
-                liveWeather && due // the v5.10C rule: only for a due weather refresh
+                liveWeather && due // only for a due weather refresh
             } else {
                 SolarDaySchedule.onTick(
                     followRealTime = true, liveWeatherEnabled = liveWeather, deviceSource = true,
@@ -101,7 +99,7 @@ class LocationRequestRhythmTest {
                         requestTimes += now
                         val got = radioAnswers(now)
                         if (got) { lastRealFix = now; hasPosition = true }
-                        // v5.10D counted the hour from the attempt and was told nothing more.
+                        // Rule.V5_10D counts the hour from the attempt and is told nothing more.
                         if (rule == Rule.NOW) throttle.requestEnded(got)
                     }
                     else -> Unit // a stale cached position or the saved one answers -- no radio either way
@@ -131,7 +129,7 @@ class LocationRequestRhythmTest {
     }
 
     private fun worstCase(rule: Rule, until: Long): Loop {
-        // Indoors, GPS chosen, nothing ever answers: the case of the v5.10A table, and the worst one.
+        // Indoors, GPS chosen, nothing ever answers: the worst case.
         val clock = FakeClock()
         val loop = Loop(clock::read, LocationRequestThrottle(clock::read), rule = rule, radioAnswers = { false })
         run(loop, clock, until)
@@ -151,8 +149,8 @@ class LocationRequestRhythmTest {
     }
 
     /**
-     * **The numbers of the report**: the most searches the wallpaper can make, a GPS that never
-     * answers, on screen the whole time, in any hour and in a day -- against 5.9 and v5.10D.
+     * **The most searches the wallpaper can make**, a GPS that never answers, on screen the whole
+     * time, in any hour and in a day -- against [Rule.V5_9] and [Rule.V5_10D].
      */
     @Test
     fun `the most searches in an hour and in a day, against 5_9 and v5_10D`() {
@@ -167,7 +165,7 @@ class LocationRequestRhythmTest {
         assertEquals("v5.10D, in any hour", 1, mostInAnyHour(v510d.requestTimes))
         assertEquals("5.9, in a day", 720, v59.requests)
         assertEquals("5.9, in any hour", 30, mostInAnyHour(v59.requestTimes))
-        // Each search may hold the GPS for up to 20 s: 18 minutes a day now, 8 in v5.10D, 4 hours in 5.9.
+        // Each search may hold the GPS for up to 20 s: 18 minutes a day, 8 under Rule.V5_10D, 4 hours under Rule.V5_9.
         assertEquals(18 * minute, now.requests * DeviceLocationProvider.REQUEST_TIMEOUT_MS)
     }
 
@@ -203,7 +201,7 @@ class LocationRequestRhythmTest {
 
     @Test
     fun `with Live Weather off a phone source with no position is still asked, with the tries`() {
-        // v5.10D asks while none is held, Live Weather or not; v5.10E adds the 5, 15, 30 after a failure.
+        // Asked while none is held, Live Weather or not, with the 5, 15, 30 after a failure.
         val clock = FakeClock()
         val loop = Loop(clock::read, LocationRequestThrottle(clock::read), liveWeather = false, radioAnswers = { false })
         run(loop, clock, 5 * hour)
@@ -211,9 +209,8 @@ class LocationRequestRhythmTest {
     }
 
     /**
-     * **«anche se ha già una posizione»**: with the saved position held and Live Weather off, nothing
-     * asked the phone before v5.10E after a search that found nothing -- it waited for no reason at
-     * all. Now the tries go out the same.
+     * **Even with a position already held** (decision 41): with the saved position held and Live
+     * Weather off, the tries after a search that found nothing go out the same.
      */
     @Test
     fun `with a position already held and Live Weather off, a failed search is still tried again`() {
@@ -267,9 +264,8 @@ class LocationRequestRhythmTest {
 
     @Test
     fun `an engine's start forces nothing, and a choice made with the location off waits for it`() {
-        // The two defects the read-only review of v5.10D found in the first version of the force,
-        // replayed with the engine's own two rules (SolarDaySchedule.userChoseSource for setting it,
-        // DeviceFixAnswer.consulted for spending it).
+        // Two cases the force must not get wrong, replayed with the engine's own two rules
+        // (SolarDaySchedule.userChoseSource for setting it, DeviceFixAnswer.consulted for spending it).
         val clock = FakeClock()
         val throttle = LocationRequestThrottle(clock::read)
         assertTrue("a request a minute before the engine starts", throttle.tryAcquire())
@@ -328,10 +324,10 @@ class LocationRequestRhythmTest {
     @Test
     fun `the service routes every ask through the provider, the provider through the throttle`() {
         val engine = source("engine/PaperWallpaperService.kt")
-        assertTrue(engine.contains("locationRequestLock.withLock { locationProvider().currentFix(kind, forceRequest = force) }"))
+        assertTrue(engine.contains("LocationRequestLock.withLock { locationProvider().currentFix(kind, forceRequest = force()) }"))
         val provider = source("location/DeviceLocationProvider.kt")
         assertTrue("one process-wide throttle", provider.contains("throttle: LocationRequestThrottle = LocationRequestThrottle.shared"))
-        // v5.10E: the provider decides through its plan, and the request is counted however it ends.
+        // The provider decides through its plan, and the request is counted however it ends.
         assertTrue(provider.contains("val step = plan("))
         assertTrue(provider.contains("val live = throttle.counted { manager?.let { requestOnce(it, kind, timeoutMillis) } }"))
         assertEquals("told only through counted", 0, Regex("""requestEnded\(""").findAll(provider).count())
@@ -345,7 +341,7 @@ class LocationRequestRhythmTest {
         assertTrue(engine.contains("if (answer.consulted) userChoseDeviceSource = false"))
         assertTrue(engine.contains("userAskPending = userChoseDeviceSource,"))
         assertEquals("the declaration, the collector, the spend: set nowhere else", 3, Regex("""userChoseDeviceSource = """).findAll(engine).count())
-        // I-282: the false bound is gone from the loop's comment, and the true one is said.
+        // The loop's comment states the true bound, not one request per refresh interval.
         assertTrue(!engine.contains("upper bound of one request per refresh interval in steady state;"))
         assertTrue(engine.contains("A request that finds nothing is tried again after 5, 15 and"))
         assertEquals(LocationRequestThrottle.MIN_INTERVAL_MILLIS, WEATHER_REFRESH_INTERVAL_MS)

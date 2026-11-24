@@ -218,9 +218,11 @@ class SceneObjectRenderer(
     private var carRuntimes: List<CarRuntime> = buildCarRuntimes()
 
     /**
-     * The near row's runtimes, back to front by their own depths in the street: the objects the switches and amounts keep
-     * of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its places, where the six buildings take turns,
-     * while the street's stand (*Show Shops* or *Show Public buildings*). Built with [staticRuntimes], from the same inputs.
+     * The near row's runtimes, back to front by their own depths in the street, which is the order of their lines of feet
+     * ([SceneSpace.nearRowFeetYFraction] grows with the depth: a deeper object is drawn lower, larger and later): the
+     * objects the switches and amounts keep of the street they repeat ([SceneObjectCatalog.NearRowEntry.source]), and its
+     * places, where the six buildings take turns, while the street's stand (*Show Shops* or *Show Public buildings*).
+     * Built with [staticRuntimes], from the same inputs.
      */
     private var nearRuntimes: List<StaticRuntime> = buildNearRuntimes()
 
@@ -380,6 +382,13 @@ class SceneObjectRenderer(
     /** This frame's scene clock, in seconds of the day. See [PeopleColours.clockSeconds]. */
     private var clockSeconds = PeopleColours.clockSeconds(12f)
 
+    /**
+     * This frame's snow colour ([GroundSnow.snowAt]), which every snow lying in the scene is multiplied by
+     * ([drawSnowSprite]): set once a frame where [draw] starts, a field like [frameHour], so nothing is worked out per
+     * sprite. [SpriteBlitter.UNTINTED] with the winter palette off, when no snow is drawn.
+     */
+    private var frameSnowColour = SpriteBlitter.UNTINTED
+
     companion object {
         /**
          * How lit a vehicle's lamps are: 80% of the [vehicleLampRamp], so a lamp reads as a lamp, not a
@@ -394,8 +403,8 @@ class SceneObjectRenderer(
         internal fun vehicleLampRamp(nightGlow: Float): Int =
             (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
-        /** [fallLeafColorFor]'s four colours, built once rather than per tree per frame. */
-        private val FALL_LEAF_TREE_PALETTE = intArrayOf(
+        /** [fallLeafColorFor]'s four colours, built once rather than per tree per frame; the gallery card's crowns wear them too. */
+        internal val FALL_LEAF_TREE_PALETTE = intArrayOf(
             0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
         )
         /** How big a fir's three presents are (where they stand is [FirTable.GIFT_X]): built once, not per fir per frame. */
@@ -523,6 +532,21 @@ class SceneObjectRenderer(
          */
         internal fun fallToneOf(idleSeed: Float): Int = (kotlin.math.abs(idleSeed * 1000).toInt()) % FALL_LEAF_TREE_PALETTE.size
 
+        /** How far toward black an autumn crown's tone goes at full night: the falling leaves' own 35 % ([PaperRenderer.drawFallingLeaves]). */
+        const val FALL_CROWN_NIGHT_DARKEN = 0.35f
+
+        /**
+         * An autumn crown's colour at [dayBlend]: its [tone] by day, [FALL_CROWN_NIGHT_DARKEN] of the way to black at full
+         * night, on the day blend, as the leaves falling from it darken -- a crown kept at its noon tone stood lit among
+         * the darkened houses and hills (decision 115). Opaque. The gallery card's crowns take the same.
+         */
+        internal fun fallCrownColour(tone: Int, dayBlend: Float): Int =
+            SceneColour.blendArgb(
+                SceneColour.blendArgb(tone, 0xFF000000.toInt(), FALL_CROWN_NIGHT_DARKEN),
+                tone,
+                dayBlend.coerceIn(0f, 1f),
+            ) or 0xFF000000.toInt()
+
         /**
          * **One tree in three, from the tree's own seed**: a count would need state, a position would
          * put the firs on a line, and a hash of the seed gives the *same* third on every frame.
@@ -615,11 +639,22 @@ class SceneObjectRenderer(
         }
 
         /**
-         * The scale a near-row object is drawn at: the size table's size at [SceneSpace.REFERENCE_Y_FRACTION] times
-         * [SceneSpace.NEAR_ROW_SIZE], whatever line of the near row it stands on (`DESIGN_NOTES.md` §12, decision 96).
+         * The scale a near-row object is drawn at: the size table's size at [SceneSpace.REFERENCE_Y_FRACTION] times the
+         * size of the line its feet stand on ([SceneSpace.nearRowSizeAt] at [SceneSpace.nearRowFeetYFraction] of its own
+         * depth in the street), so what stands farther back is drawn higher and smaller (`DESIGN_NOTES.md` §12, decisions 96
+         * and 119). **A place among the houses is never smaller than [placeScaleFloor]**, as in the street; at 0.30, the
+         * shallowest depth a place stands at, the floor is under all three of its rows' sizes (`NearRowTest`), so it binds
+         * only for a size roll no street is generated with.
          */
-        fun nearScaleFor(spec: StaticSceneObject, screenHeightPx: Float): Float =
-            variantFor(spec).baseScale * spec.scale * SceneSpace.NEAR_ROW_SIZE * SceneSpace.sceneScale(screenHeightPx)
+        fun nearScaleFor(spec: StaticSceneObject, screenHeightPx: Float): Float {
+            val variant = variantFor(spec)
+            val drawn = variant.baseScale *
+                spec.scale *
+                SceneSpace.nearRowSizeAt(SceneSpace.nearRowFeetYFraction(spec.depthFraction)) *
+                SceneSpace.sceneScale(screenHeightPx)
+            val floor = placeScaleFloor(variant, screenHeightPx)
+            return if (drawn < floor) floor else drawn
+        }
 
         /**
          * The smallest scale a place among the houses is drawn at (0 for anything else): a piece unit at
@@ -1321,6 +1356,16 @@ class SceneObjectRenderer(
     }
 
     /**
+     * A snow lying in the scene -- a roof's, a crown's cap, the fir's, a drift, a car's roof -- multiplied by the frame's
+     * snow colour ([frameSnowColour], [GroundSnow]; decision 117). The drawings stay fixed art, white, light blue
+     * and a cold under-paper, and take the ground's colour as a mask takes a tint, so their relief survives the multiply.
+     * Not the falling snow, the snowmen nor the frosted palms.
+     */
+    private fun drawSnowSprite(canvas: SceneCanvas, resId: Int, originXUnits: Float, originYUnits: Float) {
+        drawTintedSprite(canvas, resId, originXUnits, originYUnits, frameSnowColour)
+    }
+
+    /**
      * Same as [drawSprite], faded to [alpha]: the lit lamps laid over their day lenses
      * ([drawVehicleLamps]), fixed art, so the crossfade is an alpha, not a tint.
      */
@@ -1572,10 +1617,10 @@ class SceneObjectRenderer(
     private fun drawGroundPiles(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float, near: Boolean = false) {
         val salt = if (near) NEAR_SCATTER_SALT else 0
         if (customization.winterColorsEnabled) {
-            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.snowPiles, R.drawable.snow_pile, PILE_SALT_SNOW + salt, near)
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.snowPiles, R.drawable.snow_pile, PILE_SALT_SNOW + salt, near, snow = true)
         }
         if (customization.fallColorsEnabled) {
-            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.leafPiles, R.drawable.leaf_pile, PILE_SALT_LEAF + salt, near)
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.leafPiles, R.drawable.leaf_pile, PILE_SALT_LEAF + salt, near, snow = false)
         }
     }
 
@@ -1584,15 +1629,24 @@ class SceneObjectRenderer(
      * [near] on the meadow under the road, between [SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION] and its bottom.
      */
     private fun scatterGroundY(jitterDepth: Float, near: Boolean, screenHeight: Float): Float = screenHeight * if (near) {
-        SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION +
-            (SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION - SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION) * jitterDepth
+        nearMeadowYFraction(jitterDepth)
     } else {
         SceneSpace.groundYFraction(FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth)
     }
 
-    /** What a flower's or a pile's size is multiplied by there: the projection of its depth, or the near row's size. */
+    /** The line of the meadow under the road a flower or a pile of jitter [jitterDepth] stands on, a fraction of screen height. */
+    private fun nearMeadowYFraction(jitterDepth: Float): Float =
+        SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION +
+            (SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION - SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION) * jitterDepth
+
+    /**
+     * What a flower's or a pile's size is multiplied by there: the projection of its depth, or under the road the size of
+     * the line it stands on ([SceneSpace.nearRowSizeAt]), as the near row's objects are: smaller near the road, larger
+     * below (decision 119).
+     */
     private fun scatterSize(jitterDepth: Float, near: Boolean): Float =
-        if (near) SceneSpace.NEAR_ROW_SIZE else SceneSpace.depthScale(FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth)
+        if (near) SceneSpace.nearRowSizeAt(nearMeadowYFraction(jitterDepth))
+        else SceneSpace.depthScale(FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth)
 
     private fun scatterPiles(
         canvas: SceneCanvas,
@@ -1603,6 +1657,8 @@ class SceneObjectRenderer(
         drawable: Int,
         salt: Int,
         near: Boolean,
+        /** A drift of snow, which takes the frame's snow colour ([drawSnowSprite]); a heap of leaves is drawn as authored. */
+        snow: Boolean,
     ) {
         val count = pileCount(density)
         if (count <= 0) return
@@ -1632,7 +1688,7 @@ class SceneObjectRenderer(
                     // The pile canvases are 36x7 units and every lobe stands on their bottom edge,
                     // so this origin puts a drift on the ground line the same way the flowers'
                     // -18,-12 does for their own 36x12.
-                    drawSprite(canvas, drawable, -18f, -7f)
+                    if (snow) drawSnowSprite(canvas, drawable, -18f, -7f) else drawSprite(canvas, drawable, -18f, -7f)
                     canvas.restore()
                 }
                 x += tile
@@ -1656,6 +1712,7 @@ class SceneObjectRenderer(
         // restarts with the process and would deal the same hand every time ([PeopleColours]).
         clockSeconds = PeopleColours.clockSeconds(hour24)
         frameHour = hour24
+        frameSnowColour = if (customization.winterColorsEnabled) GroundSnow.snowAt(customization, dayBlend) else SpriteBlitter.UNTINTED
         advanceDoorways(elapsedSeconds)
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
@@ -1727,7 +1784,7 @@ class SceneObjectRenderer(
 
     /**
      * The near row's objects and shops, back to front ([nearRuntimes]), each on its line of feet
-     * ([SceneSpace.nearRowFeetYFraction]) at its fixed size ([nearScaleFor]), every copy on screen drawn as the street's
+     * ([SceneSpace.nearRowFeetYFraction]) at the size of that line ([nearScaleFor]), every copy on screen drawn as the street's
      * are. Its trees shed leaves as the street's do ([recordLeafSource]).
      */
     private fun drawNearRow(
@@ -2485,8 +2542,8 @@ class SceneObjectRenderer(
                     }
                     PartRole.FIXED -> drawSprite(canvas, part.res, part.x, footY + part.y)
                     // A layer *on* the roof, cut to its outline, never the roof tinted white, which
-                    // the winter palette's own override would be indistinguishable from.
-                    PartRole.SNOW -> if (winter) drawSprite(canvas, part.res, part.x, footY + part.y)
+                    // the winter palette's own override would be indistinguishable from; in the frame's snow colour.
+                    PartRole.SNOW -> if (winter) drawSnowSprite(canvas, part.res, part.x, footY + part.y)
                     // The lamp lights with the glass beside it (`DESIGN_NOTES.md` decision 50): on the
                     // same `glassNight`, so a shop's or a tower's stays dark while it is closed.
                     PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, lit = glassNight)
@@ -2718,13 +2775,14 @@ class SceneObjectRenderer(
      * the drawing by `tools/assets/fir/build_fir.py`). Each piece is trimmed and blits at its own origin:
      * `tree_fir` is 210x360 px = 70x120 u, `tree_fir_snow` is 192x291 px = 64x97 u and `tree_fir_star` is
      * 48x45 px = 16x15 u. Only the green takes the trees' night shade ([SceneCustomization.nightShadeFor],
-     * decision 36); snow, star and lights do not. The lights are discs ([drawBulb]).
+     * decision 36); the snow takes the frame's snow colour ([drawSnowSprite]), the star and the lights neither. The lights
+     * are discs ([drawBulb]).
      */
     private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         drawGroundShadow(canvas, FirTable.WIDTH * FIR_SHADOW_SHARE)
         drawShadedSprite(canvas, R.drawable.tree_fir, FirTable.FIR_X, FirTable.FIR_Y, customization.nightShadeFor(r.spec, dayBlend))
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
+            drawSnowSprite(canvas, R.drawable.tree_fir_snow, FirTable.SNOW_X, FirTable.SNOW_Y)
         }
         drawSprite(canvas, R.drawable.tree_fir_star, FirTable.STAR_X, FirTable.STAR_Y)
         // Blinking as a leafy tree's lights do ([drawChristmasLights]).
@@ -2774,7 +2832,7 @@ class SceneObjectRenderer(
         // top, so the crown overlaps it.
         drawSprite(canvas, R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y)
         val leafColor = when {
-            customization.fallColorsEnabled -> fallLeafColorFor(r)
+            customization.fallColorsEnabled -> fallCrownColour(fallLeafColorFor(r), dayBlend)
             else -> customization.colorFor(r.spec, dayBlend)
         }
         canvas.save()
@@ -2799,7 +2857,7 @@ class SceneObjectRenderer(
         if (customization.winterColorsEnabled) {
             // The cap's source clips its snow against `tree_canopy`'s own circles, so no green rim
             // shows above it; same origin ([TreeSpriteLayout]): a canopy redraw re-derives both.
-            drawSprite(
+            drawSnowSprite(
                 canvas, R.drawable.tree_canopy_snowcap,
                 TreeSpriteLayout.SNOWCAP_X, TreeSpriteLayout.SNOWCAP_Y,
             )
@@ -2813,8 +2871,7 @@ class SceneObjectRenderer(
         canvas.restore()
     }
 
-    /** The tree's autumn tone, from its seed ([fallToneOf]): flat day and night on purpose, as the
-     * falling leaves ([PaperRenderer.drawFallingLeaves]). */
+    /** The tree's autumn tone, from its seed ([fallToneOf]): its colour by day, darkened at night by [fallCrownColour]. */
     private fun fallLeafColorFor(r: StaticRuntime): Int = FALL_LEAF_TREE_PALETTE[fallToneOf(r.idleSeed)]
 
     /**
@@ -3124,8 +3181,9 @@ class SceneObjectRenderer(
 
 
     /**
-     * A vehicle ([CarType]): its [CarShell]'s body and glass, the plain car in the user's colour, the
-     * police car and the taxi in fixed colours with their accessories, or the fire truck's own body
+     * A vehicle ([CarType]): its [CarShell]'s body and glass (and the snow on its roof under the winter palette), the
+     * plain car in the user's colour, the police car and the taxi in fixed colours with their accessories, or the fire
+     * truck's own body
      * ([drawFireTruck]); wheels are discs ([drawWheel]) at each body's wheelbase.
      */
     private fun drawCar(canvas: SceneCanvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
@@ -3178,6 +3236,10 @@ class SceneObjectRenderer(
             // Body and glass from the same [shell].
             drawTintedSprite(canvas, shell.bodyRes, shell.bodyXUnits, shell.bodyYUnits, bodyColor)
             drawSprite(canvas, shell.glassRes, shell.glassSpriteXUnits, CAR_GLASS_SPRITE_Y_UNITS)
+            // Snow on the roof under the winter palette, every car's -- the taxi's and the police car's too -- in the
+            // frame's snow colour (decision 116): after the glass, before the taxi's sign and the police light bar,
+            // which stand on it. Not on the fire engine, whose ladder is on its roof.
+            if (customization.winterColorsEnabled) drawSnowSprite(canvas, shell.snowRes, shell.snowXUnits, shell.snowYUnits)
 
             when (c.spec.type) {
                 CarType.POLICE -> {

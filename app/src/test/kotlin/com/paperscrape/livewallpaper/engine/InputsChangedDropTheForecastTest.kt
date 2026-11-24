@@ -100,7 +100,7 @@ class InputsChangedDropTheForecastTest {
         )
         // The phone's answer for a source left while it was asked is not kept: the line right after the request.
         val refresh = function("private suspend fun refreshDeviceFix(source: LocationSource) {")
-        val ask = refresh.indexOf("val answer = deviceFix(kind, force = userChoseDeviceSource)")
+        val ask = refresh.indexOf("val answer = deviceFix(kind) { userChoseDeviceSource }")
         assertTrue("the request", ask > 0)
         assertEquals("if (LocationSource.of(settings) != source) return", refresh[ask + 1])
     }

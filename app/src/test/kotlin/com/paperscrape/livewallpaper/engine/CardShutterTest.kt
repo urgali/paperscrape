@@ -5,19 +5,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **The gallery card's shutter is the wallpaper's** (v5.14): on a building the card shows shut, the shutter is drawn in
- * the bands the wallpaper draws (`DoorShutter.forEachBand`, fully down) and each band is cut from the door's own
+ * **The gallery card's shutter is the wallpaper's** (decision 69): on a building the card shows shut, the shutter is
+ * drawn in the bands the wallpaper draws (`DoorShutter.forEachBand`, fully down) and each band is cut from the door's own
  * outline (`DoorShutter.band`) -- not laid on the door's box, from which the scissors' wobble moves the paper up to 0.7
- * units (on the BV6600's settings-home card, up to 0.6 px). The maintainer approved the wallpaper's centred on the door,
- * *«Sì, ora è centrata (consigliato)»*, and the card's the same way, *«Sì, è centrata (consigliato)»* (2026-10-15).
+ * units (on the BV6600's settings-home card, up to 0.6 px) -- so it is centred on the door on the card as on the
+ * wallpaper.
  *
  * Every built-in theme's card, by day and by night, with the three groups' hours 13:00-20:00, so every building that
  * keeps hours is shut at the card's hour (the fire and the police station never close; Sunset's day card, at 19:00,
  * finds the others open): each building on a card is found by its front door's piece, and a shut one's outline cards
  * are, in order and to the float, the bands the wallpaper cuts from **its own** door, in the shadow paper's, the face's
- * and the slats' colours; a shut building without them, or an open one or a house with them, fails (v5.14C: the test
- * of v5.14B2 matched the bands against any door of the neighbourhood and passed over a shut building drawn without a
- * shutter).
+ * and the slats' colours; a shut building without them, or an open one or a house with them, fails. The bands are
+ * matched against the building's own door, not against any door of the neighbourhood, which would let a shut building
+ * drawn without a shutter pass.
  */
 class CardShutterTest {
 
@@ -101,14 +101,16 @@ class CardShutterTest {
             for (forceNight in listOf(false, true)) {
                 val c = shut(defaultCustomizationFor(theme.id))
                 val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
-                // The card's moment: night at every hour while Halloween's night sky by day is in force (v5.16, decision 82).
+                // The card's moment: night at every hour while Halloween's night sky by day is in force (decision 82).
                 val atNight = forceNight || c.nightOverDayActive()
                 val night = 1f - ThemePreviewScenes.cardPhase(theme, atNight).dayBlend
                 val hour = ThemePreviewScenes.cardHour(theme, atNight)
                 for (item in scene.items + scene.backdrop + scene.ground) {
+                    // The fireworks' paper flowers are outline cards in the sky, no building's (`ThemePreviewSceneTest`).
+                    if (item in ThemePreviewScenes.CARD_FIREWORKS) continue
                     val ids = item.parts.map { it.resId }.toSet()
                     val owners = doorPieces.filter { ids.containsAll(it.res) }
-                    // The shutter's bands; a tower's Christmas star is an outline card too (v5.14C2), held by `CardDecorationsTest`.
+                    // The shutter's bands; a tower's Christmas star is an outline card too, held by `CardDecorationsTest`.
                     val cards = item.parts.filter { it.outline != null && !it.decoration }
                     val where = "${theme.id} (night $forceNight), the building at x=${item.x}"
                     if (owners.isEmpty()) {

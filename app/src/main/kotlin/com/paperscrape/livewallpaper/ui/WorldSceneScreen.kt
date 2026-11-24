@@ -674,8 +674,28 @@ private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String
             valueRange = 0f..1f,
             enabled = SettingsUiModel.amountSliderEnabled(customization.stars.visible),
         )
+        // Off and locked while Show Stars reads off, the stored choice kept, and the line says what is missing
+        // ([SettingsUiModel.shootingStars], decision 40).
+        val shooting = SettingsUiModel.shootingStars(customization.stars)
+        SettingSwitchRow(
+            title = SHOOTING_STARS_TITLE,
+            subtitle = if (shooting.interactive) SHOOTING_STARS_LINE else SHOOTING_STARS_NEEDS_STARS_LINE,
+            checked = shooting.shownOn,
+            enabled = shooting.interactive,
+            onCheckedChange = { scope.launch { prefs.setShootingStarsVisible(it, forThemeId) } },
+        )
     }
 }
+
+/** The *Shooting stars* switch on the Stars page: its title. */
+internal const val SHOOTING_STARS_TITLE = "Shooting stars"
+
+/** The line under *Shooting stars* while it can be set: what it does (`PaperRenderer.drawShootingStar`). */
+internal const val SHOOTING_STARS_LINE =
+    "A streak of light crossing the night sky now and then, about once every three minutes, behind the clouds."
+
+/** The line under *Shooting stars* while *Show Stars* reads off ([SettingsUiModel.shootingStars]). */
+internal const val SHOOTING_STARS_NEEDS_STARS_LINE = "Needs Show Stars above; your choice is kept until then."
 
 @Composable
 private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, weatherPages: WeatherPagesUiState?, onBack: () -> Unit) {
@@ -1098,14 +1118,21 @@ private fun quantiseToQuarterHour(hour: Float): Float =
 @Composable
 private fun HillsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+    // Under the winter palette the hills are snow: the pair shows it, read-only, and the stored colours come back when
+    // the palette is turned off ([SettingsUiModel.winterLandscape], decision 117).
+    val winter = SettingsUiModel.winterLandscape(customization)
     SettingsFormSubScreen("Hills", onBack) {
-        DayNightColorPair(
-            dayLabel = "Day Color", nightLabel = "Night Color",
-            dayColor = customization.hillsColorDay, nightColor = customization.hillsColorNight, mode = customization.hillsAutoMode,
-            onEditDay = { editingTarget = ColorEditTarget("Hills - Day Color", customization.hillsColorDay) { c -> scope.launch { prefs.setHillsColorDay(c, forThemeId) } } },
-            onEditNight = { editingTarget = ColorEditTarget("Hills - Night Color", customization.hillsColorNight) { c -> scope.launch { prefs.setHillsColorNight(c, forThemeId) } } },
-            onModeChange = { scope.launch { prefs.setHillsAutoMode(it, forThemeId) } },
-        )
+        if (winter != null) {
+            WinterOwnedColorPair(dayColor = winter.hillsDay, nightColor = winter.hillsNight, line = winter.line)
+        } else {
+            DayNightColorPair(
+                dayLabel = "Day Color", nightLabel = "Night Color",
+                dayColor = customization.hillsColorDay, nightColor = customization.hillsColorNight, mode = customization.hillsAutoMode,
+                onEditDay = { editingTarget = ColorEditTarget("Hills - Day Color", customization.hillsColorDay) { c -> scope.launch { prefs.setHillsColorDay(c, forThemeId) } } },
+                onEditNight = { editingTarget = ColorEditTarget("Hills - Night Color", customization.hillsColorNight) { c -> scope.launch { prefs.setHillsColorNight(c, forThemeId) } } },
+                onModeChange = { scope.launch { prefs.setHillsAutoMode(it, forThemeId) } },
+            )
+        }
         Text(
             "How wavy the hill silhouette is. Lower it for flatter, calmer hills.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1187,6 +1214,8 @@ private fun DistantHousesSubScreen(
 @Composable
 private fun MountainsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+    // Under the winter palette both layers are snow, shown read-only ([SettingsUiModel.winterLandscape]).
+    val winter = SettingsUiModel.winterLandscape(customization)
     SettingsFormSubScreen("Mountains", onBack) {
         Text(
             "Two independent background layers behind the hills.",
@@ -1196,11 +1225,13 @@ private fun MountainsSubScreen(customization: SceneCustomization, forThemeId: St
             title = "Front Mountains", config = customization.mountainsFront, front = true,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            winter = winter,
         )
         MountainLayerSection(
             title = "Back Mountains", config = customization.mountainsBack, front = false,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            winter = winter,
         )
     }
     editingTarget?.let { target ->

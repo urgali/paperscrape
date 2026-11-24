@@ -573,6 +573,47 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        1,
+        1,
+        176,
+        31
+      ],
+      "candidate_padding_fraction": 0.10118130457113506,
+      "candidate_size": [
+        177,
+        33
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "car_body_compact_snow",
+      "reference_bbox": [
+        1,
+        1,
+        176,
+        31
+      ],
+      "reference_padding_fraction": 0.10118130457113506,
+      "reference_size": [
+        177,
+        33
+      ],
+      "size_match": true,
+      "total_pixels": 5841,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
         2,
         1,
         376,
@@ -614,6 +655,47 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        1,
+        0,
+        251,
+        30
+      ],
+      "candidate_padding_fraction": 0.09812409812409817,
+      "candidate_size": [
+        252,
+        33
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "car_body_estate_snow",
+      "reference_bbox": [
+        1,
+        0,
+        251,
+        30
+      ],
+      "reference_padding_fraction": 0.09812409812409817,
+      "reference_size": [
+        252,
+        33
+      ],
+      "size_match": true,
+      "total_pixels": 8316,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
         3,
         2,
         328,
@@ -643,6 +725,47 @@
       ],
       "size_match": true,
       "total_pixels": 43560,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        1,
+        143,
+        31
+      ],
+      "candidate_padding_fraction": 0.10353535353535348,
+      "candidate_size": [
+        144,
+        33
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "car_body_saloon_snow",
+      "reference_bbox": [
+        1,
+        1,
+        143,
+        31
+      ],
+      "reference_padding_fraction": 0.10353535353535348,
+      "reference_size": [
+        144,
+        33
+      ],
+      "size_match": true,
+      "total_pixels": 4752,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1381,47 +1504,6 @@
       ],
       "size_match": true,
       "total_pixels": 3150,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        9,
-        9,
-        231,
-        231
-      ],
-      "candidate_padding_fraction": 0.14437500000000003,
-      "candidate_size": [
-        240,
-        240
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "firework",
-      "reference_bbox": [
-        9,
-        9,
-        231,
-        231
-      ],
-      "reference_padding_fraction": 0.14437500000000003,
-      "reference_size": [
-        240,
-        240
-      ],
-      "size_match": true,
-      "total_pixels": 57600,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

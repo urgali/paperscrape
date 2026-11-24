@@ -146,6 +146,14 @@ class CanvasSceneTarget : SceneCanvas {
         gradientPaint.shader = null
     }
 
+    override fun drawFadingGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) {
+        gradientPaint.shader = gradientCache.radial(cx, cy, radius, color, 255)
+        gradientPaint.setAlphaWithoutAllocating(centerAlpha)
+        require().drawCircle(cx, cy, radius, gradientPaint)
+        gradientPaint.setAlphaWithoutAllocating(255)
+        gradientPaint.shader = null
+    }
+
     /**
      * The circle itself, with an antialiased fill in [colour] at [alpha]: the pixels a `drawCircle` with such a paint
      * draws, which is what the snow, the point stars and the bulbs were before [SceneCanvas.drawDisc] existed. The

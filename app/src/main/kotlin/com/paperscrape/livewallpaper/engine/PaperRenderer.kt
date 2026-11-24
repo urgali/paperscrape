@@ -117,7 +117,7 @@ class PaperRenderer(
 
     /**
      * The sprite-blitting path ([SpriteBlitter]). This renderer draws in **both** scale conventions, so each call
-     * names its sprite's: the lake's sprites, the clouds, the stars, the rainbow, the bolt, the firework and the
+     * names its sprite's: the lake's sprites, the clouds, the stars, the rainbow, the bolt and the
      * sleigh are [SpriteScale.SCENE_UNITS], the sun, the moon and the birds [SpriteScale.CANVAS_PIXELS]. The wrong
      * one is a silent [SpriteBlitter.SPRITE_PIXELS_PER_UNIT]x size error.
      */
@@ -175,6 +175,13 @@ class PaperRenderer(
     /** Where the sky is covered: refilled by [drawClouds] each frame, read by [drawPrecipitation] ([CloudCoverage]). */
     private val cloudCoverage = CloudCoverage()
 
+    /**
+     * This frame's snow colour under the winter palette ([GroundSnow.snowAt]): the front mountains' colour, the back ones'
+     * darkened from it, and what the distant houses' roof snow is multiplied by. Set once where [draw] starts, on the
+     * frame's own day blend; [SpriteBlitter.UNTINTED] with the palette off.
+     */
+    private var frameSnowColour = SpriteBlitter.UNTINTED
+
     private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), sceneCustomization, context, theme.id)
     private var objectRendererThemeId = theme.id
     private var objectRendererGeneration = CustomThemeRegistry.generation()
@@ -185,6 +192,20 @@ class PaperRenderer(
     // placeholder would pass the guard and enumerate a tile copy per pixel.
     private val objectGroundGeometry = GroundGeometry(0f, 0f)
     private val fireworkEffect = FireworkEffect()
+
+    /** The fireworks' rockets and bursts, drawn from discs, four-point shapes and glows ([FireworkDrawer]). */
+    private val fireworkDrawer = FireworkDrawer(sprites)
+
+    /**
+     * For the tests that draw the fireworks at a moment of their show (the finale): [frames] frames of the show run
+     * alone, with the fireworks on, before the frames the test draws ([FireworkEffect.advanceForTest]).
+     */
+    internal fun advanceFireworksForTest(frames: Int) =
+        fireworkEffect.advanceForTest(frames, screenWidth.toFloat(), screenHeight.toFloat())
+
+    /** How many fireworks are in the sky, rockets included, for the same tests. */
+    internal fun fireworksAliveForTest(): Int = fireworkEffect.liveBursts()
+
     private val santaSleighEffect = SantaSleighEffect()
 
     /** Santa's sleigh group, drawn from its pieces. */
@@ -545,13 +566,6 @@ class PaperRenderer(
         // which convention applies. `SkySpriteAnchoringTest` checks them against the PNG headers.
 
         /**
-         * `firework` is 240x240 -- 80x80 local units -- anchored on its own centre; a fully expanded burst reaches
-         * [FIREWORK_REACH_UNITS].
-         */
-        const val FIREWORK_SPRITE_HALF_UNITS = 40f
-        const val FIREWORK_REACH_UNITS = 120f
-
-        /**
          * The arc's radius in local units, which the on-screen radius is divided by: a scale reference, not the
          * cropped canvas's half-width (99 units), which would draw the rainbow a percent larger.
          */
@@ -719,6 +733,89 @@ class PaperRenderer(
          * points with a few bright stars.
          */
         const val STAR_POINT_RADIUS_SCALE = 0.55f
+
+        // ---- Shooting stars ([drawShootingStar]) -----------------------------------------
+        //
+        // One crosses the night sky in each period of [SHOOTING_STAR_PERIOD_SECONDS] of scene time, at a moment of
+        // the period dealt from the period's index, for [SHOOTING_STAR_SECONDS]. Every rule is a pure function of the
+        // scene clock, so a frame shows the same star whenever it is drawn, and `ShootingStarTest` checks them.
+
+        /** One shooting star in each period this long, in seconds of scene time. */
+        const val SHOOTING_STAR_PERIOD_SECONDS = 180.0
+
+        /** How long one takes to cross the sky, in seconds. */
+        const val SHOOTING_STAR_SECONDS = 1.0
+
+        /** How many discs its trail holds, head first. */
+        const val SHOOTING_STAR_TRAIL_DISCS = 36
+
+        /** How far apart the trail's discs are, in 720-px units (a 720-px-wide screen's pixels). */
+        const val SHOOTING_STAR_TRAIL_STEP = 3f
+
+        /** How far the head travels over its second, in 720-px units. */
+        const val SHOOTING_STAR_TRAVEL = 260f
+
+        /** Its heading: 25 degrees below the horizontal, `cos` and `sin` of it; left or right from [shootingStarLeftward]. */
+        const val SHOOTING_STAR_HEADING_X = 0.9063f
+        const val SHOOTING_STAR_HEADING_Y = 0.4226f
+
+        /**
+         * Whether shooting stars cross the night sky at all: *Show Stars* on with a star in the field
+         * ([starCountFor] above 0, where the Stars switch reads on) and *Shooting stars* on. The settings screen's switch
+         * reads on by the same rule (`SettingsUiModel.shootingStars`).
+         */
+        internal fun shootingStarsDrawn(stars: StarsConfig): Boolean =
+            stars.visible && stars.shooting && starCountFor(stars.density) > 0
+
+        /** Which period of [SHOOTING_STAR_PERIOD_SECONDS] the scene clock [seconds] is in. */
+        internal fun shootingStarPeriod(seconds: Double): Long =
+            kotlin.math.floor(seconds / SHOOTING_STAR_PERIOD_SECONDS).toLong()
+
+        /** The period's deal: the index spread over the whole word by a large odd constant (the golden ratio's). */
+        private fun shootingStarHash(period: Long): Long = (period * -0x61C8864680B583EBL) xor (period ushr 7)
+
+        /**
+         * When the star of [period] sets off, in seconds of scene time: between 15 % and 75 % of its period, so it
+         * ends well inside it and a period never holds two.
+         */
+        internal fun shootingStarStartSeconds(period: Long): Double {
+            val u = ((shootingStarHash(period) ushr 11) and 0xFFFF).toDouble() / 65535.0
+            return period * SHOOTING_STAR_PERIOD_SECONDS + SHOOTING_STAR_PERIOD_SECONDS * (0.15 + 0.6 * u)
+        }
+
+        /** How far across the sky the star is at the scene clock [seconds], 0 to 1; -1 outside its second. */
+        internal fun shootingStarProgress(seconds: Double): Float {
+            val p = ((seconds - shootingStarStartSeconds(shootingStarPeriod(seconds))) / SHOOTING_STAR_SECONDS).toFloat()
+            return if (p < 0f || p > 1f) -1f else p
+        }
+
+        /**
+         * How bright the star is at [progress] ([shootingStarProgress]) under [dayBlend]: rising and falling over its
+         * second (`sin(pi p)`), times the stars' own visibility ([drawStars]), so none by day; 0 outside its second.
+         */
+        internal fun shootingStarFade(progress: Float, dayBlend: Float): Float {
+            if (progress < 0f || progress > 1f) return 0f
+            val visibility = (1f - dayBlend * 1.6f).coerceIn(0f, 1f)
+            return kotlin.math.sin(kotlin.math.PI * progress).toFloat() * visibility
+        }
+
+        /** Whether the star of [period] heads left (else right). */
+        internal fun shootingStarLeftward(period: Long): Boolean = (shootingStarHash(period) and 1L) == 1L
+
+        /**
+         * Where the star of [period] sets off across a screen [width] wide: between 15 % and 65 % of it, moved 30 %
+         * to the right when it heads left, so it crosses the screen's middle either way.
+         */
+        internal fun shootingStarStartX(period: Long, width: Float): Float {
+            val u = ((shootingStarHash(period) ushr 29) and 0xFFF).toFloat() / 4095f
+            return width * (0.15f + 0.5f * u) + if (shootingStarLeftward(period)) width * 0.3f else 0f
+        }
+
+        /** Where the star of [period] sets off down a screen [height] tall: between 6 % and 22 % of it, high in the sky. */
+        internal fun shootingStarStartY(period: Long, height: Float): Float {
+            val u = ((shootingStarHash(period) ushr 43) and 0xFFF).toFloat() / 4095f
+            return height * (0.06f + 0.16f * u)
+        }
 
         /**
          * How far a dolphin noses up and down along its arc; how far it rises is
@@ -1011,7 +1108,7 @@ class PaperRenderer(
         canvas.restore()
     }
 
-    /** The canvas and clock of the frame being drawn, for the three effect lambdas below; null between frames. */
+    /** The canvas and clock of the frame being drawn, for the effect lambdas below; null between frames. */
     private var effectCanvas: SceneCanvas? = null
     private var effectElapsed = SceneTime(0.0)
 
@@ -1022,31 +1119,9 @@ class PaperRenderer(
     private var laughingNow = false
     private var moonShakeDegrees = 0f
 
-    /** Built once: see the comment where the effects are drawn. */
-    private val drawFireworkBurst = FireworkEffect.BurstBlit { x, y, burstScale, alpha ->
-        val canvas = effectCanvas
-        if (canvas != null) {
-            // The sprite's centre on the burst point (origin -40, half of its 80 units); [FIREWORK_REACH_UNITS] over
-            // that half-width is the scale of a fully expanded burst.
-            canvas.save()
-            canvas.translate(x, y)
-            val s = burstScale * FIREWORK_REACH_UNITS / FIREWORK_SPRITE_HALF_UNITS
-            canvas.scale(s, s)
-            sprites.draw(
-                canvas,
-                R.drawable.firework,
-                -FIREWORK_SPRITE_HALF_UNITS,
-                -FIREWORK_SPRITE_HALF_UNITS,
-                SpriteScale.SCENE_UNITS,
-                (alpha * 255).toInt().coerceIn(0, 255),
-            )
-            canvas.restore()
-        }
-    }
-
     /**
-     * Built once, like [drawFireworkBurst]: the group from its pieces at this screen's scale ([SantaSleighDrawer]),
-     * sized with the people, and drawn at night as by day.
+     * Built once (see the comment where the effects are drawn): the group from its pieces at this screen's scale
+     * ([SantaSleighDrawer]), sized with the people, and drawn at night as by day.
      */
     private val drawSleigh = SantaSleighEffect.SleighBlit { x, y, dir, alpha ->
         val canvas = effectCanvas
@@ -1106,6 +1181,7 @@ class PaperRenderer(
         // landscape and the town, and the opening hours keep the clock's hour ([nightOverDay]).
         val dayPhase = stillMoon(nightOverDay(framePhase))
         frameTime = elapsedSeconds
+        frameSnowColour = if (sceneCustomization.winterColorsEnabled) GroundSnow.snowAt(sceneCustomization, dayPhase.dayBlend) else SpriteBlitter.UNTINTED
         updateWeatherPredicates(deltaSeconds)
         // One direction only: a screen width at parallax 1.0 every ~25 s at scrollSpeed 1.0 (the hills, at 0.15,
         // take ~167 s), frozen at 0. Never reset: each layer wraps its own shift by its own tile, and a reset of
@@ -1159,6 +1235,8 @@ class PaperRenderer(
             drawStars(canvas, dayPhase, elapsedSeconds)
             drawCelestialBody(canvas, dayPhase)
         }
+        // Above the stars and the moon, behind the clouds, which hide it; on the screen, not on the scrolled sky.
+        drawShootingStar(canvas, dayPhase, elapsedSeconds)
         drawClouds(canvas, dayPhase, elapsedSeconds, deltaSeconds)
         // Behind the mountains and hills, which occlude its base ([drawRainbow]).
         drawRainbow(canvas, dayPhase, deltaSeconds)
@@ -1175,11 +1253,11 @@ class PaperRenderer(
 
         val fireworksEnabled = sceneCustomization.fireworksEnabled && dayPhase.dayBlend < 0.35f
         fireworkEffect.update(deltaSeconds, fireworksEnabled, screenWidth.toFloat(), screenHeight.toFloat())
-        // The three effects draw through member lambdas reading [effectCanvas] and [effectElapsed]: a lambda that
-        // captures `canvas` is a new object every frame, and nothing may be allocated on the frame path.
+        fireworkDrawer.draw(canvas, fireworkEffect)
+        // The sleigh and the Horseman draw through member lambdas reading [effectCanvas] and [effectElapsed]: a lambda
+        // that captures `canvas` is a new object every frame, and nothing may be allocated on the frame path.
         effectCanvas = canvas
         effectElapsed = elapsedSeconds
-        fireworkEffect.draw(drawFireworkBurst)
 
         updateSleighGeometry()
         santaSleighEffect.update(deltaSeconds, sceneCustomization.santaEnabled, screenWidth.toFloat(), screenHeight.toFloat())
@@ -1264,6 +1342,36 @@ class PaperRenderer(
             StormAtmosphere.dimSky(top, storm),
             StormAtmosphere.dimSky(bottom, storm),
         )
+    }
+
+    /**
+     * A shooting star, while [shootingStarsDrawn]: in its second of the period ([shootingStarProgress]) a head moving
+     * down across the sky with a trail of [SHOOTING_STAR_TRAIL_DISCS] discs behind it, thinning and fading, in the stars'
+     * cream ([STAR_POINT_COLOR]), as bright as [shootingStarFade] says -- none by day. Sized in 720-px units scaled to
+     * the screen's width. Discs of the atlas, as the point stars are: nothing is allocated.
+     */
+    private fun drawShootingStar(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
+        if (!shootingStarsDrawn(sceneCustomization.stars)) return
+        val seconds = elapsedSeconds.seconds
+        val progress = shootingStarProgress(seconds)
+        val fade = shootingStarFade(progress, dayPhase.dayBlend)
+        if (fade <= 0f) return
+        val period = shootingStarPeriod(seconds)
+        val unit = screenWidth / 720f
+        val x0 = shootingStarStartX(period, screenWidth.toFloat())
+        val y0 = shootingStarStartY(period, screenHeight.toFloat())
+        val dx = (if (shootingStarLeftward(period)) -SHOOTING_STAR_HEADING_X else SHOOTING_STAR_HEADING_X) * unit
+        val dy = SHOOTING_STAR_HEADING_Y * unit
+        val travel = SHOOTING_STAR_TRAVEL * progress
+        for (i in 0 until SHOOTING_STAR_TRAIL_DISCS) {
+            val back = i * SHOOTING_STAR_TRAIL_STEP
+            if (back > travel) break
+            val along = travel - back
+            val k = 1f - i / SHOOTING_STAR_TRAIL_DISCS.toFloat()
+            val alpha = (255 * fade * k).toInt()
+            if (alpha <= 0) continue
+            sprites.drawDisc(canvas, x0 + dx * along, y0 + dy * along, (0.6f + 1.6f * k) * unit, STAR_POINT_COLOR, alpha)
+        }
     }
 
     /**
@@ -2013,7 +2121,13 @@ class PaperRenderer(
         widthOfHeightFraction: Float,
     ) {
         if (!config.visible) return
-        mountainPaint.color = blendColor(config.colorNight, config.colorDay, dayPhase.dayBlend)
+        // Under the winter palette both layers are the frame's snow, the back one darker so the two ranges stay apart
+        // (decision 117, [GroundSnow]); the user's colours stay in the store and are drawn again with it off.
+        mountainPaint.color = if (sceneCustomization.winterColorsEnabled) {
+            if (seedSalt == EffectId.MOUNTAINS_BACK) GroundSnow.backMountains(frameSnowColour) else frameSnowColour
+        } else {
+            blendColor(config.colorNight, config.colorDay, dayPhase.dayBlend)
+        }
         // Fully opaque: the sun, the moon and the sky are drawn behind the mountains and must not show through. The
         // two layers' depth is in their colours, sizes and heights.
         mountainPaint.setAlphaWithoutAllocating(255)
@@ -2147,7 +2261,8 @@ class PaperRenderer(
      * The distant houses on one mountain ([DistantHouses]: where, how many, how large; `DESIGN_NOTES.md` §12, decision
      * 52). Drawn from the village's pieces, in the same paper: the wall a weight mask summed in one of the houses' two
      * colours, the glass in the scene's glass, lit at night in four houses of five and dark glass in the fifth, and the
-     * snow over the roof only with the winter palette. Nothing while the switch is off or at 0 %, as every theme ships.
+     * snow over the roof only with the winter palette, fixed art multiplied by the frame's snow colour ([GroundSnow]).
+     * Nothing while the switch is off or at 0 %, as every theme ships.
      */
     private fun drawDistantHouses(
         canvas: SceneCanvas,
@@ -2188,7 +2303,7 @@ class PaperRenderer(
                     PartRole.WALL_MASK -> sprites.drawTintedAdded(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS, wall)
                     PartRole.GLASS_MASK -> sprites.drawTintedAdded(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS, glass)
                     PartRole.FIXED -> sprites.draw(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS)
-                    PartRole.SNOW -> if (winter) sprites.draw(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS)
+                    PartRole.SNOW -> if (winter) sprites.drawTinted(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS, frameSnowColour)
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
             }
@@ -2608,9 +2723,10 @@ class PaperRenderer(
 
     private fun drawHillLayers(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
         for (layer in 0 until layerCount) {
+            // The user's pair, or the snow's under the winter palette ([GroundSnow.hillsDay], decision 117).
             val color = blendColor(
-                hillLayerColor(sceneCustomization.hillsColorNight, layer),
-                hillLayerColor(sceneCustomization.hillsColorDay, layer),
+                hillLayerColor(GroundSnow.hillsNight(sceneCustomization), layer),
+                hillLayerColor(GroundSnow.hillsDay(sceneCustomization), layer),
                 dayPhase.dayBlend,
             )
 

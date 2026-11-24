@@ -1616,14 +1616,21 @@ object SceneObjectCatalog {
      * - **A place's front is left clear of what stands in front of it**: a candidate nearer in the street than a place,
      *   whose drawing reaches across the place's front, is left out of the near row; what stands behind a place stays, the
      *   building in front of it.
-     * - **Two houses never stand one in front of the other**: on one line of feet two houses whose drawings overlap by
-     *   more than half of the narrower read as one house drawn twice, so the one farther back in the street is left out.
+     * - **Two houses never stand one in front of the other**: two houses whose drawings overlap by more than half of the
+     *   narrower read as one house drawn twice, so the one farther back in the street is left out.
      * - **What stands over a near place** ([NearRowPlan.above]): the street's places whose drawn width shares a pixel of
      *   the screen's width with the near place's, which the near place's building never repeats.
      *
-     * Widths are measured at the near row's size on the plan's reference screen (`REF_SCREEN_W` x `REF_SCREEN_H`, the
-     * narrowest common shape, where a tile is shortest against the drawings): on a wider screen everything stands farther
-     * apart.
+     * Widths are measured on the plan's reference screen (`REF_SCREEN_W` x `REF_SCREEN_H`, the narrowest common shape,
+     * where a tile is shortest against the drawings): on a wider screen everything stands farther apart. **And at the near
+     * row's plan size, [SceneSpace.NEAR_ROW_PLAN_SIZE], not at the size each is drawn at** ([nearExtent]): the near row
+     * draws what is farther back in the street higher and smaller, from [SceneSpace.NEAR_ROW_SIZE_TOP] to
+     * [SceneSpace.NEAR_ROW_SIZE_BOTTOM] by its line of feet (decision 119), but the plan -- which houses, trees and
+     * decorations stand, the places' fronts kept clear, the building over each place -- is made at that one reference
+     * size, so the same objects and buildings stand there as the street's own shapes ask, whatever line each is drawn
+     * on. Measured at the drawn sizes, the rules would keep or drop other candidates on a few streets (Autumn's by a
+     * house) and deal other buildings to a few places. So the rules hold at the plan size, not exactly as drawn: a house
+     * far back, drawn small, can be covered by more than half by a nearer one drawn larger and still stand.
      */
     fun nearRowOf(layout: SceneObjectLayout): NearRowPlan {
         val tilePx = REF_SCREEN_W * 2f
@@ -1697,14 +1704,15 @@ object SceneObjectCatalog {
 
     /**
      * How far [o]'s drawing reaches left and right of its foot in the near row, in pixels of the plan's reference screen:
-     * its occluding boxes ([occluderBoxes]) brought from the projection of its depth to [SceneSpace.NEAR_ROW_SIZE]. Null for
-     * what has none (a seasonal decoration): its foot is all it takes up.
+     * its occluding boxes ([occluderBoxes]) brought from the projection of its depth to the plan size,
+     * [SceneSpace.NEAR_ROW_PLAN_SIZE] -- never to the size it is drawn at ([nearRowOf] says why). Null for what has none (a
+     * seasonal decoration): its foot is all it takes up.
      */
-    private fun nearExtent(o: StaticSceneObject): FloatArray? {
+    internal fun nearExtent(o: StaticSceneObject): FloatArray? {
         val boxes = occluderBoxes(o)
         if (boxes.isEmpty()) return null
         val x = o.tileFractionX * REF_SCREEN_W * 2f
-        val k = SceneSpace.NEAR_ROW_SIZE / SceneSpace.depthScale(o.depthFraction)
+        val k = SceneSpace.NEAR_ROW_PLAN_SIZE / SceneSpace.depthScale(o.depthFraction)
         return floatArrayOf(boxes.minOf { it[0] - x } * k, boxes.maxOf { it[2] - x } * k)
     }
 

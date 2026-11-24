@@ -34,8 +34,9 @@ import org.json.JSONTokener
  *
  * It deliberately does **not** carry the updater's state (a pending download is not a setting and
  * a restored one would point at a version this install may not want), the resolved GPS fix or its
- * timestamp (a cache of where the phone was, not a choice, and restoring one onto another device
- * would place it somewhere it has never been), or the live-weather status line (a runtime result).
+ * times (a cache of where the phone was, not a choice, and restoring one onto another device
+ * would place it somewhere it has never been), the settings page's last "update now" (an event
+ * for this phone's wallpaper, not a setting), or the live-weather status line (a runtime result).
  * Nothing here is a file path, a cache, a log or a credential belonging to the project.
  *
  * ### Sensitive by design

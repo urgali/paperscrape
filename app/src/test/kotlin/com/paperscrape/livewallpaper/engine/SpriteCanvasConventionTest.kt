@@ -20,7 +20,7 @@ import org.junit.Test
  *
  * The ones that do *not* touch an edge are the exceptions `ARCHITECTURE.md` §5 describes: sprites
  * whose transparent margin is load-bearing because their anchor is measured against it -- the sun
- * and moon centred in a fixed disc, the glow, the sparkle, the firework, a bird centred on its
+ * and moon centred in a fixed disc, the glow, the sparkle, a bird centred on its
  * flight path -- and the layers and grid-trimmed pieces exempted as classes below.
  *
  * So the convention is the rule, the declared exceptions are listed, and this test is where both
@@ -36,7 +36,6 @@ class SpriteCanvasConventionTest {
         // trimming the canvas onto them would move row 15 and with it the axis the wing-beat mirrors
         // about. The margin is the registration, as it is for the moons.
         "bird_body",
-        "firework",
         "moon_crescent",
         "moon_full",
         "moon_gibbous",
@@ -136,11 +135,11 @@ class SpriteCanvasConventionTest {
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
         // How many PNGs ship: a sprite added or removed moves it.
-        assertEquals("486 sprites are expected", 486, all.size)
+        assertEquals("488 sprites are expected", 488, all.size)
         // How many of them reach an edge: it moves when a sprite gains or loses a margin, and when a
         // sprite is added or removed. Many layers and grid-trimmed pieces do not reach one, and are
         // exempted above; the rest of the set does.
-        assertEquals("258 of them reach a canvas edge", 258, touching)
+        assertEquals("259 of them reach a canvas edge", 259, touching)
     }
 
     private companion object {

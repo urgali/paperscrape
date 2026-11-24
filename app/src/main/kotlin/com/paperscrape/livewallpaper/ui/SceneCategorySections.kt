@@ -310,7 +310,11 @@ internal fun storefrontGroupTitle(group: StorefrontGroup): String = when (group)
     StorefrontGroup.PUBLIC -> "Public buildings"
 }
 
-/** Visibility, day/night colour and density for one of the two mountain layers. */
+/**
+ * Visibility, day/night colour and density for one of the two mountain layers. While the winter palette owns the colours
+ * ([winter], [SettingsUiModel.winterLandscape]) the pair shows the snow the layer is drawn in, read-only, with the line
+ * saying why; the stored colours are not touched.
+ */
 @Composable
 internal fun MountainLayerSection(
     title: String,
@@ -320,6 +324,7 @@ internal fun MountainLayerSection(
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
+    winter: WinterLandscapeUiState? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // On only while the layer draws a mountain (decision 40): at 0 % it
@@ -338,13 +343,21 @@ internal fun MountainLayerSection(
                 )
             },
         )
-        DayNightColorPair(
-            dayLabel = "Day Color", nightLabel = "Night Color",
-            dayColor = config.colorDay, nightColor = config.colorNight, mode = config.autoMode,
-            onEditDay = { onEditColor("$title - Day Color", config.colorDay) { c -> scope.launch { prefs.setMountainColorDay(front, c, forThemeId) } } },
-            onEditNight = { onEditColor("$title - Night Color", config.colorNight) { c -> scope.launch { prefs.setMountainColorNight(front, c, forThemeId) } } },
-            onModeChange = { scope.launch { prefs.setMountainAutoMode(front, it, forThemeId) } },
-        )
+        if (winter != null) {
+            WinterOwnedColorPair(
+                dayColor = if (front) winter.mountainsFrontDay else winter.mountainsBackDay,
+                nightColor = if (front) winter.mountainsFrontNight else winter.mountainsBackNight,
+                line = winter.line,
+            )
+        } else {
+            DayNightColorPair(
+                dayLabel = "Day Color", nightLabel = "Night Color",
+                dayColor = config.colorDay, nightColor = config.colorNight, mode = config.autoMode,
+                onEditDay = { onEditColor("$title - Day Color", config.colorDay) { c -> scope.launch { prefs.setMountainColorDay(front, c, forThemeId) } } },
+                onEditNight = { onEditColor("$title - Night Color", config.colorNight) { c -> scope.launch { prefs.setMountainColorNight(front, c, forThemeId) } } },
+                onModeChange = { scope.launch { prefs.setMountainAutoMode(front, it, forThemeId) } },
+            )
+        }
         PreferenceSlider(
             label = { shown -> Text("Density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = config.density,
@@ -354,4 +367,16 @@ internal fun MountainLayerSection(
             enabled = SettingsUiModel.amountSliderEnabled(config.visible),
         )
     }
+}
+
+/**
+ * A day/night pair the winter palette draws in place of the user's ([SettingsUiModel.winterLandscape]): the two colours
+ * the scene uses, greyed and inert as a derived half is, no mode toggle (left out, not greyed, as the weather pages leave
+ * out what Live Weather owns), and [line] under them.
+ */
+@Composable
+internal fun WinterOwnedColorPair(dayColor: Int, nightColor: Int, line: String) {
+    ColorSwatchRow("Day Color", dayColor, enabled = false, onClick = {})
+    ColorSwatchRow("Night Color", nightColor, enabled = false, onClick = {})
+    Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

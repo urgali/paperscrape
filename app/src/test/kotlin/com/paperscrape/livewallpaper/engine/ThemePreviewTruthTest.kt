@@ -133,7 +133,6 @@ class ThemePreviewTruthTest {
         "penguin_" to "PENGUIN",
         "pumpkin_" to "PUMPKIN",
         "dolphin_" to "DOLPHIN",
-        "firework" to "FIREWORKS",
         "school_" to "SCHOOL",
         "person_" to "PEOPLE",
         "police_" to "CAR",
@@ -152,6 +151,13 @@ class ThemePreviewTruthTest {
 
     private fun familyOf(spriteName: String): String? =
         FAMILY_BY_PREFIX.firstOrNull { spriteName.startsWith(it.first) }?.second
+
+    /**
+     * An item's families: its sprites' -- or `FIREWORKS` for one of the card's paper flowers, which are flat cards with no
+     * sprite ([ThemePreviewScenes.CARD_FIREWORKS]).
+     */
+    private fun familiesOf(item: PreviewItem): Set<String> =
+        if (item in ThemePreviewScenes.CARD_FIREWORKS) setOf("FIREWORKS") else item.parts.mapNotNull { familyOf(nameOf(it.resId)) }.toSet()
 
     /** How many of a pool of [pool] candidates survive [density], the renderer's own arithmetic. */
     private fun poolCount(density: Float, pool: Int, salt: Int): Int {
@@ -245,7 +251,7 @@ class ThemePreviewTruthTest {
     private fun cardFamilies(scene: ThemePreviewScene): Map<String, Int> {
         val out = sortedMapOf<String, Int>()
         for (item in drawOrder(scene)) {
-            for (family in item.parts.mapNotNull { familyOf(nameOf(it.resId)) }.toSet()) {
+            for (family in familiesOf(item)) {
                 out[family] = (out[family] ?: 0) + 1
             }
         }
@@ -420,7 +426,7 @@ class ThemePreviewTruthTest {
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
         val out = mutableListOf<String>()
         for (item in drawOrder(scene)) {
-            val families = item.parts.mapNotNull { familyOf(nameOf(it.resId)) }.toSet()
+            val families = familiesOf(item)
             if (families.none { it in WATER_FAMILIES }) continue
             val what = families.first { it in WATER_FAMILIES }
             val box = inkBox(item) ?: continue
@@ -456,7 +462,7 @@ class ThemePreviewTruthTest {
         val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
         val painted = drawOrder(scene)
         val boxes = painted.map { inkBox(it) }
-        val families = painted.map { item -> item.parts.mapNotNull { familyOf(nameOf(it.resId)) }.toSet() }
+        val families = painted.map { item -> familiesOf(item) }
         val out = mutableListOf<String>()
         for (i in painted.indices) {
             val box = boxes[i] ?: continue
@@ -488,7 +494,8 @@ class ThemePreviewTruthTest {
         val out = mutableListOf<String>()
         for (item in scene.cars) {
             for (part in item.parts) {
-                if (!nameOf(part.resId).startsWith("car_body_")) continue
+                // The bodies; not the snow on their roofs (`car_body_*_snow`), which ends on the roof, not the floor.
+                if (!nameOf(part.resId).startsWith("car_body_") || nameOf(part.resId).endsWith("_snow")) continue
                 val ink = inkOf(part.resId) ?: continue
                 val floor = item.y + item.scale * (part.oy + ink.bottom)
                 val declared = item.y + item.scale * ThemePreviewScenes.PREVIEW_CAR_FLOOR_DROP
@@ -729,11 +736,14 @@ class ThemePreviewTruthTest {
             same("the sky's top", SkyGradient.top(c.sky, d), scene.skyTop)
             same("the sky's horizon", SkyGradient.bottom(c.sky, d, phase.progress), scene.skyBottom)
         }
-        same("the hills", blend(c.hillsColorNight, c.hillsColorDay), scene.groundColour)
+        // The user's hills, or the snow's under the winter palette ([GroundSnow]), as `drawHillLayers` reads them.
+        same("the hills", blend(GroundSnow.hillsNight(c), GroundSnow.hillsDay(c)), scene.groundColour)
         if (c.lake.visible) same("the water", blend(c.lake.colorNight, c.lake.colorDay), scene.lake.colour)
+        // Under the winter palette both layers are the frame's snow, the back one darker (`drawMountainLayer`).
+        val snow = GroundSnow.snowAt(c, d)
         val mountainColours = buildSet {
-            if (c.mountainsBack.visible) add(blend(c.mountainsBack.colorNight, c.mountainsBack.colorDay))
-            if (c.mountainsFront.visible) add(blend(c.mountainsFront.colorNight, c.mountainsFront.colorDay))
+            if (c.mountainsBack.visible) add(if (c.winterColorsEnabled) GroundSnow.backMountains(snow) else blend(c.mountainsBack.colorNight, c.mountainsBack.colorDay))
+            if (c.mountainsFront.visible) add(if (c.winterColorsEnabled) snow else blend(c.mountainsFront.colorNight, c.mountainsFront.colorDay))
         }
         for (peak in scene.peaks) {
             if (peak.colour !in mountainColours) out += "$label: R4 a mountain is ${hex(peak.colour)}, which neither layer is"
@@ -819,10 +829,12 @@ class ThemePreviewTruthTest {
      * one pair and are drawn only on a day card, so only Sunset's 19:00 (dayBlend 0.80) tells them
      * apart.
      *
-     * Two things are left out, each because the wallpaper leaves it out too: the autumn canopy,
-     * whose fall palette is the same at every hour on both sides, and the fixed art -- trunks, bare
-     * branches, snow caps, ribbons, faces -- which does not dim (`DESIGN_NOTES.md` §12, decision 36).
-     * The fir is left out as well, though the wallpaper shades its green as it shades a palm (`drawFir`).
+     * The autumn canopy wears one of the fall palette's tones darkened by the moment's night
+     * ([SceneObjectRenderer.fallCrownColour]), and every snow lying on the card -- the roofs', the caps,
+     * the fir's, the distant houses', the cars' roofs -- the wallpaper's snow colour at the moment
+     * ([GroundSnow.snowAt]), only under the winter palette. The rest of the fixed art -- trunks, bare
+     * branches, ribbons, faces -- does not dim (`DESIGN_NOTES.md` §12, decision 36) and is left out, as the
+     * fir is, though the wallpaper shades its green as it shades a palm (`drawFir`).
      */
     private fun checkObjectColours(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>? = null): List<String> {
         val night = cardNight(theme, c, forceNight)
@@ -839,7 +851,7 @@ class ThemePreviewTruthTest {
         // ([BusinessHours], 1 with a group's switch off).
         val hour = ThemePreviewScenes.cardHour(theme, night)
         for (item in drawOrder(scene)) {
-            val family = item.parts.firstNotNullOfOrNull { familyOf(nameOf(it.resId)) }
+            val family = familiesOf(item).firstOrNull()
             val house = family?.startsWith("HOUSE_") == true
             // One of the six among the houses keeps its group's hours, a tower the towers' (decision 62).
             val storefront = Storefront.ALL.firstOrNull { it.name == family }
@@ -905,6 +917,16 @@ class ThemePreviewTruthTest {
                 seen?.let { it["DECORATION"] = (it["DECORATION"] ?: 0) + 1 }
             }
             for (part in item.parts.filter { it.isFlat && !it.decoration }) {
+                if (family == "FIREWORKS") {
+                    // A paper flower of the card's fireworks: the wallpaper's night colours only -- the six papers and the
+                    // inner layer's cream, which no hour dims (the fireworks go off only at night, decision 118).
+                    val allowed = FireworkEffect.PAPER.toSet() + FireworkEffect.CREAM_COLOUR
+                    if (part.tint !in allowed || part.alpha != 255) {
+                        out += "$label: R7 a firework's paper at x=%.0f is ${hex(part.tint)} at alpha ${part.alpha}, none of the fireworks' colours".format(item.x)
+                    }
+                    seen?.let { it["FIREWORK_PAPER"] = (it["FIREWORK_PAPER"] ?: 0) + 1 }
+                    continue
+                }
                 if (family == "SANTA") {
                     // Rudolph's nose (`SantaSleighDrawer`): a red disc over the reindeer's own, the wallpaper's red at every
                     // hour -- the sleigh is drawn at night as by day (decision 73).
@@ -944,7 +966,22 @@ class ThemePreviewTruthTest {
                 val name = nameOf(part.resId)
                 val type = TINTED_BODIES[name]
                 when {
-                    name == "tree_canopy" && c.fallColorsEnabled -> Unit
+                    name == "tree_canopy" && c.fallColorsEnabled -> {
+                        val allowed = SceneObjectRenderer.FALL_LEAF_TREE_PALETTE.map { SceneObjectRenderer.fallCrownColour(it, d) }.toSet()
+                        if (part.tint !in allowed) {
+                            out += "$label: R7 an autumn crown at x=%.0f is ${hex(part.tint)} on the card, the wallpaper paints ${allowed.joinToString(" or ") { hex(it) }} at dayBlend %.3f"
+                                .format(item.x, d)
+                        }
+                        seen?.let { it["FALL_CROWN"] = (it["FALL_CROWN"] ?: 0) + 1 }
+                    }
+                    "snow" in name && !name.startsWith("snowman_") -> {
+                        val expected = GroundSnow.snowAt(c, d)
+                        if (!c.winterColorsEnabled || part.tint != expected) {
+                            out += "$label: R7 a $name at x=%.0f is ${hex(part.tint)} on the card (winter ${c.winterColorsEnabled}), the wallpaper's snow is ${hex(expected)} at dayBlend %.3f"
+                                .format(item.x, d)
+                        }
+                        seen?.let { it["LYING_SNOW"] = (it["LYING_SNOW"] ?: 0) + 1 }
+                    }
                     type != null -> {
                         val allowed = paints(type)
                         if (part.tint !in allowed) {
@@ -1042,7 +1079,7 @@ class ThemePreviewTruthTest {
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
-        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE", "HALLOWEEN_DECORATION")) {
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS", "SHUT_SIGN", "DECORATION", "RUDOLPH_NOSE", "HALLOWEEN_DECORATION", "FALL_CROWN", "LYING_SNOW", "FIREWORK_PAPER")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
         // And a scarecrow's candle at dusk, half lit (Sunset's 19:00).
@@ -1140,6 +1177,31 @@ class ThemePreviewTruthTest {
         val soft = renderer.substring(renderer.indexOf("private fun drawSoftMountain("))
             .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
         assertTrue(soft.contains("MountainSilhouette.leftHalf(") && soft.contains("MountainSilhouette.rightHalf("))
+        // And the winter palette's snow through [GroundSnow], the rule R4 asks: the frame's colour set once, the hills'
+        // pair and both mountain layers from it. Whole lines, comments off.
+        val code = codeLines(renderer)
+        assertTrue("draw no longer sets the frame's snow from GroundSnow.snowAt",
+            "frameSnowColour = if (sceneCustomization.winterColorsEnabled) GroundSnow.snowAt(sceneCustomization, dayPhase.dayBlend) else SpriteBlitter.UNTINTED" in code)
+        assertLinesAfter(
+            "drawHillLayers no longer asks GroundSnow for the hills' pair",
+            code,
+            "private fun drawHillLayers(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {",
+            "val color = blendColor(",
+            "hillLayerColor(GroundSnow.hillsNight(sceneCustomization), layer),",
+            "hillLayerColor(GroundSnow.hillsDay(sceneCustomization), layer),",
+            "dayPhase.dayBlend,",
+            ")",
+        )
+        assertLinesAfter(
+            "drawMountainLayer no longer paints the snow under the winter palette",
+            code,
+            "private fun drawMountainLayer(",
+            "mountainPaint.color = if (sceneCustomization.winterColorsEnabled) {",
+            "if (seedSalt == EffectId.MOUNTAINS_BACK) GroundSnow.backMountains(frameSnowColour) else frameSnowColour",
+            "} else {",
+            "blendColor(config.colorNight, config.colorDay, dayPhase.dayBlend)",
+            "}",
+        )
         val objects = source("engine/SceneObjectRenderer.kt")
         val drawRoad = objects.substring(objects.indexOf("private fun drawRoad("))
             .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
@@ -1157,6 +1219,23 @@ class ThemePreviewTruthTest {
             dir = dir.parentFile
         }
         error("could not locate $path")
+    }
+
+    /** [text]'s lines, trimmed, with comment lines, trailing `//` comments and blank lines left out. */
+    private fun codeLines(text: String): List<String> =
+        text.lines().map { it.trim() }
+            .filterNot { it.startsWith("*") || it.startsWith("/*") || it.startsWith("//") }
+            .map { it.substringBefore(" //").trim() }
+            .filter { it.isNotEmpty() }
+
+    /** After the line [after], the first [expected] line and the ones following it, one after the other, in [lines]. */
+    private fun assertLinesAfter(message: String, lines: List<String>, after: String, vararg expected: String) {
+        val head = lines.indexOf(after)
+        assertTrue("$message: no line `$after`", head >= 0)
+        val rest = lines.subList(head + 1, lines.size)
+        val at = rest.indexOf(expected.first())
+        assertTrue("$message: no line `${expected.first()}` after `$after`", at >= 0)
+        assertEquals(message, expected.toList(), rest.subList(at, minOf(rest.size, at + expected.size)))
     }
 
     private fun report(fails: List<String>) {

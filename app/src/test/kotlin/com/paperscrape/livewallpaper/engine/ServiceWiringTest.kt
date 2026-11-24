@@ -46,7 +46,7 @@ class ServiceWiringTest {
         assertEquals(
             listOf(
                 "if (LiveWeatherSchedule.takesHeldPosition(held.fix, held.ageMillis, lastLocationFix)) {",
-                "updateSunTimesFromLocation(held.fix, isDeviceFix = true)",
+                "updateSunTimesFromLocation(held.fix, deviceFixAgeMillis = held.ageMillis)",
             ),
             lines.subList(held + 1, held + 3),
         )

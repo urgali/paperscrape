@@ -107,10 +107,16 @@ class SpriteDrawScaleTest {
     private val maxSizeVariation = 1f + SceneSpace.SIZE_VARIATION_SPREAD / 2f
 
     /**
-     * The largest a static object is drawn: on the deepest ground line of the street, or in the near row below the road,
-     * at its fixed size (`SceneSpace.NEAR_ROW_SIZE`, `DESIGN_NOTES.md` §12, decision 96), whichever is larger.
+     * The largest a static object is drawn: on the deepest ground line of the street, or in the near row below the road
+     * on its lowest line of feet, at the largest size of its lines (`SceneSpace.NEAR_ROW_SIZE_BOTTOM`,
+     * decisions 96 and 119), whichever is larger. Read through `nearRowSizeAt`, so the size the renderer asks
+     * for there is the one measured.
      */
-    private val maxStaticDepthScale = maxOf(SceneSpace.depthScale(1f), SceneSpace.NEAR_ROW_SIZE)
+    private val maxStaticDepthScale = maxOf(
+        SceneSpace.depthScale(1f),
+        SceneSpace.nearRowSizeAt(SceneSpace.NEAR_ROW_FEET_BOTTOM_Y_FRACTION),
+        SceneSpace.NEAR_ROW_SIZE_BOTTOM,
+    )
 
     /** The larger of the near pavement row behind the road and the near pavement below it: pedestrians are drawn largest there. */
     private val maxPavementScale = maxOf(SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION), SceneSpace.NEAR_PEOPLE_SIZE)
@@ -118,8 +124,16 @@ class SpriteDrawScaleTest {
     /** The near lane: vehicles are drawn largest there. */
     private val maxLaneScale = SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
 
-    /** `drawGroundFlowers`/`scatterPiles` stand their scatter anywhere in this depth band, and under the road at the near row's size. */
-    private val maxScatterDepthScale = maxOf(SceneSpace.depthScale(SceneObjectRenderer.FLOWER_DEPTH_MAX), SceneSpace.NEAR_ROW_SIZE)
+    /**
+     * `drawGroundFlowers`/`scatterPiles` stand their scatter anywhere in this depth band, and under the road at the size of
+     * the line each stands on, the largest at the meadow's bottom (`SceneSpace.nearRowSizeAt`, held at
+     * `NEAR_ROW_SIZE_BOTTOM` below the near row's lowest line of feet).
+     */
+    private val maxScatterDepthScale = maxOf(
+        SceneSpace.depthScale(SceneObjectRenderer.FLOWER_DEPTH_MAX),
+        SceneSpace.nearRowSizeAt(SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION),
+        SceneSpace.NEAR_ROW_SIZE_BOTTOM,
+    )
 
     private fun staticPath(label: String, variant: SceneSpace.SceneVariant, inner: Float = 1f) =
         DrawPath(label, SpriteScale.SCENE_UNITS) { v ->
@@ -365,6 +379,7 @@ class SpriteDrawScaleTest {
         put(
             DrawPath("car", SpriteScale.SCENE_UNITS, ::carScale),
             "car_body_saloon", "car_body_estate", "car_body_compact",
+            "car_body_saloon_snow", "car_body_estate_snow", "car_body_compact_snow",
             "car_window_saloon", "car_window_estate", "car_window_compact",
             "car_lamp_front", "car_lamp_front_lit", "car_lamp_rear", "car_lamp_rear_lit",
             "taxi_checker", "taxi_sign", "police_lightbar", "police_stripe",
@@ -441,14 +456,6 @@ class SpriteDrawScaleTest {
                     ) / PaperRenderer.LIGHTNING_BOLT_HEIGHT_UNITS
             },
             "lightning_bolt",
-        )
-        // A burst reaches scale 1 at the end of its expansion, and the sprite's own half-width maps
-        // onto FIREWORK_REACH_UNITS there.
-        put(
-            DrawPath("firework burst", SpriteScale.SCENE_UNITS) { _ ->
-                PaperRenderer.FIREWORK_REACH_UNITS / PaperRenderer.FIREWORK_SPRITE_HALF_UNITS
-            },
-            "firework",
         )
         // The group in proportion to the people (`SantaSleighScale`), never past its sprites' 3 px a unit.
         put(

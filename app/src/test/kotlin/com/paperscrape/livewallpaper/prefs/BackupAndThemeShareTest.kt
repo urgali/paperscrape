@@ -72,6 +72,8 @@ class BackupAndThemeShareTest {
         resolvedGpsLatitude = 12f,
         resolvedGpsLongitude = 34f,
         deviceFixTimestampMillis = 999L,
+        deviceFixTakenAtMillis = 998L,
+        refreshAskedAtMillis = 997L,
         liveWeatherStatus = "ok",
         themeCustomizations = mapOf(
             "beach" to defaultCustomizationFor("beach").copy(
@@ -86,7 +88,7 @@ class BackupAndThemeShareTest {
         id = id,
         name = name,
         theme = ThemeCatalog.byId(source).copy(id = id, displayName = name),
-        // As a theme is saved: without the scarecrows, which the catalogue lays again at the load (v5.16).
+        // As a theme is saved: without the scarecrows, which the catalogue lays again at the load.
         layout = SceneObjectCatalog.layoutFor(source, ThemeCatalog.byId(source).accentColor).asSaved(),
         customization = defaultCustomizationFor(source).copy(hillsVariation = 0.33f),
     )
@@ -146,11 +148,10 @@ class BackupAndThemeShareTest {
     }
 
     /**
-     * **And it is not read as current either** (v5.8C): absent means schema 3, the one every app
-     * that wrote such a backup was at (backups since v4.3, the field since v4.15, 3 -> 4 in v4.20),
-     * so the 3 -> 4 repair and the 4 -> 5 school run. Read as current -- as it was until v5.8C --
-     * a street saved without its school came back without it, where the same street kept in the
-     * store is given one (v5.8B comment audit).
+     * **And it is not read as current either**: absent means schema 3, the one every release that
+     * wrote a backup without the field was at, so the 3 -> 4 repair and the 4 -> 5 school run. Read
+     * as current, a street saved without its school would come back without it, where the same
+     * street kept in the store is given one.
      */
     @Test
     fun `a backup written before the field existed gets the steps after schema 3`() {
@@ -158,7 +159,7 @@ class BackupAndThemeShareTest {
         json.remove("customThemeSchemaVersion")
         val objects = json.getJSONObject("overrides").getJSONObject("christmas")
             .getJSONObject("layout").getJSONArray("staticObjects")
-        // Take the school out: the shape of a street saved before v5.6.
+        // Take the school out: the shape of a street saved before streets had one.
         var removed = 0
         for (i in objects.length() - 1 downTo 0) {
             val o = com.paperscrape.livewallpaper.engine.staticSceneObjectFromJson(objects.getJSONObject(i))
@@ -287,7 +288,8 @@ class BackupAndThemeShareTest {
     fun `a backup carries no runtime state`() {
         val json = backup().toJsonString()
         for (forbidden in listOf(
-            "resolvedGps", "deviceFixTimestamp", "liveWeatherStatus",
+            "resolvedGps", "deviceFixTimestamp", "deviceFixTakenAt", "device_fix_taken_at", "refreshAskedAt", "refresh_asked_at",
+            "liveWeatherStatus",
             "pendingCustomization", "updatePrefs", "pendingInstall",
         )) {
             assertFalse("a backup must not carry $forbidden", json.contains(forbidden))
@@ -408,14 +410,11 @@ class BackupAndThemeShareTest {
     /**
      * Every field of a customization, not a sample of them.
      *
-     * **Until v5.8B this moved 22 fields and left the rest at Beach's defaults** -- the snow and
-     * leaf piles, the business hours, the night densities, every automatic colour mode, the sky,
-     * sun, moon, clouds, lake, birds, stars, rain and rainbow. The reader rebuilds a missing field
-     * from those same defaults, so a writer that dropped any of them passed: the name promised
-     * "every field" and the assertion could only see the 22. Now [movedEverywhere] moves every leaf
-     * of the whole tree off its default, by reflection over the data classes, so a field added
-     * later is moved too without anybody remembering to list it; and the test first checks that
-     * no leaf is left where it started.
+     * The reader rebuilds a missing field from the defaults, so a field left at its default would
+     * pass even if the writer dropped it. [movedEverywhere] moves every leaf of the whole tree off
+     * its default, by reflection over the data classes, so a field added later is moved too without
+     * anybody remembering to list it; and the test first checks that no leaf is left where it
+     * started.
      */
     @Test
     fun `every scene customization property survives a theme round trip`() {
@@ -426,7 +425,7 @@ class BackupAndThemeShareTest {
         val share = ThemeShare.of("beach", "Everything", everything, "4.3", 0L)
         val back = (parseThemeShare(share.toJsonString()) as ThemeParseResult.Ok).share
         // Every boolean moved puts the Halloween and the Christmas decorations on together, and the houses and the buildings
-        // off: with no house or shop to hang on, the Halloween decorations hold nothing (v5.16C, decisions 77 and 83), so the
+        // off: with no house or shop to hang on, the Halloween decorations hold nothing (decisions 77 and 83), so the
         // reader keeps every field as written.
         assertEquals("fields that did not survive: ${leavesDiffering(everything, back.customization, "customization")}", everything, back.customization)
         // With the houses back, both hang, and no reader keeps the two on together (decision 77): Beach ships neither, so the
@@ -647,25 +646,24 @@ class BackupAndThemeShareTest {
     }
 
     /**
-     * A backup carrying a *thinned* override is repaired on load too (v4.4).
+     * A backup carrying a *thinned* override is repaired on load too.
      *
-     * The empty list was the visible half of the defect; a list the old save path merely thinned
-     * is the other half, and a backup taken before the fix is exactly how one arrives on an
-     * install that never had the damage itself. The repair runs where every reader goes through,
+     * An old save path could thin a saved car list, and a backup taken from such an install is how
+     * one arrives on an install that never had the damage itself. The repair runs where every reader goes through,
      * so restoring is enough — nothing in `BackupRepository` needs to know about it.
      */
     @Test
     fun `a thinned override restored from a backup is repaired on load`() {
         val raw = SceneObjectCatalog.layoutFor("beach", ThemeCatalog.byId("beach").accentColor)
         val thinned = defaultCustomizationFor("beach").let { it.copy(cars = it.cars.copy(density = 0.5f)) }
-        // Exactly what the pre-v4.3 save path wrote: the filtered list and the density it filtered with.
+        // Exactly what the old save path wrote: the filtered list and the density it filtered with.
         val damaged = CustomThemeEntry(
             id = "beach",
             name = "Beach",
             theme = ThemeCatalog.byId("beach"),
             layout = SceneObjectLayout(
                 staticObjects = raw.staticObjects,
-                // legacyKeepCar: the fixture reconstructs what the pre-v4.3 save path wrote, and
+                // legacyKeepCar: the fixture reconstructs what the old save path wrote, and
                 // that path filtered with the threshold selection of its own era.
                 cars = raw.cars.filter { thinned.legacyKeepCar(it) },
             ),
@@ -700,9 +698,9 @@ class BackupAndThemeShareTest {
     }
 
     /**
-     * **A backup never prints the user's keys** (v5.8C). The generated `toString` of the data
-     * classes printed all three; nothing logged one, but a log line or an assertion message that
-     * interpolated a backup, its settings or an `ImportResult.Applied` would have (v5.8B audit).
+     * **A backup never prints the user's keys.** A generated `toString` of the data classes would
+     * print all three, and a log line or an assertion message that interpolated a backup, its
+     * settings or an `ImportResult.Applied` would show them.
      */
     @Test
     fun `a backup and everything holding one print the keys only as their length`() {

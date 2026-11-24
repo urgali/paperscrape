@@ -302,6 +302,92 @@ class GlDrawCallTest {
         println("GlDrawCallTest Halloween: " + seen.joinToString(" | "))
     }
 
+    /**
+     * **The fireworks' finale is one draw, at its fullest** (decision 70: the batch's size is not raised for it): the
+     * show run alone, then the street warmed up for [SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES] frames drawn and not
+     * counted, so the cars and their people are on the road, the two together reaching half a second before the first
+     * finale's first rocket (a second and a half before its first burst); then drawn frame by frame, at the wallpaper's 30
+     * a second, to [FireworkFinale.END_SECONDS] -- the seven bursts and their rockets, with the single bursts and salvos
+     * around them, every piece a disc of the atlas or a four-point shape and the light's glows fans of its white point. On
+     * a seeded source whose first finale holds a burst of the light ([FireworkFinale]), and a glow is seen drawn in the
+     * counted frames.
+     *
+     * On New Year's Eve at one in the morning, as it ships; and on Christmas at night with everything at its very most --
+     * the decorations, the people, the distant houses at 100 %, the snow at 100 %, every star, the three groups' hours --
+     * **with *Fireworks* switched on, which Christmas ships off**, the street swept across three tiles as the frames go by,
+     * so the fireworks' fullest moments meet the street's busiest. Santa's sleigh is off there: it draws from the same
+     * source, and its first flight in the warm-up would deal the fireworks another show than the seed's. The most corners
+     * a frame took is printed.
+     */
+    @Test
+    fun theFireworksFinaleIsStillASingleDrawCall() {
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val tile = 2f / PaperRenderer.HILL_PARALLAX
+        val offsets = FloatArray(60) { 3f * tile * it / 60 }
+        val christmasMost = christmas().single { it.name == "christmas-most-christmas-1" }
+        val scenes = listOf(
+            GoldenScene(name = "fireworks-finale-new-year-1", dayPhase = GoldenScene.night(1f), themeId = "new_year") to false,
+            GoldenScene(
+                name = "fireworks-finale-christmas-most-1",
+                dayPhase = christmasMost.dayPhase,
+                themeId = "christmas",
+                // Everything at its most, the fireworks among it; the sleigh off (see the doc).
+                customise = { base -> christmasMost.customise(base).copy(fireworksEnabled = true, santaEnabled = false) },
+            ) to true,
+        )
+        val seen = mutableListOf<String>()
+        for ((scene, sweep) in scenes) {
+            val warm = SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES
+            val lead = FireworkFinale.frames(FireworkEffect.FIRST_FINALE_AT - FireworkEffect.RISE - 0.5) - warm
+            val counted = FireworkFinale.frames(FireworkFinale.END_SECONDS) - lead - warm
+            val calls = IntArray(counted)
+            val vertices = LongArray(counted)
+            var mostAlive = 0
+            var glows = 0
+            FireworkFinale.seeded {
+                GlGolden.countPrimitive { canvas ->
+                    val gl = canvas as GlSceneTarget
+                    // The GL target itself, with the fireworks' glows counted on their way to it.
+                    val counting = object : SceneCanvas by gl {
+                        override fun drawFadingGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) {
+                            glows++
+                            gl.drawFadingGlow(cx, cy, radius, color, centerAlpha)
+                        }
+                    }
+                    val renderer = PaperRenderer(GlGolden.WIDTH, GlGolden.HEIGHT, context)
+                    scene.configure(renderer)
+                    if (sweep) renderer.swipeScrollEnabled = true
+                    renderer.advanceFireworksForTest(lead)
+                    var clock = SceneTime(scene.sceneSeconds)
+                    // The warm-up: drawn on the same target, at the same cadence, the show going on through it.
+                    repeat(warm) {
+                        clock += FireworkEffect.FRAME_SECONDS
+                        gl.beginFrame()
+                        renderer.draw(gl, scene.dayPhase, clock, FireworkEffect.FRAME_SECONDS)
+                        gl.endFrame()
+                    }
+                    for (i in 0 until counted) {
+                        if (sweep) renderer.homeScreenOffset = offsets[i % offsets.size]
+                        clock += FireworkEffect.FRAME_SECONDS
+                        gl.beginFrame()
+                        renderer.draw(counting, scene.dayPhase, clock, FireworkEffect.FRAME_SECONDS)
+                        gl.endFrame()
+                        calls[i] = gl.drawCalls
+                        vertices[i] = gl.drawnVertices
+                        mostAlive = maxOf(mostAlive, renderer.fireworksAliveForTest())
+                    }
+                }
+            }
+            seen += "${scene.name}: ${calls.min()}..${calls.max()} draws over $counted frames, at most ${vertices.max()} corners, " +
+                "at most $mostAlive fireworks in the sky, $glows glows (seed ${FireworkFinale.seed})"
+            assertTrue("${scene.name}: the finale's seven were never in the sky together ($mostAlive at most)", mostAlive >= 7)
+            assertTrue("${scene.name}: the finale's light drew no glow in the counted frames", glows > 0)
+            assertTrue("${scene.name} through the finale: ${calls.toList()}", calls.all { it == 1 })
+        }
+        println("GlDrawCallTest fireworks: " + seen.joinToString(" | "))
+        java.io.File(GlGolden.outputDir(), "gl_draw_counts.txt").appendText("fireworks: " + seen.joinToString(" | ") + "\n")
+    }
+
     private fun christmas(): List<GoldenScene> {
         val asInstalled = listOf("christmas", "autumn", "winter").flatMap { theme ->
             listOf(12f to GoldenScene.day(12f), 1f to GoldenScene.night(1f)).map { (hour, phase) ->

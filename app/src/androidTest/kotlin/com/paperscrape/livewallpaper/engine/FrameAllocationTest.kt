@@ -18,7 +18,8 @@ import org.junit.runner.RunWith
  * **A steady frame of the wallpaper allocates nothing**: nothing new is allocated per frame on a draw path.
  *
  * Every built-in theme by day and by night, the lake at its busiest, rain, snow, a storm driven by Live Weather, the
- * sleigh and the fireworks, the distant houses on the mountains by day, at night and under snow, the Christmas
+ * sleigh and the fireworks, the distant houses on the mountains by day, at night and under snow, the snow in the
+ * ground's colour at dusk (the cars' roofs included), the Christmas
  * decorations of the buildings and the fir A by day and at night with the distant houses' bulbs, a shut building's
  * blinds and shutter by day, Halloween with everything it draws, the places of a group switched off drawn empty above and
  * below the road, the rainbow on under the forecast's rain and under the theme's and fading out and in with the forecast (the
@@ -39,16 +40,20 @@ import org.junit.runner.RunWith
  * before it asserts.
  *
  * *# of Stars* at 0 is a scene of its own (`autumn-midnight-no-stars`): the empty star field is the
- * field asked for, not one to build again at every frame.
+ * field asked for, not one to build again at every frame. A shooting star crossing the sky is one too
+ * (`autumn-midnight-shooting-star`): its clock starts where the counted frames hold the star's whole second.
  *
- * **Events are not frames.** A firework burst, a gift thrown from the sleigh and a sleigh setting
+ * **Events are not frames.** A gift thrown from the sleigh and a sleigh setting
  * off are an object each when they happen -- every few seconds, not every frame -- so the scenes
- * that have them (`events = true`: Christmas and New Year's Eve at night, Christmas at noon and at 23:00
+ * that have them (`events = true`: Christmas at night, Christmas at noon and at 23:00
  * with the distant houses -- the sleigh flies by day too -- everything on at once at Christmas, Christmas
- * at noon and at night with the sleigh held in flight in every counted frame, the fireworks on Autumn,
+ * at noon and at night with the sleigh held in flight in every counted frame,
  * and Christmas at night with the public buildings off) are
  * held to "fewer objects than a tenth of the frames" and log their exact
- * count; every other scene is held to zero.
+ * count; every other scene is held to zero. **The fireworks are not events**: their bursts and pieces live in fixed
+ * pools ([FireworkEffect]), so New Year's Eve at night and the fireworks on Autumn are held to zero, and so is the
+ * fireworks' finale at its fullest (`new-year-fireworks-finale`, [Scene.fireworksLead]), on the two targets too, its
+ * light's glows on the Canvas included.
  *
  * `Debug.startAllocCounting` is deprecated (its counts are coarse and global), and on API 29 it
  * still counts the objects a thread allocates: [countingWorks] is the positive control that shows
@@ -79,6 +84,12 @@ class FrameAllocationTest {
         val changesWeather: Boolean = false,
         val weatherAtCount: LiveWeatherSnapshot? = null,
         val customise: (SceneCustomization) -> SceneCustomization = { it },
+        /**
+         * Frames of the fireworks' show run alone before the warm-up, with `SceneRandom.source` seeded
+         * ([FireworkFinale.seed]), so the counted frames hold the first finale at its fullest and every pass draws the
+         * same one; 0, the show starts with the warm-up and the source is left as it is.
+         */
+        val fireworksLead: Int = 0,
     )
 
     /**
@@ -126,7 +137,11 @@ class FrameAllocationTest {
             alpha: Int,
         ) = Unit
         override fun drawVerticalGradientRect(left: Float, top: Float, right: Float, bottom: Float, topColor: Int, bottomColor: Int) = Unit
-        override fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) = Unit
+        /** The fireworks' glows: [FireworkDrawer] draws each round the origin, moved onto its burst by the canvas. */
+        var fireworkGlows = 0
+        override fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) {
+            if (cx == 0f && cy == 0f) fireworkGlows++
+        }
         override fun drawSprite(
             resId: Int,
             source: SpriteSource,
@@ -151,6 +166,21 @@ class FrameAllocationTest {
                 sailboatsVisible = true, sailboatsDensity = 1f, dolphinsVisible = true, dolphinsDensity = 1f,
             ),
         )
+    }
+
+    /**
+     * Where the clock of `autumn-midnight-shooting-star` starts: the first period's shooting star
+     * ([PaperRenderer.shootingStarStartSeconds]) sets off 1.5 s into the counted frames, so its whole second is counted.
+     */
+    private fun shootingStarCountStart(): Double {
+        val countFrom = PaperRenderer.shootingStarStartSeconds(0L) - 1.5
+        val start = countFrom - WARM_UP_FRAMES * FRAME
+        check(start >= 0.0) { "the warm-up would start before the scene's clock: $start" }
+        check(countFrom + COUNTED_FRAMES * FRAME > countFrom + 1.5 + PaperRenderer.SHOOTING_STAR_SECONDS) {
+            "the counted frames end before the shooting star does"
+        }
+        check(PaperRenderer.shootingStarProgress(countFrom + 2.0) in 0f..1f) { "no shooting star in the counted frames" }
+        return start
     }
 
     /** *# of Stars* at 0: no star in the sky. */
@@ -190,9 +220,11 @@ class FrameAllocationTest {
         Scene("autumn-midnight", "autumn", 0f),
         // *# of Stars* at 0: the empty field is the field asked for, not one to build again at every frame.
         Scene("autumn-midnight-no-stars", "autumn", 0f, customise = noStars),
+        // A shooting star crossing the sky in the counted frames, its whole second, trail and all.
+        Scene("autumn-midnight-shooting-star", "autumn", 0f, startSeconds = shootingStarCountStart()),
         Scene("winter-snow", "winter", 13f, customise = snow),
         Scene("christmas-night", "christmas", 1f, events = true),
-        Scene("new-year-night", "new_year", 1f, events = true),
+        Scene("new-year-night", "new_year", 1f),
         Scene("beach-day", "beach", 13f),
         Scene("city-evening", "city", 21f),
         Scene("halloween-night", "halloween", 22f),
@@ -204,6 +236,9 @@ class FrameAllocationTest {
         Scene("distant-houses-noon", "autumn", 12f, customise = distantHouses),
         Scene("distant-houses-midnight", "autumn", 0f, customise = distantHouses),
         Scene("distant-houses-snow-night", "winter", 23f, customise = { distantHouses(snow(it)) }),
+        // The snow in the ground's colour, between its day and night ends: Winter at dusk, the drifts at 100 % and the
+        // distant houses on, the cars' roofs warmed onto the road like every scene's traffic.
+        Scene("winter-coloured-snow-dusk", "winter", 19.6f, customise = { distantHouses(it).copy(snowPiles = 1f) }),
         // The Christmas decorations -- the fir A, the roofs' strings, the wreaths, the towers' stars -- by day and
         // on Autumn with the switches on at night; the distant houses' bulbs; a shut building's blinds and shutter by day.
         Scene("christmas-noon-decorations", "christmas", 12f, events = true),
@@ -232,7 +267,10 @@ class FrameAllocationTest {
         Scene("everything-on-evening", "city", 21f, customise = everything),
         Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
         // The switches of decisions 103 and 104: the fireworks on a theme that does not ship them, the road kept with no car.
-        Scene("autumn-fireworks-night", "autumn", 1f, events = true, customise = { it.copy(fireworksEnabled = true) }),
+        Scene("autumn-fireworks-night", "autumn", 1f, customise = { it.copy(fireworksEnabled = true) }),
+        // The fireworks' first finale at its fullest, half a second before its first burst to 4.5 s after it -- the seven
+        // bursts, their rockets, the single bursts and salvos round them, a burst of the light with its glows among them.
+        Scene("new-year-fireworks-finale", "new_year", 1f, fireworksLead = FINALE_LEAD_FRAMES),
         Scene("autumn-empty-road-noon", "autumn", 12f, customise = { it.copy(cars = it.cars.copy(density = 0f), carsNightDensity = 0f, keepRoad = true) }),
         Scene(
             "live-storm", "sunset", 13f,
@@ -322,6 +360,7 @@ class FrameAllocationTest {
             renderer.lightningStrikesEnabled = false
             renderer.scrollSpeed = 0.15f
             renderer.holdSantaSleighForTest(scene.sleighHeld)
+            prepareFireworks(renderer, scene)
             val dayPhase = SunPositionCalculator.compute(hour24 = scene.hour)
             var time = SceneTime(scene.startSeconds)
             repeat(WARM_UP_FRAMES) {
@@ -330,6 +369,7 @@ class FrameAllocationTest {
             }
             if (scene.horsemanFlying) renderer.startHeadlessHorsemanFlightForTest()
             if (scene.changesWeather) renderer.liveWeatherOverride = scene.weatherAtCount
+            NothingCanvas.fireworkGlows = 0
             val dropsBefore = renderer.horsemanPumpkinsFallingForTest()
             var dropsSeen = 0
             val objects = allocationsDuring {
@@ -344,6 +384,10 @@ class FrameAllocationTest {
             if (scene.horsemanFlying) {
                 assertTrue("${scene.name}: no pumpkin fell from the Horseman ($dropsBefore before, at most $dropsSeen in a frame)", dropsSeen > 0 || dropsBefore > 0)
             }
+            if (scene.fireworksLead > 0) {
+                assertTrue("${scene.name}: the finale's light drew no glow in the counted frames", NothingCanvas.fireworkGlows > 0)
+            }
+            endScene()
             val line = "${scene.name}: $objects objects over $COUNTED_FRAMES frames" +
                 if (scene.horsemanFlying) ", the Horseman's pumpkins in the air at most: $dropsSeen" else ""
             report.appendLine(line)
@@ -356,10 +400,13 @@ class FrameAllocationTest {
 
     /**
      * The scenes counted on the two targets that draw: Autumn by day and at night as it ships, and at night with no star;
-     * the rain, in lines; Christmas at night, its decorations and the sleigh's events.
+     * the rain, in lines; Christmas at night, its decorations and the sleigh's events; the fireworks' finale at its fullest,
+     * its light's glows on the Canvas drawn from `GradientShaderCache` (one gradient a colour and an alpha step, built in the
+     * first pass).
      */
-    private val targetScenes = listOf("autumn-noon", "autumn-midnight", "autumn-midnight-no-stars", "spring-rain", "christmas-night")
-        .map { name -> scenes.single { it.name == name } }
+    private val targetScenes = listOf(
+        "autumn-noon", "autumn-midnight", "autumn-midnight-no-stars", "spring-rain", "christmas-night", "new-year-fireworks-finale",
+    ).map { name -> scenes.single { it.name == name } }
 
     /**
      * **A steady frame drawn on the GPU allocates nothing**: the scenes of [targetScenes] drawn into a [GlSceneTarget] on a
@@ -398,6 +445,7 @@ class FrameAllocationTest {
                     }
                     if (pass == 1) objects = counted.toLong()
                 }
+                endScene()
                 val line = "${scene.name}: $objects objects over $COUNTED_FRAMES frames on the GPU target, ${gl.drawCalls} draws in the last"
                 report.appendLine(line)
                 Log.i(TAG, line)
@@ -443,6 +491,7 @@ class FrameAllocationTest {
                     }
                     if (pass == 1) objects = counted.toLong()
                 }
+                endScene()
                 val line = "${scene.name}: $objects objects over $COUNTED_FRAMES frames on the Canvas target"
                 report.appendLine(line)
                 Log.i(TAG, line)
@@ -465,7 +514,27 @@ class FrameAllocationTest {
         renderer.lightningStrikesEnabled = false
         renderer.scrollSpeed = 0.15f
         renderer.holdSantaSleighForTest(scene.sleighHeld)
+        prepareFireworks(renderer, scene)
         return renderer
+    }
+
+    /** What `SceneRandom.source` was before a scene seeded it ([prepareFireworks]); null while no scene has. */
+    private var randomBefore: kotlin.random.Random? = null
+
+    /**
+     * For a scene with [Scene.fireworksLead]: `SceneRandom.source` seeded ([FireworkFinale.seed]) and the show run alone that
+     * many frames, so each pass of the scene draws the same finale. [endScene] puts the source back.
+     */
+    private fun prepareFireworks(renderer: PaperRenderer, scene: Scene) {
+        if (scene.fireworksLead <= 0) return
+        if (randomBefore == null) randomBefore = SceneRandom.source
+        SceneRandom.source = kotlin.random.Random(FireworkFinale.seed)
+        renderer.advanceFireworksForTest(scene.fireworksLead)
+    }
+
+    private fun endScene() {
+        randomBefore?.let { SceneRandom.source = it }
+        randomBefore = null
     }
 
     /**
@@ -635,6 +704,9 @@ class FrameAllocationTest {
         /** Past the traffic's arrival (`SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES`, 390) and every lazy first use. */
         const val WARM_UP_FRAMES = 420
         const val COUNTED_FRAMES = 150
+
+        /** The show run alone so the counted frames start half a second before the first finale's first burst. */
+        val FINALE_LEAD_FRAMES = FireworkFinale.frames(FireworkEffect.FIRST_FINALE_AT - 0.5) - WARM_UP_FRAMES
 
         /** Forty seconds: the slowest walk out at a closing and the glass's two seconds after it, with room. */
         const val SHUT_FRAMES = 1200

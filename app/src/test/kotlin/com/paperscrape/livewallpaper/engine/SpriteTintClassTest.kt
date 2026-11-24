@@ -111,11 +111,16 @@ class SpriteTintClassTest {
      *
      * A sprite in neither list is caught by `every shipped sprite is classified`, so this list
      * cannot be left behind by an asset pass that adds one.
+     *
+     * **The lying snow is the one exception to "as authored"** (decision 117): the drifts, the
+     * crowns' caps, the fir's snow, the roofs' and the cars' roofs' snow are fixed art in their own
+     * three tones, multiplied at the blit by the frame's snow colour (`GroundSnow`), which their white,
+     * light blue and cold under-paper carry as relief. They stay in this list: their pixels are art.
      */
     private val fixedArtSprites = listOf(
-        // All three are blitted untinted and all three carry their own colour: a carved hole is not
-        // a colour a theme picks, snow is white wherever it lies, and a heap of leaves is painted in
-        // the same four autumn tones `drawFallingLeaves` uses.
+        // All three carry their own colour: a carved hole is not a colour a theme picks, snow is
+        // drawn in its own tones (and multiplied by the ground's snow colour, above), and a heap of
+        // leaves is painted in the same four autumn tones `drawFallingLeaves` uses.
         "leaf_pile",
         "pumpkin_face",
         "snow_pile",
@@ -182,6 +187,8 @@ class SpriteTintClassTest {
         "penguin_beak", "penguin_feet", "easteregg_pattern", "bunny_innerear", "bunny_tail",
         "pumpkin_stem",
         "car_window_compact", "car_window_saloon", "car_window_estate",
+        // The snow on the three bodies' roofs, in the roof snow's own tones like the buildings' drifts.
+        "car_body_compact_snow", "car_body_saloon_snow", "car_body_estate_snow",
         "police_stripe", "police_lightbar", "taxi_checker", "taxi_sign",
         "car_lamp_front", "car_lamp_front_lit", "car_lamp_rear", "car_lamp_rear_lit",
         "firetruck_ladder", "firetruck_body",
@@ -201,7 +208,7 @@ class SpriteTintClassTest {
         "scarecrow", "scarecrow_light",
         "deco_jack_o_lantern", "deco_jack_o_lantern_light",
         "moon_jack_o_lantern_laugh_light",
-        "rainbow_arc", "lightning_bolt", "firework",
+        "rainbow_arc", "lightning_bolt",
     )
 
     /**

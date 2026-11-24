@@ -1562,6 +1562,32 @@
    "notes": "\u00abCut-out\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. A canvas 44 units tall: the roof at -16 and the floor at 26."
   },
   {
+   "name": "car_body_compact_snow",
+   "category": "vehicle",
+   "width": 177,
+   "height": 33,
+   "contentBox": [
+    1,
+    1,
+    176,
+    31
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "car_body_compact_snow.svg"
+   },
+   "notes": "Snow on the compact's roof under the winter palette, drawn over the body and the glass and under the taxi sign. Fixed art in the roof snow's three tones (white top, #DCE7EF band at the foot, #9FB0BD under-paper moved 1.2 units down and right), multiplied by the ground's snow colour with the winter palette, as the buildings' roof snow is. The foot is CUT along car_body_compact's own top outline (clips copied from its vertices, the under-paper half a unit into the body paper), so the cap follows the roof by construction and stays above the glass; if the body is redrawn the clips are copied again in the same pass. From roofFrontXUnits - 1.5 to roofRearXUnits + 1.5. Body-local units, trimmed to the snow: viewBox (-22,-25), 59x11 units, so its blit origin is (-22,-25), not the body's (-47,-17) -- the snow stands above the body's canvas."
+  },
+  {
    "name": "car_body_estate",
    "category": "vehicle",
    "width": 378,
@@ -1588,6 +1614,32 @@
    "notes": "\u00abCut-out\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
   },
   {
+   "name": "car_body_estate_snow",
+   "category": "vehicle",
+   "width": 252,
+   "height": 33,
+   "contentBox": [
+    1,
+    0,
+    251,
+    30
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "car_body_estate_snow.svg"
+   },
+   "notes": "Snow on the estate's roof under the winter palette, the compact's cap (car_body_compact_snow) on C's roof: fixed art in the roof snow's three tones, the foot cut along car_body_estate's own top outline. From roofFrontXUnits - 1.5 to roofRearXUnits + 1.5. Body-local units, trimmed to the snow: viewBox (-25,-25), 84x11 units, so its blit origin is (-25,-25), not the body's (-63,-17)."
+  },
+  {
    "name": "car_body_saloon",
    "category": "vehicle",
    "width": 330,
@@ -1612,6 +1664,32 @@
     "file": "car_body_saloon.svg"
    },
    "notes": "\u00abCut-out\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Also the fixed shell of the police car."
+  },
+  {
+   "name": "car_body_saloon_snow",
+   "category": "vehicle",
+   "width": 144,
+   "height": 33,
+   "contentBox": [
+    1,
+    1,
+    143,
+    31
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "car_body_saloon_snow.svg"
+   },
+   "notes": "Snow on the saloon's roof under the winter palette, the compact's cap (car_body_compact_snow) on B's roof, also the police car's, under its light bar: fixed art in the roof snow's three tones, the foot cut along car_body_saloon's own top outline. From roofFrontXUnits - 1.5 to roofRearXUnits + 1.5. Body-local units, trimmed to the snow: viewBox (-21,-25), 48x11 units, so its blit origin is (-21,-25), not the body's (-55,-17)."
   },
   {
    "name": "car_lamp_front",
@@ -2288,32 +2366,6 @@
     "file": "firetruck_ladder.svg"
    },
    "notes": "The ladder over the appliance's body, drawn for \u00abCut-out\u00bb on a 50x7-unit canvas."
-  },
-  {
-   "name": "firework",
-   "category": "decoration",
-   "width": 240,
-   "height": 240,
-   "contentBox": [
-    9,
-    9,
-    231,
-    231
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "SPRITE_CENTRE",
-   "anchor": [
-    120,
-    120
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "firework.svg"
-   },
-   "notes": ""
   },
   {
    "name": "gift_box",
@@ -12375,7 +12427,7 @@
     "kind": "svg",
     "file": "snow_pile.svg"
    },
-   "notes": "One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
+   "notes": "One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art, multiplied by the ground's snow colour with the winter palette (decision 117). Three lobes on one canvas so a scatter is one blit per drift."
   },
   {
    "name": "snowman_body",

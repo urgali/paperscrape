@@ -221,7 +221,74 @@ class SceneGoldenTest {
         GoldenScene(name = "theme-city", dayPhase = GoldenScene.night(), themeId = "city"),
     )
 
+    // -- The seasonal palettes at night, and the snow on the cars ------------------------------
+
+    /**
+     * **Autumn as it ships, at night: the crowns darkened** (decision 115). With *Fall Colors* a crown wears one of
+     * the four autumn tones, and at night that tone goes 35 % of the way to black on the day blend, as the leaves falling
+     * from it do ([SceneObjectRenderer.fallCrownColour]). No other golden draws an autumn crown after dark.
+     */
+    @Test
+    fun autumnNight() = SceneGolden.assertMatches(
+        GoldenScene(name = "autumn-night", dayPhase = GoldenScene.night(), themeId = "autumn"),
+    )
+
+    /**
+     * **The snow on the cars' roofs, and Winter's snow on a ground that is not snow** (decisions 116 and 117): the traffic of
+     * [SharedGoldenScenes.trafficDay] -- the same warm-up, so the same four vehicles on the road -- with the winter palette
+     * chosen on Sunset. Every car carries the cap of its body ([CarShell.snowRes]), the taxi's sign and the police light
+     * bar over it, the fire engine none; and Sunset's ground not being snow, the hills, the mountains and every lying
+     * snow take the Winter theme's ([GroundSnow]).
+     */
+    @Test
+    fun trafficWinterDay() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "traffic-winter-day",
+            dayPhase = GoldenScene.day(),
+            warmUpFrames = SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES,
+            customise = { it.copy(fallColorsEnabled = false, winterColorsEnabled = true) },
+        ),
+    )
+
+    /**
+     * **Winter as it ships, at night: the snow in the ground's colour** (decision 117). The hills are the theme's own
+     * snow, both mountain layers the frame's snow colour (the back one darker), and every snow lying in the scene -- the
+     * roofs', the crowns' caps, the drifts -- the ground's colour a quarter of the way to white, where it stood white
+     * against the dark ground. The falling snow and the snowmen keep their own colours.
+     */
+    @Test
+    fun winterNight() = SceneGolden.assertMatches(
+        GoldenScene(name = "winter-night", dayPhase = GoldenScene.night(), themeId = "winter"),
+    )
+
     // -- Seasonal decoration --------------------------------------------------------------------
+
+    /**
+     * **One firework burst, 0.6 s after it went off** ([FireworkEffect], [FireworkDrawer]): New Year's Eve at one in the
+     * morning as it ships, warmed up 2.6 s -- the first single burst goes off 2 s into the fireworks, its rocket a second
+     * before -- on `SceneRandom.source` seeded with 2112 before every render the harness makes
+     * ([GoldenScene.randomSeed]), so where it is, its style, kind and colours and the scatter of its pieces are the same
+     * in the compared frame and in the reproducibility check's. Whichever of the four styles the seed deals, it is drawn
+     * from discs of the atlas, four-point shapes and, for the light, two glows: this frame pins the drawing of one burst on
+     * the Canvas backend.
+     */
+    @Test
+    fun fireworksBurst() {
+        val saved = SceneRandom.source
+        try {
+            SceneGolden.assertMatches(
+                GoldenScene(
+                    name = "fireworks-burst",
+                    dayPhase = GoldenScene.night(),
+                    themeId = "new_year",
+                    warmUpFrames = 78,
+                    randomSeed = 2112,
+                ),
+            )
+        } finally {
+            SceneRandom.source = saved
+        }
+    }
 
     /**
      * **The carved moon, with realistic phases switched on**.

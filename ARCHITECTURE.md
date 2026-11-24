@@ -68,9 +68,9 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 
 | File | Responsibility |
 |---|---|
-| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed, the location moved to another place (a written place more than `LiveWeatherSchedule.WRITTEN_PLACE_KM`, 10 m; the phone's position farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 3 km, read on every pass with no request by `DeviceLocationProvider.heldFix` and taken by `LiveWeatherSchedule.takesHeldPosition`), or the wallpaper came back on screen with the last success an hour old (`ShowingRefresh`, decision 99: at once, then 5, 10 and 20 seconds after a request that found no network); the tick comes sooner when a try for the phone's position or a quick retry falls due (`SolarDaySchedule.nextPassDelayMillis`, `LiveWeatherSchedule.passDelayMillis`). Every pass is caught whole: an exception is logged and the next pass runs. A change of those inputs or of the location source drops the forecast from the scene at once (`forgetPublishedWeatherStatus`, on the main thread, the renderer told through `applyLiveWeather` on the render thread), and a pass whose request was in flight keeps and draws nothing of it. Of two engines at once, the status the settings read is written by the one last on screen (`WeatherStatusWriter`, `LiveWeatherStatusWriter`). The engine counts its showings (`showings`) where on screen changes. It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
+| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed, the location moved to another place (a written place more than `LiveWeatherSchedule.WRITTEN_PLACE_KM`, 10 m; the phone's position farther than `LiveWeatherSchedule.SAME_PLACE_KM`, 3 km, read on every pass with no request by `DeviceLocationProvider.heldFix` and taken by `LiveWeatherSchedule.takesHeldPosition`), or the wallpaper came back on screen with the last success an hour old (`ShowingRefresh`, decision 99: at once, then 5, 10 and 20 seconds after a request that found no network); the tick comes sooner when a try for the phone's position or a quick retry falls due (`SolarDaySchedule.nextPassDelayMillis`, `LiveWeatherSchedule.passDelayMillis`). Every pass is caught whole: an exception is logged and the next pass runs. A change of those inputs or of the location source drops the forecast from the scene at once (`forgetPublishedWeatherStatus`, on the main thread, the renderer told through `applyLiveWeather` on the render thread), and a pass whose request was in flight keeps and draws nothing of it. Of two engines at once, the status the settings read is written by the one last on screen (`WeatherStatusWriter`, `LiveWeatherStatusWriter`). The engine asks the phone for its position through the process's `LocationRequestLock`, and its settings collector starts one search per choice of source (`SearchPerChoice`). **The settings page's ask** is the stored `refresh_asked_at` (`WallpaperSettings.refreshAskedAtMillis`), written with the position *Update location now* found (`WallpaperPrefs.setDevicePositionFoundNow`, one edit) and by *Update weather now* under a Custom place (`askRefreshNow`): the engine reads only that it **changed** -- takes the saved position at once (sunrise and sunset), forgets the last request's place and time and wakes the loop, so the weather is asked at the next pass on screen whatever the distance (decision 111); an engine's first settings ask nothing. The engine counts its showings (`showings`) where on screen changes. It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
 | `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper". Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
-| `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
+| `PaperRenderer.kt` | Draws sky, stars, the shooting stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. **The shooting stars** (decision 114) are pure functions of the scene clock, so a frame shows the same star whenever it is drawn: one in each `SHOOTING_STAR_PERIOD_SECONDS` (180 s) -- `shootingStarPeriod`, its start dealt from the period's index between 15 % and 75 % of it (`shootingStarStartSeconds`), its second's progress (`shootingStarProgress`), its brightness times the stars' own visibility, none by day (`shootingStarFade`), its heading and start (`shootingStarLeftward`, `shootingStarStartX`, `shootingStarStartY`) -- drawn while `shootingStarsDrawn` (*Show Stars* on with a star in the field and *Shooting stars* on) as a head and a trail of 36 atlas discs, after the stars and the moon and before the clouds. |
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. A tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. Each place among the houses (five on a built-in street) draws the building the street deals that copy of it (`StorefrontStreet`, by the copy's own number -- `SceneObjectRenderer.copyOf`: the place's representative copy plus `tileIndex`, the scroll's whole tiles, `scrollTileBias` taken out -- and the theme's seed, allocation-free), each of the six with a runtime of its own -- roster, windows, doorway, kept across rebuilds and advanced every frame on its group's hours -- and no place is drawn smaller than `placeScaleFloor`. Nothing about the street changes when the engine becomes visible again: a building changes only by scrolling. A shut building draws its blinds and its door's shutter (`drawShut`, `DoorShutter`); with *Lights on the buildings* on every building draws its decorations -- the roof string, the wreath, a tower's star, where the table says, through `ChristmasDecorations`, the sequence the gallery card draws them from too (`drawDecorations`) -- and with *Christmas firs* on one tree in three is the fir A (`drawFir`, `FirTable`); bulbs are discs (`SpriteBlitter.drawDisc`), wreaths blits of the atlas. |
 | `Storefronts.kt` | The six buildings among the houses: `Storefront` -- the restaurant, the bar and the shop (`StorefrontGroup.SHOPS`), the school, the fire station and the police station (`PUBLIC`) -- each with its group, the people at its windows and the place its identity is taken from (`home`); and `StorefrontStreet`, which building stands in which copy of which place: decks of the six dealt along the street's places in order, each a head of three -- the street's anchor, one of the six drawn by the theme's seed and the same in every deck, and two others -- and a tail of the other three, shuffled by the theme's seed (one street a theme), the seam between two decks cleared by order alone from the deck's own shuffle and its two neighbours': never the same building in four places in a row and all six in every deck. The identities the six take their people, colour and figure from (`identities`: on a built-in street fixed ones, a literal, and on a saved built-in theme whose places are today's, recognised by them, the same -- `builtInStreetOf`; on another saved street the places where the theme stores them, `SceneObjectLayout.placesAsSaved`); the gallery card's three, one place a row of the size table (`firstStretch`, `cardPlaceOf`). |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
@@ -97,7 +97,10 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
 | `SeasonalCalendar.kt` | The calendar as data: the eight `CalendarWindow`s, their factory spans, and the user's edits to them. Stores **only the difference** from the factory, so an untouched install has no document at all. |
 | `SeasonalCalendarCoverage.kt` | Walks the year to find gaps and same-tier overlaps. One enumeration, shared by the settings screen's gate and by the tests. |
 | `SunPositionCalculator.kt` | Day phase, sun/moon arc position, moon phase, simplified sunrise/sunset. |
-| `FireworkEffect.kt`, `SantaSleighEffect.kt` | Self-contained timed effects. |
+| `FireworkEffect.kt`, `FireworkDrawer.kt` | The fireworks (decision 118), at night under the theme's switch. `FireworkEffect` is the show's program and its bursts: single bursts 3.5 to 7.5 s apart, a salvo of three after every five, a finale of seven every 180 s of fireworks (the first at 40 s), each burst with its rocket a second before it, one of four styles dealt never the same twice in a row (paper flower, flying paper, sparks, sparks with light), one of five kinds and its colours from six paper colours; the show's clock runs only while the fireworks are on. Every burst and piece lives in fixed arrays (12 bursts of at most 64 pieces, 24 pending launches), so nothing is allocated after construction. `FireworkDrawer` draws what the effect holds with two kinds of mark -- discs of the atlas (`SpriteBlitter.drawDisc`) and four-point convex shapes (`SceneCanvas.drawShape`) for the rockets, pieces, streaks and petals -- and, for the sparks with light, two radial glows (`SceneCanvas.drawFadingGlow`), all in the frame's one batch on the GPU; no sprite of its own. The gallery card's three flowers are built by the same `petalCorners`. |
+| `SantaSleighEffect.kt` | Santa's sleigh as a self-contained timed effect. |
+| `SceneRandom.kt` | `SceneRandom.source`, the one random source of the sky's visitors -- the sleigh and its gifts, the fireworks, the Headless Horseman: `Random.Default` in the app, a seeded `Random` in a test that draws the same frames twice. `FireworkEffect` reads it at every update. |
+| `GroundSnow.kt` | The snow's colour under the winter palette (decision 117), as pure arithmetic over `SceneColour`: the snow's day/night pair (the theme's own hills when its day ground is snow -- `encodedLuminance` 200 or more and channels within 24 -- else Winter's `#E9F1F7`/`#27364A`), the hills drawn in it (`hillsDay`, `hillsNight`), the frame's colour of the lying snow and the front mountains (`snowAt`: the pair on the day blend, a quarter of the way to white), the back mountains 12 % darker (`backMountains`). The lying-snow sprites stay fixed art and are multiplied by `snowAt`, asked once a frame by `PaperRenderer` and `SceneObjectRenderer` and once by the gallery card. **Computed, nothing stored**: the store, the backup, the theme files and the saved themes keep the user's hills and mountains colours, drawn again with the palette off; the settings show the snow read-only (`SettingsUiModel.winterLandscape`). |
 | `HeadlessHorsemanEffect.kt`, `HeadlessHorsemanDrawer.kt`, `HorsemanTable.kt` | The Headless Horseman, on the sleigh's pattern: `HorsemanFlight` (pure, JVM-tested) is the flight -- the sleigh's rhythm, the crossing, the fade; handed each frame how soon the sleigh flies (`SantaSleighEffect.secondsToFlight`, infinite with *Santa* off), it sets off only with the sky its own for the whole crossing, so the two are never in the sky together -- but for *Santa* turned on while he flies -- and his throw: the arm's angle for each pumpkin (wound back, swung forward, let go, back: `armDegrees`), the pumpkin in his hand gone and growing again (`handPumpkinScale`), and the pumpkin thrown from where his hand lets it go (`handX`/`handY`, from the seat as last drawn) with the group's speed and a push, up a few pixels and down to the pavement, from a **fixed pool** of primitive arrays, a slot taken and given back, so a frame that throws one allocates nothing; the effect hands the group to the drawer, then draws the pumpkins in the air in front of it -- their flames itself, the pumpkin through the drawer --; the drawer lays its pieces (the cape swinging about the shoulders, the legs, the horse in four poses, the reins, the rider's body, his near arm turned about the shoulder with the pumpkin in its hand) at `HeadlessHorsemanScale.pxPerUnit` -- the rider as tall against a pedestrian as Santa -- from `HorsemanTable`, written by `tools/assets/horseman/build_horseman.py`. |
 | `SantaSleighDrawer.kt`, `SantaSleighTable.kt` | Santa's sleigh group: the drawer lays its pieces -- the sleigh, two reindeer in four poses, the cords, Rudolph's nose -- at `SantaSleighScale.pxPerUnit`, in the order that keeps every detail whole: the traces behind everything, then the sleigh, the reins from the top of Santa's fist to the front of each collar, the reindeer over them, Rudolph's nose; the table, generated by `tools/assets/sleigh/build_sleigh.py`, is where each piece and each cord's end stands. |
 | `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
@@ -193,15 +196,31 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
   `LocationRequestThrottle`: one real request for the phone's position an hour while the phone answers,
   process-wide; after a request that brings nothing, tries 5, 15 and 30 minutes later, then the hour,
   and round again (a cancelled request counts as one
-  that brought nothing, `counted`); a source the user has just chosen is asked at once. Pure,
-  JVM-tested over every combination.
+  that brought nothing, `counted`); a source the user has just chosen, and the settings page's *Update location
+  now*, are asked at once, past the wait (`forceRequest`), and start the tries afresh. Pure, JVM-tested over every
+  combination.
 - `location/DeviceLocationProvider.kt` — **one fix, asked for when something needs it.** Not a
   subscription: `currentFix` prefers a cached fix under 15 minutes old (no radio at all), otherwise
   makes one bounded `getCurrentLocation` request (API 30+) or a self-removing single update below
   that -- only if `LocationRequestThrottle` allows it (the decision is `plan`, pure:
   the permission, the system's cached position, the provider, then the throttle) -- and returns `null` rather than
   trying a different provider. `heldFix` reads the position the phone already holds for the source, with no request and
-  no radio (decision 101). `access` reads the phone's answer for a kind (`DeviceLocationAccess`).
+  no radio (decision 101). `access` reads the phone's answer for a kind (`DeviceLocationAccess`). `positionNow` is
+  *Update location now* (decision 111): asked by the *Weather & time* page itself, which is on screen, past the
+  throttle's wait, at most 60 s from the tap with the wait for the lock included (`TAP_TIMEOUT_MS`, `tapTimeoutAfterWait`;
+  longer than the engine's request: a cold GPS receiver outdoors takes half a minute to a minute), a position the phone took in the last minute (`TAP_MAX_AGE_MS`) taken with no radio;
+  cancelled with the page, it counts as a try that brought nothing and returns nothing.
+- `location/LocationRequestLock.kt` — **one search for the phone's position at a time, in the whole process.** The
+  home screen's engine, the picker's preview and the page's *Update location now* run in one process; each search waits
+  on one `Mutex` for the one before it, so the radio is never asked twice over, and one that waited finds what the first
+  brought in the system's cache (`currentFix` takes a young enough cached position without a request). A caller whose
+  request depends on what the one before found (the engine's force, spent once the phone has been consulted for the
+  user's choice) reads it inside the lock. Cancellable while waiting.
+- `location/SearchPerChoice.kt` — the engine's settings collector starts **one search per choice of source**: the
+  collector runs on every write to the store, and while no position is held each run would start a search; a write
+  while one runs for the same source (the engine publishing its weather status, the page writing anything) starts none.
+  Another source chosen meanwhile gets its own; once a search has ended the next write may start one again, under
+  `LocationRequestThrottle`'s waits. Main thread only.
 - `location/LocationSource.kt` — which of the four mutually exclusive sources a held fix came from
   (`NONE`, `NETWORK`, `GPS`, `CUSTOM`). `GPS` and `NETWORK` are separate values so switching between
   them invalidates the held fix, exactly as switching to or from `CUSTOM` does.
@@ -416,7 +435,10 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
     phone can open says so in a line, instead of closing the settings.
   - `SettingsComponents.kt` — the shared Material 3 vocabulary (section header, grouped
     container, row, switch row, navigation row, segmented choice, banner, caption, screen
-    shells, slider, colour picker).
+    shells, slider, colour picker), and the menu's rules (decision 113): a row's long supporting line collapsed to
+    three lines with "More"/"Less" (`SupportingLine`; an accent line and a group's caption stay whole), a swatch's
+    `outline` border, a slider's value on one line, and a page entering from a quarter of its width to the right while
+    it fades in, over `PAGE_ENTER_MILLIS` (220 ms), leaving at once.
   - `SettingsUiModel.kt` — the pure mapping between the two segmented choices
     (location source, seasonal palette) and the preference flags that back them, and
     the rule behind every switch whose effect depends on something it does not control
@@ -430,7 +452,14 @@ pixel-identical pair** -- the same pixels, however compressed (`validate` and `S
     theme pick asks while the calendar chooses (`pickNeedsCalendarQuestion`). It also holds the
     Location row under GPS and Network (`deviceLocationRow`: working only while the phone gives the
     position, otherwise "GPS - tap to allow" and the tap to the permission dialog, PaperScrape's page
-    or the location page; `afterLocationRequest` for the dialog's answer), the weather controls that
+    or the location page; `afterLocationRequest` for the dialog's answer), the rows of the phone's position --
+    `gpsNeedsPreciseLine` (GPS refused with only the approximate location allowed, the previous choice still in use),
+    `devicePositionLine` and `positionAge` (how long ago the phone took the position: "just now", "N min ago", "N h ago"
+    under 48 hours, "N days ago"; no age while the time is unknown), `updateLocationRow` (*Update location now*, only
+    while GPS or Network works) and `updateWeatherLine` (*Update weather now*, under a Custom place with Live Weather
+    on) --, the Hills' and Mountains' colours shown read-only as the snow under the winter palette (`winterLandscape`),
+    *Shooting stars*, which reads on by `PaperRenderer.shootingStarsDrawn`'s rule (`shootingStars`), a holiday's
+    summary on *Seasons & decorations* (`seasonSummary`: only what is on, two names at most), the weather controls that
     give way as soon as *Live Weather* reads on (`forecastOwnsTheWeatherControls`) and what the pages say
     in their place (`weatherPages`), and the key rows' lines (`apiKeyLine`).
     It also holds the questions the resets and "Replace with current" ask (`sceneResetMessage`,
@@ -558,6 +587,7 @@ engines the memory policy reads.
              │           ├─ drawStars          (cached star list, 2-3 tile copies)
              │           ├─ drawCelestialBody  (radial glow + sprite blit,
              │           │                      bounded parallax offset)
+             │           ├─ drawShootingStar   (atlas discs, while one crosses)
              │           ├─ drawClouds         (sprite blit)
              │           ├─ drawRainbow
              │           ├─ drawMountains      (SceneShape)
@@ -570,7 +600,7 @@ engines the memory policy reads.
              │           │     ├─ drawRoad
              │           │     ├─ people
              │           │     └─ cars
-             │           ├─ FireworkEffect / SantaSleighEffect / HeadlessHorsemanEffect
+             │           ├─ FireworkEffect + FireworkDrawer / SantaSleighEffect / HeadlessHorsemanEffect
              │           ├─ drawPrecipitation / drawFallingLeaves
              │           └─ drawLightningFlash
 ```
@@ -619,7 +649,12 @@ the near row below the road -- is one draw everywhere over the street and twelve
 is it with the snow at 100 %, every star and the distant houses at 100 %; the most corners a frame takes there are printed
 by `GlDrawCallTest` (the log line `GlDrawCallTest Christmas`). A circle is a segment every 3 px of the screen, so a larger
 screen takes more: about 19 200 corners at the BV6600's 720 x 1440 for Christmas at its most and about 21 900 at
-1440 x 3200 (measured with a probe on 2026-11-04), under the batch. `GlDrawCallTest` sweeps the street, because one frame does not see it, and holds the corners and the vertices written
+1440 x 3200 (measured with a probe on 2026-11-04), under the batch. With the fireworks' finale over it, the street warmed
+up so the cars are on the road, Christmas at night with everything on and *Fireworks* on takes at most 18 294 corners of
+the 24 576 at 360 x 800 (`GlDrawCallTest`) and 17 781 at the BV6600's 720 x 1440, in one call at every size up to
+1080 x 2340 (a probe, the BV6600, 2026-11-23). At 1440 x 3200 that scene is drawn in 12 to 22 calls a frame with the
+fireworks on or off alike, below the batch's corners (the cause is not measured). The fireworks are atlas discs, four-point
+shapes and fans from the atlas's white point for their glows, so they add no texture and no state change. `GlDrawCallTest` sweeps the street, because one frame does not see it, and holds the corners and the vertices written
 of each primitive and of a crowded frame.
 
 **A sprite is reduced, then cropped, then packed — and the order is the whole of it.**
@@ -884,8 +919,9 @@ low-memory-killer victim.
 draws every built-in theme (each at one hour, by day or by night), the busiest lake, rain, snow, a storm
 driven by Live Weather, the sleigh and the fireworks through the real renderer, and
 ART counts what the drawing thread allocates over 150 frames after a warm-up past the
-traffic's arrival — zero, except an object when a firework goes off or the sleigh
-throws a gift (an event, about one a second while the sleigh flies, not a frame). Its positive control shows
+traffic's arrival — zero, except an object when the sleigh throws a gift (an event, about one a second while the
+sleigh flies, not a frame). The fireworks are held to zero, their finale at its fullest included: their bursts and
+pieces live in fixed arrays (`FireworkEffect`). Its positive control shows
 the counter counts on the device running it.
 
 Five patterns account for nearly all of the allocations that have been removed:
@@ -906,8 +942,8 @@ Five patterns account for nearly all of the allocations that have been removed:
   rewritten in place does (`GroundGeometry`).
 - **Boxing through an interface**: a `Float?` crossing an API every frame
   (the cloud cover is `NaN` for "none" instead), and a Kotlin function type called with
-  `Float`s, which is a generic `Function4` and boxes all four (`FireworkEffect.BurstBlit`
-  and `SantaSleighEffect.SleighBlit` are `fun interface`s with primitive parameters).
+  `Float`s, which is a generic `Function4` and boxes all four (`SantaSleighEffect.SleighBlit` and
+  `FireworkEffect.LaunchWatcher` are `fun interface`s with primitive parameters).
 
 Related but separate: `TintFilterCache` and `SpriteCacheIndex` exist for the same
 reason at a different scale — see the sprite blitting and asset sections.
@@ -933,7 +969,7 @@ read that file: the caller names the convention, as a `SpriteScale` argument:
 
 | `SpriteScale` | Meaning | Used by |
 |---|---|---|
-| `SCENE_UNITS` | Sprite is authored at `SPRITE_PIXELS_PER_UNIT = 3` times its on-screen size; the blitter applies `canvas.scale(1/3)` and pre-multiplies the origin. | Every scene object, plus clouds, stars, the rainbow, the lightning bolt, fireworks, the sleigh and the lake decorations. |
+| `SCENE_UNITS` | Sprite is authored at `SPRITE_PIXELS_PER_UNIT = 3` times its on-screen size; the blitter applies `canvas.scale(1/3)` and pre-multiplies the origin. | Every scene object, plus clouds, stars, the rainbow, the lightning bolt, the sleigh and the lake decorations. |
 | `CANVAS_PIXELS` | Sprite is authored at literal on-screen pixel size and blitted straight through, at whatever scale the caller's own `canvas.scale()` established. | Sun disc, sunburst, moon phases, birds. |
 
 Passing the wrong one is a silent 3× size error, which is why it is spelled out
@@ -1098,9 +1134,14 @@ perspectiveScaleAt(y)  = (y - 0.575) / (0.766 - 0.575)      // 1.0 at the refere
 ```
 
 The ground stands 0.08 of the screen high, every line of it lifted alike, so the ratios and every size are the
-projection's own; under the road the **near row** stands on lines of its own (`SceneSpace.NEAR_ROW_*`,
-`nearRowFeetYFraction`), at a fixed share of the reference size (`SceneObjectRenderer.nearScaleFor`), planned once from
-the layout (`SceneObjectCatalog.nearRowOf`): the street's houses, trees, parasols and decorations once, a third of a tile
+projection's own; under the road the **near row** stands on lines of its own, on several levels: each object's feet
+from `NEAR_ROW_FEET_TOP_Y_FRACTION` (0.838, depth 0) to `NEAR_ROW_FEET_BOTTOM_Y_FRACTION` (0.922, depth 1) by its own
+depth in the street (`SceneSpace.nearRowFeetYFraction`), and its size that of its line (`SceneSpace.nearRowSizeAt`,
+linear from `NEAR_ROW_SIZE_TOP`, 0.48 of the reference size, to `NEAR_ROW_SIZE_BOTTOM`, 0.74, held at both past them;
+`SceneObjectRenderer.nearScaleFor`), the meadow's flowers, leaves, pumpkins and piles below the road at the size of the
+line each stands on. It is planned once from the layout (`SceneObjectCatalog.nearRowOf`) **at one size,
+`SceneSpace.NEAR_ROW_PLAN_SIZE` (0.72)**, whatever line each object is drawn on, so the same objects and buildings
+stand there on every line: the street's houses, trees, parasols and decorations once, a third of a tile
 on (`NEAR_ROW_SHIFT`), a house that one nearer in the street covers by more than half of the narrower left out, two of its
 places among its houses -- the two standing nearest half a tile apart (`nearPlaces`) --, in their order once moved, where
 the six buildings take turns (`nearBuilding`: never the same twice in a row on the screen, nor the building
@@ -1112,7 +1153,7 @@ Apparent size is proportional to the distance below the horizon, which is what a
 flat ground plane seen from a fixed viewpoint does. Static objects, both traffic
 lanes, both pavement rows and every vehicle and pedestrian of the street read the same
 function, so their relative sizes and speeds follow from their ground lines with
-nothing kept in step by hand; the near row and its pavement below the road stand at their fixed sizes (above).
+nothing kept in step by hand; the near row and its pavement below the road stand at sizes of their own (above).
 
 **The weather is sized the same way the buildings are.** Rain (a line with square ends,
 on both backends), snow and the lightning bolt declare a size in metres and convert it with
@@ -1526,6 +1567,25 @@ A shared theme carries the **resolved** scene and layout rather than a built-in 
 exported today still renders when that built-in is redrawn; `sourceThemeId` is provenance for
 display and is never resolved against.
 
+**What a backup leaves out is what the app worked out, not what the user chose**: the updater's state, the phone's
+saved position and its two times (`resolved_gps_lat`/`_lon`, `device_fix_at`, when it was saved, and
+`device_fix_taken_at`, when the phone took it), the settings page's last ask for a refresh now (`refresh_asked_at`: an
+event for this phone's wallpaper, not a setting, so a restore leaves it as it is and asks nothing), and the Live
+Weather status line. Restored onto another phone, a position would place it where it has never been.
+
+**The position's age** is `device_fix_taken_at`: the moment the position was saved less its age when the phone handed
+it over (`fixTakenAt`; a negative age, the clock moved back, is taken as just taken), written with every device fix by
+the engine (`setResolvedGpsLocation`) and by *Update location now* (`setDevicePositionFoundNow`). A store from 5.20 or
+earlier has `device_fix_at` and no `device_fix_taken_at`: its position is shown with no age until the next fix, and
+nothing is written at the upgrade.
+
+**The shooting stars' switch** is `StarsConfig.shooting`: the flat key `shooting_stars_visible` in the live edit, the
+field `shooting` of the `stars` block in a theme's JSON (archive, saved theme, backup, theme file). A store, a saved
+theme or a theme file without it reads it on, as every theme ships it.
+
+**The winter palette's snow is computed, not stored** (`engine/GroundSnow.kt`): no key, no JSON field and nothing in a
+backup or a theme file changes with it; the hills' and mountains' colours stored are the user's.
+
 ### Theme previews
 
 `engine/ThemePreviewScene.kt` describes what one theme's gallery card contains: sky colours, the
@@ -1556,6 +1616,11 @@ The objects in front take the same moment too: a tree, a car or a decoration wea
 palm carries `nightShadeAt` as a `PreviewSprite.shade` that the painter hands to `SpriteBlitter.draw`
 as the wallpaper does, the clouds blend their pair on the same `dayBlend`, a pumpkin is carved
 where `halloweenEnabled` is on, and a penguin's belly is `SceneObjectRenderer.PENGUIN_BELLY_COLOR`.
+An autumn crown darkens at night as the wallpaper's (`SceneObjectRenderer.fallCrownColour`); under the winter palette the
+hills and mountains and every lying snow -- the roofs', the caps', the cars' -- take the wallpaper's snow colour at the
+card's moment (`GroundSnow`). With *Fireworks* on and a night card it shows three of the wallpaper's paper flowers, open,
+built by the same `FireworkEffect.petalCorners` (`CARD_FIREWORKS`); a shooting star, a moment in a still picture, it
+does not show.
 At night a house lights the windows the wallpaper's would at the first moment of its roster (the
 same `WindowRoster` from the same seeds, the lit panes as `PreviewSprite`s with a `rectWidth`, flat
 cards the painter draws over the dark glass). The card draws no porch light, car lamp, beacon, wheel,
@@ -2105,7 +2170,8 @@ See `tools/assets/README.md` for the authoring conventions and the commands.
 | Cars | Per-runtime `progress` advanced by `deltaSeconds × speedFraction`, wrapped with an off-screen buffer. |
 | People | Four group slots, each a group of one to three, walking a whole tile per loop at their row's speed (`SceneTime.cycle`); a 4-frame walk cycle stepped by elapsed time. |
 | Precipitation / leaves | Stateless: each candidate's phase re-derived from `elapsedSeconds` every frame. |
-| Fireworks / sleigh | Self-contained effect classes with their own timers. |
+| Fireworks / sleigh | Self-contained effect classes with their own timers; the fireworks' show clock runs only while they are on, and their randomness, the sleigh's and the Horseman's come from `SceneRandom.source`. |
+| Shooting stars | Stateless: which star, when and where are pure functions of the scene clock (`PaperRenderer.shootingStar*`). |
 | Day/night | `SunPositionCalculator` produces a normalised `DayPhase`; every colour is a blend between a day and a night value by `dayBlend`. |
 
 **Time base:** scene time is `SceneTime`, a `@JvmInline value class` wrapping a
@@ -2236,7 +2302,7 @@ exists as a counter to work around this.
 | Component | Version |
 |---|---|
 | Android Gradle Plugin | 9.5.1 |
-| Gradle | 9.9.1 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.9.1) |
+| Gradle | 9.9.2 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.9.2; the distribution is pinned by `distributionSha256Sum` 971fcd71… in `gradle-wrapper.properties`) |
 | Kotlin Compose plugin | 2.4.21 |
 | Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.4.21 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
 | `compileSdk` | 37 |
@@ -2307,8 +2373,8 @@ There is **no third job**: CI runs no emulator, and **the instrumented tests are
 instead** — see *Testing* below.
 
 The workflows set up a Temurin JDK 17, which builds
-AGP 9.5.1 / Gradle 9.9.1; the wrapper jar matches the SHA-256 Gradle
-publishes for 9.9.1 so wrapper validation passes, and `compileSdk 37`
+AGP 9.5.1 / Gradle 9.9.2; the wrapper jar matches the SHA-256 Gradle
+publishes for 9.9.2 so wrapper validation passes, and `compileSdk 37`
 needs nothing installed: the `ubuntu-24.04` runner image ships
 `android-37.0` alongside `android-36`, and build-tools 36.0.0, which is what
 AGP 9.5.1 selects by default. The three jobs of the two workflows -- `build` and `release` above and

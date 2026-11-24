@@ -41,8 +41,8 @@ android {
         // **One release, one step.** A counter bumped twice in the making of one release is how a
         // build installed for a comparison runs into `adb install -r`'s silent refusal of a
         // downgrade.
-        versionCode = 83
-        versionName = "5.20"
+        versionCode = 84
+        versionName = "5.21"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //

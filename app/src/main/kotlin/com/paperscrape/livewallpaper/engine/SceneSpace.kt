@@ -320,25 +320,47 @@ object SceneSpace {
     // ---- The near row, below the road ----------------------------------------------------
 
     /*
-     * Under the road the street is seen again, nearer (`DESIGN_NOTES.md` §12, decisions 96 and 105): the
-     * street's own houses, trees, palms, parasols and decorations once, with two places among its houses, on one line of feet
-     * between [NEAR_ROW_FEET_TOP_Y_FRACTION] and [NEAR_ROW_FEET_BOTTOM_Y_FRACTION], and a pavement of
-     * people in front of them. They are drawn at a **fixed** share of the size table's size,
-     * [NEAR_ROW_SIZE], not at the projection of where they stand, which would make them 1.3 to 1.7
-     * times the reference size and put a tree's crown over the road and half the village behind it.
+     * Under the road the street is seen again, nearer (`DESIGN_NOTES.md` §12, decisions 96, 105 and 119): the
+     * street's own houses, trees, palms, parasols and decorations once, with two places among its houses, and a pavement
+     * of people in front of them. **Each stands lower on the screen the nearer it is in the street**: its feet between
+     * [NEAR_ROW_FEET_TOP_Y_FRACTION] (depth 0) and [NEAR_ROW_FEET_BOTTOM_Y_FRACTION] (depth 1), and it is drawn at the size
+     * of the line its feet stand on ([nearRowSizeAt]), from [NEAR_ROW_SIZE_TOP] to [NEAR_ROW_SIZE_BOTTOM]: what is
+     * farther back stands higher and smaller, as above the road, over a gentler spread than the street's. Not at the
+     * projection of where they stand, which would make them 1.4 to 1.8 times the reference size and put a tree's crown
+     * over the road and half the village behind it.
      */
 
-    /** Where the near row's farthest object stands, as a fraction of screen height. */
-    const val NEAR_ROW_FEET_TOP_Y_FRACTION = 0.885f
-
-    /** Where its nearest object stands: the row is ordered back to front by the objects' own depths. */
-    const val NEAR_ROW_FEET_BOTTOM_Y_FRACTION = 0.915f
+    /** Where the near row's farthest object stands (depth 0 in the street), as a fraction of screen height. */
+    const val NEAR_ROW_FEET_TOP_Y_FRACTION = 0.838f
 
     /**
-     * The near row's size, a share of the size at [REFERENCE_Y_FRACTION]: its houses a little taller than
-     * the village's nearest (about 0.71), never as large as the projection would draw them.
+     * Where its nearest object stands (depth 1): the row is ordered back to front by the objects' own depths, which is
+     * the order of their lines of feet. Above [NEAR_PAVEMENT_FAR_Y_FRACTION], so the near pavement's people walk in
+     * front of the whole row.
      */
-    const val NEAR_ROW_SIZE = 0.72f
+    const val NEAR_ROW_FEET_BOTTOM_Y_FRACTION = 0.922f
+
+    /**
+     * The near row's size at [NEAR_ROW_FEET_TOP_Y_FRACTION], a share of the size at [REFERENCE_Y_FRACTION]: the smallest
+     * a near-row object is drawn (an object at depth 0; a built-in street's farthest house, at depth 0.28, is about
+     * 0.55).
+     */
+    const val NEAR_ROW_SIZE_TOP = 0.48f
+
+    /**
+     * The near row's size at [NEAR_ROW_FEET_BOTTOM_Y_FRACTION]: the largest a near-row object is drawn, its houses a
+     * little taller than the village's nearest (about 0.71). No larger: at 0.74 the houses, shops and towers still have a
+     * pixel of their files for every pixel of the reference 1080 x 2340 screen (`SpriteDrawScaleTest`, headroom 1.001;
+     * 0.950 at 0.78).
+     */
+    const val NEAR_ROW_SIZE_BOTTOM = 0.74f
+
+    /**
+     * The size the near row's plan is measured at ([SceneObjectCatalog.nearRowOf]), whatever size each object is drawn
+     * at: the reference size the plan's rules (a place's front clear, two houses never one in front of the other, the
+     * building over a place) are held at, so the same objects and buildings stand there on every line.
+     */
+    const val NEAR_ROW_PLAN_SIZE = 0.72f
 
     /**
      * The near pavement's farther row of people, in front of the near row: the street's pavement rows
@@ -363,6 +385,18 @@ object SceneSpace {
     fun nearRowFeetYFraction(depthFraction: Float): Float =
         NEAR_ROW_FEET_TOP_Y_FRACTION +
             depthFraction.coerceIn(0f, 1f) * (NEAR_ROW_FEET_BOTTOM_Y_FRACTION - NEAR_ROW_FEET_TOP_Y_FRACTION)
+
+    /**
+     * The size of the line [yFraction] down the screen below the road, a share of the size at [REFERENCE_Y_FRACTION]:
+     * linear with the line, [NEAR_ROW_SIZE_TOP] at [NEAR_ROW_FEET_TOP_Y_FRACTION] and [NEAR_ROW_SIZE_BOTTOM] at
+     * [NEAR_ROW_FEET_BOTTOM_Y_FRACTION], held at those two past them. What a near-row object is drawn at, at its line of
+     * feet ([nearRowFeetYFraction]), and the meadow's flowers and piles under the road at the line each stands on.
+     */
+    fun nearRowSizeAt(yFraction: Float): Float {
+        val t = ((yFraction - NEAR_ROW_FEET_TOP_Y_FRACTION) / (NEAR_ROW_FEET_BOTTOM_Y_FRACTION - NEAR_ROW_FEET_TOP_Y_FRACTION))
+            .coerceIn(0f, 1f)
+        return (NEAR_ROW_SIZE_TOP + t * (NEAR_ROW_SIZE_BOTTOM - NEAR_ROW_SIZE_TOP)).coerceIn(NEAR_ROW_SIZE_TOP, NEAR_ROW_SIZE_BOTTOM)
+    }
 
     // ---- Stage 1: the size table --------------------------------------------------------
 

@@ -14,13 +14,10 @@ import java.io.File
 
 /**
  * **A search for the phone's position that finds nothing is tried again after 5, 15 and 30 minutes,
- * then the hour** (v5.10E). The maintainer, 2026-10-04: *«voglio che in ogni caso, se la richiesta
- * posizione fallisce, riprovi dopo 5, 15 e 30 minuti - anche se ha già una posizione»* and *«non deve
- * più sfociare nel chiedere ogni 20 secondi ma nemmeno può rimanere in immobilità per 60 minuti
- * sempre»*; the rule as the PM put it to him: tries at 5, 20 and 50 minutes from the first failure,
- * then the hour; a success back to the hour at once; every new failure, the hour's too, starts
- * 5-15-30 again; the user's choice asks at once; no permission and the location switched off are not
- * failures.
+ * then the hour** (decision 41), even with a position already held: tries at 5, 20 and 50 minutes from
+ * the first failure, then the hour; a success back to the hour at once; every new failure, the hour's
+ * too, starts 5-15-30 again; the user's choice asks at once; no permission and the location switched
+ * off are not failures.
  *
  * [LocationRequestThrottle] on a clock this test moves, and [DeviceLocationProvider.plan], the
  * provider's decision without the phone. The loop that asks is `LocationRequestRhythmTest`'s.
@@ -203,7 +200,7 @@ class LocationRetryLadderTest {
     }
 
     /**
-     * **A search cancelled part-way is counted** (the read-only review of v5.10E, D3): an engine destroyed
+     * **A search cancelled part-way is counted**: an engine destroyed
      * during the 20 s search spent the request and brought nothing, so the next try is 5 minutes away,
      * not the hour a request never reported would leave.
      */
@@ -262,14 +259,14 @@ class LocationRetryLadderTest {
     }
 
     /**
-     * **The words on the screen say what the rule does** (the prompt: the lines that promised "at most
-     * once an hour" had to be rewritten to be true, in plain words). GPS, Network and "No position from
-     * your phone yet" each name the 5, 15 and 30 minutes; none says "at most once an hour" any more.
+     * **The words on the screen say what the rule does**, in plain words. GPS, Network and "No position
+     * from your phone yet" each name the 5, 15 and 30 minutes; none promises "at most once an hour" as
+     * the whole rule.
      */
     @Test
     fun `the Location lines say 5, 15 and 30 minutes and no longer promise at most once an hour`() {
         val screen = source("ui/WeatherTimeScreen.kt")
-        assertFalse("the v5.10D promise is gone", screen.contains("Asked for at most once an hour"))
+        assertFalse("no line promises at most once an hour alone", screen.contains("Asked for at most once an hour"))
         assertFalse(screen.contains("asks your phone again at most once an hour"))
         val gps = screen.substringAfter("locationMode == LocationMode.GPS ->").substringBefore("locationMode == LocationMode.NETWORK ->")
         val network = screen.substringAfter("locationMode == LocationMode.NETWORK ->").substringBefore("locationMode == LocationMode.CUSTOM ->")
@@ -279,8 +276,24 @@ class LocationRetryLadderTest {
         }
         assertTrue(gps.contains("once an hour", ignoreCase = true) && network.contains("once an hour", ignoreCase = true))
         // The words as the screen shows them: the string literals joined, whatever the line breaks.
-        val shown = Regex(""""((?:[^"\\]|\\.)*)"""").findAll(noPosition).joinToString("") { it.groupValues[1] }
+        fun shownOf(code: String) = Regex(""""((?:[^"\\]|\\.)*)"""").findAll(code).joinToString("") { it.groupValues[1] }
+        val shown = shownOf(noPosition)
         assertTrue("and the hour after the tries ($shown)", shown.contains("then after an hour"))
+        // The tap that asks now, and the tries made only while the wallpaper is on screen (the loop is parked off it).
+        assertEquals(
+            "Uses the GPS receiver for a precise position, never continuously: once an hour at most, or when you tap " +
+                "Update location now. If a search finds nothing, it tries again after 5, 15 and 30 minutes while " +
+                "PaperScrape is on screen. In between, the position the phone already knows is read for free, and new " +
+                "weather is asked as soon as you have moved more than 3 km.",
+            shownOf(gps),
+        )
+        assertEquals(
+            "Uses cell towers and Wi-Fi for an approximate position - enough to know your town, and the GPS receiver " +
+                "is never started. Once an hour at most, or when you tap Update location now; if nothing comes, it " +
+                "tries again after 5, 15 and 30 minutes while PaperScrape is on screen. In between, the position the " +
+                "phone already knows is read for free, and new weather is asked as soon as you have moved more than 3 km.",
+            shownOf(network),
+        )
     }
 
     private fun source(path: String): String {

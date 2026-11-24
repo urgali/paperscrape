@@ -13,7 +13,8 @@ import java.io.File
  * **The scene lifted and the near row below the road** (`DESIGN_NOTES.md` §12, decisions 96 and 105): every line of the
  * ground 0.08 of the screen higher, the projection's ratios unchanged, and under the road the street seen again -- its
  * houses, trees, parasols and decorations once, a house another covers by half left out, two of its places with the six
- * buildings, at a fixed size, with a pavement of its own -- planned from the whole layout ([SceneObjectCatalog.nearRowOf]) and dealt its buildings two in a
+ * buildings, each lower and larger the nearer it is in the street (decision 119), with a pavement of its own --
+ * planned from the whole layout at one reference size ([SceneObjectCatalog.nearRowOf]) and dealt its buildings two in a
  * row never alike and never the one above ([SceneObjectCatalog.nearBuildingAt]).
  */
 class NearRowTest {
@@ -62,33 +63,151 @@ class NearRowTest {
         val roadBottom = SceneSpace.roadBottomYFraction()
         assertTrue(SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION > roadBottom)
         assertTrue(SceneSpace.NEAR_ROW_FEET_TOP_Y_FRACTION > SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION)
-        assertEquals(0.885f, SceneSpace.NEAR_ROW_FEET_TOP_Y_FRACTION, 0f)
-        assertEquals(0.915f, SceneSpace.NEAR_ROW_FEET_BOTTOM_Y_FRACTION, 0f)
-        assertEquals(0.885f, SceneSpace.nearRowFeetYFraction(0f), 0f)
-        assertEquals(0.915f, SceneSpace.nearRowFeetYFraction(1f), 1e-6f)
-        assertEquals(0.900f, SceneSpace.nearRowFeetYFraction(0.5f), 1e-6f)
+        assertEquals(0.838f, SceneSpace.NEAR_ROW_FEET_TOP_Y_FRACTION, 0f)
+        assertEquals(0.922f, SceneSpace.NEAR_ROW_FEET_BOTTOM_Y_FRACTION, 0f)
+        assertEquals(0.838f, SceneSpace.nearRowFeetYFraction(0f), 0f)
+        assertEquals(0.922f, SceneSpace.nearRowFeetYFraction(1f), 1e-6f)
+        assertEquals(0.880f, SceneSpace.nearRowFeetYFraction(0.5f), 1e-6f)
         assertEquals(0.930f, SceneSpace.NEAR_PAVEMENT_FAR_Y_FRACTION, 0f)
         // The near pavement's rows are the pavement's, moved down: its nearest walker still on the screen.
         val deepest = SceneSpace.PAVEMENT_NEAR_Y_FRACTION + 0.012f + SceneSpace.NEAR_PAVEMENT_SHIFT_FRACTION
         assertTrue("the near pavement's deepest walker at $deepest", deepest < 1f)
+        // Every foot of the row above the near pavement, so its people walk in front of the whole row.
         assertTrue(SceneSpace.NEAR_PAVEMENT_FAR_Y_FRACTION > SceneSpace.NEAR_ROW_FEET_BOTTOM_Y_FRACTION)
         assertTrue(SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION <= 1f)
-        assertEquals(0.72f, SceneSpace.NEAR_ROW_SIZE, 0f)
+        assertEquals(0.48f, SceneSpace.NEAR_ROW_SIZE_TOP, 0f)
+        assertEquals(0.74f, SceneSpace.NEAR_ROW_SIZE_BOTTOM, 0f)
+        assertEquals(0.72f, SceneSpace.NEAR_ROW_PLAN_SIZE, 0f)
         assertEquals(0.9f, SceneSpace.NEAR_PEOPLE_SIZE, 0f)
+        assertEquals(0.82f, SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION, 0f)
+        assertEquals(0.99f, SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION, 0f)
+    }
+
+    /**
+     * **The town below the road on several levels** (decisions 96 and 119): the size of a line below the road grows
+     * with the line, linear, from 0.48 at the row's top line of feet to 0.74 at its bottom one, held at those two past
+     * them (the meadow above and below the row), and never larger than 0.74, the largest `SpriteDrawScaleTest` measures.
+     */
+    @Test
+    fun `the size below the road grows with the line of feet, from 0 48 at the top line to never more than 0 74`() {
+        val top = SceneSpace.NEAR_ROW_FEET_TOP_Y_FRACTION
+        val bottom = SceneSpace.NEAR_ROW_FEET_BOTTOM_Y_FRACTION
+        assertEquals(0.48f, SceneSpace.nearRowSizeAt(top), 0f)
+        assertEquals(0.74f, SceneSpace.nearRowSizeAt(bottom), 1e-6f)
+        assertEquals(0.61f, SceneSpace.nearRowSizeAt((top + bottom) / 2f), 1e-5f)
+        // Linear with the line: equal steps of the line, equal steps of the size.
+        for (k in 0..10) {
+            val y = top + (bottom - top) * k / 10f
+            assertEquals("at $y", 0.48f + 0.026f * k, SceneSpace.nearRowSizeAt(y), 1e-5f)
+        }
+        // Over the whole meadow below the road and past it, line by line: never smaller, never above 0.74, never under 0.48.
+        var previous = 0f
+        var y = 0.80f
+        while (y <= 1.0f) {
+            val size = SceneSpace.nearRowSizeAt(y)
+            assertTrue("at $y: $size after $previous", size >= previous)
+            assertTrue("at $y: $size over 0.74", size <= 0.74f)
+            assertTrue("at $y: $size under 0.48", size >= 0.48f)
+            previous = size
+            y += 0.0005f
+        }
+        assertEquals("held above the top line", 0.48f, SceneSpace.nearRowSizeAt(SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION), 0f)
+        assertEquals("held below the bottom line", 0.74f, SceneSpace.nearRowSizeAt(SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION), 0f)
+        // The row's objects: deeper in the street, lower and larger, a house from 0.28 at about 0.55.
+        var lastFeet = 0f
+        var lastSize = 0f
+        for (d in 0..100) {
+            val feet = SceneSpace.nearRowFeetYFraction(d / 100f)
+            val size = SceneSpace.nearRowSizeAt(feet)
+            assertTrue("depth ${d / 100f}", feet > lastFeet && size > lastSize)
+            lastFeet = feet
+            lastSize = size
+        }
+        assertEquals(0.5528f, SceneSpace.nearRowSizeAt(SceneSpace.nearRowFeetYFraction(0.28f)), 1e-4f)
     }
 
     @Test
-    fun `a near-row object is the size table's at the reference line times the near row's size, wherever it stands`() {
+    fun `a near-row object is the size table's at the reference line times the size of its line of feet`() {
         val house = StaticSceneObject(SceneObjectType.HOUSE, depthFraction = 0.9f, tileFractionX = 0.3f, scale = 1.04f)
         val tree = StaticSceneObject(SceneObjectType.TREE, depthFraction = 0.2f, tileFractionX = 0.6f)
         for (spec in listOf(house, tree)) {
             val v = SceneObjectRenderer.variantFor(spec)
-            assertEquals(v.baseScale * spec.scale * 0.72f * 0.6f, SceneObjectRenderer.nearScaleFor(spec, 1440f), 1e-6f)
+            val size = 0.48f + (0.74f - 0.48f) * spec.depthFraction
+            assertEquals(v.baseScale * spec.scale * size * 0.6f, SceneObjectRenderer.nearScaleFor(spec, 1440f), 1e-5f)
         }
-        assertEquals(
-            "a depth farther or nearer does not change it",
-            SceneObjectRenderer.nearScaleFor(tree, 1440f), SceneObjectRenderer.nearScaleFor(tree.copy(depthFraction = 0.95f), 1440f), 0f,
+        assertTrue(
+            "nearer in the street, larger",
+            SceneObjectRenderer.nearScaleFor(tree.copy(depthFraction = 0.95f), 1440f) > SceneObjectRenderer.nearScaleFor(tree, 1440f),
         )
+        assertEquals(
+            "the largest: 0.74 at depth 1",
+            SceneSpace.SceneVariant.TREE.baseScale * 0.74f * 0.6f, SceneObjectRenderer.nearScaleFor(tree.copy(depthFraction = 1f), 1440f), 1e-5f,
+        )
+    }
+
+    /**
+     * **A place below the road is never drawn under [SceneObjectRenderer.placeScaleFloor]**, and at the shallowest depth a
+     * place stands at (0.30, [SceneSpace.BUILDING_TOWER_MAX_DEPTH]) the floor is under the size the row gives it for all
+     * three of the places' rows, at the smallest roll a place is generated with (a random theme's, 0.82): the floor never
+     * binds on a generated street, and a building's 2.4-unit details stay 2 px or more.
+     */
+    @Test
+    fun `a place at depth 0 30 stands above the place floor for the restaurant, the school and the bar`() {
+        val depth = SceneSpace.BUILDING_TOWER_MAX_DEPTH
+        val size = SceneSpace.nearRowSizeAt(SceneSpace.nearRowFeetYFraction(depth))
+        assertEquals(0.558f, size, 1e-4f)
+        for (height in listOf(1440f, 2340f, 3200f)) {
+            for (variant in listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)) {
+                val floor = SceneObjectRenderer.placeScaleFloor(variant, height)
+                assertTrue("$variant: no floor", floor > 0f)
+                for (roll in listOf(0.82f, 1f)) {
+                    val drawn = variant.baseScale * roll * size * SceneSpace.sceneScale(height)
+                    println("NEAR_PLACE_FLOOR $variant at ${height.toInt()} px, roll $roll: drawn / floor = ${"%.3f".format(drawn / floor)}")
+                    assertTrue("$variant at ${height.toInt()} px, roll $roll: drawn $drawn under the floor $floor", drawn > floor)
+                }
+            }
+            // A real place at that depth, a restaurant's row: drawn as the row makes it, the floor not reached.
+            val place = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = depth, tileFractionX = 0.4f, scale = 0.82f)
+            assertEquals(SceneSpace.SceneVariant.RESTAURANT, SceneObjectRenderer.variantFor(place))
+            assertEquals(
+                SceneSpace.SceneVariant.RESTAURANT.baseScale * 0.82f * size * SceneSpace.sceneScale(height),
+                SceneObjectRenderer.nearScaleFor(place, height), 1e-6f,
+            )
+        }
+        // And the floor holds where a roll would take a place under it.
+        val tiny = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = depth, tileFractionX = 0.4f, scale = 0.1f)
+        assertEquals(
+            SceneObjectRenderer.placeScaleFloor(SceneSpace.SceneVariant.RESTAURANT, 1440f),
+            SceneObjectRenderer.nearScaleFor(tiny, 1440f), 0f,
+        )
+    }
+
+    /**
+     * **The plan is measured at 0.72, not at the drawn size** (decision 119; [SceneObjectCatalog.nearRowOf]): how
+     * far each object reaches, which decides what stands and which building a place deals, is its occluding boxes brought
+     * to [SceneSpace.NEAR_ROW_PLAN_SIZE], so the same objects and buildings stand there on every line. Checked on objects
+     * whose drawn size is far from 0.72 (a house at depth 0.28, drawn at about 0.55; one at 0.95, about 0.73; a place at
+     * 0.30, about 0.56), each told apart from what the drawn size would measure.
+     */
+    @Test
+    fun `the near row's plan is measured at the plan size 0 72, never at the size each is drawn at`() {
+        val specs = listOf(
+            StaticSceneObject(SceneObjectType.HOUSE, depthFraction = 0.28f, tileFractionX = 0.25f),
+            StaticSceneObject(SceneObjectType.HOUSE, depthFraction = 0.95f, tileFractionX = 0.55f, scale = 1.05f),
+            StaticSceneObject(SceneObjectType.TREE, depthFraction = 0.18f, tileFractionX = 0.7f),
+            StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = 0.30f, tileFractionX = 0.4f),
+        )
+        for (spec in specs) {
+            val measured = SceneObjectCatalog.nearExtent(spec)!!
+            val atPlan = extentAt(spec, 0.72f)
+            val atDrawn = extentAt(spec, SceneSpace.nearRowSizeAt(SceneSpace.nearRowFeetYFraction(spec.depthFraction)))
+            assertEquals("${spec.type} at ${spec.depthFraction}: left", atPlan[0], measured[0], 1e-3f)
+            assertEquals("${spec.type} at ${spec.depthFraction}: right", atPlan[1], measured[1], 1e-3f)
+            assertTrue(
+                "${spec.type} at ${spec.depthFraction}: the drawn size measures otherwise (${atDrawn[1] - atDrawn[0]} against ${measured[1] - measured[0]})",
+                Math.abs((atDrawn[1] - atDrawn[0]) - (measured[1] - measured[0])) > 0.5f,
+            )
+        }
     }
 
     private fun builtIn(id: String) = SceneObjectCatalog.layoutFor(id, ThemeCatalog.byId(id).accentColor)
@@ -185,7 +304,7 @@ class NearRowTest {
      * **On the screen** (decision 105), copy after copy along the scroll: each near place drawing what the renderer deals it,
      * read in the order the places stand, on the twelve built-in streets and on random ones -- never the same building
      * twice in a row, and never the building of a street place whose drawn width shares a pixel of the screen's width
-     * with it, measured here apart from the plan: the street's place at its depth, the near place at the near row's size.
+     * with it, measured here apart from the plan: the street's place at its depth, the near place at the near row's plan size.
      */
     @Test
     fun `below the road a building is never the one before it nor the one above it on the screen`() {
@@ -312,11 +431,15 @@ class NearRowTest {
         assertTrue(text.contains("val laneFraction = CandidateNoise.range(seed, i, CandidateNoise.CH_Y, 0.00f, 0.30f)"))
     }
 
-    private fun extent(o: StaticSceneObject): FloatArray {
+    /** How far [o] reaches left and right of its foot in the near row, as the plan measures it: at the plan size, 0.72. */
+    private fun extent(o: StaticSceneObject): FloatArray = extentAt(o, SceneSpace.NEAR_ROW_PLAN_SIZE)
+
+    /** How far [o] reaches left and right of its foot, its occluding boxes brought from its depth's projection to [size]. */
+    private fun extentAt(o: StaticSceneObject, size: Float): FloatArray {
         val boxes = SceneObjectCatalog.occluderBoxes(o)
         if (boxes.isEmpty()) return floatArrayOf(0f, 0f)
         val x = o.tileFractionX * 1080f * 2f
-        val k = SceneSpace.NEAR_ROW_SIZE / SceneSpace.depthScale(o.depthFraction)
+        val k = size / SceneSpace.depthScale(o.depthFraction)
         return floatArrayOf(boxes.minOf { it[0] - x } * k, boxes.maxOf { it[2] - x } * k)
     }
 
@@ -325,6 +448,28 @@ class NearRowTest {
         var d = (b.tileFractionX - a.tileFractionX) * tile
         d -= Math.round(d / tile) * tile
         return maxOf(0f, minOf(ea[1], d + eb[1]) - maxOf(ea[0], d + eb[0]))
+    }
+
+    /**
+     * **The meadow below the road takes the size of the line each flower or pile stands on** (decision 119): the renderer
+     * sizes them with [SceneSpace.nearRowSizeAt] of the meadow line their depth puts them on, from the meadow's top to its
+     * bottom, not the plan's fixed size. Read off the renderer as whole lines, its scatter being private; the instrumented
+     * `GroundScatterAcrossTheTileTest` measures the blits themselves.
+     */
+    @Test
+    fun `the meadow below the road is sized by the line each flower stands on`() {
+        val lines = source("SceneObjectRenderer.kt").lines().map { it.trim() }
+        assertTrue("scatterSize near", "if (near) SceneSpace.nearRowSizeAt(nearMeadowYFraction(jitterDepth))" in lines)
+        assertTrue("the meadow's line", "SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION +" in lines)
+        assertTrue(
+            "from top to bottom by depth",
+            "(SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION - SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION) * jitterDepth" in lines,
+        )
+        // The sizes it gives: smaller at the meadow's top (near the road), larger at its bottom, inside the row's two sizes.
+        val top = SceneSpace.nearRowSizeAt(SceneSpace.NEAR_MEADOW_TOP_Y_FRACTION)
+        val bottom = SceneSpace.nearRowSizeAt(SceneSpace.NEAR_MEADOW_BOTTOM_Y_FRACTION)
+        assertTrue("$top < $bottom", top < bottom)
+        assertTrue(top >= SceneSpace.NEAR_ROW_SIZE_TOP && bottom <= SceneSpace.NEAR_ROW_SIZE_BOTTOM)
     }
 
     private fun source(name: String): String {

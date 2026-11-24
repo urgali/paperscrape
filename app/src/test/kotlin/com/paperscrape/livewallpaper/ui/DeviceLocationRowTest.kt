@@ -204,6 +204,8 @@ class DeviceLocationRowTest {
         assertTrue("the app's page", page.contains("UpdateNotifier.appDetailsIntent(context)"))
         // The coordinates are not shown as GPS working when the phone does not give the position.
         assertTrue(page.contains("if (deviceRow.usesLastPosition) {"))
+        // ...and its line, with its age when known, is the rule's (`UpdateLocationRowTest`).
+        assertTrue(page.contains("supporting = SettingsUiModel.devicePositionLine("))
         // Working, and no position yet: the page says so (the Live Weather line sends the user here).
         assertTrue(page.contains("if (deviceRow.working && !hasSaved) {"))
         assertTrue(page.contains("\"No position from your phone yet\""))

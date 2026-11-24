@@ -523,6 +523,62 @@ class VehicleAndShopFrontTest {
     }
 
     /**
+     * The snow on each body's roof (decision 116) is blitted at its own viewBox minimum, as the body and the glass are,
+     * and lies on the roof: its canvas spans the roof's run from [CarShell.roofFrontXUnits] and ends above the glass, so
+     * the winter palette never covers a pane or a person behind it.
+     */
+    @Test
+    fun `every roof's snow is blitted at its own viewBox minimum, over the roof and above the glass`() {
+        for (shell in CarShell.entries) {
+            val box = viewBox(svgSource(spriteFileName(shell.bodyRes).replace(".png", "_snow.svg")).readText())
+            assertEquals("$shell snow x", box[0], shell.snowXUnits, 0.001f)
+            assertEquals("$shell snow y", box[1], shell.snowYUnits, 0.001f)
+            assertTrue("$shell: the snow starts before the roof", box[0] <= shell.roofFrontXUnits)
+            assertTrue("$shell: the snow covers the roof's run", box[0] + box[2] >= shell.roofRearXUnits)
+            assertTrue("$shell: the snow ends above the glass", box[1] + box[3] <= SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS)
+        }
+        // Drawn on every car after the glass, under the winter palette alone, and not on the fire engine's branch.
+        val body = codeLines(drawCarSource())
+        val snow = body.indexOf("if (customization.winterColorsEnabled) drawSnowSprite(canvas, shell.snowRes, shell.snowXUnits, shell.snowYUnits)")
+        val glass = body.indexOf("drawSprite(canvas, shell.glassRes, shell.glassSpriteXUnits, CAR_GLASS_SPRITE_Y_UNITS)")
+        val sign = body.indexOfFirst { it.startsWith("drawSprite(canvas, R.drawable.taxi_sign") }
+        val lightbar = body.indexOf("canvas, R.drawable.police_lightbar,")
+        assertTrue("the roof's snow is drawn", snow >= 0)
+        assertTrue("after the glass", glass in 0 until snow)
+        assertTrue("before the taxi's sign and the police light bar", snow < sign && snow < lightbar)
+    }
+
+    /**
+     * **The fire truck carries no snow on its roof** (decision 116): in `drawCar` the roof's snow is drawn inside the
+     * `else` of `if (isFireTruck)`, and `drawFireTruck` draws no snow of its own. Whole lines, comments off; the braces
+     * of the `else` counted to find where it ends.
+     */
+    @Test
+    fun `the fire truck carries no roof snow`() {
+        val body = codeLines(drawCarSource())
+        val branch = body.indexOf("if (isFireTruck) {")
+        assertTrue("drawCar's fire truck branch", branch >= 0)
+        assertEquals(
+            listOf("if (isFireTruck) {", "drawFireTruck(canvas, nightGlow)", "} else {"),
+            body.subList(branch, minOf(body.size, branch + 3)),
+        )
+        val elseAt = branch + 2
+        var depth = 1
+        var end = elseAt + 1
+        while (end < body.size) {
+            depth += body[end].count { it == '{' } - body[end].count { it == '}' }
+            if (depth <= 0) break
+            end++
+        }
+        assertTrue("the else closes", end < body.size)
+        val snow = body.indexOf("if (customization.winterColorsEnabled) drawSnowSprite(canvas, shell.snowRes, shell.snowXUnits, shell.snowYUnits)")
+        assertTrue("the roof's snow is inside the else, the cars' branch", snow in (elseAt + 1) until end)
+        assertEquals("drawn once in drawCar", 1, body.count { "drawSnowSprite(" in it })
+        val truck = codeLines(drawSource("drawFireTruck"))
+        assertTrue("drawFireTruck draws no snow", truck.none { "drawSnowSprite(" in it || "snowRes" in it || "_snow" in it })
+    }
+
+    /**
      * The lamp lenses are cards glued on the corners, mostly on the paper and slightly proud.
      *
      * One amber sprite and one red sprite are shared across the three bodies and the fire engine,
